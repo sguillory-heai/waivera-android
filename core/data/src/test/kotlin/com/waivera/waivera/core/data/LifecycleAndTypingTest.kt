@@ -122,6 +122,32 @@ class LifecycleAndTypingTest {
     }
 
     @Test
+    fun aFailedPushRegistrationIsTriedAgainOnTheNextForeground() = testScope.runTest {
+        graph.server.status("POST /api/mobile-push/register", 503)
+        graph.secureStore.values[SecureStore.FCM_TOKEN] = "token-1"
+        starter().start()
+        advanceTimeBy(600)
+        runCurrent()
+        eventually { graph.server.requestsTo("/api/mobile-push/register").size == 1 }
+
+        // IF-06: without this the device stayed unregistered until the next sign-in.
+        graph.server.fixture("POST /api/mobile-push/register", "rest-mobile-push-register.json")
+        foreground.foreground.value = true
+        runCurrent()
+        eventually { graph.server.requestsTo("/api/mobile-push/register").size == 2 }
+        eventually { graph.secureStore.values[SecureStore.PUSH_FINGERPRINT] != null }
+
+        foreground.foreground.value = false
+        runCurrent()
+        foreground.foreground.value = true
+        runCurrent()
+        connectivity.online.value = false
+        connectivity.online.value = true
+        runCurrent()
+        assertEquals(2, graph.server.requestsTo("/api/mobile-push/register").size, "registered once, then a no-op")
+    }
+
+    @Test
     fun hubEventsFlowIntoTheCache() = testScope.runTest {
         starter().start()
         runCurrent()
