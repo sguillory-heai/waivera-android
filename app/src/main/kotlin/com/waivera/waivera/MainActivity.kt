@@ -85,6 +85,7 @@ class MainActivity : ComponentActivity() {
                     openFromAccountMenu = shell::openFromAccountMenu,
                     onPrimerFinished = shell::onPrimerFinished,
                     signOut = shell::signOut,
+                    onUnopenableLinkShown = shell::onUnopenableLinkShown,
                 )
             }
             WaiveraTheme(darkTheme = darkTheme, hapticsEnabled = state.settings.hapticsEnabled) {

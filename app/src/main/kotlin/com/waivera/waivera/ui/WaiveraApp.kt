@@ -19,6 +19,8 @@ import com.waivera.waivera.navigation.ShellUiState
 import com.waivera.waivera.navigation.TopLevelTab
 
 /** What the root composable can ask of the shell ViewModel. */
+// One callback per shell entry point; grouping them would only rename the list.
+@Suppress("LongParameterList")
 class ShellActions(
     val select: (TopLevelTab) -> Unit,
     val push: (AppRoute) -> Unit,
@@ -26,6 +28,7 @@ class ShellActions(
     val openFromAccountMenu: (AppRoute) -> Unit,
     val onPrimerFinished: (Boolean) -> Unit,
     val signOut: () -> Unit,
+    val onUnopenableLinkShown: () -> Unit = {},
 )
 
 /**

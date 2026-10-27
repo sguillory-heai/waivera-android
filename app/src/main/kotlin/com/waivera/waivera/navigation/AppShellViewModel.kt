@@ -42,6 +42,8 @@ data class ShellUiState(
     val accountUserId: String? = null,
     val unreadTotal: Int = 0,
     val settingsLoaded: Boolean = false,
+    /** A link arrived that the app can't open; the shell says so once, then clears it (UI2-22). */
+    val unopenableLink: Boolean = false,
 )
 
 /**
@@ -64,6 +66,7 @@ class AppShellViewModel @Inject constructor(
 ) : ViewModel() {
 
     private val shell = MutableStateFlow(restore())
+    private val unopenableLink = MutableStateFlow(false)
     private var resumed = false
     private var lastSession: SessionState? = null
     private var reportedChat: Pair<Long, Long?>? = null
@@ -73,7 +76,8 @@ class AppShellViewModel @Inject constructor(
         settings.settings,
         session.state.map { it.currentUser }.distinctUntilChanged(),
         conversations.observeUnreadTotal(),
-    ) { shellState, appSettings, user, unread ->
+        unopenableLink,
+    ) { shellState, appSettings, user, unread, badLink ->
         ShellUiState(
             shell = shellState,
             settings = appSettings,
@@ -81,6 +85,7 @@ class AppShellViewModel @Inject constructor(
             accountUserId = user?.userId,
             unreadTotal = unread,
             settingsLoaded = true,
+            unopenableLink = badLink,
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS), ShellUiState(shell = shell.value))
 
@@ -93,14 +98,27 @@ class AppShellViewModel @Inject constructor(
             shell.collect { state ->
                 persist(state)
                 reportVisibleChat(state)
+                // A cold start shows it once the tabs appear; signing in first would make it confusing.
+                if (state.gate is AppGate.SignIn) unopenableLink.value = false
             }
         }
     }
 
-    /** A `waivera://` URI from a notification tap or a link. Unknown or malformed URIs are ignored. */
+    /**
+     * A `waivera://` URI from a notification tap or a link. Unknown or malformed URIs leave every
+     * stack as it is, but the person tapped something, so the shell says it can't be opened.
+     */
     fun onDeepLink(uri: String?) {
-        val target = DeepLinkUris.parse(uri) ?: return
+        val target = DeepLinkUris.parse(uri)
+        if (target == null) {
+            if (!uri.isNullOrBlank()) unopenableLink.value = true
+            return
+        }
         shell.update { it.onDeepLink(target) }
+    }
+
+    fun onUnopenableLinkShown() {
+        unopenableLink.value = false
     }
 
     fun onDeepLink(target: DeepLinkTarget) = shell.update { it.onDeepLink(target) }

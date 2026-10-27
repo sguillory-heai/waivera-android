@@ -127,6 +127,8 @@ class Path08DeepLinksTest : NavTourHarness() {
         launch("waivera://nowhere/7")
         expectStack(TodayRoute)
         expectScreen("Needs you")
+        // The stack stays, but the tap is acknowledged (UI2-22).
+        expectScreen("That link can't be opened in the app.")
         shot("path_08_links_07_unknown")
 
         openLink("waivera://chats/not-a-number")

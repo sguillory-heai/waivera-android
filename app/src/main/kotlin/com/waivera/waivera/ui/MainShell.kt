@@ -6,12 +6,16 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.material3.SnackbarDuration
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDecorator
@@ -22,6 +26,7 @@ import com.waivera.waivera.R
 import com.waivera.waivera.core.data.image.AvatarModel
 import com.waivera.waivera.core.designsystem.component.NavigationBarItemModel
 import com.waivera.waivera.core.designsystem.component.WaiveraNavigationBar
+import com.waivera.waivera.core.designsystem.component.WaiveraSnackbarHost
 import com.waivera.waivera.core.designsystem.icon.WaiveraIcons
 import com.waivera.waivera.core.designsystem.theme.WaiveraTheme
 import com.waivera.waivera.navigation.ShellEntry
@@ -42,6 +47,17 @@ fun MainShell(state: ShellUiState, actions: ShellActions, modifier: Modifier = M
     var accountMenuOpen by rememberSaveable { mutableStateOf(false) }
     val openAccountMenu = remember { { accountMenuOpen = true } }
     val routeActions = remember(actions) { RouteActions(actions, openAccountMenu) }
+    val snackbar = remember { SnackbarHostState() }
+    val unopenableLinkMessage = stringResource(R.string.shell_link_unopenable)
+    LaunchedEffect(state.unopenableLink) {
+        if (state.unopenableLink) {
+            try {
+                snackbar.showSnackbar(unopenableLinkMessage, duration = SnackbarDuration.Long)
+            } finally {
+                actions.onUnopenableLinkShown()
+            }
+        }
+    }
 
     Column(
         modifier = modifier
@@ -67,6 +83,7 @@ fun MainShell(state: ShellUiState, actions: ShellActions, modifier: Modifier = M
                     }
                 },
             )
+            WaiveraSnackbarHost(hostState = snackbar, modifier = Modifier.align(Alignment.BottomCenter))
         }
         if (nav.top.isTabRoot) {
             WaiveraNavigationBar(
