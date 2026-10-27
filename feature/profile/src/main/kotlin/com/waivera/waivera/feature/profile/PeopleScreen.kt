@@ -93,7 +93,7 @@ internal fun PeopleContent(
         if (showsRefreshFailed(state.connection, state.error != null && state.phase == ListPhase.Content)) {
             WaiveraBanner(
                 message = stringResource(R.string.feature_profile_people_refresh_failed),
-                tone = BannerTone.Error,
+                tone = BannerTone.Warning,
                 actionLabel = stringResource(R.string.feature_profile_try_again),
                 onAction = onRefresh,
             )

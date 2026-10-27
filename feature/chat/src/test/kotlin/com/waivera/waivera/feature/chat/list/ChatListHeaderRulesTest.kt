@@ -4,6 +4,8 @@ import com.waivera.waivera.core.designsystem.component.ConnectionBannerState
 import com.waivera.waivera.core.network.error.WaiveraError
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
+import kotlin.test.assertTrue
 
 /** One connection signal per screen: which banner the inbox header shows for each state. */
 class ChatListHeaderRulesTest {
@@ -37,5 +39,23 @@ class ChatListHeaderRulesTest {
             connection = ConnectionUi.Offline,
         )
         assertEquals(ConnectionBannerState.Connected, connectionBannerState(error))
+    }
+
+    @Test
+    fun `online never shows a pill, connecting does when nothing else is up`() {
+        fun pill(state: ChatListUiState) = showsConnectingPill(state, connectionBannerState(state))
+        assertFalse(pill(rows.copy(connection = ConnectionUi.Online)), "the normal state isn't news")
+        assertTrue(pill(rows.copy(connection = ConnectionUi.Connecting)))
+        assertFalse(pill(rows.copy(connection = ConnectionUi.Offline)), "the banner owns offline")
+        assertFalse(
+            pill(
+                rows.copy(connection = ConnectionUi.Connecting, refreshErrorRes = WaiveraError.Server(500).messageRes),
+            ),
+            "the refresh banner is already up",
+        )
+        assertFalse(
+            pill(ChatListUiState(content = ChatListContent.Error(WaiveraError.Network().messageRes))),
+            "the full-screen error owns the message",
+        )
     }
 }

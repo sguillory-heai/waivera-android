@@ -155,10 +155,11 @@ fun ChatListContent(
 }
 
 /**
- * One connection signal at a time (UI review UI-04): the banner while offline or reconnecting,
- * otherwise the quiet pill, and "Connecting" only once start-up takes longer than
- * [CONNECTING_PILL_DELAY_MILLIS]. A refresh failure while offline is folded into the offline
- * banner, and a full-screen load error owns the message on its own.
+ * One connection signal at a time (UI review UI-04, UI2-02, UI2-11): the banner while offline or
+ * reconnecting; a healthy connection shows nothing, and the quiet "Connecting" pill appears only
+ * once start-up takes longer than [CONNECTING_PILL_DELAY_MILLIS] and nothing else is showing. A
+ * refresh failure while offline is folded into the offline banner, and a full-screen load error
+ * owns the message on its own.
  */
 @Composable
 private fun Header(state: ChatListUiState, actions: ChatListActions) {
@@ -170,7 +171,7 @@ private fun Header(state: ChatListUiState, actions: ChatListActions) {
             .padding(vertical = WaiveraSpacing.Small),
         verticalArrangement = Arrangement.spacedBy(WaiveraSpacing.MediumSmall),
     ) {
-        if (bannerState == ConnectionBannerState.Connected) {
+        if (showsConnectingPill(state, bannerState)) {
             ConnectionStatus(state.connection, Modifier.padding(horizontal = WaiveraSpacing.Gutter))
         }
         ConnectionBanner(
@@ -186,7 +187,8 @@ private fun Header(state: ChatListUiState, actions: ChatListActions) {
         if (refreshErrorRes != null && bannerState == ConnectionBannerState.Connected) {
             WaiveraBanner(
                 message = stringResource(R.string.feature_chat_list_refresh_failed, stringResource(refreshErrorRes)),
-                tone = BannerTone.Error,
+                // Saved rows are still on screen: a warning, not a failure of something the person did.
+                tone = BannerTone.Warning,
                 actionLabel = stringResource(R.string.feature_chat_list_retry),
                 onAction = actions.onRetryLoad,
             )
@@ -205,17 +207,22 @@ private fun Header(state: ChatListUiState, actions: ChatListActions) {
     }
 }
 
-/** The pill for a healthy or starting connection; "Connecting" waits out a normal start-up. */
+/** "Online" is the normal state and isn't news; only a start-up still connecting gets the pill. */
+internal fun showsConnectingPill(state: ChatListUiState, bannerState: ConnectionBannerState): Boolean =
+    state.connection == ConnectionUi.Connecting &&
+        bannerState == ConnectionBannerState.Connected &&
+        state.refreshErrorRes == null &&
+        state.content !is ChatListContent.Error
+
+/** The "Connecting" pill, after it has waited out a normal start-up. */
 @Composable
 private fun ConnectionStatus(connection: ConnectionUi, modifier: Modifier = Modifier) {
     val slowStart by produceState(initialValue = false, connection) {
         value = false
-        if (connection == ConnectionUi.Connecting) {
-            delay(CONNECTING_PILL_DELAY_MILLIS)
-            value = true
-        }
+        delay(CONNECTING_PILL_DELAY_MILLIS)
+        value = true
     }
-    if (connection != ConnectionUi.Connecting || slowStart) ConnectionPill(connection, modifier)
+    if (slowStart) ConnectionPill(connection, modifier)
 }
 
 /** The banner owns offline and reconnecting, except when the full-screen error already says so. */

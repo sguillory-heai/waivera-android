@@ -158,7 +158,7 @@ private fun ProfileBody(
         if (showsRefreshFailed(state.connection, state.detailsRefreshError != null)) {
             WaiveraBanner(
                 message = stringResource(R.string.feature_profile_refresh_failed),
-                tone = BannerTone.Error,
+                tone = BannerTone.Warning,
                 actionLabel = stringResource(R.string.feature_profile_try_again),
                 onAction = onRefresh,
             )

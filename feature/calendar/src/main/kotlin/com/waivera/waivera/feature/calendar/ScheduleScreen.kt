@@ -224,7 +224,8 @@ private fun ScheduleBanners(state: ScheduleUiState, actions: ScheduleActions) {
             )
             state.feedError != null -> WaiveraBanner(
                 message = stringResource(R.string.feature_calendar_feed_refresh_failed),
-                tone = BannerTone.Error,
+                // The saved schedule is still on screen, so this is a warning; red is for a failed action.
+                tone = BannerTone.Warning,
                 actionLabel = retry,
                 onAction = actions.onRetry,
                 modifier = bannerModifier,
