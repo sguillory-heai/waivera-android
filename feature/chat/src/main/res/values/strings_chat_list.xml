@@ -3,7 +3,6 @@
 <resources>
     <string name="feature_chat_list_title">Chats</string>
     <string name="feature_chat_list_new_chat">Start a new chat</string>
-    <string name="feature_chat_list_account">Your account</string>
 
     <string name="feature_chat_list_status_online">Online</string>
     <string name="feature_chat_list_status_connecting">Connecting</string>
@@ -20,15 +19,16 @@
     <string name="feature_chat_list_empty_search_title">No matches</string>
     <string name="feature_chat_list_empty_search">No conversations match your search.</string>
     <string name="feature_chat_list_empty_unread_title">All caught up</string>
-    <string name="feature_chat_list_empty_unread">You\'re all caught up.</string>
+    <string name="feature_chat_list_empty_unread">New messages will show up here.</string>
     <string name="feature_chat_list_empty_channels_title">No channels</string>
-    <string name="feature_chat_list_empty_channels">No channels found.</string>
+    <string name="feature_chat_list_empty_channels">Channels your team adds will show up here.</string>
     <string name="feature_chat_list_empty_title">No conversations yet</string>
-    <string name="feature_chat_list_empty">No conversations yet.</string>
+    <string name="feature_chat_list_empty">Start a chat with a coworker or join a channel.</string>
     <string name="feature_chat_list_empty_action">Start a chat</string>
-    <string name="feature_chat_list_error_title">Unable to load conversations.</string>
+    <string name="feature_chat_list_error_title">Conversations didn\'t load</string>
     <string name="feature_chat_list_retry">Retry</string>
     <string name="feature_chat_list_refresh_failed">Showing saved conversations. %1$s</string>
+    <string name="feature_chat_list_offline_saved">Showing your saved conversations. New messages arrive when you\'re back online.</string>
     <string name="feature_chat_list_loading">Loading conversations</string>
 
     <string name="feature_chat_list_preview_none">No messages yet</string>
@@ -74,6 +74,11 @@
     <string name="feature_chat_newchat_title">New chat</string>
     <string name="feature_chat_newchat_subtitle">Select one person for a direct message or several for a group.</string>
     <string name="feature_chat_newchat_search_label">Search staff</string>
+    <string name="feature_chat_newchat_search_placeholder">Type a name</string>
+    <string name="feature_chat_newchat_load_error_title">Coworkers didn\'t load</string>
+    <string name="feature_chat_newchat_create_conflict">That chat couldn\'t be started just now. Try again in a moment.</string>
+    <string name="feature_chat_newchat_opening">Opening chat…</string>
+    <string name="feature_chat_newchat_creating">Creating group…</string>
     <plurals name="feature_chat_newchat_selected">
         <item quantity="one">%d selected</item>
         <item quantity="other">%d selected</item>

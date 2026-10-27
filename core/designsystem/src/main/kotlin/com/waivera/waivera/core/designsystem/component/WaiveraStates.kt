@@ -52,7 +52,10 @@ fun WaiveraEmptyState(
     )
 }
 
-/** Error state with a user-facing message (never raw server text) and a retry action. */
+/**
+ * Error state with a user-facing message (never raw server text) and a retry action. The icon
+ * sits on the danger container, so an error never looks like an empty state at a glance.
+ */
 @Composable
 fun WaiveraErrorState(
     message: String,
@@ -67,6 +70,7 @@ fun WaiveraErrorState(
         icon = WaiveraIcons.Error,
         actionLabel = stringResource(R.string.core_designsystem_try_again),
         onAction = onRetry,
+        tone = StateTone.Error,
     )
 }
 
@@ -103,6 +107,8 @@ fun WaiveraLoadingScreen(modifier: Modifier = Modifier) {
     }
 }
 
+private enum class StateTone { Neutral, Error }
+
 @Composable
 private fun StateBlock(
     title: String,
@@ -111,8 +117,11 @@ private fun StateBlock(
     @DrawableRes icon: Int?,
     actionLabel: String?,
     onAction: (() -> Unit)?,
+    tone: StateTone = StateTone.Neutral,
 ) {
     val colors = WaiveraTheme.colors
+    val tileContainer = if (tone == StateTone.Error) colors.dangerContainer else colors.accentSoft
+    val tileContent = if (tone == StateTone.Error) colors.onDangerContainer else colors.onAccentSoft
     Column(
         modifier = modifier
             .fillMaxWidth()
@@ -124,13 +133,13 @@ private fun StateBlock(
             Box(
                 modifier = Modifier
                     .size(WaiveraSizes.StateIconTile)
-                    .background(colors.accentSoft, WaiveraShapes.Button),
+                    .background(tileContainer, WaiveraShapes.Button),
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(
                     painterResource(icon),
                     contentDescription = null,
-                    tint = colors.onAccentSoft,
+                    tint = tileContent,
                     modifier = Modifier.size(WaiveraSizes.Icon),
                 )
             }

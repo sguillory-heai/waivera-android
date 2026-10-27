@@ -1,9 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="feature_today_today_title">Today</string>
-    <string name="feature_today_account_name">Your account</string>
     <string name="feature_today_loading">Loading today</string>
-    <string name="feature_today_error_title">Today couldn\'t load</string>
+    <string name="feature_today_error_title">Today didn\'t load</string>
 
     <!-- Staleness: shown only when the data on screen is out of date. -->
     <string name="feature_today_stale_minutes">Updated %1$d min ago</string>
@@ -25,7 +24,7 @@
         <item quantity="other">Show %d more</item>
     </plurals>
     <string name="feature_today_needs_you_show_less">Show less</string>
-    <string name="feature_today_needs_you_failed">Messages couldn\'t load.</string>
+    <string name="feature_today_needs_you_failed">Messages didn\'t load.</string>
     <string name="feature_today_dm_fallback_name">Direct message</string>
     <string name="feature_today_dm_a11y">%1$s, %2$s, %3$s</string>
     <string name="feature_today_kind_mention">Mention</string>
@@ -87,7 +86,7 @@
 
     <!-- Next up -->
     <string name="feature_today_next_up_empty">Nothing else on your schedule for the next two weeks.</string>
-    <string name="feature_today_next_up_failed">Your schedule couldn\'t load.</string>
+    <string name="feature_today_next_up_failed">Your schedule didn\'t load.</string>
     <string name="feature_today_happening_now_a11y">Happening now</string>
 
     <!-- Celebrations -->
@@ -95,7 +94,7 @@
     <string name="feature_today_celebration_birthday">It\'s %1$s\'s birthday today!</string>
     <string name="feature_today_celebration_anniversary">Celebrating %1$s\'s %2$d-year work anniversary!</string>
     <string name="feature_today_celebration_both">It\'s %1$s\'s birthday and %2$d-year work anniversary!</string>
-    <string name="feature_today_milestones_failed">Celebrations couldn\'t load.</string>
+    <string name="feature_today_milestones_failed">Celebrations didn\'t load.</string>
 
     <!-- All caught up: the one celebrated empty state -->
     <string name="feature_today_all_caught_up_title">You\'re all caught up</string>
@@ -130,8 +129,8 @@
     <string name="feature_today_activity_empty_message">New mentions, reactions, and thread replies will appear here.</string>
     <string name="feature_today_activity_filtered_title">No activity matches</string>
     <string name="feature_today_activity_filtered_message">Try another filter.</string>
-    <string name="feature_today_activity_failed">Activity couldn\'t load.</string>
-    <string name="feature_today_activity_more_failed">More activity couldn\'t load.</string>
+    <string name="feature_today_activity_failed">Activity didn\'t load.</string>
+    <string name="feature_today_activity_more_failed">More activity didn\'t load.</string>
     <string name="feature_today_activity_loading_more">Loading more activity</string>
 
     <!-- Snackbars -->

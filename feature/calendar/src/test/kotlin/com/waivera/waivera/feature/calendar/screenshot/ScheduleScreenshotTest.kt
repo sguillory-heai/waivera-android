@@ -91,8 +91,27 @@ class ScheduleScreenshotTest {
     @Test
     fun error() {
         val range = SchedulePeriods.rangeFor(ScheduleView.MONTH, today)
-        val failed = Synced(ScheduleFeed(range, zone.id), SyncStatus.Failed(WaiveraError.Network()))
+        val failed = Synced(ScheduleFeed(range, zone.id), SyncStatus.Failed(WaiveraError.Server(SERVER_ERROR)))
         capture("schedule_error", state(synced = failed))
+    }
+
+    /** The first load failed while offline: one error banner above the grid, no offline banner. */
+    @Test
+    fun errorWhileOffline() {
+        val range = SchedulePeriods.rangeFor(ScheduleView.MONTH, today)
+        val failed = Synced(ScheduleFeed(range, zone.id), SyncStatus.Failed(WaiveraError.Network()))
+        capture("schedule_errorOffline", state(synced = failed, isOffline = true))
+    }
+
+    /** Online, the refresh failed, the saved week is still shown under the banner. */
+    @Test
+    fun refreshFailed() {
+        val stale = Synced(
+            feed(ScheduleView.WEEK, today),
+            SyncStatus.Failed(WaiveraError.Server(SERVER_ERROR)),
+            lastSyncedAt = DemoData.NOW.minusSeconds(STALE_SECONDS),
+        )
+        capture("schedule_refreshFailed", state(view = ScheduleView.WEEK, synced = stale))
     }
 
     @Test
@@ -114,5 +133,6 @@ class ScheduleScreenshotTest {
 
     private companion object {
         const val STALE_SECONDS = 3_600L
+        const val SERVER_ERROR = 503
     }
 }

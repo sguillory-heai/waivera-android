@@ -1,7 +1,5 @@
 package com.waivera.waivera.feature.auth
 
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -18,7 +16,6 @@ import com.waivera.waivera.core.designsystem.component.WaiveraButtonVariant
 import com.waivera.waivera.core.designsystem.feedback.rememberHaptics
 import com.waivera.waivera.core.designsystem.icon.WaiveraIcons
 import com.waivera.waivera.core.designsystem.preview.WaiveraPreviews
-import com.waivera.waivera.core.designsystem.theme.WaiveraSpacing
 import com.waivera.waivera.core.designsystem.theme.WaiveraTheme
 import com.waivera.waivera.core.network.R as NetworkR
 
@@ -41,7 +38,18 @@ internal fun BootstrapFailedContent(
     onSignOut: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    AuthScaffold(modifier = modifier) {
+    AuthScaffold(
+        modifier = modifier,
+        bottomBar = {
+            GateActions(
+                primaryLabel = stringResource(R.string.feature_auth_try_again),
+                primaryLoading = state.retrying,
+                primaryLoadingLabel = stringResource(R.string.feature_auth_retrying),
+                onPrimary = onRetry,
+                onSignOut = onSignOut,
+            )
+        },
+    ) {
         AuthHeader(
             title = stringResource(
                 if (state.isOffline) {
@@ -53,13 +61,7 @@ internal fun BootstrapFailedContent(
             message = stringResource(state.message),
             icon = if (state.isOffline) WaiveraIcons.CloudOff else WaiveraIcons.Error,
         )
-        GateActions(
-            help = stringResource(R.string.feature_auth_bootstrap_help),
-            primaryLabel = stringResource(R.string.feature_auth_try_again),
-            primaryLoading = state.retrying,
-            onPrimary = onRetry,
-            onSignOut = onSignOut,
-        )
+        GateHelp(stringResource(R.string.feature_auth_bootstrap_help))
     }
 }
 
@@ -88,7 +90,18 @@ internal fun OnboardingRequiredContent(
     onSignOut: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    AuthScaffold(modifier = modifier) {
+    AuthScaffold(
+        modifier = modifier,
+        bottomBar = {
+            GateActions(
+                primaryLabel = stringResource(R.string.feature_auth_onboarding_check),
+                primaryLoading = state.checking,
+                primaryLoadingLabel = stringResource(R.string.feature_auth_checking),
+                onPrimary = onCheckAgain,
+                onSignOut = onSignOut,
+            )
+        },
+    ) {
         AuthHeader(
             title = stringResource(R.string.feature_auth_onboarding_title),
             message = stringResource(R.string.feature_auth_onboarding_message),
@@ -103,40 +116,45 @@ internal fun OnboardingRequiredContent(
         AuthAnimatedVisibility(visible = state.errorMessage != null) {
             state.errorMessage?.let { WaiveraBanner(message = stringResource(it), tone = BannerTone.Error) }
         }
-        GateActions(
-            help = stringResource(R.string.feature_auth_onboarding_help),
-            primaryLabel = stringResource(R.string.feature_auth_onboarding_check),
-            primaryLoading = state.checking,
-            onPrimary = onCheckAgain,
-            onSignOut = onSignOut,
-        )
+        GateHelp(stringResource(R.string.feature_auth_onboarding_help))
     }
 }
 
 @Composable
-private fun GateActions(
-    help: String,
-    primaryLabel: String,
-    primaryLoading: Boolean,
-    onPrimary: () -> Unit,
-    onSignOut: () -> Unit,
-) {
-    Column(
+private fun GateHelp(help: String) {
+    Text(
+        text = help,
+        style = MaterialTheme.typography.bodyMedium,
+        color = WaiveraTheme.colors.textSecondary,
         modifier = Modifier
             .fillMaxWidth()
             .then(GutterPadding),
-        verticalArrangement = Arrangement.spacedBy(WaiveraSpacing.Medium),
-    ) {
-        Text(text = help, style = MaterialTheme.typography.bodyMedium, color = WaiveraTheme.colors.textSecondary)
-        WaiveraButton(text = primaryLabel, onClick = onPrimary, loading = primaryLoading, fullWidth = true)
-        WaiveraButton(
-            text = stringResource(R.string.feature_auth_sign_out),
-            onClick = onSignOut,
-            variant = WaiveraButtonVariant.Text,
-            enabled = !primaryLoading,
-            fullWidth = true,
-        )
-    }
+    )
+}
+
+/** The gate's primary action and sign-out, pinned in the scaffold's bottom bar. */
+@Composable
+private fun GateActions(
+    primaryLabel: String,
+    primaryLoading: Boolean,
+    primaryLoadingLabel: String,
+    onPrimary: () -> Unit,
+    onSignOut: () -> Unit,
+) {
+    WaiveraButton(
+        text = primaryLabel,
+        onClick = onPrimary,
+        loading = primaryLoading,
+        loadingText = primaryLoadingLabel,
+        fullWidth = true,
+    )
+    WaiveraButton(
+        text = stringResource(R.string.feature_auth_sign_out),
+        onClick = onSignOut,
+        variant = WaiveraButtonVariant.Text,
+        enabled = !primaryLoading,
+        fullWidth = true,
+    )
 }
 
 @WaiveraPreviews

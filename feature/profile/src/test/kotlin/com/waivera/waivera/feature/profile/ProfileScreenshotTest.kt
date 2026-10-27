@@ -10,6 +10,7 @@ import com.waivera.waivera.core.demo.DemoData
 import com.waivera.waivera.core.demo.DemoGraph
 import com.waivera.waivera.core.designsystem.component.ConnectionBannerState
 import com.waivera.waivera.core.network.error.WaiveraError
+import com.waivera.waivera.core.screenshottesting.ScreenshotHeights
 import com.waivera.waivera.core.screenshottesting.ScreenshotSdk
 import com.waivera.waivera.core.screenshottesting.captureScreenshots
 import kotlinx.coroutines.CoroutineScope
@@ -40,7 +41,11 @@ class ProfileScreenshotTest {
     @After
     fun tearDown() = scope.cancel()
 
-    private fun capture(name: String, content: @Composable () -> Unit) = captureScreenshots(name) {
+    private fun capture(
+        name: String,
+        heightDp: Int? = null,
+        content: @Composable () -> Unit,
+    ) = captureScreenshots(name, heightDp = heightDp) {
         // Avatars stay on initials: an async image decode would make captures racy.
         CompositionLocalProvider(LocalSkeletonDelayMillis provides 0L) { content() }
     }
@@ -100,8 +105,9 @@ class ProfileScreenshotTest {
         Profile(ready(connection = ConnectionBannerState.Offline, refreshError = WaiveraError.Network()))
     }
 
+    // Tall window: the failed sections are below the first screen of the profile.
     @Test
-    fun profileSectionErrors() = capture("profile_section_errors") {
+    fun profileSectionErrors() = capture("profile_section_errors", heightDp = ScreenshotHeights.TALL_DP) {
         Profile(
             ready().copy(
                 timeOff = Section.Failed(WaiveraError.Timeout()),
@@ -178,7 +184,19 @@ class ProfileScreenshotTest {
 
     @Test
     fun peopleError() = capture("people_error") {
-        People(PeopleUiState(phase = ListPhase.Error, error = WaiveraError.Network()))
+        People(PeopleUiState(phase = ListPhase.Error, error = WaiveraError.Server(500)))
+    }
+
+    // Offline with nothing cached: the error state alone, no offline banner on top of it.
+    @Test
+    fun peopleErrorOffline() = capture("people_error_offline") {
+        People(
+            PeopleUiState(
+                phase = ListPhase.Error,
+                error = WaiveraError.Network(),
+                connection = ConnectionBannerState.Offline,
+            ),
+        )
     }
 
     @Test

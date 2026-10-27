@@ -12,6 +12,7 @@ import com.waivera.waivera.core.data.model.Synced
 import com.waivera.waivera.core.demo.DemoData
 import com.waivera.waivera.core.network.error.WaiveraError
 import com.waivera.waivera.core.realtime.ConnectionState
+import com.waivera.waivera.core.screenshottesting.ScreenshotHeights
 import com.waivera.waivera.core.screenshottesting.ScreenshotSdk
 import com.waivera.waivera.core.screenshottesting.captureScreenshots
 import com.waivera.waivera.feature.today.activity
@@ -71,10 +72,10 @@ class TodayScreenshotTest {
         TodayContext("Alex Rivera", DemoData.ME, DemoData.ZONE, now, realtime, local),
     )
 
-    private fun capture(name: String, content: @Composable () -> Unit) =
-        captureScreenshots("today_$name", content = content)
+    private fun capture(name: String, heightDp: Int? = null, content: @Composable () -> Unit) =
+        captureScreenshots("today_$name", heightDp = heightDp, content = content)
 
-    private fun captureState(name: String, state: TodayUiState) = capture(name) {
+    private fun captureState(name: String, state: TodayUiState, heightDp: Int? = null) = capture(name, heightDp) {
         TodayContent(state = state, callbacks = TodayPreviewStates.callbacks())
     }
 
@@ -101,7 +102,8 @@ class TodayScreenshotTest {
 
     @Test
     fun error() {
-        val failed = SyncStatus.Failed(WaiveraError.Network())
+        // A server failure: the error copy says Waivera is having trouble, not "you're offline".
+        val failed = SyncStatus.Failed(WaiveraError.Server(WaiveraError.HTTP_SERVER_ERROR))
         captureState(
             "error",
             state(
@@ -132,6 +134,7 @@ class TodayScreenshotTest {
 
     @Test
     fun sectionsFailed() {
+        // Tall window: the failed Celebrations and Activity rows sit below the first screen.
         val failed = SyncStatus.Failed(WaiveraError.Timeout())
         val demo = demoSources()
         captureState(
@@ -144,6 +147,7 @@ class TodayScreenshotTest {
                 ),
                 local = TodayLocalState(loadMoreFailed = true),
             ),
+            heightDp = ScreenshotHeights.TALL_DP,
         )
     }
 
@@ -156,6 +160,8 @@ class TodayScreenshotTest {
         captureState(
             "activity_filtered_empty",
             state(sources = demo.copy(activity = allRead), local = TodayLocalState(unreadOnly = true)),
+            // The filtered-empty block is the last section: a tall window keeps it in the image.
+            heightDp = ScreenshotHeights.TALL_DP,
         )
     }
 

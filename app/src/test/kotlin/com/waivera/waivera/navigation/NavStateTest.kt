@@ -131,4 +131,22 @@ class NavStateTest {
         val fromProfile = NavState().push(ProfileRoute).pushOver(ProfileRoute, SettingsRoute)
         assertEquals(listOf(TodayRoute, ProfileRoute, SettingsRoute), fromProfile.stack(TopLevelTab.Today))
     }
+
+    @Test
+    fun openingTheConversationAlreadyOnTopOfAnotherTabChangesNothing() {
+        // Opened from Today's "Needs you", then a push for the same conversation arrives.
+        val state = NavState().push(ConversationRoute(42))
+        assertSame(state, state.open(DeepLinkTarget.Conversation(42)))
+        assertEquals(TopLevelTab.Today, state.open(DeepLinkTarget.Conversation(42)).selected)
+    }
+
+    @Test
+    fun aNewHighlightOnTheOpenConversationStaysOnItsTab() {
+        val state = NavState().push(ConversationRoute(42))
+        val next = state.open(DeepLinkTarget.Conversation(42, messageId = 101))
+        assertEquals(TopLevelTab.Today, next.selected)
+        assertEquals(state.stack(TopLevelTab.Today).size, next.stack(TopLevelTab.Today).size)
+        assertEquals(101L, next.top.highlightedMessageId)
+        assertEquals(state.stack(TopLevelTab.Chat), next.stack(TopLevelTab.Chat))
+    }
 }

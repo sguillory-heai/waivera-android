@@ -58,6 +58,10 @@ data class WaiveraColors(
     val presenceAway: Color,
     val presenceOffline: Color,
     val scrim: Color,
+    /** Resting skeleton bone; the static frame when motion is reduced. At least 1.3:1 on background. */
+    val skeletonBase: Color,
+    /** The other end of the skeleton pulse. */
+    val skeletonHighlight: Color,
 )
 
 internal val LightWaiveraColors = WaiveraColors(
@@ -104,6 +108,8 @@ internal val LightWaiveraColors = WaiveraColors(
     presenceAway = WaiveraPalette.WarningLight,
     presenceOffline = WaiveraPalette.TextSecondaryLight,
     scrim = WaiveraPalette.Black.copy(alpha = WaiveraPalette.SCRIM_ALPHA),
+    skeletonBase = WaiveraPalette.SkeletonBaseLight,
+    skeletonHighlight = WaiveraPalette.SkeletonHighlightLight,
 )
 
 internal val DarkWaiveraColors = WaiveraColors(
@@ -150,6 +156,8 @@ internal val DarkWaiveraColors = WaiveraColors(
     presenceAway = WaiveraPalette.WarningDark,
     presenceOffline = WaiveraPalette.TextSecondaryDark,
     scrim = WaiveraPalette.Black.copy(alpha = WaiveraPalette.SCRIM_ALPHA),
+    skeletonBase = WaiveraPalette.SkeletonBaseDark,
+    skeletonHighlight = WaiveraPalette.SkeletonHighlightDark,
 )
 
 /** Resolves the colour set for a theme. Exposed for screenshot tests and the app's window colours. */

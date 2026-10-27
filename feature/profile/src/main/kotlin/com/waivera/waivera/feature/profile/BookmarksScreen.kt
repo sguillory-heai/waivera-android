@@ -34,15 +34,14 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.waivera.waivera.core.designsystem.component.BadgeTone
 import com.waivera.waivera.core.designsystem.component.BannerTone
 import com.waivera.waivera.core.designsystem.component.ConnectionBanner
 import com.waivera.waivera.core.designsystem.component.SkeletonList
+import com.waivera.waivera.core.designsystem.component.WaiveraAvatar
 import com.waivera.waivera.core.designsystem.component.WaiveraBanner
 import com.waivera.waivera.core.designsystem.component.WaiveraEmptyState
 import com.waivera.waivera.core.designsystem.component.WaiveraErrorState
 import com.waivera.waivera.core.designsystem.component.WaiveraIconButton
-import com.waivera.waivera.core.designsystem.component.WaiveraIconTile
 import com.waivera.waivera.core.designsystem.component.WaiveraPressable
 import com.waivera.waivera.core.designsystem.component.WaiveraSnackbarHost
 import com.waivera.waivera.core.designsystem.component.WaiveraStatusBadge
@@ -129,14 +128,18 @@ internal fun BookmarksContent(
     Box(modifier = modifier.fillMaxSize().background(WaiveraTheme.colors.background)) {
         Column(modifier = Modifier.fillMaxSize()) {
             WaiveraTopBar(title = stringResource(R.string.feature_profile_bookmarks_title), onBack = onBack)
-            ConnectionBanner(state = state.connection, onRetry = onRetryConnection)
+            ConnectionBanner(
+                state = bannerFor(state.connection, showsLoadError = state.phase == ListPhase.Error),
+                onRetry = onRetryConnection,
+                offlineMessage = stringResource(R.string.feature_profile_bookmarks_offline_saved),
+            )
             ProfileSearchField(
                 value = state.query,
                 onValueChange = onQueryChange,
                 placeholder = stringResource(R.string.feature_profile_bookmarks_search),
                 clearDescription = stringResource(R.string.feature_profile_bookmarks_search_clear),
             )
-            if (state.error != null && state.phase == ListPhase.Content) {
+            if (showsRefreshFailed(state.connection, state.error != null && state.phase == ListPhase.Content)) {
                 WaiveraBanner(
                     message = stringResource(R.string.feature_profile_bookmarks_refresh_failed),
                     tone = BannerTone.Error,
@@ -262,7 +265,8 @@ private fun BookmarkCard(
             horizontalArrangement = Arrangement.spacedBy(WaiveraSpacing.MediumSmall),
             verticalAlignment = Alignment.Top,
         ) {
-            WaiveraIconTile(icon = WaiveraIcons.Bookmark)
+            // Every row here is saved, so the row leads with who wrote it, like other message lists.
+            WaiveraAvatar(name = author, contentDescription = null)
             Column(
                 modifier = Modifier.weight(1f),
                 verticalArrangement = Arrangement.spacedBy(WaiveraSpacing.ExtraSmall),
@@ -282,14 +286,8 @@ private fun BookmarkCard(
                     maxLines = PREVIEW_LINES,
                     overflow = TextOverflow.Ellipsis,
                 )
-                Row(horizontalArrangement = Arrangement.spacedBy(WaiveraSpacing.ExtraSmall)) {
-                    if (row.isThreadReply) {
-                        WaiveraStatusBadge(text = stringResource(R.string.feature_profile_bookmarks_thread_reply))
-                    }
-                    WaiveraStatusBadge(
-                        text = stringResource(R.string.feature_profile_bookmarks_saved),
-                        tone = BadgeTone.Accent,
-                    )
+                if (row.isThreadReply) {
+                    WaiveraStatusBadge(text = stringResource(R.string.feature_profile_bookmarks_thread_reply))
                 }
             }
             WaiveraIconButton(

@@ -5,24 +5,25 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.clearAndSetSemantics
@@ -39,20 +40,16 @@ import com.waivera.waivera.core.designsystem.component.BannerTone
 import com.waivera.waivera.core.designsystem.component.SkeletonListRow
 import com.waivera.waivera.core.designsystem.component.TopBarAction
 import com.waivera.waivera.core.designsystem.component.WaiveraBanner
-import com.waivera.waivera.core.designsystem.component.WaiveraButton
-import com.waivera.waivera.core.designsystem.component.WaiveraButtonVariant
 import com.waivera.waivera.core.designsystem.component.WaiveraEmptyState
-import com.waivera.waivera.core.designsystem.component.WaiveraErrorState
 import com.waivera.waivera.core.designsystem.component.WaiveraIconButton
 import com.waivera.waivera.core.designsystem.component.WaiveraSegmentedControl
 import com.waivera.waivera.core.designsystem.component.WaiveraStatusBadge
 import com.waivera.waivera.core.designsystem.component.WaiveraTopBar
-import com.waivera.waivera.core.designsystem.component.rememberSkeletonAlpha
+import com.waivera.waivera.core.designsystem.component.rememberSkeletonPulse
 import com.waivera.waivera.core.designsystem.component.rememberSkeletonVisible
 import com.waivera.waivera.core.designsystem.component.rememberTopBarAccount
 import com.waivera.waivera.core.designsystem.icon.WaiveraIcons
 import com.waivera.waivera.core.designsystem.preview.WaiveraPreviews
-import com.waivera.waivera.core.designsystem.theme.WaiveraSizes
 import com.waivera.waivera.core.designsystem.theme.WaiveraSpacing
 import com.waivera.waivera.core.designsystem.theme.WaiveraTheme
 import com.waivera.waivera.feature.calendar.model.ScheduleText
@@ -63,6 +60,7 @@ import com.waivera.waivera.feature.calendar.schedule.ScheduleGrid
 import com.waivera.waivera.feature.calendar.schedule.SchedulePreviewData
 import com.waivera.waivera.feature.calendar.schedule.ScheduleUiState
 import com.waivera.waivera.feature.calendar.schedule.ScheduleViewModel
+import com.waivera.waivera.feature.calendar.schedule.usesCompactCalendar
 import com.waivera.waivera.feature.calendar.ui.CalendarIcons
 import com.waivera.waivera.feature.calendar.ui.currentLocale
 import com.waivera.waivera.feature.calendar.ui.periodTitleText
@@ -80,6 +78,7 @@ fun ScheduleScreen(onAccountClick: () -> Unit, onOpenEvent: (eventId: String) ->
         viewModel.onResume()
         onPauseOrDispose { }
     }
+    PreferWeekAtLargeFont(view = state.view, onSelectView = viewModel::selectView)
     ScheduleContent(
         state = state,
         actions = ScheduleActions(
@@ -122,8 +121,12 @@ fun ScheduleContent(state: ScheduleUiState, actions: ScheduleActions, modifier: 
     ) {
         WaiveraTopBar(
             title = stringResource(R.string.feature_calendar_schedule_title),
-            subtitle = stringResource(R.string.feature_calendar_schedule_subtitle),
             actions = listOf(
+                TopBarAction(
+                    icon = WaiveraIcons.Today,
+                    contentDescription = stringResource(R.string.feature_calendar_go_to_today),
+                    onClick = actions.onToday,
+                ),
                 TopBarAction(
                     icon = WaiveraIcons.Refresh,
                     contentDescription = stringResource(R.string.feature_calendar_refresh),
@@ -132,7 +135,7 @@ fun ScheduleContent(state: ScheduleUiState, actions: ScheduleActions, modifier: 
             ),
             account = rememberTopBarAccount(
                 onClick = actions.onAccountClick,
-                fallbackName = stringResource(R.string.feature_calendar_account_name),
+                fallbackName = "",
             ),
         )
         PullToRefreshBox(
@@ -146,12 +149,15 @@ fun ScheduleContent(state: ScheduleUiState, actions: ScheduleActions, modifier: 
                 modifier = Modifier.fillMaxSize(),
                 contentPadding = PaddingValues(bottom = WaiveraSpacing.Large),
             ) {
+                item(key = "views") { ViewPicker(state, actions) }
                 item(key = "banners") { ScheduleBanners(state, actions) }
-                item(key = "controls") { ScheduleControls(state, actions) }
+                item(key = "period") { PeriodRow(state, actions) }
                 item(key = "grid") {
                     ScheduleGrid(view = state.view, cells = state.cells, onSelectDate = actions.onSelectDate)
                 }
-                item(key = "agendaHeader") { AgendaHeader(state) }
+                if (state.agenda !is AgendaState.Error) {
+                    item(key = "agendaHeader") { AgendaHeader(state) }
+                }
                 agendaItems(state, actions)
             }
         }
@@ -162,14 +168,8 @@ private fun LazyListScope.agendaItems(state: ScheduleUiState, actions: ScheduleA
     val itemModifier = Modifier.padding(horizontal = WaiveraSpacing.Gutter, vertical = WaiveraSpacing.ExtraSmall)
     when (val agenda = state.agenda) {
         AgendaState.Loading -> item(key = "loading") { AgendaSkeleton() }
-        is AgendaState.Error -> item(key = "error") {
-            WaiveraErrorState(
-                title = stringResource(R.string.feature_calendar_error_title),
-                message = stringResource(agenda.error.messageRes),
-                onRetry = actions.onRetry,
-                modifier = Modifier.padding(WaiveraSpacing.Gutter),
-            )
-        }
+        // The failure is the banner above the grid, where it is seen without scrolling.
+        is AgendaState.Error -> Unit
         AgendaState.Empty -> item(key = "empty") {
             WaiveraEmptyState(
                 title = stringResource(R.string.feature_calendar_empty_title),
@@ -194,51 +194,76 @@ private fun LazyListScope.agendaItems(state: ScheduleUiState, actions: ScheduleA
     }
 }
 
+/**
+ * One status signal under the view picker, above the grid, so a failure is seen without
+ * scrolling: a failed first load wins over offline, offline wins over a failed refresh.
+ */
 @Composable
 private fun ScheduleBanners(state: ScheduleUiState, actions: ScheduleActions) {
     val bannerModifier = Modifier.padding(horizontal = WaiveraSpacing.Gutter, vertical = WaiveraSpacing.ExtraSmall)
-    Column(modifier = Modifier.padding(top = WaiveraSpacing.ExtraSmall)) {
-        if (state.isOffline) {
-            WaiveraBanner(
-                message = stringResource(R.string.feature_calendar_offline),
-                tone = BannerTone.Offline,
-                actionLabel = stringResource(R.string.feature_calendar_retry),
+    val retry = stringResource(R.string.feature_calendar_retry)
+    val agenda = state.agenda
+    Column {
+        when {
+            agenda is AgendaState.Error -> WaiveraBanner(
+                title = stringResource(R.string.feature_calendar_error_title),
+                message = stringResource(agenda.error.messageRes),
+                tone = BannerTone.Error,
+                actionLabel = retry,
                 onAction = actions.onRetry,
                 modifier = bannerModifier,
             )
-        } else if (state.feedError != null) {
-            WaiveraBanner(
+            state.isOffline -> WaiveraBanner(
+                message = stringResource(R.string.feature_calendar_offline),
+                tone = BannerTone.Offline,
+                actionLabel = retry,
+                onAction = actions.onRetry,
+                modifier = bannerModifier,
+            )
+            state.feedError != null -> WaiveraBanner(
                 message = stringResource(R.string.feature_calendar_feed_refresh_failed),
                 tone = BannerTone.Error,
-                actionLabel = stringResource(R.string.feature_calendar_retry),
+                actionLabel = retry,
                 onAction = actions.onRetry,
                 modifier = bannerModifier,
             )
         }
-        if (state.milestonesError != null && !state.isOffline) {
+        if (state.milestonesError != null && !state.isOffline && agenda !is AgendaState.Error) {
             WaiveraBanner(
                 message = stringResource(R.string.feature_calendar_milestones_failed),
                 tone = BannerTone.Warning,
-                actionLabel = stringResource(R.string.feature_calendar_retry),
+                actionLabel = retry,
                 onAction = actions.onRetryMilestones,
                 modifier = bannerModifier,
             )
+        }
+        val notice = state.zoneNotice
+        if (notice != null && notice.isFallback) {
+            WaiveraBanner(message = zoneNoticeText(notice), tone = BannerTone.Info, modifier = bannerModifier)
         }
     }
 }
 
 @Composable
-private fun ScheduleControls(state: ScheduleUiState, actions: ScheduleActions) {
+private fun ViewPicker(state: ScheduleUiState, actions: ScheduleActions) {
     val views = ScheduleView.entries
-    Column(
-        modifier = Modifier.padding(horizontal = WaiveraSpacing.Gutter, vertical = WaiveraSpacing.Small),
-        verticalArrangement = Arrangement.spacedBy(WaiveraSpacing.Small),
-    ) {
-        WaiveraSegmentedControl(
-            options = views.map { stringResource(it.labelRes()) },
-            selectedIndex = views.indexOf(state.view),
-            onSelect = { actions.onSelectView(views[it]) },
-        )
+    WaiveraSegmentedControl(
+        options = views.map { stringResource(it.labelRes()) },
+        selectedIndex = views.indexOf(state.view),
+        onSelect = { actions.onSelectView(views[it]) },
+        modifier = Modifier.padding(
+            start = WaiveraSpacing.Gutter,
+            end = WaiveraSpacing.Gutter,
+            top = WaiveraSpacing.Small,
+            bottom = WaiveraSpacing.ExtraSmall,
+        ),
+    )
+}
+
+/** Previous, the period title, next; the saved zone is a quiet caption under the title. */
+@Composable
+private fun PeriodRow(state: ScheduleUiState, actions: ScheduleActions) {
+    Column(modifier = Modifier.padding(horizontal = WaiveraSpacing.Gutter, vertical = WaiveraSpacing.ExtraSmall)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             WaiveraIconButton(
                 icon = CalendarIcons.ChevronLeft,
@@ -263,40 +288,30 @@ private fun ScheduleControls(state: ScheduleUiState, actions: ScheduleActions) {
                 onClick = { actions.onStep(1) },
             )
         }
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(WaiveraSpacing.Small),
-        ) {
-            val notice = state.zoneNotice
-            if (notice != null) {
-                Row(
-                    modifier = Modifier.weight(1f),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(WaiveraSpacing.ExtraSmall),
-                ) {
-                    Icon(
-                        painter = painterResource(WaiveraIcons.Info),
-                        contentDescription = null,
-                        tint = WaiveraTheme.colors.textSecondary,
-                        modifier = Modifier.size(WaiveraSizes.IconSmall),
-                    )
-                    Text(
-                        text = zoneNoticeText(notice),
-                        style = MaterialTheme.typography.labelMedium,
-                        color = WaiveraTheme.colors.textSecondary,
-                    )
-                }
-            } else {
-                Spacer(Modifier.weight(1f))
-            }
-            val goToToday = stringResource(R.string.feature_calendar_go_to_today)
-            WaiveraButton(
-                text = stringResource(R.string.feature_calendar_today),
-                onClick = actions.onToday,
-                variant = WaiveraButtonVariant.Secondary,
-                modifier = Modifier.semantics { contentDescription = goToToday },
+        val notice = state.zoneNotice
+        if (notice != null && !notice.isFallback) {
+            Text(
+                text = zoneNoticeText(notice),
+                style = MaterialTheme.typography.labelMedium,
+                color = WaiveraTheme.colors.textSecondary,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.fillMaxWidth(),
             )
         }
+    }
+}
+
+/**
+ * At 150% font and above a month grid fills the first screen, so the first time the tab shows
+ * Month at that size it switches to the week strip. Picking Month again afterwards sticks.
+ */
+@Composable
+private fun PreferWeekAtLargeFont(view: ScheduleView, onSelectView: (ScheduleView) -> Unit) {
+    val compact = usesCompactCalendar(LocalDensity.current.fontScale)
+    var applied by rememberSaveable { mutableStateOf(false) }
+    LaunchedEffect(compact) {
+        if (!applied && compact && view == ScheduleView.MONTH) onSelectView(ScheduleView.WEEK)
+        applied = true
     }
 }
 
@@ -333,9 +348,9 @@ private fun AgendaSkeleton() {
     val visible = rememberSkeletonVisible(loading = true)
     val caption = stringResource(R.string.feature_calendar_loading)
     if (!visible) return
-    val alpha = rememberSkeletonAlpha()
+    val pulse = rememberSkeletonPulse()
     Column(modifier = Modifier.clearAndSetSemantics { contentDescription = caption }) {
-        repeat(SKELETON_ROWS) { SkeletonListRow(alpha = alpha) }
+        repeat(SKELETON_ROWS) { SkeletonListRow(pulse = pulse) }
     }
 }
 

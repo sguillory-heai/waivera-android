@@ -25,3 +25,14 @@ internal fun Flow<RealtimeStatus>.reconnections(): Flow<Unit> = map { it.isConne
     .drop(1)
     .filter { it }
     .map { }
+
+/**
+ * One connection signal per screen. A failed load already explains itself, so the connection
+ * banner stands down while the screen (or its main card) shows an error.
+ */
+internal fun bannerFor(connection: ConnectionBannerState, showsLoadError: Boolean): ConnectionBannerState =
+    if (showsLoadError) ConnectionBannerState.Connected else connection
+
+/** "Couldn't refresh" shows only when no connection banner is up; offline already says the data is saved. */
+internal fun showsRefreshFailed(connection: ConnectionBannerState, refreshFailed: Boolean): Boolean =
+    refreshFailed && connection == ConnectionBannerState.Connected

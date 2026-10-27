@@ -6,23 +6,20 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.selection.selectable
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.RadioButton
+import androidx.compose.material3.RadioButtonDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.Role
 import com.waivera.waivera.core.designsystem.component.WaiveraDivider
 import com.waivera.waivera.core.designsystem.feedback.rememberHaptics
-import com.waivera.waivera.core.designsystem.icon.WaiveraIcons
 import com.waivera.waivera.core.designsystem.preview.WaiveraPreviews
 import com.waivera.waivera.core.designsystem.theme.WaiveraShapes
 import com.waivera.waivera.core.designsystem.theme.WaiveraSizes
@@ -45,7 +42,7 @@ internal fun SettingsCard(modifier: Modifier = Modifier, content: @Composable Co
 }
 
 /**
- * A radio-style row: title, subtitle and a check on the selected one. Announced as a radio
+ * A single-choice row: a leading radio, title and subtitle. Announced as a radio
  * button with its selected state; picking fires the selection haptic.
  */
 @Composable
@@ -74,21 +71,21 @@ internal fun SettingsRadioRow(
         horizontalArrangement = Arrangement.spacedBy(WaiveraSpacing.MediumSmall),
         verticalAlignment = Alignment.CenterVertically,
     ) {
+        // A visible radio, as M3 single-choice lists use; the whole row is the touch target, so
+        // the radio itself takes no clicks.
+        RadioButton(
+            selected = selected,
+            onClick = null,
+            colors = RadioButtonDefaults.colors(
+                selectedColor = colors.accent,
+                unselectedColor = colors.textSecondary,
+            ),
+        )
         Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(WaiveraSpacing.XxSmall)) {
             Text(text = title, style = MaterialTheme.typography.titleSmall, color = colors.text)
             if (subtitle != null) {
                 Text(text = subtitle, style = MaterialTheme.typography.bodySmall, color = colors.textSecondary)
             }
-        }
-        if (selected) {
-            Icon(
-                painter = painterResource(WaiveraIcons.Check),
-                contentDescription = null,
-                tint = colors.accent,
-                modifier = Modifier.size(WaiveraSizes.Icon),
-            )
-        } else {
-            Spacer(Modifier.size(WaiveraSizes.Icon))
         }
     }
 }

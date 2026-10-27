@@ -26,6 +26,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.LiveRegionMode
@@ -43,7 +44,7 @@ import com.waivera.waivera.core.designsystem.component.WaiveraButtonVariant
 import com.waivera.waivera.core.designsystem.component.WaiveraDivider
 import com.waivera.waivera.core.designsystem.component.WaiveraIconButton
 import com.waivera.waivera.core.designsystem.component.WaiveraPressable
-import com.waivera.waivera.core.designsystem.component.rememberSkeletonAlpha
+import com.waivera.waivera.core.designsystem.component.rememberSkeletonPulse
 import com.waivera.waivera.core.designsystem.component.rememberSkeletonVisible
 import com.waivera.waivera.core.designsystem.icon.WaiveraIcons
 import com.waivera.waivera.core.designsystem.preview.WaiveraPreviews
@@ -131,15 +132,25 @@ fun Composer(
                     unfocusedTextColor = colors.text,
                 ),
             )
+            // Disabled reads as "nothing to send yet": a muted fill with a visible outline, not a
+            // faded accent that looks like a broken enabled button.
             FilledIconButton(
                 onClick = onSend,
                 enabled = canSend,
-                modifier = Modifier.size(WaiveraSizes.IconButton),
+                modifier = Modifier
+                    .size(WaiveraSizes.IconButton)
+                    .then(
+                        if (canSend) {
+                            Modifier
+                        } else {
+                            Modifier.border(WaiveraSpacing.Hairline, colors.border, WaiveraShapes.Circle)
+                        },
+                    ),
                 colors = IconButtonDefaults.filledIconButtonColors(
                     containerColor = colors.accent,
                     contentColor = colors.onAccent,
-                    disabledContainerColor = colors.accent.copy(alpha = DISABLED_ALPHA),
-                    disabledContentColor = colors.onAccent.copy(alpha = DISABLED_ALPHA),
+                    disabledContainerColor = colors.surfaceMuted,
+                    disabledContentColor = colors.textSecondary,
                 ),
             ) {
                 Icon(
@@ -158,7 +169,6 @@ fun Composer(
     }
 }
 
-private const val DISABLED_ALPHA = 0.42f
 
 @Composable
 private fun EditingBar(onCancel: () -> Unit) {
@@ -337,57 +347,83 @@ fun ReadOnlyNotice(reason: ReadOnlyReason, isThread: Boolean, modifier: Modifier
     }
 }
 
-/** "Call in progress · Join on web ›" strip under the header (03 §1). */
+/**
+ * "Call in progress" strip under the header (03 §1), laid out in the screen column above the
+ * messages so it pushes the list down instead of covering it. Join is a tonal 48dp button; at
+ * large font it moves under the label so neither is squeezed.
+ */
 @Composable
 fun CallBanner(onJoin: () -> Unit, modifier: Modifier = Modifier) {
     val colors = WaiveraTheme.colors
-    WaiveraPressable(
-        onClick = onJoin,
-        onClickLabel = stringResource(R.string.feature_chat_call_join),
-        modifier = modifier.fillMaxWidth(),
-    ) {
-        Column {
+    val stacked = LocalDensity.current.fontScale > CALL_BANNER_STACK_FONT_SCALE
+    Column(modifier = modifier.fillMaxWidth()) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(min = ChatDimens.CallBannerMinHeight)
+                .background(colors.accentWash)
+                .padding(horizontal = WaiveraSpacing.Gutter, vertical = WaiveraSpacing.Small),
+            verticalArrangement = Arrangement.spacedBy(WaiveraSpacing.Small),
+        ) {
             Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .heightIn(min = ChatDimens.CallBannerMinHeight)
-                    .background(colors.accentWash)
-                    .padding(horizontal = WaiveraSpacing.Gutter, vertical = WaiveraSpacing.Small),
                 horizontalArrangement = Arrangement.spacedBy(WaiveraSpacing.Small),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Box(
-                    Modifier
-                        .size(ChatDimens.LiveDot)
-                        .background(colors.accent, WaiveraShapes.Circle),
-                )
-                Icon(
-                    painterResource(WaiveraIcons.Video),
-                    contentDescription = null,
-                    tint = colors.accent,
-                    modifier = Modifier.size(WaiveraSizes.IconSmall),
-                )
-                Text(
-                    text = stringResource(R.string.feature_chat_call_in_progress),
-                    style = MaterialTheme.typography.labelLarge,
-                    color = colors.accent,
-                    modifier = Modifier.weight(1f),
-                )
-                Text(
-                    text = stringResource(R.string.feature_chat_call_join_on_web),
-                    style = MaterialTheme.typography.labelMedium,
-                    color = colors.textSecondary,
-                )
+                CallBannerLabel(modifier = Modifier.weight(1f))
+                if (!stacked) CallJoinButton(onJoin)
             }
-            WaiveraDivider()
+            if (stacked) CallJoinButton(onJoin, Modifier.fillMaxWidth())
         }
+        WaiveraDivider()
     }
 }
+
+@Composable
+private fun CallBannerLabel(modifier: Modifier = Modifier) {
+    val colors = WaiveraTheme.colors
+    Row(
+        modifier = modifier,
+        horizontalArrangement = Arrangement.spacedBy(WaiveraSpacing.Small),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Box(
+            Modifier
+                .size(ChatDimens.LiveDot)
+                .background(colors.accent, WaiveraShapes.Circle),
+        )
+        Icon(
+            painterResource(WaiveraIcons.Video),
+            contentDescription = null,
+            tint = colors.accent,
+            modifier = Modifier.size(WaiveraSizes.IconSmall),
+        )
+        Text(
+            text = stringResource(R.string.feature_chat_call_in_progress),
+            style = MaterialTheme.typography.labelLarge,
+            color = colors.onAccentSoft,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
+    }
+}
+
+@Composable
+private fun CallJoinButton(onJoin: () -> Unit, modifier: Modifier = Modifier) {
+    WaiveraButton(
+        text = stringResource(R.string.feature_chat_call_join_on_web),
+        onClick = onJoin,
+        variant = WaiveraButtonVariant.Tonal,
+        leadingIcon = WaiveraIcons.OpenExternal,
+        modifier = modifier,
+    )
+}
+
+private const val CALL_BANNER_STACK_FONT_SCALE = 1.3f
 
 /** Five bubble bones, alternating sides, sharing one pulse; announced once as loading (03 §21). */
 @Composable
 fun MessageListSkeleton(modifier: Modifier = Modifier, rows: Int = ChatDimens.SKELETON_FRACTIONS_COUNT) {
-    val alpha = rememberSkeletonAlpha()
+    val pulse = rememberSkeletonPulse()
     val loading = stringResource(R.string.feature_chat_messages_loading)
     Column(
         modifier = modifier
@@ -405,7 +441,7 @@ fun MessageListSkeleton(modifier: Modifier = Modifier, rows: Int = ChatDimens.SK
                         .fillMaxWidth(fraction)
                         .heightIn(min = ChatDimens.SkeletonBubbleHeight),
                     shape = if (mine) ChatDimens.SkeletonMineShape else ChatDimens.SkeletonOtherShape,
-                    alpha = alpha,
+                    pulse = pulse,
                 )
             }
         }

@@ -3,6 +3,7 @@ package com.waivera.waivera.feature.chat
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.annotation.StringRes
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -45,8 +46,10 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.waivera.waivera.core.data.model.Message
+import com.waivera.waivera.core.designsystem.R as DesignR
 import com.waivera.waivera.core.designsystem.component.BannerTone
 import com.waivera.waivera.core.designsystem.component.ConnectionBanner
+import com.waivera.waivera.core.designsystem.component.ConnectionBannerState
 import com.waivera.waivera.core.designsystem.component.TopBarAction
 import com.waivera.waivera.core.designsystem.component.WaiveraBanner
 import com.waivera.waivera.core.designsystem.component.WaiveraEmptyState
@@ -56,6 +59,7 @@ import com.waivera.waivera.core.designsystem.component.WaiveraTopBar
 import com.waivera.waivera.core.designsystem.icon.WaiveraIcons
 import com.waivera.waivera.core.designsystem.preview.WaiveraPreviews
 import com.waivera.waivera.core.designsystem.theme.WaiveraTheme
+import com.waivera.waivera.core.network.R as NetworkR
 import com.waivera.waivera.feature.chat.conversation.CallUi
 import com.waivera.waivera.feature.chat.conversation.ConversationContent
 import com.waivera.waivera.feature.chat.conversation.ConversationUiState
@@ -286,8 +290,15 @@ fun ConversationScreenContent(
                     ),
             ) {
                 if (state.call.isLive) CallBanner(onJoin = actions.onOpenCall)
-                ConnectionBanner(state = state.connection.banner, onRetry = actions.onRetryConnection)
-                if (state.isStale) {
+                // One connection signal: while the banner shows, it also says the messages are saved
+                // ones, so the separate "couldn't refresh" banner never stacks under it.
+                val connectionBanner = state.connection.banner
+                ConnectionBanner(
+                    state = connectionBanner,
+                    onRetry = actions.onRetryConnection,
+                    offlineMessage = stringResource(R.string.feature_chat_messages_offline_saved),
+                )
+                if (state.isStale && connectionBanner == ConnectionBannerState.Connected) {
                     WaiveraBanner(
                         message = stringResource(R.string.feature_chat_messages_stale),
                         tone = BannerTone.Warning,
@@ -302,7 +313,7 @@ fun ConversationScreenContent(
                 ) {
                     MessageArea(state, time, actions, listState, onJumpToLatest, skeletonDelayMillis)
                 }
-                ComposerArea(state, draft, onDraftChange, actions)
+                if (state.content.offersComposer()) ComposerArea(state, draft, onDraftChange, actions)
             }
         }
         WaiveraSnackbarHost(
@@ -350,16 +361,18 @@ private fun MessageArea(
 ) {
     when (val content = state.content) {
         ConversationContent.Invalid -> WaiveraEmptyState(
-            title = stringResource(R.string.feature_chat_messages_error_title),
+            title = stringResource(R.string.feature_chat_conversation_unavailable_title),
             message = stringResource(R.string.feature_chat_conversation_invalid),
-            icon = WaiveraIcons.Error,
+            icon = WaiveraIcons.Chat,
+            actionLabel = stringResource(DesignR.string.core_designsystem_go_back),
+            onAction = actions.onBack,
         )
         ConversationContent.Loading -> DelayedListSkeleton(
             label = stringResource(R.string.feature_chat_messages_loading),
             delayMillis = skeletonDelayMillis,
         )
         is ConversationContent.Error -> WaiveraErrorState(
-            message = stringResource(content.message),
+            message = stringResource(conversationErrorMessage(content.message)),
             onRetry = actions.onRetryLoad,
             title = stringResource(R.string.feature_chat_messages_error_title),
         )
@@ -463,6 +476,21 @@ private fun MessageList(
 
 private const val OLDER_KEY = "older"
 
+/**
+ * Nothing to reply to when the conversation does not exist or failed to load, so the composer
+ * is not offered there (UI review UI-18). While loading it stays, disabled, so the layout does not jump.
+ */
+internal fun ConversationContent.offersComposer(): Boolean =
+    this != ConversationContent.Invalid && this !is ConversationContent.Error
+
+/** A missing conversation gets conversation copy instead of the generic "couldn't find that". */
+internal fun conversationErrorMessage(@StringRes messageRes: Int): Int =
+    if (messageRes == NetworkR.string.core_network_error_not_found) {
+        R.string.feature_chat_conversation_not_found
+    } else {
+        messageRes
+    }
+
 @Composable
 private fun ComposerArea(
     state: ConversationUiState,
@@ -492,7 +520,7 @@ private fun ComposerArea(
                     config = ComposerConfig(
                         isReply = false,
                         allowImages = state.editingMessageId == null,
-                        enabled = state.canWrite == true,
+                        enabled = state.canWrite == true && state.content != ConversationContent.Loading,
                         stagedImage = state.stagedImage,
                         isEditing = state.editingMessageId != null,
                     ),

@@ -97,6 +97,7 @@ fun SettingsScreen(
             onDismiss = viewModel::dismissSignOut,
             destructive = true,
             confirmInProgress = state.signingOut,
+            confirmInProgressLabel = stringResource(R.string.feature_settings_signing_out),
         )
     }
 }
@@ -115,6 +116,9 @@ internal fun SettingsContent(
     Box(modifier = modifier.fillMaxSize().background(WaiveraTheme.colors.background)) {
         Column(modifier = Modifier.fillMaxSize()) {
             WaiveraTopBar(title = stringResource(R.string.feature_settings_settings_title), onBack = onBack)
+            // Every section stays on screen while signing out, so nothing jumps; the rows just stop
+            // taking taps until the sign-out finishes or fails.
+            val rowsEnabled = !state.signingOut
             Column(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
                 WaiveraSectionHeader(text = stringResource(R.string.feature_settings_section_preferences))
                 SettingsCard {
@@ -123,6 +127,7 @@ internal fun SettingsContent(
                         headline = stringResource(R.string.feature_settings_notification_settings_title),
                         supporting = stringResource(R.string.feature_settings_notifications_row_detail),
                         onClick = onOpenNotificationSettings,
+                        enabled = rowsEnabled,
                         showChevron = true,
                         leading = { WaiveraIconTile(icon = WaiveraIcons.Notifications) },
                     )
@@ -130,6 +135,7 @@ internal fun SettingsContent(
                         headline = stringResource(R.string.feature_settings_appearance_title),
                         supporting = stringResource(R.string.feature_settings_appearance_row_detail),
                         onClick = onOpenAppearance,
+                        enabled = rowsEnabled,
                         showChevron = true,
                         leading = { WaiveraIconTile(icon = R.drawable.feature_settings_ic_palette) },
                     )
@@ -141,6 +147,7 @@ internal fun SettingsContent(
                             headline = stringResource(R.string.feature_settings_change_password),
                             supporting = stringResource(R.string.feature_settings_change_password_detail),
                             onClick = onOpenChangePassword,
+                            enabled = rowsEnabled,
                             showChevron = true,
                             leading = { WaiveraIconTile(icon = WaiveraIcons.Lock) },
                         )
@@ -191,8 +198,9 @@ private fun AccountCard(account: AccountInfo?, signingOut: Boolean, onSignOut: (
         WaiveraButton(
             text = stringResource(R.string.feature_settings_sign_out),
             onClick = onSignOut,
-            variant = WaiveraButtonVariant.Destructive,
+            variant = WaiveraButtonVariant.DestructiveOutline,
             loading = signingOut,
+            loadingText = stringResource(R.string.feature_settings_signing_out),
             fullWidth = true,
             leadingIcon = R.drawable.feature_settings_ic_logout,
             modifier = Modifier.padding(horizontal = WaiveraSpacing.Medium, vertical = WaiveraSpacing.Small),

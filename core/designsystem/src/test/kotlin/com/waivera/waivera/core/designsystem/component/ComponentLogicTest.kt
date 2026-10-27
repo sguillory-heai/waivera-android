@@ -54,4 +54,34 @@ class ComponentLogicTest {
         assertFalse(showsMilestoneYears(anniversary.copy(years = null), 64.dp))
         assertFalse(showsMilestoneYears(MilestoneBadge(MilestoneKind.Multiple, years = 5), 64.dp))
     }
+
+    @Test
+    fun `banner action stays inline when it is short and the font is normal`() {
+        assertFalse(bannerActionStacks(fontScale = 1f, actionWidthPx = 200, availableWidthPx = 1000))
+    }
+
+    @Test
+    fun `banner action stacks at large font scales`() {
+        assertTrue(bannerActionStacks(fontScale = 1.5f, actionWidthPx = 100, availableWidthPx = 1000))
+        assertTrue(bannerActionStacks(fontScale = 2f, actionWidthPx = 100, availableWidthPx = 1000))
+    }
+
+    @Test
+    fun `banner action stacks when its label is wider than about a third of the banner`() {
+        // "Open Android settings" on a 360dp phone at 100% font.
+        assertTrue(bannerActionStacks(fontScale = 1f, actionWidthPx = 400, availableWidthPx = 1000))
+        assertFalse(bannerActionStacks(fontScale = 1f, actionWidthPx = 350, availableWidthPx = 1000))
+    }
+
+    @Test
+    fun `segments share the width while the widest label fits`() {
+        assertFalse(segmentsNeedScroll(count = 3, segmentWidthPx = 200, availableWidthPx = 900))
+        assertFalse(segmentsNeedScroll(count = 3, segmentWidthPx = 300, availableWidthPx = 900))
+    }
+
+    @Test
+    fun `segments scroll instead of breaking a word when the widest label does not fit`() {
+        assertTrue(segmentsNeedScroll(count = 3, segmentWidthPx = 301, availableWidthPx = 900))
+        assertFalse(segmentsNeedScroll(count = 0, segmentWidthPx = 301, availableWidthPx = 900))
+    }
 }

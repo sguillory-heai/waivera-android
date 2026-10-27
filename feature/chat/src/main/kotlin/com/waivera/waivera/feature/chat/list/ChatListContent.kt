@@ -15,6 +15,8 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -38,6 +40,7 @@ import com.waivera.waivera.core.designsystem.preview.WaiveraPreviews
 import com.waivera.waivera.core.designsystem.theme.WaiveraSpacing
 import com.waivera.waivera.core.designsystem.theme.WaiveraTheme
 import com.waivera.waivera.feature.chat.R
+import kotlinx.coroutines.delay
 
 /** Callbacks from the inbox to its owner, grouped so the content stays previewable. */
 class ChatListActions(
@@ -93,7 +96,7 @@ fun ChatListContent(
                 ),
                 account = rememberTopBarAccount(
                     onClick = actions.onAccountClick,
-                    fallbackName = state.accountName.ifEmpty { stringResource(R.string.feature_chat_list_account) },
+                    fallbackName = state.accountName,
                     painter = accountPainter,
                 ),
             )
@@ -149,40 +152,76 @@ fun ChatListContent(
     }
 }
 
+/**
+ * One connection signal at a time (UI review UI-04): the banner while offline or reconnecting,
+ * otherwise the quiet pill, and "Connecting" only once start-up takes longer than
+ * [CONNECTING_PILL_DELAY_MILLIS]. A refresh failure while offline is folded into the offline
+ * banner, and a full-screen load error owns the message on its own.
+ */
 @Composable
 private fun Header(state: ChatListUiState, actions: ChatListActions) {
     val filters = ChatListFilter.entries
+    val bannerState = connectionBannerState(state)
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = WaiveraSpacing.Gutter, vertical = WaiveraSpacing.Small),
+            .padding(vertical = WaiveraSpacing.Small),
         verticalArrangement = Arrangement.spacedBy(WaiveraSpacing.MediumSmall),
     ) {
-        ConnectionPill(state.connection)
+        if (bannerState == ConnectionBannerState.Connected) {
+            ConnectionStatus(state.connection, Modifier.padding(horizontal = WaiveraSpacing.Gutter))
+        }
         ConnectionBanner(
-            state = when (state.connection) {
-                ConnectionUi.Reconnecting -> ConnectionBannerState.Reconnecting
-                ConnectionUi.Offline -> ConnectionBannerState.Offline
-                // "Connecting" is the normal start-up state; the pill is enough.
-                ConnectionUi.Online, ConnectionUi.Connecting -> ConnectionBannerState.Connected
-            },
+            state = bannerState,
             onRetry = actions.onRetryConnection,
+            offlineMessage = if (state.content == ChatListContent.Rows) {
+                stringResource(R.string.feature_chat_list_offline_saved)
+            } else {
+                null
+            },
         )
-        state.refreshErrorRes?.let { res ->
+        val refreshErrorRes = state.refreshErrorRes
+        if (refreshErrorRes != null && bannerState == ConnectionBannerState.Connected) {
             WaiveraBanner(
-                message = stringResource(R.string.feature_chat_list_refresh_failed, stringResource(res)),
+                message = stringResource(R.string.feature_chat_list_refresh_failed, stringResource(refreshErrorRes)),
                 tone = BannerTone.Error,
                 actionLabel = stringResource(R.string.feature_chat_list_retry),
                 onAction = actions.onRetryLoad,
             )
         }
-        ChatSearchField(query = state.query, onQueryChange = actions.onQueryChange)
-        WaiveraSegmentedControl(
-            options = filters.map { stringResource(it.labelRes()) },
-            selectedIndex = filters.indexOf(state.filter),
-            onSelect = { actions.onFilterChange(filters[it]) },
-        )
+        Column(
+            modifier = Modifier.padding(horizontal = WaiveraSpacing.Gutter),
+            verticalArrangement = Arrangement.spacedBy(WaiveraSpacing.MediumSmall),
+        ) {
+            ChatSearchField(query = state.query, onQueryChange = actions.onQueryChange)
+            WaiveraSegmentedControl(
+                options = filters.map { stringResource(it.labelRes()) },
+                selectedIndex = filters.indexOf(state.filter),
+                onSelect = { actions.onFilterChange(filters[it]) },
+            )
+        }
     }
+}
+
+/** The pill for a healthy or starting connection; "Connecting" waits out a normal start-up. */
+@Composable
+private fun ConnectionStatus(connection: ConnectionUi, modifier: Modifier = Modifier) {
+    val slowStart by produceState(initialValue = false, connection) {
+        value = false
+        if (connection == ConnectionUi.Connecting) {
+            delay(CONNECTING_PILL_DELAY_MILLIS)
+            value = true
+        }
+    }
+    if (connection != ConnectionUi.Connecting || slowStart) ConnectionPill(connection, modifier)
+}
+
+/** The banner owns offline and reconnecting, except when the full-screen error already says so. */
+internal fun connectionBannerState(state: ChatListUiState): ConnectionBannerState = when {
+    state.content is ChatListContent.Error -> ConnectionBannerState.Connected
+    state.connection == ConnectionUi.Reconnecting -> ConnectionBannerState.Reconnecting
+    state.connection == ConnectionUi.Offline -> ConnectionBannerState.Offline
+    else -> ConnectionBannerState.Connected
 }
 
 @Composable
@@ -215,6 +254,7 @@ private fun ChatListFilter.labelRes(): Int = when (this) {
     ChatListFilter.Channels -> R.string.feature_chat_list_filter_channels
 }
 
+private const val CONNECTING_PILL_DELAY_MILLIS = 2_000L
 private const val HEADER_KEY = "header"
 private const val SKELETON_KEY = "skeleton"
 private const val STATE_KEY = "state"

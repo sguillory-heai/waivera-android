@@ -7,6 +7,7 @@
     <string name="feature_settings_notifications_row_detail">Messages, group activity and your schedule</string>
     <string name="feature_settings_appearance_row_detail">Theme and haptics</string>
     <string name="feature_settings_sign_out">Sign out</string>
+    <string name="feature_settings_signing_out">Signing out…</string>
     <string name="feature_settings_sign_out_detail">Signing out stops notifications for this account on this device.</string>
     <string name="feature_settings_sign_out_confirm_title">Sign out of Waivera?</string>
     <string name="feature_settings_sign_out_confirm_message">You\'ll stop getting notifications on this device until you sign in again.</string>
@@ -29,11 +30,12 @@
     <string name="feature_settings_notification_settings_title">Notifications</string>
     <string name="feature_settings_system_blocked_title">Notifications are off for Waivera</string>
     <string name="feature_settings_system_blocked_message">Android is blocking notifications from this app, so nothing below will reach you until you turn them on.</string>
-    <string name="feature_settings_open_system_settings">Open Android settings</string>
+    <string name="feature_settings_open_system_settings">Open settings</string>
     <string name="feature_settings_push_section">Push notifications</string>
     <string name="feature_settings_push_title">Push notifications</string>
     <string name="feature_settings_push_subtitle">Get notified when Waivera isn\'t open.</string>
     <string name="feature_settings_categories_section">Notify me about</string>
+    <string name="feature_settings_categories_push_off">Turn on push notifications to choose what you get.</string>
     <string name="feature_settings_category_messages">Direct messages and mentions</string>
     <string name="feature_settings_category_messages_detail">Messages sent to you and times someone mentions you.</string>
     <string name="feature_settings_category_group_activity">Group chat activity</string>

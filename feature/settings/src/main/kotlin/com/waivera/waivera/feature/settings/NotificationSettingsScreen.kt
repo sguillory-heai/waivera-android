@@ -97,6 +97,19 @@ internal fun NotificationSettingsContent(
                 )
             }
             WaiveraSectionHeader(text = stringResource(R.string.feature_settings_categories_section))
+            if (!state.categoriesEnabled) {
+                // Says why the switches below are off instead of leaving them silently disabled.
+                Text(
+                    text = stringResource(R.string.feature_settings_categories_push_off),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = WaiveraTheme.colors.textSecondary,
+                    modifier = Modifier.padding(
+                        start = WaiveraSpacing.Gutter,
+                        end = WaiveraSpacing.Gutter,
+                        bottom = WaiveraSpacing.Small,
+                    ),
+                )
+            }
             SettingsCard {
                 CategoryCopy.entries.forEachIndexed { index, copy ->
                     if (index > 0) SettingsRowDivider()

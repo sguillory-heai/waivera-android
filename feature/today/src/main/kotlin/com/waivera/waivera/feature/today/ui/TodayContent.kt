@@ -87,7 +87,7 @@ internal fun TodayContent(
             subtitle = state.date?.let(formats::longDay),
             account = rememberTopBarAccount(
                 onClick = callbacks.onAccountClick,
-                fallbackName = state.accountName.ifBlank { stringResource(R.string.feature_today_account_name) },
+                fallbackName = state.accountName,
             ),
         )
         ConnectionBanner(state = state.connection, onRetry = { callbacks.onAction(TodayAction.RetryConnection) })

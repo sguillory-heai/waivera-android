@@ -72,10 +72,12 @@ val LocalSignedInAccount = compositionLocalOf<SignedInAccount?> { null }
 
 /**
  * The top bar account for the signed-in person from [LocalSignedInAccount], with [fallbackName]
- * while the shell has no name yet (signed out previews, the first frame).
+ * (the screen's own copy of the person's real name) while the shell has no name yet. Pass a
+ * blank name when it is unknown: the avatar then shows the generic person icon, never initials
+ * made from placeholder copy, so identity looks the same on every tab.
  */
 @Composable
-fun rememberTopBarAccount(onClick: () -> Unit, fallbackName: String, painter: Painter? = null): TopBarAccount {
+fun rememberTopBarAccount(onClick: () -> Unit, fallbackName: String = "", painter: Painter? = null): TopBarAccount {
     val account = LocalSignedInAccount.current
     return remember(account, onClick, fallbackName, painter) {
         TopBarAccount(

@@ -126,6 +126,26 @@ class TodayAssemblerTest {
     }
 
     @Test
+    fun `a DM whose last message is my own does not need me`() {
+        val mine = conversation(7, unread = 1, text = "@Priya Raman can you confirm?")
+        val sentByMe = mine.copy(lastMessage = mine.lastMessage?.copy(authorId = ME))
+        val state = assemble(
+            sources(
+                conversations = listOf(sentByMe, conversation(9, unread = 2)),
+                activity = listOf(activity(1, type = ChatActivityType.MENTION, conversationId = 7)),
+            ),
+        )
+        assertEquals(listOf("dm-9"), state.needsYou.items.map { it.key })
+        assertEquals(listOf(1L), state.activity.rows.map { it.id }, "the older mention stays in the feed")
+    }
+
+    @Test
+    fun `a DM with an unknown last author still needs me`() {
+        val unknown = conversation(7, unread = 1).let { it.copy(lastMessage = it.lastMessage?.copy(authorId = null)) }
+        assertEquals(listOf("dm-7"), assemble(sources(conversations = listOf(unknown))).needsYou.items.map { it.key })
+    }
+
+    @Test
     fun `a mention inside an unread DM stays in the feed instead of being listed twice`() {
         val state = assemble(
             sources(

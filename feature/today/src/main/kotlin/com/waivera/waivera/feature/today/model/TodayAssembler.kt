@@ -109,7 +109,9 @@ object TodayAssembler {
         pinnedMentions: List<ActivityItem>,
     ): NeedsYouSection {
         val conversations = sources.conversations.data
-        val directs = conversations.filter { it.kind == ConversationKind.DIRECT && it.unreadCount > 0 }
+        val directs = conversations.filter {
+            it.kind == ConversationKind.DIRECT && it.unreadCount > 0 && isWaitingOnMe(it, context.myUserId)
+        }
         val dmRows = directs.map { c ->
             c.lastMessage?.createdAt to NeedsYouItem.DirectMessage(
                 conversationId = c.id,
@@ -145,6 +147,17 @@ object TodayAssembler {
             isReady = ready,
             failed = !ready && sources.conversations.error != null,
         )
+    }
+
+    /**
+     * A DM needs me only when the newest message is someone else's. When I sent the last message
+     * the ball is in their court, even if the server still counts older messages as unread. A
+     * mention inside such a DM stays in the feed (see [pinnedMentions]) rather than coming back
+     * as "needs you". Unknown authors count as someone else, so nothing is hidden by mistake.
+     */
+    internal fun isWaitingOnMe(conversation: Conversation, myUserId: String?): Boolean {
+        val author = conversation.lastMessage?.authorId ?: return true
+        return myUserId == null || author != myUserId
     }
 
     private fun mentionItem(item: ActivityItem, context: TodayContext) = NeedsYouItem.Mention(

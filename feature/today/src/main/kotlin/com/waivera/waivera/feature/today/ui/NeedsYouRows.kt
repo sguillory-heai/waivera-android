@@ -96,8 +96,9 @@ private fun MentionRow(item: NeedsYouItem.Mention, onClick: () -> Unit, modifier
         supporting = joined(kind, item.at?.let { pastText(it, formats) }),
         emphasized = true,
         modifier = modifier,
+        // A single mention has no count, so bold text and the "Unread" announcement are enough;
+        // a dot on top would be a third unread signal (UI review UI-09).
         leading = { TodayIconTile(icon = R.drawable.feature_today_ic_mention) },
-        trailing = { UnreadDot() },
     )
 }
 

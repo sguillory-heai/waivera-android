@@ -2,6 +2,8 @@ package com.waivera.waivera.core.designsystem.screenshot
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
@@ -23,6 +25,7 @@ import com.waivera.waivera.core.designsystem.component.TopBarAccount
 import com.waivera.waivera.core.designsystem.component.TopBarAction
 import com.waivera.waivera.core.designsystem.component.WaiveraAvatar
 import com.waivera.waivera.core.designsystem.component.WaiveraBanner
+import com.waivera.waivera.core.designsystem.component.WaiveraBottomActionBar
 import com.waivera.waivera.core.designsystem.component.WaiveraButton
 import com.waivera.waivera.core.designsystem.component.WaiveraButtonVariant
 import com.waivera.waivera.core.designsystem.component.WaiveraCountBadge
@@ -71,11 +74,20 @@ class DesignSystemScreenshotTest {
     fun buttons() = capture("Buttons") {
         WaiveraButton(text = "Send", onClick = {}, fullWidth = true)
         WaiveraButton(text = "Send", onClick = {}, loading = true, fullWidth = true)
+        WaiveraButton(text = "Sign out", onClick = {}, loading = true, loadingText = "Signing out…", fullWidth = true)
+        WaiveraButton(text = "Sign in", onClick = {}, enabled = false, fullWidth = true)
         WaiveraButton(text = "Cancel", onClick = {}, variant = WaiveraButtonVariant.Secondary, fullWidth = true)
+        WaiveraButton(text = "Join on web", onClick = {}, variant = WaiveraButtonVariant.Tonal)
         WaiveraButton(
             text = "Delete message",
             onClick = {},
             variant = WaiveraButtonVariant.Destructive,
+            fullWidth = true,
+        )
+        WaiveraButton(
+            text = "Sign out",
+            onClick = {},
+            variant = WaiveraButtonVariant.DestructiveOutline,
             fullWidth = true,
         )
         WaiveraButton(text = "Not now", onClick = {}, variant = WaiveraButtonVariant.Text)
@@ -135,6 +147,7 @@ class DesignSystemScreenshotTest {
             WaiveraAvatar(name = "Sam Lee", milestone = MilestoneKind.WorkAnniversary, presence = PresenceStatus.Away)
             WaiveraAvatar(name = "Jo", milestone = MilestoneKind.NewHire, size = WaiveraSizes.AvatarSmall)
             WaiveraAvatar(name = "", size = WaiveraSizes.AvatarLarge, presence = PresenceStatus.Offline)
+            WaiveraAvatar(name = "Jordan Lee", presence = PresenceStatus.Offline)
         }
     }
 
@@ -159,6 +172,7 @@ class DesignSystemScreenshotTest {
         }
     }
 
+    @OptIn(ExperimentalLayoutApi::class)
     @Test
     fun badges() = capture("Badges") {
         Row(
@@ -169,7 +183,10 @@ class DesignSystemScreenshotTest {
             WaiveraCountBadge(count = 42)
             WaiveraCountBadge(count = 120)
         }
-        Row(horizontalArrangement = Arrangement.spacedBy(WaiveraSpacing.Small)) {
+        FlowRow(
+            horizontalArrangement = Arrangement.spacedBy(WaiveraSpacing.Small),
+            verticalArrangement = Arrangement.spacedBy(WaiveraSpacing.Small),
+        ) {
             BadgeTone.entries.forEach { tone -> WaiveraStatusBadge(text = tone.name, tone = tone) }
         }
     }
@@ -269,6 +286,7 @@ class DesignSystemScreenshotTest {
             confirmInProgress = true,
             onConfirm = {},
             onDismiss = {},
+            confirmInProgressLabel = "Signing out…",
         )
     }
 
@@ -291,6 +309,31 @@ class DesignSystemScreenshotTest {
             onDismiss = {},
         )
         WaiveraBanner(message = "You can read this channel but not post in it.", tone = BannerTone.Info)
+        // A long action label: it must move under the text instead of squeezing it.
+        WaiveraBanner(
+            title = "Notifications are off for Waivera",
+            message = "Android is blocking notifications from this app, so nothing below will reach you.",
+            tone = BannerTone.Warning,
+            actionLabel = "Open Android notification settings",
+            onAction = {},
+        )
+    }
+
+    @Test
+    fun bottomActionBar() = capture("BottomActionBar", padded = false) {
+        WaiveraBottomActionBar {
+            WaiveraButton(text = "Turn on notifications", onClick = {}, fullWidth = true)
+            WaiveraButton(text = "Not now", onClick = {}, variant = WaiveraButtonVariant.Text, fullWidth = true)
+        }
+        WaiveraBottomActionBar(showDivider = false) {
+            WaiveraButton(
+                text = "Update password",
+                onClick = {},
+                loading = true,
+                loadingText = "Updating your password…",
+                fullWidth = true,
+            )
+        }
     }
 
     @Test

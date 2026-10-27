@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -23,6 +24,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
@@ -41,7 +43,7 @@ import com.waivera.waivera.core.designsystem.component.WaiveraButtonVariant
 import com.waivera.waivera.core.designsystem.component.WaiveraListRow
 import com.waivera.waivera.core.designsystem.component.WaiveraPressable
 import com.waivera.waivera.core.designsystem.component.WaiveraSectionHeader
-import com.waivera.waivera.core.designsystem.component.rememberSkeletonAlpha
+import com.waivera.waivera.core.designsystem.component.rememberSkeletonPulse
 import com.waivera.waivera.core.designsystem.component.rememberSkeletonVisible
 import com.waivera.waivera.core.designsystem.icon.WaiveraIcons
 import com.waivera.waivera.core.designsystem.theme.WaiveraShapes
@@ -75,7 +77,7 @@ class EventActions(
 )
 
 /**
- * The loaded event: title and time first, then what the person can do (join, answer, chat),
+ * The loaded event: title and time first, then what the person can do (answer, join, chat),
  * then who organizes it, the details, and the attendees. The last item pads for the
  * navigation bar, since this screen has no bottom bar.
  */
@@ -133,10 +135,10 @@ internal fun EventBody(
                 )
             }
         }
-        details.join?.let { join -> item(key = "join") { JoinBlock(join, details, actions, sectionModifier) } }
         details.invitation?.let { invitation ->
             item(key = "invitation") { InvitationBlock(invitation, actions, sectionModifier) }
         }
+        details.join?.let { join -> item(key = "join") { JoinBlock(join, details, actions, sectionModifier) } }
         details.chat?.let { chat ->
             item(key = "chat") {
                 WaiveraButton(
@@ -255,17 +257,13 @@ private fun DetailRow(
     }
 }
 
+/**
+ * Join is a filled button only while the window is open. Before that it is an outlined, disabled
+ * button under "Join opens at …"; after the meeting, or with no set time, only the reason shows.
+ */
 @Composable
 private fun JoinBlock(join: JoinUi, details: EventDetails, actions: EventActions, modifier: Modifier = Modifier) {
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(WaiveraSpacing.Small)) {
-        WaiveraButton(
-            text = stringResource(R.string.feature_calendar_join),
-            onClick = actions.onJoin,
-            enabled = join.state == JoinState.OPEN,
-            loading = join.isBusy,
-            fullWidth = true,
-            leadingIcon = WaiveraIcons.OpenExternal,
-        )
         val helper = when (join.state) {
             JoinState.OPEN -> null
             JoinState.TOO_EARLY -> join.opensAt?.let {
@@ -275,7 +273,19 @@ private fun JoinBlock(join: JoinUi, details: EventDetails, actions: EventActions
             JoinState.NO_TIME -> stringResource(R.string.feature_calendar_join_no_time)
         }
         helper?.let {
-            Text(text = it, style = MaterialTheme.typography.labelMedium, color = WaiveraTheme.colors.textSecondary)
+            Text(text = it, style = MaterialTheme.typography.bodyMedium, color = WaiveraTheme.colors.textSecondary)
+        }
+        if (join.state == JoinState.OPEN || join.state == JoinState.TOO_EARLY) {
+            val open = join.state == JoinState.OPEN
+            WaiveraButton(
+                text = stringResource(R.string.feature_calendar_join),
+                onClick = actions.onJoin,
+                variant = if (open) WaiveraButtonVariant.Primary else WaiveraButtonVariant.Secondary,
+                enabled = open,
+                loading = join.isBusy,
+                fullWidth = true,
+                leadingIcon = WaiveraIcons.OpenExternal,
+            )
         }
         join.error?.let { error ->
             val message = when (error) {
@@ -322,30 +332,7 @@ private fun InvitationBlock(invitation: InvitationUi, actions: EventActions, mod
             val saving = invitation.phase == ResponsePhase.SAVING
             val accepted = invitation.response == MyInvitation.ACCEPTED
             val declined = invitation.response == MyInvitation.DECLINED
-            Row(horizontalArrangement = Arrangement.spacedBy(WaiveraSpacing.Small)) {
-                WaiveraButton(
-                    text = stringResource(R.string.feature_calendar_decline),
-                    onClick = actions.onDecline,
-                    variant = if (declined) WaiveraButtonVariant.Primary else WaiveraButtonVariant.Secondary,
-                    enabled = !saving,
-                    loading = saving && declined,
-                    leadingIcon = if (declined) WaiveraIcons.Check else null,
-                    modifier = Modifier
-                        .weight(1f)
-                        .semantics { selected = declined },
-                )
-                WaiveraButton(
-                    text = stringResource(R.string.feature_calendar_accept),
-                    onClick = actions.onAccept,
-                    variant = if (accepted) WaiveraButtonVariant.Primary else WaiveraButtonVariant.Secondary,
-                    enabled = !saving,
-                    loading = saving && accepted,
-                    leadingIcon = if (accepted) WaiveraIcons.Check else null,
-                    modifier = Modifier
-                        .weight(1f)
-                        .semantics { selected = accepted },
-                )
-            }
+            ResponseChoices(saving = saving, accepted = accepted, declined = declined, actions = actions)
         }
         invitation.failure?.let { error ->
             WaiveraBanner(
@@ -357,6 +344,73 @@ private fun InvitationBlock(invitation: InvitationUi, actions: EventActions, mod
             )
         }
     }
+}
+
+/**
+ * "Not going" and "Going" as one single-choice group: the chosen answer is tonal with a check and
+ * announced as selected, the other is outlined, so the pair reads as a state rather than two
+ * calls to action. Above 130% font the pair stacks and the check is dropped so labels stay whole.
+ */
+@Composable
+private fun ResponseChoices(saving: Boolean, accepted: Boolean, declined: Boolean, actions: EventActions) {
+    val large = LocalDensity.current.fontScale > RESPONSE_STACK_FONT_SCALE
+    val decline: @Composable (Modifier) -> Unit = { buttonModifier ->
+        ResponseChoice(
+            text = stringResource(R.string.feature_calendar_decline),
+            chosen = declined,
+            saving = saving,
+            showCheck = !large,
+            onClick = actions.onDecline,
+            modifier = buttonModifier,
+        )
+    }
+    val accept: @Composable (Modifier) -> Unit = { buttonModifier ->
+        ResponseChoice(
+            text = stringResource(R.string.feature_calendar_accept),
+            chosen = accepted,
+            saving = saving,
+            showCheck = !large,
+            onClick = actions.onAccept,
+            modifier = buttonModifier,
+        )
+    }
+    if (large) {
+        Column(
+            modifier = Modifier.selectableGroup(),
+            verticalArrangement = Arrangement.spacedBy(WaiveraSpacing.Small),
+        ) {
+            accept(Modifier.fillMaxWidth())
+            decline(Modifier.fillMaxWidth())
+        }
+    } else {
+        Row(
+            modifier = Modifier.selectableGroup(),
+            horizontalArrangement = Arrangement.spacedBy(WaiveraSpacing.Small),
+        ) {
+            decline(Modifier.weight(1f))
+            accept(Modifier.weight(1f))
+        }
+    }
+}
+
+@Composable
+private fun ResponseChoice(
+    text: String,
+    chosen: Boolean,
+    saving: Boolean,
+    showCheck: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    WaiveraButton(
+        text = text,
+        onClick = onClick,
+        variant = if (chosen) WaiveraButtonVariant.Tonal else WaiveraButtonVariant.Secondary,
+        enabled = !saving,
+        loading = saving && chosen,
+        leadingIcon = if (chosen && showCheck) WaiveraIcons.Check else null,
+        modifier = modifier.semantics { selected = chosen },
+    )
 }
 
 @Composable
@@ -452,6 +506,11 @@ private fun LabeledBlock(eyebrow: String, text: String, strongBorder: Boolean, m
 @Composable
 private fun AttendeesHeader(count: Int) {
     val heading = stringResource(R.string.feature_calendar_event_attendees)
+    if (count == 0) {
+        // "No one else is invited." follows, so a zero count would only repeat it.
+        WaiveraSectionHeader(text = heading, modifier = Modifier.semantics { heading() })
+        return
+    }
     val countText = pluralStringResource(R.plurals.feature_calendar_event_attendee_count, count, count)
     WaiveraSectionHeader(
         text = stringResource(R.string.feature_calendar_with_detail, heading, countText),
@@ -484,7 +543,7 @@ private fun AttendeeItem(attendee: AttendeeRow, actions: EventActions, avatarLoa
 @Composable
 internal fun EventBodySkeleton(modifier: Modifier = Modifier) {
     if (!rememberSkeletonVisible(loading = true)) return
-    val alpha = rememberSkeletonAlpha()
+    val pulse = rememberSkeletonPulse()
     val loading = stringResource(R.string.feature_calendar_loading)
     Column(
         modifier = modifier
@@ -493,10 +552,10 @@ internal fun EventBodySkeleton(modifier: Modifier = Modifier) {
             .clearAndSetSemantics { contentDescription = loading },
         verticalArrangement = Arrangement.spacedBy(WaiveraSpacing.MediumSmall),
     ) {
-        SkeletonLine(widthFraction = TITLE_FRACTION, alpha = alpha)
-        SkeletonLine(widthFraction = LINE_FRACTION, alpha = alpha)
-        SkeletonLine(widthFraction = SHORT_FRACTION, alpha = alpha)
-        repeat(SKELETON_ROWS) { SkeletonListRow(alpha = alpha) }
+        SkeletonLine(widthFraction = TITLE_FRACTION, pulse = pulse)
+        SkeletonLine(widthFraction = LINE_FRACTION, pulse = pulse)
+        SkeletonLine(widthFraction = SHORT_FRACTION, pulse = pulse)
+        repeat(SKELETON_ROWS) { SkeletonListRow(pulse = pulse) }
     }
 }
 
@@ -504,3 +563,4 @@ private const val TITLE_FRACTION = 0.7f
 private const val LINE_FRACTION = 0.5f
 private const val SHORT_FRACTION = 0.35f
 private const val SKELETON_ROWS = 3
+private const val RESPONSE_STACK_FONT_SCALE = 1.3f

@@ -34,8 +34,15 @@ object WaiveraSizes {
     val AvatarMedium: Dp = 44.dp
     val AvatarLarge: Dp = 64.dp
     val AvatarHero: Dp = 96.dp
+
+    /** The brand mark above the sign-in title. */
+    val BrandMark: Dp = 48.dp
     val AvatarRing: Dp = 2.dp
     val PresenceDot: Dp = 12.dp
+
+    /** Ring width of the "away" presence dot; "offline" uses the thinner hairline ring. */
+    val PresenceRing: Dp = 2.5.dp
+    val PresenceHairline: Dp = 1.5.dp
 
     /** Milestone corner badge (07 §4): at least this big, scaled with the avatar above it. */
     val MilestoneBadgeMin: Dp = 17.dp

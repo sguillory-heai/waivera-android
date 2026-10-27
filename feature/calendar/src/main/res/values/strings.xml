@@ -2,26 +2,24 @@
 <resources>
     <!-- Schedule tab -->
     <string name="feature_calendar_schedule_title">Schedule</string>
-    <string name="feature_calendar_schedule_subtitle">Events, time off, holidays, and team celebrations.</string>
-    <string name="feature_calendar_account_name">Your account</string>
     <string name="feature_calendar_view_day">Day</string>
     <string name="feature_calendar_view_week">Week</string>
     <string name="feature_calendar_view_month">Month</string>
     <string name="feature_calendar_previous_period">Previous period</string>
     <string name="feature_calendar_next_period">Next period</string>
     <string name="feature_calendar_today">Today</string>
-    <string name="feature_calendar_go_to_today">Go to today</string>
+    <string name="feature_calendar_go_to_today">Jump to today</string>
     <string name="feature_calendar_refresh">Refresh schedule</string>
     <string name="feature_calendar_period_week_in_month">%1$s–%2$s, %3$s</string>
     <string name="feature_calendar_period_week_across_months">%1$s – %2$s</string>
     <string name="feature_calendar_zone_notice">Times shown in %1$s</string>
     <string name="feature_calendar_zone_notice_fallback">Your profile has no time zone, so times are shown in %1$s.</string>
     <string name="feature_calendar_loading">Loading your calendar…</string>
-    <string name="feature_calendar_error_title">Calendar could not load</string>
+    <string name="feature_calendar_error_title">Your schedule didn\'t load</string>
     <string name="feature_calendar_empty_title">Nothing scheduled</string>
     <string name="feature_calendar_empty_message">This day is clear.</string>
     <string name="feature_calendar_feed_refresh_failed">Couldn\'t refresh your schedule. Showing what was saved.</string>
-    <string name="feature_calendar_milestones_failed">Team celebrations couldn\'t load.</string>
+    <string name="feature_calendar_milestones_failed">Team celebrations didn\'t load.</string>
     <string name="feature_calendar_offline">You\'re offline. Showing your saved schedule.</string>
     <string name="feature_calendar_retry">Retry</string>
     <string name="feature_calendar_grid_label">Calendar</string>
@@ -97,8 +95,8 @@
     <string name="feature_calendar_response_tentative">You said maybe.</string>
     <string name="feature_calendar_response_saving">Saving your response…</string>
     <string name="feature_calendar_response_started">This event has started, so the invitation can no longer be answered.</string>
-    <string name="feature_calendar_accept">Accept</string>
-    <string name="feature_calendar_decline">Decline</string>
+    <string name="feature_calendar_accept">Going</string>
+    <string name="feature_calendar_decline">Not going</string>
     <string name="feature_calendar_response_failed_title">Response not saved</string>
     <string name="feature_calendar_undo_accepted">You accepted the invitation</string>
     <string name="feature_calendar_undo_declined">You declined the invitation</string>
@@ -117,5 +115,6 @@
 
     <string name="feature_calendar_event_not_found_title">Event not found</string>
     <string name="feature_calendar_event_not_found_message">This event isn\'t on your schedule anymore, or it\'s outside the dates that can be looked up.</string>
+    <string name="feature_calendar_event_error_title">This event didn\'t load</string>
     <string name="feature_calendar_event_refresh_failed">Couldn\'t refresh this event. Showing what was saved.</string>
 </resources>

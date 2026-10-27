@@ -3,7 +3,10 @@
 <resources>
     <!-- Chrome -->
     <string name="feature_chat_conversation_fallback_title">Conversation</string>
-    <string name="feature_chat_conversation_invalid">Invalid conversation ID.</string>
+    <string name="feature_chat_conversation_invalid">This link doesn\'t point to a conversation you can open. It may have been removed.</string>
+    <string name="feature_chat_conversation_unavailable_title">Conversation not available</string>
+    <string name="feature_chat_conversation_not_found">This conversation isn\'t available anymore.</string>
+    <string name="feature_chat_messages_offline_saved">Showing saved messages. New ones arrive when you\'re back online.</string>
     <string name="feature_chat_thread_invalid">This thread could not be opened.</string>
     <string name="feature_chat_subtitle_reconnecting">Reconnecting…</string>
     <string name="feature_chat_subtitle_connecting">Connecting…</string>
@@ -11,17 +14,18 @@
     <string name="feature_chat_call_start">Start video call on web</string>
     <string name="feature_chat_call_join">Join video call on web</string>
     <string name="feature_chat_call_in_progress">Call in progress</string>
-    <string name="feature_chat_call_join_on_web">Join on web ›</string>
+    <string name="feature_chat_call_join_on_web">Join on web</string>
     <string name="feature_chat_call_open_failed">Unable to open video call</string>
 
     <!-- States -->
     <string name="feature_chat_messages_loading">Loading messages</string>
     <string name="feature_chat_messages_error_title">Messages didn\'t load</string>
     <string name="feature_chat_messages_empty_title">No messages yet</string>
-    <string name="feature_chat_messages_empty">No messages yet. Start the conversation.</string>
+    <string name="feature_chat_messages_empty">Say hello to start the conversation.</string>
     <string name="feature_chat_messages_stale">Showing saved messages. We couldn\'t refresh them.</string>
     <string name="feature_chat_thread_error_title">Thread didn\'t load</string>
-    <string name="feature_chat_thread_empty">No replies yet.</string>
+    <string name="feature_chat_thread_empty">No replies yet</string>
+    <string name="feature_chat_thread_empty_message">Reply to start the thread.</string>
     <string name="feature_chat_thread_loading">Loading thread</string>
     <string name="feature_chat_older_failed">Older messages didn\'t load.</string>
     <string name="feature_chat_older_loading">Loading older messages</string>
@@ -190,7 +194,7 @@
         <item quantity="one">%d reply</item>
         <item quantity="other">%d replies</item>
     </plurals>
-    <string name="feature_chat_thread_root_missing">The original message isn\'t available.</string>
+    <string name="feature_chat_thread_root_missing">Original message unavailable</string>
     <!-- Snackbar title followed by the client-owned reason, e.g. "Delete failed. You're offline." -->
     <string name="feature_chat_snackbar_with_detail">%1$s. %2$s</string>
     <string name="feature_chat_link_failed">That link couldn\'t be opened.</string>

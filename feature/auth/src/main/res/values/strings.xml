@@ -47,6 +47,7 @@
     <string name="feature_auth_password_change_failed_title">Password not updated</string>
     <string name="feature_auth_password_change_done_title">Password updated</string>
     <string name="feature_auth_password_change_done_message">Use your new password the next time you sign in.</string>
+    <string name="feature_auth_password_change_done_action">Done</string>
     <string name="feature_auth_sign_out">Sign out</string>
 
     <!-- Onboarding required -->
@@ -54,6 +55,8 @@
     <string name="feature_auth_onboarding_message">Your Waivera account isn\'t fully set up yet. Complete the setup from the invitation your organization sent you, then come back here.</string>
     <string name="feature_auth_onboarding_help">If you can\'t find the invitation, ask your administrator to send it again.</string>
     <string name="feature_auth_onboarding_check">I\'ve finished, check again</string>
+    <string name="feature_auth_checking">Checking…</string>
+    <string name="feature_auth_retrying">Trying again…</string>
     <string name="feature_auth_onboarding_still_pending">Your account still needs setup. It can take a few minutes after you finish.</string>
 
     <!-- Bootstrap failed -->

@@ -3,6 +3,7 @@ package com.waivera.waivera.feature.chat
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.WindowInsets
@@ -45,12 +46,14 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.font.FontStyle
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.waivera.waivera.core.data.model.Message
 import com.waivera.waivera.core.designsystem.component.BannerTone
 import com.waivera.waivera.core.designsystem.component.ConnectionBanner
+import com.waivera.waivera.core.designsystem.component.ConnectionBannerState
 import com.waivera.waivera.core.designsystem.component.WaiveraBanner
 import com.waivera.waivera.core.designsystem.component.WaiveraDivider
 import com.waivera.waivera.core.designsystem.component.WaiveraEmptyState
@@ -59,6 +62,7 @@ import com.waivera.waivera.core.designsystem.component.WaiveraSnackbarHost
 import com.waivera.waivera.core.designsystem.component.WaiveraTopBar
 import com.waivera.waivera.core.designsystem.icon.WaiveraIcons
 import com.waivera.waivera.core.designsystem.preview.WaiveraPreviews
+import com.waivera.waivera.core.designsystem.theme.WaiveraShapes
 import com.waivera.waivera.core.designsystem.theme.WaiveraSpacing
 import com.waivera.waivera.core.designsystem.theme.WaiveraTextStyles
 import com.waivera.waivera.core.designsystem.theme.WaiveraTheme
@@ -294,8 +298,13 @@ fun ThreadScreenContent(
                         ).only(WindowInsetsSides.Horizontal),
                     ),
             ) {
-                ConnectionBanner(state = state.connection.banner, onRetry = actions.onRetryConnection)
-                if (state.isStale) {
+                val connectionBanner = state.connection.banner
+                ConnectionBanner(
+                    state = connectionBanner,
+                    onRetry = actions.onRetryConnection,
+                    offlineMessage = stringResource(R.string.feature_chat_messages_offline_saved),
+                )
+                if (state.isStale && connectionBanner == ConnectionBannerState.Connected) {
                     WaiveraBanner(
                         message = stringResource(R.string.feature_chat_messages_stale),
                         tone = BannerTone.Warning,
@@ -310,7 +319,8 @@ fun ThreadScreenContent(
                 ) {
                     ThreadBody(state, time, actions, listState, scrollToNewestOnOpen, skeletonDelayMillis)
                 }
-                if (state.content != ThreadContent.Invalid) {
+                // Nothing to reply to when the thread is missing or failed to load (UI review UI-18).
+                if (state.content != ThreadContent.Invalid && state.content !is ThreadContent.Error) {
                     ThreadComposerArea(state, draft, onDraftChange, actions, focusRequester)
                 }
             }
@@ -418,11 +428,13 @@ private fun ThreadList(
             when (entry) {
                 is ThreadEntry.Item -> TimelineItemView(entry.item, context, actions.rows, itemModifier)
                 is ThreadEntry.Header -> RepliesHeader(entry.count, itemModifier)
-                ThreadEntry.RootMissing -> Notice(
-                    stringResource(R.string.feature_chat_thread_root_missing),
-                    itemModifier,
+                ThreadEntry.RootMissing -> RootMissingBubble(itemModifier)
+                ThreadEntry.NoReplies -> WaiveraEmptyState(
+                    title = stringResource(R.string.feature_chat_thread_empty),
+                    message = stringResource(R.string.feature_chat_thread_empty_message),
+                    icon = WaiveraIcons.Reply,
+                    modifier = itemModifier,
                 )
-                ThreadEntry.NoReplies -> Notice(stringResource(R.string.feature_chat_thread_empty), itemModifier)
             }
         }
     }
@@ -449,15 +461,20 @@ private fun RepliesHeader(count: Int, modifier: Modifier = Modifier) {
     }
 }
 
+/** A muted stand-in bubble where the thread's original message would be. */
 @Composable
-private fun Notice(text: String, modifier: Modifier = Modifier) {
+private fun RootMissingBubble(modifier: Modifier = Modifier) {
+    val colors = WaiveraTheme.colors
     Text(
-        text = text,
+        text = stringResource(R.string.feature_chat_thread_root_missing),
         style = MaterialTheme.typography.bodyMedium,
-        color = WaiveraTheme.colors.textSecondary,
+        fontStyle = FontStyle.Italic,
+        color = colors.textSecondary,
         modifier = modifier
-            .fillMaxWidth()
-            .padding(horizontal = WaiveraSpacing.Gutter, vertical = WaiveraSpacing.Medium),
+            .padding(horizontal = WaiveraSpacing.Gutter, vertical = WaiveraSpacing.Small)
+            .background(colors.surfaceMuted, WaiveraShapes.Bubble)
+            .border(WaiveraSpacing.Hairline, colors.border, WaiveraShapes.Bubble)
+            .padding(horizontal = WaiveraSpacing.Medium, vertical = WaiveraSpacing.MediumSmall),
     )
 }
 

@@ -96,11 +96,43 @@ class ConversationScreenshotTest {
         ConversationView(
             state().copy(
                 content = ConversationContent.Error(
-                    com.waivera.waivera.core.network.R.string.core_network_error_network,
+                    com.waivera.waivera.core.network.R.string.core_network_error_server,
                 ),
                 items = emptyList(),
             ),
         )
+    }
+
+    /** A conversation that was removed: conversation copy, no composer. */
+    @Test
+    fun notFound() = captureScreenshots("conversation_not_found") {
+        ConversationView(
+            state().copy(
+                content = ConversationContent.Error(
+                    com.waivera.waivera.core.network.R.string.core_network_error_not_found,
+                ),
+                items = emptyList(),
+            ),
+        )
+    }
+
+    /**
+     * The same conversation with every message a minute apart, so runs by one author group:
+     * name and avatar on the first message of a run only, tight spacing inside it.
+     */
+    @Test
+    fun grouped() = captureScreenshots("conversation_grouped") {
+        val dm = messages.filter { it.conversationId == DemoData.DM_PRIYA && !it.isThreadReply }
+        val retimed = dm.mapIndexed { index, message ->
+            message.copy(createdAt = DemoData.NOW.minusSeconds((dm.size - index) * SECONDS_PER_MINUTE))
+        }
+        val items = TimelineBuilder.build(
+            messages = retimed,
+            myUserId = DemoData.ME,
+            zone = DemoData.ZONE,
+            botConversation = false,
+        )
+        ConversationView(state().copy(items = items))
     }
 
     @Test
@@ -281,3 +313,5 @@ class ConversationScreenshotTest {
         const val RICH_MESSAGE = 9350L
     }
 }
+
+private const val SECONDS_PER_MINUTE = 60L

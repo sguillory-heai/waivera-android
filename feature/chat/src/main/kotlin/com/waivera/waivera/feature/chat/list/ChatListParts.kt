@@ -33,7 +33,7 @@ import com.waivera.waivera.core.designsystem.component.SkeletonLine
 import com.waivera.waivera.core.designsystem.component.WaiveraDivider
 import com.waivera.waivera.core.designsystem.component.WaiveraIconButton
 import com.waivera.waivera.core.designsystem.component.WaiveraListRow
-import com.waivera.waivera.core.designsystem.component.rememberSkeletonAlpha
+import com.waivera.waivera.core.designsystem.component.rememberSkeletonPulse
 import com.waivera.waivera.core.designsystem.icon.WaiveraIcons
 import com.waivera.waivera.core.designsystem.preview.WaiveraPreviews
 import com.waivera.waivera.core.designsystem.theme.WaiveraShapes
@@ -129,7 +129,7 @@ fun ChatSearchField(query: String, onQueryChange: (String) -> Unit, modifier: Mo
 /** Six rows of avatar, two text bones of varying width and a time bone (spec 02 §8). */
 @Composable
 fun ChatListSkeleton(modifier: Modifier = Modifier, rows: Int = SKELETON_ROWS) {
-    val alpha = rememberSkeletonAlpha()
+    val pulse = rememberSkeletonPulse()
     Column(modifier = modifier.fillMaxWidth().clearAndSetSemantics { }) {
         repeat(rows) { index ->
             Row(
@@ -140,12 +140,12 @@ fun ChatListSkeleton(modifier: Modifier = Modifier, rows: Int = SKELETON_ROWS) {
                 horizontalArrangement = Arrangement.spacedBy(WaiveraSpacing.MediumSmall),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                SkeletonCircle(size = WaiveraSizes.IconTile, alpha = alpha)
+                SkeletonCircle(size = WaiveraSizes.IconTile, pulse = pulse)
                 Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(WaiveraSpacing.Small)) {
-                    SkeletonLine(widthFraction = TITLE_WIDTHS[index % TITLE_WIDTHS.size], alpha = alpha)
-                    SkeletonLine(widthFraction = PREVIEW_WIDTHS[index % PREVIEW_WIDTHS.size], alpha = alpha)
+                    SkeletonLine(widthFraction = TITLE_WIDTHS[index % TITLE_WIDTHS.size], pulse = pulse)
+                    SkeletonLine(widthFraction = PREVIEW_WIDTHS[index % PREVIEW_WIDTHS.size], pulse = pulse)
                 }
-                SkeletonLine(modifier = Modifier.width(WaiveraSpacing.ExtraLarge), alpha = alpha)
+                SkeletonLine(modifier = Modifier.width(WaiveraSpacing.ExtraLarge), pulse = pulse)
             }
         }
     }

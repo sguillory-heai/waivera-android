@@ -58,22 +58,19 @@ fun WaiveraListRow(
             modifier = Modifier
                 .fillMaxWidth()
                 .heightIn(min = WaiveraSizes.ListRowMinHeight)
-                .padding(horizontal = WaiveraSpacing.Gutter, vertical = WaiveraSpacing.MediumSmall)
-                .alpha(if (enabled) 1f else DISABLED_ALPHA),
+                .padding(horizontal = WaiveraSpacing.Gutter, vertical = WaiveraSpacing.MediumSmall),
             horizontalArrangement = Arrangement.spacedBy(WaiveraSpacing.MediumSmall),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            if (leading != null) leading()
-            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(WaiveraSpacing.XxSmall)) {
-                Text(text = headline, style = MaterialTheme.typography.titleSmall, color = WaiveraTheme.colors.text)
-                if (supporting != null) {
-                    Text(
-                        text = supporting,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = WaiveraTheme.colors.textSecondary,
-                    )
-                }
+            if (leading != null) {
+                Box(Modifier.alpha(if (enabled) 1f else DISABLED_ALPHA)) { leading() }
             }
+            RowText(
+                title = headline,
+                subtitle = supporting,
+                enabled = enabled,
+                modifier = Modifier.weight(1f),
+            )
             if (trailing != null) trailing()
             if (showChevron) {
                 Icon(
@@ -123,17 +120,11 @@ fun WaiveraSwitchRow(
                     onCheckedChange(value)
                 },
             )
-            .padding(horizontal = WaiveraSpacing.Gutter, vertical = WaiveraSpacing.MediumSmall)
-            .alpha(if (enabled) 1f else DISABLED_ALPHA),
+            .padding(horizontal = WaiveraSpacing.Gutter, vertical = WaiveraSpacing.MediumSmall),
         horizontalArrangement = Arrangement.spacedBy(WaiveraSpacing.MediumSmall),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(WaiveraSpacing.XxSmall)) {
-            Text(text = title, style = MaterialTheme.typography.titleSmall, color = colors.text)
-            if (subtitle != null) {
-                Text(text = subtitle, style = MaterialTheme.typography.bodySmall, color = colors.textSecondary)
-            }
-        }
+        RowText(title = title, subtitle = subtitle, enabled = enabled, modifier = Modifier.weight(1f))
         // The row owns the toggle semantics, so the switch itself is not separately focusable.
         Switch(
             checked = checked,
@@ -145,8 +136,37 @@ fun WaiveraSwitchRow(
                 uncheckedThumbColor = colors.borderStrong,
                 uncheckedTrackColor = colors.surfaceMuted,
                 uncheckedBorderColor = colors.borderStrong,
+                disabledCheckedThumbColor = colors.surface,
+                disabledCheckedTrackColor = colors.textSecondary,
+                disabledUncheckedThumbColor = colors.textSecondary,
+                disabledUncheckedTrackColor = colors.surfaceMuted,
+                disabledUncheckedBorderColor = colors.textSecondary,
             ),
         )
+    }
+}
+
+/**
+ * Title and supporting text of a row. Disabled rows stay readable (title in `textSecondary`,
+ * supporting text slightly lighter) instead of fading the whole row to near-invisible.
+ */
+@Composable
+private fun RowText(title: String, subtitle: String?, enabled: Boolean, modifier: Modifier = Modifier) {
+    val colors = WaiveraTheme.colors
+    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(WaiveraSpacing.XxSmall)) {
+        Text(
+            text = title,
+            style = MaterialTheme.typography.titleSmall,
+            color = if (enabled) colors.text else colors.textSecondary,
+        )
+        if (subtitle != null) {
+            val subtitleColor = if (enabled) {
+                colors.textSecondary
+            } else {
+                colors.textSecondary.copy(alpha = DISABLED_SUPPORTING_ALPHA)
+            }
+            Text(text = subtitle, style = MaterialTheme.typography.bodySmall, color = subtitleColor)
+        }
     }
 }
 
@@ -194,6 +214,7 @@ fun WaiveraDivider(modifier: Modifier = Modifier) {
 }
 
 private const val DISABLED_ALPHA = 0.5f
+private const val DISABLED_SUPPORTING_ALPHA = 0.8f
 
 @WaiveraPreviews
 @Composable
