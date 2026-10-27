@@ -19,7 +19,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.waivera.waivera.core.data.model.ThemePreference
 import com.waivera.waivera.core.designsystem.theme.WaiveraTheme
 import com.waivera.waivera.navigation.AppShellViewModel
-import com.waivera.waivera.startup.DemoModeLaunchFlag
+import com.waivera.waivera.startup.DemoLaunch
 import com.waivera.waivera.ui.ShellActions
 import com.waivera.waivera.ui.WaiveraApp
 import dagger.hilt.android.AndroidEntryPoint
@@ -29,8 +29,13 @@ class MainActivity : ComponentActivity() {
     private val shell: AppShellViewModel by viewModels()
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        // Read before injection so a debug launch with the fake-server extra is seen by the data layer.
-        DemoModeLaunchFlag.record(this, intent)
+        // Before injection: repositories are chosen once per process, so a changed debug demo flag
+        // restarts the process. Release builds have no demo mode and this is always false.
+        if (DemoLaunch.restartIfChanged(this, intent)) {
+            super.onCreate(savedInstanceState)
+            finish()
+            return
+        }
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
         // A recreated activity already restored its navigation; replaying the launch link would undo it.

@@ -5,35 +5,14 @@ plugins {
     alias(libs.plugins.kotlin.serialization)
 }
 
-// Firebase values come from a Gradle property (CI secrets) or local.properties, never from a
-// committed google-services.json. Missing values build a working app that offers demo mode.
-val localProperties = providers.fileContents(rootProject.layout.projectDirectory.file("local.properties")).asText
-
-fun environmentValue(key: String): String = providers.gradleProperty(key).orNull
-    ?: localProperties.orNull?.lineSequence()
-        ?.map(String::trim)
-        ?.firstOrNull { it.startsWith("$key=") }
-        ?.substringAfter('=')
-        ?.trim()
-    ?: ""
-
 android {
     namespace = "com.waivera.waivera"
-
-    buildFeatures {
-        buildConfig = true
-    }
 
     defaultConfig {
         // Same ID as the Expo app so the native build ships as an update to the existing Play listing.
         applicationId = "com.waivera.waivera"
         versionCode = 1
         versionName = "0.1.0"
-
-        buildConfigField("String", "FIREBASE_API_KEY", "\"${environmentValue("waivera.firebase.apiKey")}\"")
-        buildConfigField("String", "FIREBASE_APP_ID", "\"${environmentValue("waivera.firebase.appId")}\"")
-        buildConfigField("String", "FIREBASE_PROJECT_ID", "\"${environmentValue("waivera.firebase.projectId")}\"")
-        buildConfigField("String", "FIREBASE_SENDER_ID", "\"${environmentValue("waivera.firebase.senderId")}\"")
     }
 
     buildTypes {
@@ -46,8 +25,11 @@ android {
 }
 
 dependencies {
+    // Firebase values (waivera.firebase.*) are read by core:data into FirebaseConfig, which the
+    // app's FirebaseInitializer uses; nothing comes from a committed google-services.json.
     implementation(projects.core.data)
-    implementation(projects.core.demo)
+    // Demo repositories and DemoSwitchModule exist only in debug; release includes LiveRepositoriesModule.
+    debugImplementation(projects.core.demo)
     implementation(projects.core.designsystem)
     implementation(projects.core.network)
     implementation(projects.core.notifications)
@@ -67,6 +49,8 @@ dependencies {
     implementation(libs.androidx.lifecycle.viewmodel.navigation3)
     implementation(libs.androidx.navigation3.runtime)
     implementation(libs.androidx.navigation3.ui)
+    // SingletonImageLoader.setSafe installs core:data's authenticated loader (G-15).
+    implementation(libs.coil.core)
     implementation(platform(libs.firebase.bom))
     implementation(libs.firebase.common)
     implementation(libs.kotlinx.serialization.json)
