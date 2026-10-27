@@ -43,6 +43,8 @@ class SettingsScreenshotTest {
             onOpenNotificationSettings = {},
             onOpenAppearance = {},
             onSignOut = {},
+            // Same entry points as the populated capture, so only the signing-out change shows.
+            onOpenChangePassword = {},
         )
     }
 
