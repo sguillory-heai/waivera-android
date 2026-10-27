@@ -98,9 +98,11 @@ fun ChatListRoute(
 
     val actionRow = actionsFor?.let { id -> state.rows.firstOrNull { it.id == id } }
     if (actionRow != null) {
-        WaiveraBottomSheet(onDismissRequest = { actionsFor = null }, title = actionRow.title) {
+        // No sheet title: the content's header row names the conversation with its avatar (UI3-17).
+        WaiveraBottomSheet(onDismissRequest = { actionsFor = null }) {
             RowActionsContent(
                 row = actionRow,
+                avatar = (actionRow.leading as? RowLeading.Direct)?.userId?.let { avatars[it] },
                 onOpen = {
                     actionsFor = null
                     viewModel.onConversationClick(actionRow.id)

@@ -21,10 +21,12 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
@@ -165,7 +167,11 @@ fun RowDivider(modifier: Modifier = Modifier) {
     )
 }
 
-/** The button alternative to every swipe action, opened by long press or the TalkBack action. */
+/**
+ * The button alternative to every swipe action, opened by long press or the TalkBack action. It
+ * opens with the conversation's own avatar and title, as the inbox row shows them, so the sheet
+ * says which conversation its actions touch (UI3-17), like the message sheet's preview.
+ */
 @Composable
 fun RowActionsContent(
     row: ChatRowUi,
@@ -174,8 +180,15 @@ fun RowActionsContent(
     onJoinCall: () -> Unit,
     onOpenProfile: (String) -> Unit,
     modifier: Modifier = Modifier,
+    avatar: ImageBitmap? = null,
 ) {
     Column(modifier = modifier.fillMaxWidth()) {
+        WaiveraListRow(
+            headline = row.title,
+            leading = { LeadingTile(row.leading, avatar) },
+            modifier = Modifier.semantics { heading() },
+        )
+        WaiveraDivider()
         WaiveraListRow(
             headline = stringResource(R.string.feature_chat_list_open_action),
             onClick = onOpen,
@@ -225,6 +238,13 @@ private fun ChatListPartsPreview() {
             ChatListSkeleton(rows = 2)
             RowActionsContent(
                 row = ChatListPreviewData.rows.first(),
+                onOpen = {},
+                onMarkRead = {},
+                onJoinCall = {},
+                onOpenProfile = {},
+            )
+            RowActionsContent(
+                row = ChatListPreviewData.rows.last(),
                 onOpen = {},
                 onMarkRead = {},
                 onJoinCall = {},

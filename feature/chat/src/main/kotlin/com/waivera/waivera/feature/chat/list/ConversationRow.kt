@@ -321,8 +321,9 @@ private fun CallJoin(opening: Boolean, onJoin: () -> Unit) {
     }
 }
 
+/** The row's avatar or kind tile; also heads the row-actions sheet so it names its conversation. */
 @Composable
-private fun LeadingTile(leading: RowLeading, avatar: ImageBitmap?) {
+internal fun LeadingTile(leading: RowLeading, avatar: ImageBitmap?) {
     Box {
         when (leading) {
             is RowLeading.Channel -> IconTile(
