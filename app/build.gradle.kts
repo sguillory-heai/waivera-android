@@ -61,6 +61,8 @@ dependencies {
 
     testImplementation(projects.core.testing)
     testImplementation(libs.kotlinx.coroutines.test)
+    // The tour builds an in-memory WaiveraDatabase; :core:data keeps Room as an implementation detail.
+    testImplementation(libs.androidx.room.runtime)
     // The navigation path tour runs the real Hilt graph with test modules swapped in (@TestInstallIn).
     // Same version as Hilt itself; declared here rather than in the catalog because only these tests use it.
     testImplementation("com.google.dagger:hilt-android-testing:${libs.versions.hilt.get()}")

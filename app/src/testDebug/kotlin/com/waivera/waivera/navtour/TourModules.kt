@@ -19,7 +19,9 @@ import com.waivera.waivera.core.data.live.AttachmentCacheDirectory
 import com.waivera.waivera.core.data.live.ChatCache
 import com.waivera.waivera.core.data.live.LiveAttachmentRepository
 import com.waivera.waivera.core.data.live.LivePeopleRepository
+import com.waivera.waivera.core.data.live.PushUnregisterScheduler
 import com.waivera.waivera.core.data.live.SignOutCleaner
+import com.waivera.waivera.core.data.live.WorkManagerPushUnregisterScheduler
 import com.waivera.waivera.core.data.outbox.OutboxDirectory
 import com.waivera.waivera.core.data.outbox.OutboxScheduler
 import com.waivera.waivera.core.data.outbox.OutboxStore
@@ -34,6 +36,7 @@ import com.waivera.waivera.core.data.repository.BookmarkRepository
 import com.waivera.waivera.core.data.repository.CalendarRepository
 import com.waivera.waivera.core.data.repository.ConversationRepository
 import com.waivera.waivera.core.data.repository.DataLayerStarter
+import com.waivera.waivera.core.data.repository.DurableMessageSender
 import com.waivera.waivera.core.data.repository.MessageRepository
 import com.waivera.waivera.core.data.repository.PeopleRepository
 import com.waivera.waivera.core.data.repository.ProfileRepository
@@ -97,6 +100,9 @@ abstract class TourRepositoriesModule {
 
     @Binds
     abstract fun messages(impl: DemoMessageRepository): MessageRepository
+
+    @Binds
+    abstract fun durableSends(impl: DemoMessageRepository): DurableMessageSender
 
     @Binds
     abstract fun threads(impl: DemoThreadRepository): ThreadRepository
@@ -168,6 +174,9 @@ abstract class TourInfrastructureModule {
 
     @Binds
     abstract fun outboxScheduler(scheduler: WorkManagerOutboxScheduler): OutboxScheduler
+
+    @Binds
+    abstract fun pushUnregisterScheduler(scheduler: WorkManagerPushUnregisterScheduler): PushUnregisterScheduler
 
     @Multibinds
     abstract fun signOutCleaners(): Set<SignOutCleaner>
