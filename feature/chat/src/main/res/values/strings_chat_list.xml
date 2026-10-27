@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Chat list, new chat and people picker copy. Kept apart from strings.xml, which the conversation screens own. -->
+<resources>
+    <string name="feature_chat_list_title">Chats</string>
+    <string name="feature_chat_list_new_chat">Start a new chat</string>
+    <string name="feature_chat_list_account">Your account</string>
+
+    <string name="feature_chat_list_status_online">Online</string>
+    <string name="feature_chat_list_status_connecting">Connecting</string>
+    <string name="feature_chat_list_status_reconnecting">Reconnecting</string>
+    <string name="feature_chat_list_status_offline">Offline</string>
+    <string name="feature_chat_list_status_description">Chat status: %1$s</string>
+
+    <string name="feature_chat_list_search_label">Search conversations</string>
+    <string name="feature_chat_list_search_clear">Clear search</string>
+    <string name="feature_chat_list_filter_all">All</string>
+    <string name="feature_chat_list_filter_unread">Unread</string>
+    <string name="feature_chat_list_filter_channels">Channels</string>
+
+    <string name="feature_chat_list_empty_search_title">No matches</string>
+    <string name="feature_chat_list_empty_search">No conversations match your search.</string>
+    <string name="feature_chat_list_empty_unread_title">All caught up</string>
+    <string name="feature_chat_list_empty_unread">You\'re all caught up.</string>
+    <string name="feature_chat_list_empty_channels_title">No channels</string>
+    <string name="feature_chat_list_empty_channels">No channels found.</string>
+    <string name="feature_chat_list_empty_title">No conversations yet</string>
+    <string name="feature_chat_list_empty">No conversations yet.</string>
+    <string name="feature_chat_list_empty_action">Start a chat</string>
+    <string name="feature_chat_list_error_title">Unable to load conversations.</string>
+    <string name="feature_chat_list_retry">Retry</string>
+    <string name="feature_chat_list_refresh_failed">Showing saved conversations. %1$s</string>
+    <string name="feature_chat_list_loading">Loading conversations</string>
+
+    <string name="feature_chat_list_preview_none">No messages yet</string>
+    <string name="feature_chat_list_preview_photo">Photo</string>
+    <string name="feature_chat_list_preview_file">File attachment</string>
+    <string name="feature_chat_list_preview_update">Conversation update</string>
+    <string name="feature_chat_list_preview_deleted">Message deleted</string>
+    <string name="feature_chat_list_preview_sender">%1$s:</string>
+    <string name="feature_chat_list_sender_you">You</string>
+    <string name="feature_chat_list_title_channel">Channel</string>
+    <string name="feature_chat_list_title_conversation">Conversation</string>
+    <string name="feature_chat_list_title_bot">Waivera</string>
+    <string name="feature_chat_list_unknown_person">Unknown</string>
+    <plurals name="feature_chat_list_title_group">
+        <item quantity="one">%1$s &amp; %2$d other</item>
+        <item quantity="other">%1$s &amp; %2$d others</item>
+    </plurals>
+    <string name="feature_chat_list_typing_one">%1$s is typing…</string>
+    <string name="feature_chat_list_typing_someone">Someone</string>
+    <string name="feature_chat_list_typing_several">Several people are typing…</string>
+    <string name="feature_chat_list_call_join">Call in progress · Join</string>
+    <string name="feature_chat_list_call_join_action">Join call</string>
+    <string name="feature_chat_list_call_opening">Opening call</string>
+    <string name="feature_chat_list_call_failed">Unable to open the video call. Try again.</string>
+    <string name="feature_chat_list_call_no_browser">The web calling experience could not be opened.</string>
+
+    <string name="feature_chat_list_time_now">Now</string>
+    <string name="feature_chat_list_time_minutes">%1$dm</string>
+    <string name="feature_chat_list_time_yesterday">Yesterday</string>
+
+    <string name="feature_chat_list_bot_icon">Automated Waivera notifications</string>
+    <string name="feature_chat_list_channel_icon">Channel</string>
+    <string name="feature_chat_list_archived_icon">Archived channel</string>
+    <string name="feature_chat_list_group_icon">Group conversation</string>
+    <string name="feature_chat_list_read_only">Read only</string>
+    <string name="feature_chat_list_attachment">Attachment</string>
+    <string name="feature_chat_list_open_action">Open conversation</string>
+    <string name="feature_chat_list_actions">More actions for %1$s</string>
+    <string name="feature_chat_list_action_mark_read">Mark as read</string>
+    <string name="feature_chat_list_action_profile">View profile</string>
+    <string name="feature_chat_list_mark_read_failed">Could not mark this conversation as read.</string>
+
+    <string name="feature_chat_newchat_title">New chat</string>
+    <string name="feature_chat_newchat_subtitle">Select one person for a direct message or several for a group.</string>
+    <string name="feature_chat_newchat_search_label">Search staff</string>
+    <plurals name="feature_chat_newchat_selected">
+        <item quantity="one">%d selected</item>
+        <item quantity="other">%d selected</item>
+    </plurals>
+    <string name="feature_chat_newchat_empty_title">No one found</string>
+    <string name="feature_chat_newchat_empty">No staff members match.</string>
+    <string name="feature_chat_newchat_loading">Loading staff</string>
+    <string name="feature_chat_newchat_open">Open chat</string>
+    <string name="feature_chat_newchat_create_group">Create group chat</string>
+    <string name="feature_chat_newchat_close">Close</string>
+    <string name="feature_chat_newchat_selected_state">Selected</string>
+    <string name="feature_chat_newchat_not_selected_state">Not selected</string>
+</resources>
