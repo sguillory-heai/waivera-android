@@ -109,7 +109,7 @@ Rows push onto the Today tab, so back returns to Today; "See schedule" switches 
 | Row | Opens | Image |
 | --- | --- | --- |
 | Overview | — | `path_05_today_01_overview` (+ `_dark`) |
-| Direct message (Priya) | Today ▸ Conversation 7 | `path_05_today_02_dm_conversation` |
+| Direct message (Priya; the test first adds an unread question from her, `TourSeeds.priyaAsks`) | Today ▸ Conversation 7 | `path_05_today_02_dm_conversation` |
 | Mention in the group | Today ▸ Conversation 11 at message 9500 | `path_05_today_03_mention_conversation` |
 | Thread reply activity | Today ▸ Thread 7/9330 at reply 9332 | `path_05_today_04_thread_reply` |
 | Next up: Client home visit | Today ▸ Event | `path_05_today_05_event` |
@@ -121,7 +121,7 @@ Undo is offered on the event screen; Today's one-tap answer shows a plain confir
 
 ## 6. Schedule (`Path06ScheduleTest`)
 
-Clock moved to 14:45 Chicago so the 15:00 Sprout meeting's join window is open.
+Clock moved to 19:45Z, which is 13:45 CST in Chicago on the fall-back day, so the 14:00 Sprout meeting's join window is open.
 
 | Step | Action | Stack | Image |
 | --- | --- | --- | --- |

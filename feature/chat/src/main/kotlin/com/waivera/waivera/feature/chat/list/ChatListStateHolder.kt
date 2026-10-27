@@ -70,6 +70,8 @@ class ChatListStateHolder(
         val arrivals: Map<Long, Long> = emptyMap(),
         /** Marked read here and not yet confirmed by the cache. */
         val optimisticRead: Set<Long> = emptySet(),
+        /** From the outbox, not local edits: conversations with a message of mine that wasn't sent. */
+        val failedSends: Set<Long> = emptySet(),
     )
 
     private val relativeTime = RelativeTime(text, locale)
@@ -94,8 +96,9 @@ class ChatListStateHolder(
         local,
         session.state,
         realtime.status,
-    ) { (s, typingMap, now), l, sessionState, status ->
-        buildState(s, typingMap, now, l, sessionState, status)
+        conversations.observeFailedSends(),
+    ) { (s, typingMap, now), l, sessionState, status, failed ->
+        buildState(s, typingMap, now, l.copy(failedSends = failed), sessionState, status)
     }.stateIn(scope, SharingStarted.Eagerly, ChatListUiState())
 
     /** Peers of the first rows plus me, for [AvatarCache.prefetch]. */
@@ -354,7 +357,8 @@ class ChatListStateHolder(
             senderPrefix = RowSubtitle.senderPrefix(c, preview, me, text),
             typingLabel = RowSubtitle.typingLabel(c, typingIds, me, text),
             timeLabel = relativeTime.label(c.lastMessage?.createdAt, now, zone),
-            unreadCount = if (c.id in l.optimisticRead) 0 else c.unreadCount,
+            // One unread rule with Today (UI2-09): a chat whose newest message is mine isn't unread for me.
+            unreadCount = if (c.id in l.optimisticRead || !c.isUnreadFor(me)) 0 else c.unreadCount,
             hasAttachment = c.lastMessage?.let { it.hasAttachment && !it.isDeleted } == true,
             isChannel = isChannel,
             isReadOnly = isChannel && !c.canWrite,
@@ -362,6 +366,7 @@ class ChatListStateHolder(
             isOpeningCall = l.openingCallId == c.id,
             arrivalKey = l.arrivals[c.id],
             lastMessageId = c.lastMessage?.messageId,
+            isSendFailed = c.id in l.failedSends,
         )
     }
 

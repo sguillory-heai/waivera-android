@@ -186,6 +186,7 @@ private fun RowBody(row: ChatRowUi, avatar: ImageBitmap?, onJoinCall: () -> Unit
                 Box(modifier = Modifier.weight(1f)) {
                     when {
                         row.isCallLive -> CallJoin(opening = row.isOpeningCall, onJoin = onJoinCall)
+                        row.isSendFailed -> NotSentLine()
                         row.typingLabel != null -> Text(
                             text = row.typingLabel,
                             style = MaterialTheme.typography.bodySmall,
@@ -201,6 +202,31 @@ private fun RowBody(row: ChatRowUi, avatar: ImageBitmap?, onJoinCall: () -> Unit
                 if (row.isUnread) WaiveraCountBadge(count = row.unreadCount)
             }
         }
+    }
+}
+
+/** In place of the preview: a message of mine never went out, so say so before the chat is opened. */
+@Composable
+private fun NotSentLine() {
+    val colors = WaiveraTheme.colors
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(WaiveraSpacing.ExtraSmall),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(
+            painter = painterResource(WaiveraIcons.Error),
+            contentDescription = null,
+            tint = colors.dangerText,
+            modifier = Modifier.size(WaiveraSizes.IconSmall),
+        )
+        Text(
+            text = stringResource(R.string.feature_chat_list_not_sent),
+            style = MaterialTheme.typography.bodySmall,
+            fontWeight = FontWeight.SemiBold,
+            color = colors.dangerText,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
     }
 }
 

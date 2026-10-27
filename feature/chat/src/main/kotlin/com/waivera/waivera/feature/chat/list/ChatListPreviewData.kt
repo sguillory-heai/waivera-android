@@ -77,6 +77,7 @@ internal object ChatListPreviewData {
             senderPrefix = "You",
             timeLabel = "Aug 30",
             lastMessageId = 7000,
+            isSendFailed = true,
         ),
     )
 

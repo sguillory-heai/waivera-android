@@ -84,7 +84,8 @@ class TodayViewModel @Inject constructor(
             activity.observeActivity(),
             schedule,
             calendar.observeMilestones(),
-        ) { chats, feed, events, milestones -> TodaySources(chats, feed, events, milestones) },
+            conversations.observeFailedSends(),
+        ) { chats, feed, events, milestones, failed -> TodaySources(chats, feed, events, milestones, failed) },
         combine(session.state, zone, ticks, realtimeStatus.status, local) { s, z, now, realtime, l ->
             TodayContext(accountName(s), s.currentUserId, z, now, realtime, l, titles)
         },

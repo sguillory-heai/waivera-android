@@ -62,6 +62,8 @@ class TodayScreenshotTest {
             lastSyncedAt = synced,
         ),
         milestones = Synced(DemoData.milestones(), lastSyncedAt = synced),
+        // The demo DM holds a message that wasn't sent, as the demo app does.
+        failedSends = setOf(DemoData.DM_PRIYA),
     )
 
     private fun state(
@@ -90,6 +92,7 @@ class TodayScreenshotTest {
     fun allCaughtUp() {
         val demo = demoSources()
         val calm = demo.copy(
+            failedSends = emptySet(),
             conversations = demo.conversations.copy(data = demo.conversations.data.map { it.copy(unreadCount = 0) }),
             activity = demo.activity.copy(
                 data = ActivityFeed(demo.activity.data.items.map { it.copy(read = true) }, hasMore = false),

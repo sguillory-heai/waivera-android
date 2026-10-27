@@ -41,6 +41,11 @@
     <string name="feature_today_invitation_accept_a11y">Accept invitation to %1$s</string>
     <string name="feature_today_invitation_decline_a11y">Decline invitation to %1$s</string>
     <string name="feature_today_open_conversation">Open conversation</string>
+    <string name="feature_today_not_sent">Not sent</string>
+    <string name="feature_today_not_sent_headline">Your message to %1$s wasn\'t sent</string>
+    <string name="feature_today_not_sent_supporting">Open the chat to retry</string>
+    <string name="feature_today_not_sent_action">Open to retry</string>
+    <string name="feature_today_not_sent_a11y">%1$s. %2$s. %3$s</string>
     <string name="feature_today_open_message">Open message</string>
     <string name="feature_today_open_event">Open event</string>
     <string name="feature_today_open_schedule">Open schedule</string>

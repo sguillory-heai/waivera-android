@@ -87,10 +87,9 @@ class TestGraph(val scope: CoroutineScope, connected: Boolean = true) : AutoClos
     val outbox = OutboxStore(db.outbox)
     val ingest = MessageIngest(cache, outbox)
     val typing = TypingTracker(realtime, clock, scope)
-    val conversations =
-        LiveConversationRepository(chatApi, videoApi, server.config, cache, sync, session, typing, visible, clock) {
-            readsCleared += it
-        }
+    val conversations = LiveConversationRepository(
+        chatApi, videoApi, server.config, cache, sync, session, typing, visible, clock, outbox,
+    ) { readsCleared += it }
     val connectivity = FakeConnectivityMonitor()
     val processor = OutboxProcessor(outbox, chatApi, realtime, ingest, session, connectivity)
     val messages = LiveMessageRepository(

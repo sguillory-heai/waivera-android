@@ -4,6 +4,7 @@ import com.waivera.waivera.core.data.model.ActivityFeed
 import com.waivera.waivera.core.data.model.ActivityItem
 import com.waivera.waivera.core.data.model.Conversation
 import com.waivera.waivera.core.data.model.ConversationKind
+import com.waivera.waivera.core.data.model.ConversationTitles
 import com.waivera.waivera.core.data.model.DateRange
 import com.waivera.waivera.core.data.model.Milestone
 import com.waivera.waivera.core.data.model.MyInvitation
@@ -48,11 +49,13 @@ class TodayAssemblerTest {
         events: List<ScheduleEvent> = emptyList(),
         milestones: List<Milestone> = emptyList(),
         synced: Instant? = TEST_NOW,
+        failedSends: Set<Long> = emptySet(),
     ) = TodaySources(
         conversations = Synced(conversations, lastSyncedAt = synced),
         activity = Synced(ActivityFeed(activity, hasMore), lastSyncedAt = synced),
         schedule = Synced(ScheduleFeed(range, TEST_ZONE.id, events), lastSyncedAt = synced),
         milestones = Synced(milestones, lastSyncedAt = synced),
+        failedSends = failedSends,
     )
 
     private fun context(
@@ -138,6 +141,28 @@ class TodayAssemblerTest {
         )
         assertEquals(listOf("dm-9"), state.needsYou.items.map { it.key })
         assertEquals(listOf(1L), state.activity.rows.map { it.id }, "the older mention stays in the feed")
+    }
+
+    @Test
+    fun `a message I couldn't send comes first and names the chat like the inbox`() {
+        val group = conversation(11, kind = ConversationKind.GROUP, unread = 0)
+        val state = assemble(
+            sources(conversations = listOf(conversation(9, unread = 2), group), failedSends = setOf(11L, 99L)),
+        )
+        assertEquals(listOf("not-sent-11", "dm-9"), state.needsYou.items.map { it.key }, "unknown chats are skipped")
+        val row = assertIs<NeedsYouItem.NotSent>(state.needsYou.items.first())
+        assertEquals(ConversationTitles.format(group, ME, EnglishConversationTitles), row.name)
+        assertFalse(state.isAllCaughtUp, "a failed send is never 'all caught up'")
+    }
+
+    @Test
+    fun `Today and the inbox share one unread rule`() {
+        val mine = conversation(7, unread = 1).let { it.copy(lastMessage = it.lastMessage?.copy(authorId = ME)) }
+        val theirs = conversation(9, unread = 1)
+        assertFalse(mine.isUnreadFor(ME))
+        assertTrue(theirs.isUnreadFor(ME))
+        val keys = assemble(sources(conversations = listOf(mine, theirs))).needsYou.items.map { it.key }
+        assertEquals(listOf("dm-9"), keys)
     }
 
     @Test

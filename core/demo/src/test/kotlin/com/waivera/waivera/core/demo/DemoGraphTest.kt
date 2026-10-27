@@ -29,7 +29,10 @@ class DemoGraphTest {
         assertEquals(ConversationKind.entries.toSet(), list.map { it.kind }.toSet())
         assertTrue(list.first { it.id == DemoData.GROUP }.unreadCount > 0)
         assertEquals(DemoData.CALL_RECORD, list.first { it.id == DemoData.GROUP }.ongoingCall?.callRecordId)
-        assertEquals(list.sumOf { it.unreadCount }, graph.conversations.observeUnreadTotal().first())
+        // The tab badge uses the inbox's rule: a chat whose newest message is mine isn't unread for me.
+        val unreadForMe = list.filter { it.isUnreadFor(DemoData.ME) }
+        assertEquals(unreadForMe.sumOf { it.unreadCount }, graph.conversations.observeUnreadTotal().first())
+        assertEquals(setOf(DemoData.DM_PRIYA), graph.conversations.observeFailedSends().first())
     }
 
     @Test

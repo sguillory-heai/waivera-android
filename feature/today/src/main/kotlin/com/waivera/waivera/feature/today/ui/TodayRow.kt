@@ -109,20 +109,38 @@ internal fun TodayRow(
     }
 }
 
-/** A 40dp icon tile: accent wash for things that need attention, muted once read. */
+/**
+ * A 40dp icon tile: accent wash for things that need attention, muted once read, danger for
+ * something that went wrong (a message that wasn't sent).
+ */
 @Composable
-internal fun TodayIconTile(@DrawableRes icon: Int, modifier: Modifier = Modifier, muted: Boolean = false) {
+internal fun TodayIconTile(
+    @DrawableRes icon: Int,
+    modifier: Modifier = Modifier,
+    muted: Boolean = false,
+    danger: Boolean = false,
+) {
     val colors = WaiveraTheme.colors
+    val fill = when {
+        danger -> colors.dangerContainer
+        muted -> colors.surfaceMuted
+        else -> colors.accentSoft
+    }
+    val tint = when {
+        danger -> colors.onDangerContainer
+        muted -> colors.textSecondary
+        else -> colors.onAccentSoft
+    }
     Box(
         modifier = modifier
             .size(WaiveraSizes.IconTile)
-            .background(if (muted) colors.surfaceMuted else colors.accentSoft, WaiveraShapes.Button),
+            .background(fill, WaiveraShapes.Button),
         contentAlignment = Alignment.Center,
     ) {
         Icon(
             painter = painterResource(icon),
             contentDescription = null,
-            tint = if (muted) colors.textSecondary else colors.onAccentSoft,
+            tint = tint,
             modifier = Modifier.size(WaiveraSizes.Icon),
         )
     }

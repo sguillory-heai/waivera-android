@@ -252,6 +252,7 @@ class Path08DeepLinksTest : NavTourHarness() {
      */
     @Test
     fun path08_pushTapForConversationAlreadyOpenFromToday_staysOnSameScreen() {
+        TourSeeds.priyaAsks(world.backend())
         launch()
         click(hasClickLabel("Open conversation") and textOrDescription("Priya Raman", substring = true))
         expectStack(TodayRoute, ConversationRoute(DemoData.DM_PRIYA))

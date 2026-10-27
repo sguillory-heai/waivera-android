@@ -40,6 +40,8 @@ data class TodaySources(
     val activity: Synced<ActivityFeed>,
     val schedule: Synced<ScheduleFeed>?,
     val milestones: Synced<List<Milestone>>,
+    /** Conversations with a message of mine the outbox gave up on. */
+    val failedSends: Set<Long> = emptySet(),
 )
 
 /** Who, where and when the screen is rendered for. */
@@ -98,6 +100,8 @@ object TodayAssembler {
      * inside a DM that is already listed as unread is not repeated; it stays in the feed.
      */
     private fun pinnedMentions(sources: TodaySources): List<ActivityItem> {
+        // Any DM with unread messages, including one I answered last: a mention there stays in
+        // the feed instead of coming back as "needs you" (see Conversation.isUnreadFor).
         val unreadDirects = sources.conversations.data
             .filter { it.kind == ConversationKind.DIRECT && it.unreadCount > 0 }
             .mapTo(mutableSetOf()) { it.id }
@@ -113,9 +117,7 @@ object TodayAssembler {
         pinnedMentions: List<ActivityItem>,
     ): NeedsYouSection {
         val conversations = sources.conversations.data
-        val directs = conversations.filter {
-            it.kind == ConversationKind.DIRECT && it.unreadCount > 0 && isWaitingOnMe(it, context.myUserId)
-        }
+        val directs = conversations.filter { it.kind == ConversationKind.DIRECT && it.isUnreadFor(context.myUserId) }
         val dmRows = directs.map { c ->
             c.lastMessage?.createdAt to NeedsYouItem.DirectMessage(
                 conversationId = c.id,
@@ -141,7 +143,7 @@ object TodayAssembler {
                 ticketTitle = c.lastMessage?.ticket?.title,
             )
         }
-        val all = conversationRows + invitations + tickets
+        val all = notSentRows(sources, context) + conversationRows + invitations + tickets
         val visible = if (context.local.needsYouExpanded) all else all.take(NeedsYouSection.COLLAPSED_COUNT)
         val ready = sources.conversations.hasContent() || sources.conversations.lastSyncedAt != null
         return NeedsYouSection(
@@ -153,16 +155,16 @@ object TodayAssembler {
         )
     }
 
-    /**
-     * A DM needs me only when the newest message is someone else's. When I sent the last message
-     * the ball is in their court, even if the server still counts older messages as unread. A
-     * mention inside such a DM stays in the feed (see [pinnedMentions]) rather than coming back
-     * as "needs you". Unknown authors count as someone else, so nothing is hidden by mistake.
-     */
-    internal fun isWaitingOnMe(conversation: Conversation, myUserId: String?): Boolean {
-        val author = conversation.lastMessage?.authorId ?: return true
-        return myUserId == null || author != myUserId
-    }
+    /** A message of mine that never went out comes first: only I can fix it (UI2-09). */
+    private fun notSentRows(sources: TodaySources, context: TodayContext): List<NeedsYouItem.NotSent> =
+        sources.conversations.data
+            .filter { it.id in sources.failedSends }
+            .map { c ->
+                NeedsYouItem.NotSent(
+                    conversationId = c.id,
+                    name = ConversationTitles.format(c, context.myUserId, context.titles),
+                )
+            }
 
     private fun mentionItem(item: ActivityItem, context: TodayContext) = NeedsYouItem.Mention(
         activityId = item.id,

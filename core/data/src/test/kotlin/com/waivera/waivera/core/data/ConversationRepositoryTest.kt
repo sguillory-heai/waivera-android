@@ -199,7 +199,7 @@ class ConversationRepositoryTest {
         val noWebBase = NetworkConfig(graph.server.baseUrl, "", allowLocalCleartext = true)
         val unconfigured = LiveConversationRepository(
             graph.chatApi, graph.videoApi, noWebBase, graph.cache, graph.sync,
-            graph.session, graph.typing, graph.visible, graph.clock, {},
+            graph.session, graph.typing, graph.visible, graph.clock, graph.outbox, {},
         )
         val error = assertIs<WaiveraError.Configuration>(unconfigured.callLobbyUrl(7).exceptionOrNull())
         assertEquals(listOf("waivera.webBaseUrl"), error.missingKeys)

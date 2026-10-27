@@ -110,6 +110,18 @@ data class Conversation(
     val activityAt: Instant?
         get() = lastMessage?.createdAt ?: ongoingCall?.startedAt ?: activeMeeting?.startAt
 
+    /**
+     * The one "unread for me" rule, shared by the inbox badge and Today's Needs you (UI2-09): the
+     * server counts unread messages and the newest one is someone else's. When I sent the last
+     * message the ball is in their court, even if older messages still count as unread. Unknown
+     * authors count as someone else, so nothing is hidden by mistake.
+     */
+    fun isUnreadFor(myUserId: String?): Boolean {
+        if (unreadCount <= 0) return false
+        val author = lastMessage?.authorId ?: return true
+        return myUserId == null || author != myUserId
+    }
+
     /** Everyone except [myUserId]; for DM avatars. Titles come from [ConversationTitles]. */
     fun others(myUserId: String?): List<Person> = participants.filter { it.id != myUserId }
 }

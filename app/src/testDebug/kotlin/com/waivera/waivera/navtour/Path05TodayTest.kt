@@ -20,6 +20,7 @@ class Path05TodayTest : NavTourHarness() {
 
     @Test
     fun path05_directMessageRow_opensConversationOnToday() {
+        TourSeeds.priyaAsks(world.backend())
         launch()
         expectScreen("Needs you")
         shot("path_05_today_01_overview")

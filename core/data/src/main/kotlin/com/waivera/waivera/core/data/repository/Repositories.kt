@@ -31,6 +31,7 @@ import java.time.ZoneId
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.serialization.json.JsonElement
 
@@ -85,6 +86,12 @@ interface ConversationRepository {
 
     /** Total unread across conversations, for the tab badge. */
     fun observeUnreadTotal(): Flow<Int>
+
+    /**
+     * Conversations holding a message of mine that the outbox gave up on, so the inbox and Today
+     * can say "Not sent" without opening the chat (UI2-09).
+     */
+    fun observeFailedSends(): Flow<Set<Long>> = flowOf(emptySet())
 
     suspend fun refresh(): Result<Unit>
 

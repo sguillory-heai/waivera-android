@@ -83,6 +83,11 @@ sealed interface NeedsYouItem {
         override val key: String get() = "mention-$activityId"
     }
 
+    /** A message of mine in [conversationId] that the outbox gave up on; Retry lives in the chat. */
+    data class NotSent(val conversationId: Long, val name: String) : NeedsYouItem {
+        override val key: String get() = "not-sent-$conversationId"
+    }
+
     data class Invitation(val eventId: String, val title: String?, val organizer: String?, val time: UpcomingLabel?) :
         NeedsYouItem {
         override val key: String get() = "invite-$eventId"

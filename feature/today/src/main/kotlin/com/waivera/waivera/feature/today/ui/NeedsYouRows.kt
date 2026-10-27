@@ -43,6 +43,7 @@ internal fun NeedsYouRow(item: NeedsYouItem, callbacks: NeedsYouCallbacks, modif
         is NeedsYouItem.DirectMessage ->
             DirectMessageRow(item, { callbacks.onOpenConversation(item.conversationId) }, modifier)
         is NeedsYouItem.Mention -> MentionRow(item, { callbacks.onOpenMention(item) }, modifier)
+        is NeedsYouItem.NotSent -> NotSentRow(item, { callbacks.onOpenConversation(item.conversationId) }, modifier)
         is NeedsYouItem.Invitation -> InvitationRow(
             item = item,
             onOpen = { callbacks.onOpenEvent(item.eventId) },
@@ -77,6 +78,25 @@ private fun DirectMessageRow(item: NeedsYouItem.DirectMessage, onClick: () -> Un
             )
         },
         trailing = { WaiveraCountBadge(count = item.unreadCount) },
+    )
+}
+
+@Composable
+private fun NotSentRow(item: NeedsYouItem.NotSent, onClick: () -> Unit, modifier: Modifier) {
+    val eyebrow = stringResource(R.string.feature_today_not_sent)
+    val headline = stringResource(R.string.feature_today_not_sent_headline, item.name)
+    val supporting = stringResource(R.string.feature_today_not_sent_supporting)
+    TodayRow(
+        headline = headline,
+        description = stringResource(R.string.feature_today_not_sent_a11y, eyebrow, headline, supporting),
+        onClick = onClick,
+        onClickLabel = stringResource(R.string.feature_today_not_sent_action),
+        eyebrow = eyebrow,
+        eyebrowColor = WaiveraTheme.colors.dangerText,
+        supporting = supporting,
+        emphasized = true,
+        modifier = modifier,
+        leading = { TodayIconTile(icon = WaiveraIcons.Error, danger = true) },
     )
 }
 
@@ -191,6 +211,7 @@ private fun NeedsYouRowsPreview() {
     val callbacks = NeedsYouCallbacks({}, {}, {}, { _, _ -> })
     WaiveraTheme {
         Column(Modifier.background(WaiveraTheme.colors.background)) {
+            NeedsYouRow(NeedsYouItem.NotSent(conversationId = 7, name = "Priya Raman"), callbacks)
             NeedsYouRow(
                 NeedsYouItem.DirectMessage(
                     conversationId = 7,

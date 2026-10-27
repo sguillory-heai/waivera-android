@@ -3,9 +3,11 @@ package com.waivera.waivera.core.data.live
 import com.waivera.waivera.core.data.model.Conversation
 import com.waivera.waivera.core.data.model.ConversationKind
 import com.waivera.waivera.core.data.model.Message
+import com.waivera.waivera.core.data.model.SendState
 import com.waivera.waivera.core.data.model.SessionState
 import com.waivera.waivera.core.data.model.Synced
 import com.waivera.waivera.core.data.model.currentUserId
+import com.waivera.waivera.core.data.outbox.OutboxStore
 import com.waivera.waivera.core.data.repository.ConversationRepository
 import com.waivera.waivera.core.data.repository.SessionRepository
 import com.waivera.waivera.core.network.NetworkConfig
@@ -43,6 +45,7 @@ class LiveConversationRepository @Inject constructor(
     private val typing: TypingTracker,
     private val visible: VisibleConversation,
     private val clock: Clock,
+    private val outbox: OutboxStore,
     private val reads: ConversationReadListener,
 ) : ConversationRepository {
     private val myUserId: String? get() = session.state.value.currentUserId
@@ -53,8 +56,13 @@ class LiveConversationRepository @Inject constructor(
     override fun observeConversation(conversationId: Long): Flow<Conversation?> =
         cache.observeConversation(conversationId)
 
-    override fun observeUnreadTotal(): Flow<Int> =
-        cache.observeConversations().map { list -> list.sumOf { it.unreadCount } }.distinctUntilChanged()
+    override fun observeUnreadTotal(): Flow<Int> = cache.observeConversations()
+        .map { list -> list.sumOf { if (it.isUnreadFor(myUserId)) it.unreadCount else 0 } }
+        .distinctUntilChanged()
+
+    override fun observeFailedSends(): Flow<Set<Long>> = outbox.observeAll()
+        .map { items -> items.filter { it.state == SendState.FAILED }.mapTo(mutableSetOf()) { it.conversationId } }
+        .distinctUntilChanged()
 
     /**
      * G-05: `/my-conversations` (author, meetings) and `/all` (channels, attachments) are fetched

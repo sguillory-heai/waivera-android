@@ -42,8 +42,12 @@ class DemoConversationRepository @Inject constructor(private val backend: DemoBa
         backend.conversations.map { it[conversationId] }.distinctUntilChanged()
 
     override fun observeUnreadTotal(): Flow<Int> = backend.conversations.map { all ->
-        all.values.sumOf { it.unreadCount }
+        all.values.sumOf { if (it.isUnreadFor(backend.myUserId)) it.unreadCount else 0 }
     }
+
+    override fun observeFailedSends(): Flow<Set<Long>> = backend.messages.map { all ->
+        all.filterValues { list -> list.any { it.sendState == SendState.FAILED } }.keys
+    }.distinctUntilChanged()
 
     override suspend fun refresh(): Result<Unit> = backend.refresh()
 

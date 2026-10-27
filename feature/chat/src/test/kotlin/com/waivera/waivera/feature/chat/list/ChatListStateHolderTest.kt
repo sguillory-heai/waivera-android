@@ -299,6 +299,26 @@ class ChatListStateHolderTest {
         assertEquals(13, repo.hydrationCalls.size)
     }
 
+    @Test
+    fun aChatWhoseNewestMessageIsMineIsNotUnreadForMe() = run {
+        repo.setConversations(
+            listOf(dm(7, unread = 1, last = preview(700, author = ME)), dm(8, unread = 2, other = jordan)),
+        )
+        val h = holder()
+        assertEquals(mapOf(7L to 0, 8L to 2), h.state.value.rows.associate { it.id to it.unreadCount })
+    }
+
+    @Test
+    fun aMessageThatWasNotSentShowsOnItsRowUntilTheOutboxClearsIt() = run {
+        repo.setConversations(listOf(dm(7), dm(8, other = jordan)))
+        val h = holder()
+        assertTrue(h.state.value.rows.none { it.isSendFailed })
+        repo.failedSends.value = setOf(7L)
+        assertEquals(listOf(7L), h.state.value.rows.filter { it.isSendFailed }.map { it.id })
+        repo.failedSends.value = emptySet()
+        assertTrue(h.state.value.rows.none { it.isSendFailed })
+    }
+
     // Actions
 
     @Test

@@ -56,6 +56,7 @@
     <string name="feature_chat_list_archived_icon">Archived channel</string>
     <string name="feature_chat_list_group_icon">Group conversation</string>
     <string name="feature_chat_list_read_only">Read only</string>
+    <string name="feature_chat_list_not_sent">Not sent</string>
     <string name="feature_chat_list_attachment">Attachment</string>
     <string name="feature_chat_list_open_action">Open conversation</string>
     <string name="feature_chat_list_actions">More actions for %1$s</string>

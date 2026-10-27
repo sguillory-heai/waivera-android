@@ -43,6 +43,8 @@ data class ChatRowUi(
     /** Non-null while the arrival wash should play for this message id. */
     val arrivalKey: Long? = null,
     val lastMessageId: Long? = null,
+    /** A message of mine here never went out; the row says "Not sent" in place of the preview. */
+    val isSendFailed: Boolean = false,
 ) {
     val isUnread: Boolean get() = unreadCount > 0
 

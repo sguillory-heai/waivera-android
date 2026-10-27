@@ -1,6 +1,8 @@
 package com.waivera.waivera.navtour
 
 import com.waivera.waivera.core.data.model.CurrentUser
+import com.waivera.waivera.core.data.model.Message
+import com.waivera.waivera.core.data.model.Person
 import com.waivera.waivera.core.data.model.SessionState
 import com.waivera.waivera.core.data.model.currentUser
 import com.waivera.waivera.core.data.repository.CalendarRepository
@@ -128,4 +130,29 @@ class TourCalendarRepository @Inject constructor(private val demo: DemoCalendarR
         /** Test data only: the reserved `.test` domain never resolves. */
         fun lobbyUrlFor(eventId: String): String = "https://app.example.test/meet/$eventId"
     }
+}
+
+/** Extra demo data a path needs, added before launch() so the first frame already shows it. */
+object TourSeeds {
+    /** How long before the tour's "now" Priya's question arrives. */
+    private const val PRIYA_ASKS_SECONDS_AGO = 60L
+
+    /**
+     * An unread question from Priya in the DM, newer than my own last message there, so the DM
+     * is waiting on me and Today lists it under Needs you (the shared rule in Conversation.isUnreadFor).
+     */
+    fun priyaAsks(backend: DemoBackend) {
+        backend.append(
+            Message(
+                id = backend.nextMessageId(),
+                conversationId = DemoData.DM_PRIYA,
+                author = Person(DemoData.PRIYA, "Priya", "Raman", "Priya Raman", "priya.raman@example.com"),
+                authorId = DemoData.PRIYA,
+                text = PRIYA_ASKS_TEXT,
+                createdAt = DemoData.NOW.minusSeconds(PRIYA_ASKS_SECONDS_AGO),
+            ),
+        )
+    }
+
+    const val PRIYA_ASKS_TEXT = "Are you still OK for the 2 PM visit?"
 }

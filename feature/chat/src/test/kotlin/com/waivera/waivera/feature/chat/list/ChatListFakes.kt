@@ -104,6 +104,7 @@ fun channel(
 class FakeConversationRepository(initial: Synced<List<Conversation>>) : ConversationRepository {
     val synced = MutableStateFlow(initial)
     val typing = MutableStateFlow<Map<Long, Set<String>>>(emptyMap())
+    val failedSends = MutableStateFlow<Set<Long>>(emptySet())
     var refreshCalls = 0
         private set
     var refreshResult: Result<Unit> = Result.success(Unit)
@@ -172,6 +173,8 @@ class FakeConversationRepository(initial: Synced<List<Conversation>>) : Conversa
     override fun observeTyping(conversationId: Long): Flow<Set<String>> = typing.map { it[conversationId].orEmpty() }
 
     override fun observeAllTyping(): Flow<Map<Long, Set<String>>> = typing
+
+    override fun observeFailedSends(): Flow<Set<Long>> = failedSends
 
     /** What [callLobbyUrl] answers; when [lobbyGate] is set it waits for it first. */
     var lobbyResult: Result<String> = Result.success("https://web.example.test/lobby/room?state=x")

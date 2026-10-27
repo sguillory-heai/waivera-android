@@ -21,7 +21,7 @@ class Path06ScheduleTest : NavTourHarness() {
 
     @Test
     fun path06_monthWeekDay_eventDetail_join_back() {
-        // 14:45 in Chicago: the 15:00 Sprout meeting's join window (30 minutes before) is open.
+        // 13:45 CST in Chicago (the fall-back day): the 14:00 Sprout meeting's join window (30 minutes before) is open.
         world.clock().set(Instant.parse("2026-11-01T19:45:00Z"))
         launch()
         clickTab("Schedule")
