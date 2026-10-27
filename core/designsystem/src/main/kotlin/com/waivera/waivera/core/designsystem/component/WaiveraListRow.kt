@@ -136,8 +136,10 @@ fun WaiveraSwitchRow(
                 uncheckedThumbColor = colors.borderStrong,
                 uncheckedTrackColor = colors.surfaceMuted,
                 uncheckedBorderColor = colors.borderStrong,
+                // A blocked "on" switch recedes: a muted accent track, never a heavy slate one
+                // that looks stronger than an enabled switch (UI3-12).
                 disabledCheckedThumbColor = colors.surface,
-                disabledCheckedTrackColor = colors.textSecondary,
+                disabledCheckedTrackColor = colors.accent.copy(alpha = DISABLED_CHECKED_TRACK_ALPHA),
                 disabledUncheckedThumbColor = colors.textSecondary,
                 disabledUncheckedTrackColor = colors.surfaceMuted,
                 disabledUncheckedBorderColor = colors.textSecondary,
@@ -214,6 +216,7 @@ fun WaiveraDivider(modifier: Modifier = Modifier) {
 }
 
 private const val DISABLED_ALPHA = 0.5f
+private const val DISABLED_CHECKED_TRACK_ALPHA = 0.38f
 private const val DISABLED_SUPPORTING_ALPHA = 0.8f
 
 @WaiveraPreviews
@@ -232,11 +235,12 @@ private fun WaiveraListRowPreview() {
             WaiveraDivider()
             WaiveraSwitchRow(
                 title = "Haptics",
-                subtitle = "Vibrate for sends, errors and toggles",
+                subtitle = "Vibrate for failed sends, errors and toggles",
                 checked = true,
                 onCheckedChange = {},
             )
-            WaiveraSwitchRow(title = "Mentions", checked = false, onCheckedChange = {}, enabled = false)
+            WaiveraSwitchRow(title = "Mentions", checked = true, onCheckedChange = {}, enabled = false)
+            WaiveraSwitchRow(title = "Digest", checked = false, onCheckedChange = {}, enabled = false)
         }
     }
 }

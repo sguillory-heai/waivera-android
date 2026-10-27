@@ -136,12 +136,14 @@ class DesignSystemScreenshotTest {
     fun switchRows() = capture("SwitchRows") {
         WaiveraSwitchRow(
             title = "Haptics",
-            subtitle = "Vibrate for sends, errors and toggles",
+            subtitle = "Vibrate for failed sends, errors and toggles",
             checked = true,
             onCheckedChange = {},
         )
         WaiveraSwitchRow(title = "Group activity", checked = false, onCheckedChange = {})
+        // Blocked by Android while on: the muted accent track (UI3-12), then blocked while off.
         WaiveraSwitchRow(title = "Mentions", checked = true, onCheckedChange = {}, enabled = false)
+        WaiveraSwitchRow(title = "Digest", checked = false, onCheckedChange = {}, enabled = false)
     }
 
     @OptIn(ExperimentalLayoutApi::class)
