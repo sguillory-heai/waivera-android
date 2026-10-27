@@ -90,7 +90,9 @@ class ConversationViewModel @AssistedInject constructor(
     }
 
     private val _state = MutableStateFlow(
-        ConversationUiState(content = if (isValid(conversationId)) ConversationContent.Loading else ConversationContent.Invalid),
+        ConversationUiState(
+            content = if (isValid(conversationId)) ConversationContent.Loading else ConversationContent.Invalid,
+        ),
     )
     val state: StateFlow<ConversationUiState> = _state.asStateFlow()
 
@@ -143,7 +145,9 @@ class ConversationViewModel @AssistedInject constructor(
             if (conversationFlow.first() == null) conversations.refreshConversation(conversationId)
         }
         viewModelScope.launch {
-            combine(conversationFlow, myUserId, directory) { conversation, me, names -> Triple(conversation, me, names) }
+            combine(conversationFlow, myUserId, directory) { conversation, me, names ->
+                Triple(conversation, me, names)
+            }
                 .collect { (conversation, me, names) -> onConversation(conversation, me, names) }
         }
         viewModelScope.launch {
@@ -156,13 +160,23 @@ class ConversationViewModel @AssistedInject constructor(
         viewModelScope.launch { interactions.sheet.collect { sheet -> _state.update { it.copy(sheet = sheet) } } }
 
         val isBot = conversationFlow.map { it?.kind == ConversationKind.BOT }.distinctUntilChanged()
-        val prepared = combine(messages.observeTimeline(conversationId), bookmarks.observeBookmarkedIds(), myUserId, isBot) {
-                timeline, saved, me, bot ->
+        val prepared = combine(
+            messages.observeTimeline(conversationId),
+            bookmarks.observeBookmarkedIds(),
+            myUserId,
+            isBot,
+        ) {
+                timeline,
+                saved,
+                me,
+                bot,
+            ->
             prepare(timeline, saved, me, bot)
         }.shareIn(viewModelScope, SharingStarted.Eagerly, replay = 1)
         viewModelScope.launch {
             combine(prepared, liveArrivals) { input, live ->
-                input to TimelineBuilder.build(input.messages, input.myUserId, clock.zone, input.isBot, liveArrivals = live)
+                input to
+                    TimelineBuilder.build(input.messages, input.myUserId, clock.zone, input.isBot, liveArrivals = live)
             }
                 .flowOn(computeDispatcher)
                 .collect { (input, items) -> onTimeline(input, items) }
@@ -444,7 +458,15 @@ class ConversationViewModel @AssistedInject constructor(
     // region Rows and actions
 
     fun toggleTimestamp(key: String) = _state.update {
-        it.copy(visibleTimestamps = if (key in it.visibleTimestamps) it.visibleTimestamps - key else it.visibleTimestamps + key)
+        it.copy(
+            visibleTimestamps = if (key in
+                it.visibleTimestamps
+            ) {
+                it.visibleTimestamps - key
+            } else {
+                it.visibleTimestamps + key
+            },
+        )
     }
 
     fun openActions(message: Message) {

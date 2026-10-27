@@ -12,7 +12,9 @@ object Attachments {
     fun isImage(attachment: Attachment): Boolean {
         val contentType = attachment.contentType?.lowercase()?.trim().orEmpty()
         val type = attachment.type?.lowercase()?.trim().orEmpty()
-        return contentType.startsWith("image/") || type.startsWith("image/") || type in IMAGE_TYPES ||
+        return contentType.startsWith("image/") ||
+            type.startsWith("image/") ||
+            type in IMAGE_TYPES ||
             contentType in IMAGE_TYPES
     }
 

@@ -95,7 +95,9 @@ class ConversationScreenshotTest {
     fun error() = captureScreenshots("conversation_error") {
         ConversationView(
             state().copy(
-                content = ConversationContent.Error(com.waivera.waivera.core.network.R.string.core_network_error_network),
+                content = ConversationContent.Error(
+                    com.waivera.waivera.core.network.R.string.core_network_error_network,
+                ),
                 items = emptyList(),
             ),
         )
@@ -110,7 +112,10 @@ class ConversationScreenshotTest {
     fun reconnectingWithStaleRows() = captureScreenshots("conversation_reconnecting") {
         ConversationView(
             state().copy(
-                connection = ConnectionUi(ConnectionBannerState.Reconnecting, R.string.feature_chat_subtitle_reconnecting),
+                connection = ConnectionUi(
+                    ConnectionBannerState.Reconnecting,
+                    R.string.feature_chat_subtitle_reconnecting,
+                ),
                 isStale = true,
             ),
         )
@@ -118,7 +123,11 @@ class ConversationScreenshotTest {
 
     @Test
     fun offline() = captureScreenshots("conversation_offline") {
-        ConversationView(state().copy(connection = ConnectionUi(ConnectionBannerState.Offline, R.string.feature_chat_subtitle_offline)))
+        ConversationView(
+            state().copy(
+                connection = ConnectionUi(ConnectionBannerState.Offline, R.string.feature_chat_subtitle_offline),
+            ),
+        )
     }
 
     @Test
@@ -141,7 +150,9 @@ class ConversationScreenshotTest {
 
     @Test
     fun archivedChannel() = captureScreenshots("conversation_read_only_archived") {
-        ConversationView(state(DemoData.CHANNEL).copy(canWrite = false, readOnlyReason = ReadOnlyReason.ArchivedChannel))
+        ConversationView(
+            state(DemoData.CHANNEL).copy(canWrite = false, readOnlyReason = ReadOnlyReason.ArchivedChannel),
+        )
     }
 
     @Test
@@ -207,7 +218,11 @@ class ConversationScreenshotTest {
 
     @Test
     fun threadError() = captureScreenshots("thread_error") {
-        ThreadView(ThreadUiState(content = ThreadContent.Error(com.waivera.waivera.core.network.R.string.core_network_error_server)))
+        ThreadView(
+            ThreadUiState(
+                content = ThreadContent.Error(com.waivera.waivera.core.network.R.string.core_network_error_server),
+            ),
+        )
     }
 
     @Test

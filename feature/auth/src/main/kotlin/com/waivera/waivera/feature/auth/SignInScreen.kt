@@ -46,10 +46,7 @@ import kotlinx.coroutines.flow.Flow
  * session, so either source disables the form.
  */
 @Composable
-fun SignInScreen(
-    configurationMissing: Boolean,
-    modifier: Modifier = Modifier,
-) {
+fun SignInScreen(configurationMissing: Boolean, modifier: Modifier = Modifier) {
     val viewModel: SignInViewModel = hiltViewModel()
     val state by viewModel.state.collectAsStateWithLifecycle()
     AuthEffects(viewModel.effects, rememberHaptics())

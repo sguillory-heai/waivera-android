@@ -26,14 +26,17 @@ class FakeAttachmentIo(private val unreadable: Set<String> = emptySet()) : Attac
         if (uri in unreadable) null else StagedImage(uri, "photo.png", "image/png", PNG_SIZE)
 
     override fun source(image: StagedImage): AttachmentSource =
-        AttachmentSource(image.fileName ?: "photo.png", image.contentType, image.size) { ByteArrayInputStream(ByteArray(0)) }
+        AttachmentSource(image.fileName ?: "photo.png", image.contentType, image.size) {
+            ByteArrayInputStream(ByteArray(0))
+        }
 
     override suspend fun saveTo(file: File, destinationUri: String): Result<Unit> {
         saved += file to destinationUri
         return Result.success(Unit)
     }
 
-    override suspend fun shareableUri(file: File, fileName: String): Result<String> = Result.success("content://test/$fileName")
+    override suspend fun shareableUri(file: File, fileName: String): Result<String> =
+        Result.success("content://test/$fileName")
 
     private companion object {
         const val PNG_SIZE = 1_024L
@@ -60,7 +63,13 @@ class RecordingConversations(
 
     override suspend fun markRead(conversationId: Long, lastVisibleMessageId: Long): Result<Unit> {
         markReadCalls += lastVisibleMessageId
-        return if (failing) Result.failure(WaiveraError.Network()) else delegate.markRead(conversationId, lastVisibleMessageId)
+        return if (failing) {
+            Result.failure(
+                WaiveraError.Network(),
+            )
+        } else {
+            delegate.markRead(conversationId, lastVisibleMessageId)
+        }
     }
 
     override fun onComposerChanged(conversationId: Long, isEmpty: Boolean) {
@@ -82,12 +91,19 @@ class RecordingThreads(private val delegate: ThreadRepository) : ThreadRepositor
 
     override suspend fun markRead(conversationId: Long, rootMessageId: Long, lastVisibleMessageId: Long): Result<Unit> {
         markReadCalls += rootMessageId to lastVisibleMessageId
-        return if (failing) Result.failure(WaiveraError.Network()) else delegate.markRead(conversationId, rootMessageId, lastVisibleMessageId)
+        return if (failing) {
+            Result.failure(
+                WaiveraError.Network(),
+            )
+        } else {
+            delegate.markRead(conversationId, rootMessageId, lastVisibleMessageId)
+        }
     }
 }
 
 /** A message layer whose sends throw, as a refused hub send would. */
-class ThrowingSends(private val delegate: MessageRepository, private val error: WaiveraError) : MessageRepository by delegate {
+class ThrowingSends(private val delegate: MessageRepository, private val error: WaiveraError) :
+    MessageRepository by delegate {
     override suspend fun send(
         conversationId: Long,
         text: String,

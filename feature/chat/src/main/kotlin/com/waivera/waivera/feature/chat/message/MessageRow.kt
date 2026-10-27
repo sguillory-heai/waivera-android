@@ -243,7 +243,9 @@ private fun Bubble(
     WaiveraPressable(
         onClick = { callbacks.onToggleTimestamp(row.key) },
         onClickLabel = stringResource(R.string.feature_chat_show_time),
-        onLongClick = callbacks.onLongPress?.takeIf { !message.isDeleted && !message.isPending }?.let { { it(message) } },
+        onLongClick = callbacks.onLongPress?.takeIf {
+            !message.isDeleted && !message.isPending
+        }?.let { { it(message) } },
         onLongClickLabel = stringResource(R.string.feature_chat_open_actions),
         role = null,
         shape = shape,
@@ -263,17 +265,25 @@ private fun Bubble(
             verticalArrangement = Arrangement.spacedBy(WaiveraSpacing.ExtraSmall + WaiveraSpacing.XxSmall),
         ) {
             BubbleBody(row, callbacks)
-            message.attachment?.let { MessageAttachmentView(message, it, onOpen = { callbacks.onOpenAttachment(message) }) }
+            message.attachment?.let {
+                MessageAttachmentView(message, it, onOpen = { callbacks.onOpenAttachment(message) })
+            }
             if (row.reactions.isNotEmpty()) {
                 ReactionPills(
                     reactions = row.reactions,
                     alignEnd = row.isMine,
                     onToggle = callbacks.onReact?.let { react -> { emoji: String -> react(message.id, emoji) } },
-                    onDetails = callbacks.onReactionDetails?.let { details -> { emoji: String -> details(message.id, emoji) } },
+                    onDetails = callbacks.onReactionDetails?.let { details ->
+                        { emoji: String -> details(message.id, emoji) }
+                    },
                 )
             }
             val root = message.navigationRootId
-            if (callbacks.onOpenThread != null && !message.isThreadReply && message.threadReplyCount > 0 && root != null) {
+            if (callbacks.onOpenThread != null &&
+                !message.isThreadReply &&
+                message.threadReplyCount > 0 &&
+                root != null
+            ) {
                 ThreadChip(count = message.threadReplyCount, onClick = { callbacks.onOpenThread.invoke(root) })
             }
         }
@@ -307,7 +317,9 @@ private fun rowDescription(row: TimelineItem.MessageRow, authorName: String, tim
         message.isDeleted -> stringResource(R.string.feature_chat_message_deleted)
         row.ticket != null -> row.ticket.title
         else -> message.plainText().ifEmpty {
-            message.attachment?.let { stringResource(R.string.feature_chat_row_attachment, it.originalName.orEmpty()) }.orEmpty()
+            message.attachment?.let {
+                stringResource(R.string.feature_chat_row_attachment, it.originalName.orEmpty())
+            }.orEmpty()
         }
     }
     val clock = message.createdAt?.let { ChatTime.clock(it, time.zone) }
@@ -320,7 +332,12 @@ private fun rowDescription(row: TimelineItem.MessageRow, authorName: String, tim
 }
 
 @Composable
-private fun Footer(row: TimelineItem.MessageRow, time: RowTime, timestampVisible: Boolean, callbacks: MessageRowCallbacks) {
+private fun Footer(
+    row: TimelineItem.MessageRow,
+    time: RowTime,
+    timestampVisible: Boolean,
+    callbacks: MessageRowCallbacks,
+) {
     val message = row.message
     if (message.isPending) {
         PendingMeta(message, callbacks)
@@ -336,7 +353,14 @@ private fun Footer(row: TimelineItem.MessageRow, time: RowTime, timestampVisible
         if (showTime) {
             val relative = relativeTimeText(ChatTime.relative(message.createdAt ?: time.now, time.now, time.zone))
             Text(
-                text = if (message.isEdited) stringResource(R.string.feature_chat_timestamp_edited, relative) else relative,
+                text = if (message.isEdited) {
+                    stringResource(
+                        R.string.feature_chat_timestamp_edited,
+                        relative,
+                    )
+                } else {
+                    relative
+                },
                 style = MaterialTheme.typography.labelMedium,
                 color = WaiveraTheme.colors.textSecondary,
             )

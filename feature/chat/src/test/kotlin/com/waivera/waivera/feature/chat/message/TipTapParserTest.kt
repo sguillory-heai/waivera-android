@@ -39,7 +39,11 @@ class TipTapParserTest {
 
     @Test
     fun unknownMarksAreIgnored() {
-        val inline = (blocks(doc(paragraph(text("x", """{"type":"highlight"}""")))).single() as RichBlock.Paragraph).inlines.single()
+        val inline = (
+            blocks(
+                doc(paragraph(text("x", """{"type":"highlight"}"""))),
+            ).single() as RichBlock.Paragraph
+            ).inlines.single()
         assertEquals(emptySet(), (inline as RichInline.Text).marks)
     }
 
@@ -71,7 +75,11 @@ class TipTapParserTest {
 
     @Test
     fun hardBreakIsKept() {
-        val inlines = (blocks(doc(paragraph(text("a"), """{"type":"hardBreak"}""", text("b")))).single() as RichBlock.Paragraph).inlines
+        val inlines = (
+            blocks(
+                doc(paragraph(text("a"), """{"type":"hardBreak"}""", text("b"))),
+            ).single() as RichBlock.Paragraph
+            ).inlines
         assertEquals(listOf(RichInline.Text("a"), RichInline.HardBreak, RichInline.Text("b")), inlines)
     }
 

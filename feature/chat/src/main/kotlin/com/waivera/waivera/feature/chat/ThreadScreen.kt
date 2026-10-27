@@ -69,9 +69,9 @@ import com.waivera.waivera.feature.chat.message.ChatSheetCallbacks
 import com.waivera.waivera.feature.chat.message.ChatSheetHost
 import com.waivera.waivera.feature.chat.message.Composer
 import com.waivera.waivera.feature.chat.message.ComposerConfig
+import com.waivera.waivera.feature.chat.message.DelayedListSkeleton
 import com.waivera.waivera.feature.chat.message.HideKeyboardOnDrag
 import com.waivera.waivera.feature.chat.message.LocalChatImages
-import com.waivera.waivera.feature.chat.message.DelayedListSkeleton
 import com.waivera.waivera.feature.chat.message.MessageRowCallbacks
 import com.waivera.waivera.feature.chat.message.ReadOnlyNotice
 import com.waivera.waivera.feature.chat.message.RowTime
@@ -95,9 +95,10 @@ fun ThreadScreen(
     onOpenPerson: (userId: String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val viewModel = hiltViewModel<ThreadViewModel, ThreadViewModel.Factory>(key = "thread-$conversationId-$rootMessageId") {
-        it.create(conversationId, rootMessageId)
-    }
+    val viewModel =
+        hiltViewModel<ThreadViewModel, ThreadViewModel.Factory>(key = "thread-$conversationId-$rootMessageId") {
+            it.create(conversationId, rootMessageId)
+        }
     val state by viewModel.state.collectAsStateWithLifecycle()
     var draft by rememberSaveable { mutableStateOf("") }
     val listState = rememberLazyListState()
@@ -110,9 +111,10 @@ fun ThreadScreen(
             value = viewModel.rowTime()
         }
     }
-    val saveFile = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument(THREAD_SAVE_MIME_TYPE)) { uri ->
-        viewModel.onSaveLocationPicked(uri?.toString())
-    }
+    val saveFile =
+        rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument(THREAD_SAVE_MIME_TYPE)) { uri ->
+            viewModel.onSaveLocationPicked(uri?.toString())
+        }
 
     LaunchedEffect(viewModel, highlightMessageId) { viewModel.highlight(highlightMessageId) }
     LifecycleResumeEffect(viewModel) {
@@ -286,7 +288,11 @@ fun ThreadScreenContent(
             Column(
                 modifier = Modifier
                     .weight(1f)
-                    .windowInsetsPadding(WindowInsets.navigationBars.union(WindowInsets.displayCutout).only(WindowInsetsSides.Horizontal)),
+                    .windowInsetsPadding(
+                        WindowInsets.navigationBars.union(
+                            WindowInsets.displayCutout,
+                        ).only(WindowInsetsSides.Horizontal),
+                    ),
             ) {
                 ConnectionBanner(state = state.connection.banner, onRetry = actions.onRetryConnection)
                 if (state.isStale) {
@@ -404,11 +410,18 @@ private fun ThreadList(
             .semantics { contentDescription = listLabel },
     ) {
         items(items = entries, key = { it.key }, contentType = { it::class }) { entry ->
-            val itemModifier = Modifier.animateItem(fadeInSpec = null, placementSpec = motion.layout(), fadeOutSpec = motion.state())
+            val itemModifier = Modifier.animateItem(
+                fadeInSpec = null,
+                placementSpec = motion.layout(),
+                fadeOutSpec = motion.state(),
+            )
             when (entry) {
                 is ThreadEntry.Item -> TimelineItemView(entry.item, context, actions.rows, itemModifier)
                 is ThreadEntry.Header -> RepliesHeader(entry.count, itemModifier)
-                ThreadEntry.RootMissing -> Notice(stringResource(R.string.feature_chat_thread_root_missing), itemModifier)
+                ThreadEntry.RootMissing -> Notice(
+                    stringResource(R.string.feature_chat_thread_root_missing),
+                    itemModifier,
+                )
                 ThreadEntry.NoReplies -> Notice(stringResource(R.string.feature_chat_thread_empty), itemModifier)
             }
         }
@@ -467,7 +480,9 @@ private fun ThreadComposerArea(
         if (reason != null) {
             ReadOnlyNotice(reason = reason, isThread = true)
         } else {
-            state.sendError?.let { kind -> SendErrorBanner(kind = kind, isReply = true, onDismiss = actions.onDismissSendError) }
+            state.sendError?.let { kind ->
+                SendErrorBanner(kind = kind, isReply = true, onDismiss = actions.onDismissSendError)
+            }
             Composer(
                 draft = draft,
                 onDraftChange = onDraftChange,

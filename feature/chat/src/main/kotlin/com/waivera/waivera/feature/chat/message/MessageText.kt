@@ -50,7 +50,8 @@ fun createOutgoingMessage(rawText: String): OutgoingMessage? {
     val doc = JsonObject(
         mapOf(
             "type" to JsonPrimitive("doc"),
-            "content" to JsonArray(listOf(JsonObject(mapOf("type" to JsonPrimitive("paragraph"), "content" to content)))),
+            "content" to
+                JsonArray(listOf(JsonObject(mapOf("type" to JsonPrimitive("paragraph"), "content" to content)))),
         ),
     )
     return OutgoingMessage(text, doc)

@@ -40,9 +40,8 @@ class TestNowSource(now: Instant = TEST_NOW) : NowSource {
     override val ticks: Flow<Instant> = clock
 }
 
-class FakeConversationRepository(
-    initial: Synced<List<Conversation>> = Synced(emptyList(), lastSyncedAt = TEST_NOW),
-) : ConversationRepository {
+class FakeConversationRepository(initial: Synced<List<Conversation>> = Synced(emptyList(), lastSyncedAt = TEST_NOW)) :
+    ConversationRepository {
     val state = MutableStateFlow(initial)
     var refreshResult: Result<Unit> = Result.success(Unit)
     var refreshes = 0

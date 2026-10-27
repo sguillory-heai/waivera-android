@@ -97,14 +97,13 @@ fun channel(
     name: String? = "north-team",
     last: MessagePreview? = preview(id * 100),
     canWrite: Boolean = true,
-) =
-    Conversation(
-        id,
-        ConversationKind.CHANNEL,
-        listOf(me, priya),
-        channel = ChannelInfo(name = name, canWrite = canWrite),
-        lastMessage = last,
-    )
+) = Conversation(
+    id,
+    ConversationKind.CHANNEL,
+    listOf(me, priya),
+    channel = ChannelInfo(name = name, canWrite = canWrite),
+    lastMessage = last,
+)
 
 class FakeConversationRepository(initial: Synced<List<Conversation>>) : ConversationRepository {
     val synced = MutableStateFlow(initial)

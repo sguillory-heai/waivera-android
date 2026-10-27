@@ -26,10 +26,7 @@ import com.waivera.waivera.core.designsystem.theme.WaiveraTheme
 
 /** Entry point for the appearance screen. Owned by `:feature:settings`; routed by `:app`. */
 @Composable
-fun AppearanceScreen(
-    onBack: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
+fun AppearanceScreen(onBack: () -> Unit, modifier: Modifier = Modifier) {
     val viewModel: AppearanceViewModel = hiltViewModel()
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     AppearanceContent(

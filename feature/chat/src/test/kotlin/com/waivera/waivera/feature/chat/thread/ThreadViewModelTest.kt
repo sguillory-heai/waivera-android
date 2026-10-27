@@ -211,7 +211,12 @@ class ThreadViewModelTest {
         val s = subject()
         s.viewModel.react(9332, "😂")
         runCurrent()
-        assertTrue(s.viewModel.state.value.replyRows.single { it.message.id == 9332L }.reactions.any { it.emoji == "😂" && it.mine })
+        assertTrue(
+            s.viewModel.state.value.replyRows.single { it.message.id == 9332L }.reactions.any {
+                it.emoji == "😂" &&
+                    it.mine
+            },
+        )
     }
 
     @Test

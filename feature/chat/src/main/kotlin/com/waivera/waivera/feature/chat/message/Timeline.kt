@@ -107,7 +107,9 @@ object TimelineBuilder {
         val sorted = messages
             .filter { !(it.isPending && it.clientId() in serverClientIds) }
             .sortedWith(MessageOrder)
-        val calls = sorted.filter { SystemMessages.callRecordId(it) != null }.groupBy { SystemMessages.callRecordId(it) }
+        val calls = sorted.filter {
+            SystemMessages.callRecordId(it) != null
+        }.groupBy { SystemMessages.callRecordId(it) }
         val callPosition = calls.mapValues { (_, group) -> group.last().id }
         val items = mutableListOf<TimelineItem>()
         var lastDay: LocalDate? = null

@@ -25,7 +25,12 @@ internal object ChatPreviewData {
             reactions = listOf(Reaction(priya.id, "👍")),
         ),
         message(4, priya, "Here is the plan.", minutesAgo = 20).copy(
-            attachment = Attachment(url = "preview/plan.pdf", originalName = "Floor plan.pdf", contentType = "application/pdf", size = 482_000),
+            attachment = Attachment(
+                url = "preview/plan.pdf",
+                originalName = "Floor plan.pdf",
+                contentType = "application/pdf",
+                size = 482_000,
+            ),
             threadReplyCount = 2,
         ),
         message(5, me, "Thanks, I will review it before lunch.", minutesAgo = 2).copy(

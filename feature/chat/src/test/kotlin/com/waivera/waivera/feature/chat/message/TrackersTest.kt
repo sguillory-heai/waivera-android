@@ -11,8 +11,12 @@ import org.junit.Test
 class TrackersTest {
     private val base = Instant.parse("2026-10-20T15:00:00Z")
 
-    private fun message(id: Long, clientId: String? = null, state: SendState = SendState.SENT, at: Instant = base.plusSeconds(id)) =
-        Message(id = id, conversationId = 1, clientMessageId = clientId, sendState = state, createdAt = at, text = "m")
+    private fun message(
+        id: Long,
+        clientId: String? = null,
+        state: SendState = SendState.SENT,
+        at: Instant = base.plusSeconds(id),
+    ) = Message(id = id, conversationId = 1, clientMessageId = clientId, sendState = state, createdAt = at, text = "m")
 
     @Test
     fun failuresAlreadyThereOnOpenDoNotRaiseTheBanner() {
@@ -54,16 +58,31 @@ class TrackersTest {
     fun theFirstLoadAndOlderPagesDoNotAnimate() {
         val tracker = ArrivalTracker()
         assertEquals(emptySet(), tracker.update(listOf(message(10), message(11))))
-        assertEquals(emptySet(), tracker.update(listOf(message(1, at = base.minusSeconds(600)), message(10), message(11))))
+        assertEquals(
+            emptySet(),
+            tracker.update(listOf(message(1, at = base.minusSeconds(600)), message(10), message(11))),
+        )
     }
 
     @Test
     fun aNewerMessageAnimatesAndItsServerCopyDoesNotAnimateAgain() {
         val tracker = ArrivalTracker()
         tracker.update(listOf(message(10)))
-        assertEquals(setOf(-5L), tracker.update(listOf(message(10), message(-5, "c5", SendState.SENDING, at = base.plusSeconds(60)))))
+        assertEquals(
+            setOf(-5L),
+            tracker.update(listOf(message(10), message(-5, "c5", SendState.SENDING, at = base.plusSeconds(60)))),
+        )
         assertEquals(emptySet(), tracker.update(listOf(message(10), message(50, "c5", at = base.plusSeconds(60)))))
-        assertEquals(setOf(51L), tracker.update(listOf(message(10), message(50, "c5", at = base.plusSeconds(60)), message(51, at = base.plusSeconds(120)))))
+        assertEquals(
+            setOf(51L),
+            tracker.update(
+                listOf(
+                    message(10),
+                    message(50, "c5", at = base.plusSeconds(60)),
+                    message(51, at = base.plusSeconds(120)),
+                ),
+            ),
+        )
     }
 
     @Test

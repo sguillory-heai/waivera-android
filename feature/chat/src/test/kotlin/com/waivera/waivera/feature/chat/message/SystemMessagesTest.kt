@@ -12,8 +12,14 @@ import org.junit.Test
 class SystemMessagesTest {
     private val base = Instant.parse("2026-10-20T15:00:00Z")
 
-    private fun system(id: Long, text: String, at: Instant = base, call: Long? = 3) =
-        Message(id = id, conversationId = 1, type = MessageType.SYSTEM, text = text, createdAt = at, callRecordId = call)
+    private fun system(id: Long, text: String, at: Instant = base, call: Long? = 3) = Message(
+        id = id,
+        conversationId = 1,
+        type = MessageType.SYSTEM,
+        text = text,
+        createdAt = at,
+        callRecordId = call,
+    )
 
     @Test
     fun timestampTokenIsRemovedAndReadAsUtc() {
@@ -59,14 +65,19 @@ class SystemMessagesTest {
 
     @Test
     fun durationIsTakenVerbatimFromTheEndedText() {
-        val messages = listOf(system(1, "Video call started"), system(2, "Video call ended in 12m 4s - {[TIMESTAMP- 10/20/2026 15:12:04]}"))
+        val messages =
+            listOf(
+                system(1, "Video call started"),
+                system(2, "Video call ended in 12m 4s - {[TIMESTAMP- 10/20/2026 15:12:04]}"),
+            )
         assertEquals("12m 4s", CallLogs.duration(messages))
         assertEquals(Instant.parse("2026-10-20T15:12:04Z"), CallLogs.summarize(messages).time)
     }
 
     @Test
     fun durationFallsBackToTheSpanBetweenMessages() {
-        fun span(seconds: Long) = CallLogs.duration(listOf(system(1, "started"), system(2, "joined", at = base.plusSeconds(seconds))))
+        fun span(seconds: Long) =
+            CallLogs.duration(listOf(system(1, "started"), system(2, "joined", at = base.plusSeconds(seconds))))
         assertEquals("45s", span(45))
         assertEquals("12m 4s", span(724))
         assertEquals("3 min", span(180))

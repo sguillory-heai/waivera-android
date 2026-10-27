@@ -11,10 +11,13 @@ import com.waivera.waivera.feature.calendar.model.CelebrationType
 
 /** A string resource plus its arguments, so label choice is testable without composition. */
 @Immutable
+// getString takes varargs; the spread copies a short argument list once per label.
+@Suppress("SpreadOperator")
 data class TextSpec(@StringRes val id: Int, val args: List<Any> = emptyList()) {
     fun resolve(context: Context): String = context.getString(id, *args.toTypedArray())
 }
 
+@Suppress("SpreadOperator")
 @Composable
 fun TextSpec.resolve(): String = stringResource(id, *args.toTypedArray())
 

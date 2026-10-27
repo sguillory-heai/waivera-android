@@ -38,9 +38,10 @@ internal fun rememberTodayFormats(): TodayFormats {
 
 @Composable
 internal fun upcomingText(label: UpcomingLabel, formats: TodayFormats): String = when (label) {
-    is UpcomingLabel.Now -> label.until
-        ?.let { stringResource(R.string.feature_today_upcoming_now_until, formats.time(it)) }
-        ?: stringResource(R.string.feature_today_upcoming_now)
+    is UpcomingLabel.Now ->
+        label.until
+            ?.let { stringResource(R.string.feature_today_upcoming_now_until, formats.time(it)) }
+            ?: stringResource(R.string.feature_today_upcoming_now)
     is UpcomingLabel.InMinutes -> if (label.minutes <= 0) {
         stringResource(R.string.feature_today_upcoming_starting_now)
     } else {

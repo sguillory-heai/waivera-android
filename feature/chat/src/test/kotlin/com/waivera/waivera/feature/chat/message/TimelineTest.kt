@@ -23,7 +23,15 @@ class TimelineTest {
         at: Instant = base,
         type: MessageType = MessageType.USER,
         clientId: String? = null,
-    ) = Message(id = id, conversationId = 1, authorId = author, text = "m$id", createdAt = at, type = type, clientMessageId = clientId)
+    ) = Message(
+        id = id,
+        conversationId = 1,
+        authorId = author,
+        text = "m$id",
+        createdAt = at,
+        type = type,
+        clientMessageId = clientId,
+    )
 
     // region Grouping (03 §4)
 
@@ -40,7 +48,9 @@ class TimelineTest {
 
     @Test
     fun differentAuthorsDoNotGroup() {
-        assertFalse(MessageGrouping.canGroup(message(1), message(2, author = "usr_b", at = base.plusSeconds(10)), chicago))
+        assertFalse(
+            MessageGrouping.canGroup(message(1), message(2, author = "usr_b", at = base.plusSeconds(10)), chicago),
+        )
     }
 
     @Test
@@ -82,7 +92,9 @@ class TimelineTest {
 
     @Test
     fun deletedMessagesDoNotGroup() {
-        assertFalse(MessageGrouping.canGroup(message(1).copy(isDeleted = true), message(2, at = base.plusSeconds(5)), chicago))
+        assertFalse(
+            MessageGrouping.canGroup(message(1).copy(isDeleted = true), message(2, at = base.plusSeconds(5)), chicago),
+        )
     }
 
     @Test
@@ -142,7 +154,12 @@ class TimelineTest {
     fun anOverlappingOutboxRowIsDroppedForItsServerCopy() {
         val pending = message(-7, at = base, clientId = "c-1").copy(sendState = SendState.SENDING)
         val sent = pending.copy(id = 77, sendState = SendState.SENT)
-        val rows = TimelineBuilder.build(listOf(pending, sent), "usr_a", chicago, false).filterIsInstance<TimelineItem.MessageRow>()
+        val rows = TimelineBuilder.build(
+            listOf(pending, sent),
+            "usr_a",
+            chicago,
+            false,
+        ).filterIsInstance<TimelineItem.MessageRow>()
         assertEquals(listOf(77L), rows.map { it.message.id })
     }
 
@@ -164,7 +181,10 @@ class TimelineTest {
     @Test
     fun aDaySeparatorPrecedesEachLocalDay() {
         val items = TimelineBuilder.build(
-            listOf(message(1, at = Instant.parse("2026-10-20T15:00:00Z")), message(2, at = Instant.parse("2026-10-21T15:00:00Z"))),
+            listOf(
+                message(1, at = Instant.parse("2026-10-20T15:00:00Z")),
+                message(2, at = Instant.parse("2026-10-21T15:00:00Z")),
+            ),
             "usr_a",
             chicago,
             false,
@@ -184,11 +204,21 @@ class TimelineTest {
 
     @Test
     fun callMessagesCollapseIntoOneCardAtTheNewest() {
-        val started = message(10, author = null, type = MessageType.SYSTEM).copy(text = "Video call started", callRecordId = 5)
+        val started = message(
+            10,
+            author = null,
+            type = MessageType.SYSTEM,
+        ).copy(text = "Video call started", callRecordId = 5)
         val between = message(11, at = base.plusSeconds(60))
         val ended = message(12, author = null, at = base.plusSeconds(120), type = MessageType.SYSTEM)
             .copy(text = "Video call ended in 2m", callRecordId = 5)
-        val items = TimelineBuilder.build(listOf(started, between, ended), "usr_a", chicago, false, daySeparators = false)
+        val items = TimelineBuilder.build(
+            listOf(started, between, ended),
+            "usr_a",
+            chicago,
+            false,
+            daySeparators = false,
+        )
         assertEquals(listOf("message-11", "call-5"), items.map { it.key })
         val card = items.last() as TimelineItem.CallLog
         assertEquals(listOf(10L, 12L), card.messages.map { it.id })

@@ -88,7 +88,8 @@ class ChatImageEnvironment(
 )
 
 /** Previews and screenshots leave this empty: rows then show initials and image placeholders. */
-val LocalChatImages = staticCompositionLocalOf { ChatImageEnvironment(loader = null, attachmentModel = { null }, avatars = null) }
+val LocalChatImages =
+    staticCompositionLocalOf { ChatImageEnvironment(loader = null, attachmentModel = { null }, avatars = null) }
 
 sealed interface ChatImageState {
     data object Loading : ChatImageState

@@ -170,7 +170,11 @@ object TipTapParser {
             }
         }
 
-    private fun marks(node: JsonObject, inherited: Set<RichMark>, inheritedHref: String?): Pair<Set<RichMark>, String?> {
+    private fun marks(
+        node: JsonObject,
+        inherited: Set<RichMark>,
+        inheritedHref: String?,
+    ): Pair<Set<RichMark>, String?> {
         val result = inherited.toMutableSet()
         var href = inheritedHref
         (node["marks"] as? JsonArray).orEmpty().filterIsInstance<JsonObject>().forEach { mark ->
@@ -193,8 +197,7 @@ object TipTapParser {
     }
 
     /** Plain-text projection used for copy, edit and previews (03 §7), ported exactly. */
-    fun plainText(doc: JsonObject): String =
-        nodePlainText(doc).replace(Regex("\n{3,}"), "\n\n").trim()
+    fun plainText(doc: JsonObject): String = nodePlainText(doc).replace(Regex("\n{3,}"), "\n\n").trim()
 
     private fun nodePlainText(node: JsonObject): String {
         when (node.string("type")) {
@@ -210,7 +213,8 @@ object TipTapParser {
         return if (node.string("type") in LINE_TYPES) "$children\n" else children
     }
 
-    private fun JsonObject.children(): List<JsonObject> = (this["content"] as? JsonArray).orEmpty().filterIsInstance<JsonObject>()
+    private fun JsonObject.children(): List<JsonObject> =
+        (this["content"] as? JsonArray).orEmpty().filterIsInstance<JsonObject>()
 
     private fun JsonObject.attrs(): JsonObject? = this["attrs"] as? JsonObject
 

@@ -57,7 +57,7 @@ object TodayAssembler {
 
     fun assemble(sources: TodaySources, context: TodayContext): TodayUiState {
         val today = context.now.atZone(context.zone).toLocalDate()
-        val pinned = pinnedMentions(sources, context)
+        val pinned = pinnedMentions(sources)
         val activity = activitySection(sources.activity, context, pinned.mapTo(mutableSetOf()) { it.id })
         val needsYou = needsYouSection(sources, context, today, pinned)
         val nextUp = ScheduleRules.nextUp(sources.schedule, context, today)
@@ -93,7 +93,7 @@ object TodayAssembler {
      * Unread mentions shown under Needs you (and therefore left out of the feed below). A mention
      * inside a DM that is already listed as unread is not repeated; it stays in the feed.
      */
-    private fun pinnedMentions(sources: TodaySources, context: TodayContext): List<ActivityItem> {
+    private fun pinnedMentions(sources: TodaySources): List<ActivityItem> {
         val unreadDirects = sources.conversations.data
             .filter { it.kind == ConversationKind.DIRECT && it.unreadCount > 0 }
             .mapTo(mutableSetOf()) { it.id }
@@ -213,7 +213,8 @@ object TodayAssembler {
     /** "Updated N min ago" only when the oldest source is older than [STALE_AFTER] and no refresh is running. */
     private fun staleLabel(sources: List<Synced<*>>, context: TodayContext): PastLabel? {
         val oldest = sources.mapNotNull { it.lastSyncedAt }.minOrNull()
-        val stale = oldest != null && !context.local.isRefreshing &&
+        val stale = oldest != null &&
+            !context.local.isRefreshing &&
             Duration.between(oldest, context.now) >= STALE_AFTER
         return if (stale && oldest != null) TimeLabels.past(oldest, context.now, context.zone) else null
     }

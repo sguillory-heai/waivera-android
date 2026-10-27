@@ -32,8 +32,12 @@ data class TodayUiState(
 ) {
     /** The one "All caught up" moment: nothing needs the person and no activity is unread. */
     val isAllCaughtUp: Boolean
-        get() = !isInitialLoad && loadError == null && needsYou.isReady && needsYou.items.isEmpty() &&
-            activity.isReady && activity.unreadCount == 0
+        get() = !isInitialLoad &&
+            loadError == null &&
+            needsYou.isReady &&
+            needsYou.items.isEmpty() &&
+            activity.isReady &&
+            activity.unreadCount == 0
 }
 
 @Immutable
@@ -79,12 +83,8 @@ sealed interface NeedsYouItem {
         override val key: String get() = "mention-$activityId"
     }
 
-    data class Invitation(
-        val eventId: String,
-        val title: String?,
-        val organizer: String?,
-        val time: UpcomingLabel?,
-    ) : NeedsYouItem {
+    data class Invitation(val eventId: String, val title: String?, val organizer: String?, val time: UpcomingLabel?) :
+        NeedsYouItem {
         override val key: String get() = "invite-$eventId"
     }
 

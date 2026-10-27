@@ -80,7 +80,10 @@ fun ReactionPills(
 ) {
     FlowRow(
         modifier = modifier,
-        horizontalArrangement = Arrangement.spacedBy(WaiveraSpacing.ExtraSmall, if (alignEnd) Alignment.End else Alignment.Start),
+        horizontalArrangement = Arrangement.spacedBy(
+            WaiveraSpacing.ExtraSmall,
+            if (alignEnd) Alignment.End else Alignment.Start,
+        ),
         verticalArrangement = Arrangement.spacedBy(WaiveraSpacing.ExtraSmall),
     ) {
         reactions.forEach { reaction -> ReactionPill(reaction, onToggle, onDetails) }
@@ -143,7 +146,11 @@ private fun ReactionPill(reaction: ReactionSummary, onToggle: ((String) -> Unit)
 @Composable
 fun MessageAttachmentView(message: Message, attachment: Attachment, onOpen: () -> Unit, modifier: Modifier = Modifier) {
     when {
-        attachment.isBlocked -> AttachmentNotice(R.string.feature_chat_attachment_blocked, WaiveraIcons.Warning, modifier)
+        attachment.isBlocked -> AttachmentNotice(
+            R.string.feature_chat_attachment_blocked,
+            WaiveraIcons.Warning,
+            modifier,
+        )
         attachment.isPending && !message.isPending ->
             AttachmentNotice(R.string.feature_chat_attachment_scanning, WaiveraIcons.Info, modifier)
         Attachments.isImage(attachment) -> ImageAttachment(message, onOpen, modifier)
@@ -205,7 +212,11 @@ private fun ImageAttachment(message: Message, onOpen: () -> Unit, modifier: Modi
                 .height(ChatDimens.ImageLoadingHeight),
             shape = ChatDimens.ImageShape,
         )
-        ChatImageState.Unavailable -> AttachmentNotice(R.string.feature_chat_image_unavailable, ChatIcons.Image, modifier)
+        ChatImageState.Unavailable -> AttachmentNotice(
+            R.string.feature_chat_image_unavailable,
+            ChatIcons.Image,
+            modifier,
+        )
         is ChatImageState.Ready -> WaiveraPressable(
             onClick = onOpen,
             onClickLabel = stringResource(R.string.feature_chat_open_image),
@@ -252,7 +263,12 @@ private fun AttachmentNotice(text: Int, icon: Int, modifier: Modifier) {
         horizontalArrangement = Arrangement.spacedBy(WaiveraSpacing.Small),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Icon(painterResource(icon), contentDescription = null, tint = colors.textSecondary, modifier = Modifier.size(WaiveraSizes.Icon))
+        Icon(
+            painterResource(icon),
+            contentDescription = null,
+            tint = colors.textSecondary,
+            modifier = Modifier.size(WaiveraSizes.Icon),
+        )
         Text(text = stringResource(text), style = MaterialTheme.typography.bodySmall, color = colors.textSecondary)
     }
 }
@@ -287,7 +303,12 @@ private fun FileAttachment(message: Message, attachment: Attachment, onOpen: () 
                     .background(colors.surfaceMuted, WaiveraShapes.Chip),
                 contentAlignment = Alignment.Center,
             ) {
-                Icon(painterResource(icon), contentDescription = null, tint = colors.accent, modifier = Modifier.size(WaiveraSizes.Icon))
+                Icon(
+                    painterResource(icon),
+                    contentDescription = null,
+                    tint = colors.accent,
+                    modifier = Modifier.size(WaiveraSizes.Icon),
+                )
             }
             Column(Modifier.weight(1f, fill = false)) {
                 Text(
@@ -383,8 +404,18 @@ private fun TicketMeta(icon: Int, label: String, value: String, muted: Boolean) 
         horizontalArrangement = Arrangement.spacedBy(WaiveraSpacing.Small),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Icon(painterResource(icon), contentDescription = null, tint = colors.textSecondary, modifier = Modifier.size(WaiveraSizes.IconSmall))
-        Text(text = label, style = MaterialTheme.typography.labelMedium, color = colors.textSecondary, modifier = Modifier.weight(1f))
+        Icon(
+            painterResource(icon),
+            contentDescription = null,
+            tint = colors.textSecondary,
+            modifier = Modifier.size(WaiveraSizes.IconSmall),
+        )
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelMedium,
+            color = colors.textSecondary,
+            modifier = Modifier.weight(1f),
+        )
         Text(
             text = value,
             style = MaterialTheme.typography.labelMedium,
@@ -405,7 +436,11 @@ fun SystemRowView(text: String, modifier: Modifier = Modifier) {
         textAlign = TextAlign.Center,
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = WaiveraSpacing.MediumLarge, vertical = WaiveraSpacing.MediumSmall - WaiveraSpacing.XxSmall),
+            .padding(
+                horizontal = WaiveraSpacing.MediumLarge,
+                vertical =
+                WaiveraSpacing.MediumSmall - WaiveraSpacing.XxSmall,
+            ),
     )
 }
 
@@ -433,7 +468,11 @@ fun DaySeparatorView(label: DayLabel, modifier: Modifier = Modifier) {
 fun CallLogCard(item: TimelineItem.CallLog, time: RowTime, highlighted: Boolean, modifier: Modifier = Modifier) {
     val colors = WaiveraTheme.colors
     var expanded by rememberSaveable(item.key) { mutableStateOf(false) }
-    val rotation by animateFloatAsState(if (expanded) HALF_TURN else 0f, WaiveraTheme.motion.layout(), label = "chevron")
+    val rotation by animateFloatAsState(
+        if (expanded) HALF_TURN else 0f,
+        WaiveraTheme.motion.layout(),
+        label = "chevron",
+    )
     val summary = item.summary
     val label = stringResource(
         when (summary.outcome) {
@@ -448,11 +487,17 @@ fun CallLogCard(item: TimelineItem.CallLog, time: RowTime, highlighted: Boolean,
             .fillMaxWidth()
             .padding(horizontal = WaiveraSpacing.Gutter, vertical = WaiveraSpacing.ExtraSmall)
             .background(if (highlighted) colors.accentWash else colors.surface, WaiveraShapes.ListCard)
-            .border(WaiveraSpacing.Hairline, if (highlighted) colors.accentBorderStrong else colors.border, WaiveraShapes.ListCard),
+            .border(
+                WaiveraSpacing.Hairline,
+                if (highlighted) colors.accentBorderStrong else colors.border,
+                WaiveraShapes.ListCard,
+            ),
     ) {
         WaiveraPressable(
             onClick = { expanded = !expanded },
-            onClickLabel = stringResource(if (expanded) R.string.feature_chat_call_collapse else R.string.feature_chat_call_expand),
+            onClickLabel = stringResource(
+                if (expanded) R.string.feature_chat_call_collapse else R.string.feature_chat_call_expand,
+            ),
             shape = WaiveraShapes.ListCard,
             modifier = Modifier.fillMaxWidth(),
         ) {
@@ -467,7 +512,10 @@ fun CallLogCard(item: TimelineItem.CallLog, time: RowTime, highlighted: Boolean,
                 Box(
                     modifier = Modifier
                         .size(WaiveraSizes.IconTile)
-                        .background(if (summary.isMissed) colors.dangerContainer else colors.accentWash, WaiveraShapes.Chip),
+                        .background(
+                            if (summary.isMissed) colors.dangerContainer else colors.accentWash,
+                            WaiveraShapes.Chip,
+                        ),
                     contentAlignment = Alignment.Center,
                 ) {
                     Icon(
@@ -484,7 +532,11 @@ fun CallLogCard(item: TimelineItem.CallLog, time: RowTime, highlighted: Boolean,
                     }
                 }
                 summary.time?.let {
-                    Text(text = ChatTime.clock(it, time.zone), style = MaterialTheme.typography.labelMedium, color = colors.textSecondary)
+                    Text(
+                        text = ChatTime.clock(it, time.zone),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = colors.textSecondary,
+                    )
                 }
                 Icon(
                     painterResource(ChatIcons.ChevronDown),

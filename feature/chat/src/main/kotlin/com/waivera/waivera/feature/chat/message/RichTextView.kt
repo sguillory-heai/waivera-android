@@ -79,7 +79,11 @@ fun annotateInlines(inlines: List<RichInline>, colors: RichInlineColors, onLink:
                     }
                 }
                 is RichInline.Mention -> withStyle(
-                    SpanStyle(fontWeight = FontWeight.ExtraBold, color = colors.accent, background = colors.mentionBackground),
+                    SpanStyle(
+                        fontWeight = FontWeight.ExtraBold,
+                        color = colors.accent,
+                        background = colors.mentionBackground,
+                    ),
                 ) { append("@${inline.label}") }
                 RichInline.HardBreak -> append('\n')
             }
@@ -119,12 +123,18 @@ private fun RichBlockView(block: RichBlock, onLink: (String) -> Unit, color: Col
     val colors = WaiveraTheme.colors
     val inlineColors = RichInlineColors(colors.accent, colors.accentWash)
     when (block) {
-        is RichBlock.Paragraph -> InlineText(block.inlines, MaterialTheme.typography.bodyMedium, color, inlineColors, onLink)
+        is RichBlock.Paragraph -> InlineText(
+            block.inlines,
+            MaterialTheme.typography.bodyMedium,
+            color,
+            inlineColors,
+            onLink,
+        )
         is RichBlock.Heading -> InlineText(
             block.inlines,
             when {
                 block.level <= 2 -> MaterialTheme.typography.titleLarge
-                block.level == 3 -> MaterialTheme.typography.titleMedium
+                block.level == HEADING_MEDIUM_LEVEL -> MaterialTheme.typography.titleMedium
                 else -> MaterialTheme.typography.titleSmall
             }.copy(fontWeight = FontWeight.ExtraBold),
             color,
@@ -262,3 +272,5 @@ private fun RichTextPreview() {
         RichText(document = SampleRichDocument, onLink = {}, modifier = Modifier.padding(WaiveraSpacing.Medium))
     }
 }
+
+private const val HEADING_MEDIUM_LEVEL = 3

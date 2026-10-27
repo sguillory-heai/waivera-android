@@ -28,10 +28,17 @@ internal object TodayPreviewStates {
         needsYou = NeedsYouSection(
             items = listOf(
                 NeedsYouItem.DirectMessage(
-                    7, "Priya Raman", MessageSnippet.Text("Can you cover Thursday?"), 2, PastLabel.MinutesAgo(4),
+                    7,
+                    "Priya Raman",
+                    MessageSnippet.Text("Can you cover Thursday?"),
+                    2,
+                    PastLabel.MinutesAgo(4),
                 ),
                 NeedsYouItem.Invitation(
-                    "demo_invite", "Care plan review", "Priya Raman", UpcomingLabel.TomorrowAt(LocalTime.of(9, 0)),
+                    "demo_invite",
+                    "Care plan review",
+                    "Priya Raman",
+                    UpcomingLabel.TomorrowAt(LocalTime.of(9, 0)),
                 ),
             ),
             isReady = true,
@@ -39,11 +46,24 @@ internal object TodayPreviewStates {
         nextUp = NextUpSection(
             items = listOf(
                 NextUpItem(
-                    "demo_allday", "Daylight saving ends", UpcomingLabel.AllDayToday, null, null, false, null, false,
+                    "demo_allday",
+                    "Daylight saving ends",
+                    UpcomingLabel.AllDayToday,
+                    null,
+                    null,
+                    false,
+                    null,
+                    false,
                 ),
                 NextUpItem(
-                    "demo_visit", "Client home visit", UpcomingLabel.InMinutes(30),
-                    LocalTime.of(11, 0), LocalTime.of(12, 0), false, "1200 W Lake St", false,
+                    "demo_visit",
+                    "Client home visit",
+                    UpcomingLabel.InMinutes(30),
+                    LocalTime.of(11, 0),
+                    LocalTime.of(12, 0),
+                    false,
+                    "1200 W Lake St",
+                    false,
                 ),
             ),
             isReady = true,
@@ -52,12 +72,24 @@ internal object TodayPreviewStates {
         activity = ActivitySection(
             rows = listOf(
                 ActivityRow(
-                    1, ChatActivityType.REACTION, ActivitySummary.Reaction("Dana", "🎉"),
-                    PastLabel.MinutesAgo(12), false, 7, 9, null,
+                    1,
+                    ChatActivityType.REACTION,
+                    ActivitySummary.Reaction("Dana", "🎉"),
+                    PastLabel.MinutesAgo(12),
+                    false,
+                    7,
+                    9,
+                    null,
                 ),
                 ActivityRow(
-                    2, ChatActivityType.THREAD_REPLY, ActivitySummary.Server("Jordan replied in a thread"),
-                    PastLabel.Yesterday, true, 11, 10, 9,
+                    2,
+                    ChatActivityType.THREAD_REPLY,
+                    ActivitySummary.Server("Jordan replied in a thread"),
+                    PastLabel.Yesterday,
+                    true,
+                    11,
+                    10,
+                    9,
                 ),
             ),
             unreadCount = 1,

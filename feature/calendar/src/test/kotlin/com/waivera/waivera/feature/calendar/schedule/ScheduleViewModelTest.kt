@@ -235,5 +235,4 @@ class ScheduleViewModelTest {
         gate.complete(Unit)
         assertFalse(vm.uiState.value.isRefreshing)
     }
-
 }

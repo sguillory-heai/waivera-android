@@ -81,7 +81,10 @@ class MessageInteractions(
         emit(ChatEffect.CopyText(text))
         emit(ChatEffect.Haptic(HapticMoment.Success))
         // The sheet stays open and the row reads "Copied to clipboard" (03 §14).
-        _sheet.update { current -> (current as? ChatSheet.Actions)?.let { it.copy(model = it.model.copy(copied = true)) } ?: current }
+        _sheet.update { current ->
+            (current as? ChatSheet.Actions)?.let { it.copy(model = it.model.copy(copied = true)) }
+                ?: current
+        }
     }
 
     /** Reversible, so it offers Undo instead of asking first. */
@@ -92,7 +95,11 @@ class MessageInteractions(
                 .onSuccess { saved ->
                     emit(
                         ChatEffect.Snackbar(
-                            message = if (saved) R.string.feature_chat_bookmark_saved else R.string.feature_chat_bookmark_removed,
+                            message = if (saved) {
+                                R.string.feature_chat_bookmark_saved
+                            } else {
+                                R.string.feature_chat_bookmark_removed
+                            },
                             undoBookmarkOf = messageId,
                         ),
                     )
@@ -128,7 +135,12 @@ class MessageInteractions(
     fun react(messageId: Long, emoji: String) {
         if (_sheet.value is ChatSheet.Actions) _sheet.value = null
         if (!isConnected()) {
-            emit(ChatEffect.Snackbar(R.string.feature_chat_reaction_failed, detail = R.string.feature_chat_reaction_needs_connection))
+            emit(
+                ChatEffect.Snackbar(
+                    R.string.feature_chat_reaction_failed,
+                    detail = R.string.feature_chat_reaction_needs_connection,
+                ),
+            )
             emit(ChatEffect.Haptic(HapticMoment.Error))
             return
         }
@@ -136,7 +148,12 @@ class MessageInteractions(
         scope.launch {
             messages.react(messageId, emoji).onFailure { error ->
                 if (error is WaiveraError.RealtimeUnavailable) {
-                    emit(ChatEffect.Snackbar(R.string.feature_chat_reaction_failed, detail = R.string.feature_chat_reaction_needs_connection))
+                    emit(
+                        ChatEffect.Snackbar(
+                            R.string.feature_chat_reaction_failed,
+                            detail = R.string.feature_chat_reaction_needs_connection,
+                        ),
+                    )
                     emit(ChatEffect.Haptic(HapticMoment.Error))
                 } else {
                     fail(R.string.feature_chat_reaction_failed, error)
@@ -159,7 +176,11 @@ class MessageInteractions(
         }
     }
 
-    fun saveAttachment(message: Message) = prepareFile(message, R.string.feature_chat_file_save_failed) { file, name, mime ->
+    fun saveAttachment(message: Message) = prepareFile(message, R.string.feature_chat_file_save_failed) {
+            file,
+            name,
+            mime,
+        ->
         fileToSave = file
         emit(ChatEffect.PickSaveLocation(name, mime))
     }
@@ -181,7 +202,11 @@ class MessageInteractions(
         }
     }
 
-    fun shareAttachment(message: Message) = prepareFile(message, R.string.feature_chat_file_open_failed) { file, name, mime ->
+    fun shareAttachment(message: Message) = prepareFile(message, R.string.feature_chat_file_open_failed) {
+            file,
+            name,
+            mime,
+        ->
         io.shareableUri(file, name)
             .onSuccess { uri ->
                 _sheet.value = null

@@ -5,7 +5,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import com.waivera.waivera.core.designsystem.icon.WaiveraIcons
 import com.waivera.waivera.feature.chat.R
 
 /**

@@ -5,8 +5,8 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
-import com.waivera.waivera.core.designsystem.component.MilestoneKind
 import com.waivera.waivera.core.data.image.AvatarModel
+import com.waivera.waivera.core.designsystem.component.MilestoneKind
 import com.waivera.waivera.core.designsystem.component.WaiveraAvatar
 import com.waivera.waivera.core.designsystem.icon.WaiveraIcons
 import com.waivera.waivera.core.designsystem.preview.WaiveraPreviews

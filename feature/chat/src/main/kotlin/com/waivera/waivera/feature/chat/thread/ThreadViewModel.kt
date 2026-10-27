@@ -132,7 +132,8 @@ class ThreadViewModel @AssistedInject constructor(
 
     private val isValid = ConversationViewModel.isValid(conversationId) && rootMessageId > 0
 
-    private val _state = MutableStateFlow(ThreadUiState(content = if (isValid) ThreadContent.Loading else ThreadContent.Invalid))
+    private val _state =
+        MutableStateFlow(ThreadUiState(content = if (isValid) ThreadContent.Loading else ThreadContent.Invalid))
     val state: StateFlow<ThreadUiState> = _state.asStateFlow()
 
     private val _effects = Channel<ChatEffect>(Channel.BUFFERED)
@@ -340,7 +341,9 @@ class ThreadViewModel @AssistedInject constructor(
 
     private fun keyFor(state: ThreadUiState, messageId: Long): String? {
         state.root?.takeIf { it.message.id == messageId }?.let { return it.key }
-        return state.replies.firstOrNull { item -> item is TimelineItem.MessageRow && item.message.id == messageId }?.key
+        return state.replies.firstOrNull { item ->
+            item is TimelineItem.MessageRow && item.message.id == messageId
+        }?.key
     }
 
     // endregion
@@ -363,7 +366,15 @@ class ThreadViewModel @AssistedInject constructor(
         _state.update { it.copy(sendError = null) }
         emit(ChatEffect.SetDraft(""))
         viewModelScope.launch {
-            runCatching { messages.send(conversationId, outgoing.text, outgoing.doc, attachment = null, parentMessageId = rootMessageId) }
+            runCatching {
+                messages.send(
+                    conversationId,
+                    outgoing.text,
+                    outgoing.doc,
+                    attachment = null,
+                    parentMessageId = rootMessageId,
+                )
+            }
                 .onSuccess {
                     emit(ChatEffect.Haptic(HapticMoment.Success))
                     emit(ChatEffect.ScrollToLatest)
@@ -411,7 +422,15 @@ class ThreadViewModel @AssistedInject constructor(
     // region Rows and actions
 
     fun toggleTimestamp(key: String) = _state.update {
-        it.copy(visibleTimestamps = if (key in it.visibleTimestamps) it.visibleTimestamps - key else it.visibleTimestamps + key)
+        it.copy(
+            visibleTimestamps = if (key in
+                it.visibleTimestamps
+            ) {
+                it.visibleTimestamps - key
+            } else {
+                it.visibleTimestamps + key
+            },
+        )
     }
 
     fun openActions(message: Message) {

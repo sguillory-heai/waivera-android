@@ -36,7 +36,10 @@ class ChatTimeTest {
     @Test
     fun anotherYearShowsTheYear() {
         val old = Instant.parse("2025-12-31T18:00:00Z")
-        assertEquals(RelativeTime.OnDate(LocalDate.of(2025, 12, 31), showYear = true), ChatTime.relative(old, now, chicago))
+        assertEquals(
+            RelativeTime.OnDate(LocalDate.of(2025, 12, 31), showYear = true),
+            ChatTime.relative(old, now, chicago),
+        )
     }
 
     @Test

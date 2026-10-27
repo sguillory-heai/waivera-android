@@ -78,7 +78,9 @@ class TicketNotificationsTest {
 
     @Test
     fun otherEventTypesAreNotTickets() {
-        assertNull(TicketNotifications.from(bot(payload).copy(systemEventType = "ticket.created.v2"), botConversation = true))
+        assertNull(
+            TicketNotifications.from(bot(payload).copy(systemEventType = "ticket.created.v2"), botConversation = true),
+        )
     }
 
     @Test
@@ -92,7 +94,11 @@ class TicketNotificationsTest {
 
     @Test
     fun botDetection() {
-        assertTrue(TicketNotifications.isBot(Message(id = 1, conversationId = 1, authorId = "bot:3"), botConversation = false))
-        assertFalse(TicketNotifications.isBot(Message(id = 1, conversationId = 1, authorId = "usr_a"), botConversation = false))
+        assertTrue(
+            TicketNotifications.isBot(Message(id = 1, conversationId = 1, authorId = "bot:3"), botConversation = false),
+        )
+        assertFalse(
+            TicketNotifications.isBot(Message(id = 1, conversationId = 1, authorId = "usr_a"), botConversation = false),
+        )
     }
 }

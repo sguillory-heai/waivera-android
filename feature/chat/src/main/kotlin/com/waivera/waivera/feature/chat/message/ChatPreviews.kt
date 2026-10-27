@@ -87,7 +87,11 @@ private fun CallAndSystemRowsPreview() {
         createdAt = ChatPreviewData.now.minusSeconds(900),
         callRecordId = 5,
     )
-    val ended = started.copy(id = 2, text = "Video call ended in 12m 4s", createdAt = ChatPreviewData.now.minusSeconds(176))
+    val ended = started.copy(
+        id = 2,
+        text = "Video call ended in 12m 4s",
+        createdAt = ChatPreviewData.now.minusSeconds(176),
+    )
     val call = TimelineItem.CallLog("call-5", 5, listOf(started, ended), CallLogs.summarize(listOf(started, ended)))
     WaiveraTheme {
         Column {

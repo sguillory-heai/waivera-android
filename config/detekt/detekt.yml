@@ -24,6 +24,9 @@ style:
   MagicNumber:
     # Design tokens are the one place literal dp, sp and colour values live.
     excludes: ['**/core/designsystem/**', '**/test/**', '**/androidTest/**']
+    # A number assigned to a named property is already named; previews hold sample data.
+    ignorePropertyDeclaration: true
+    ignoreAnnotated: ['Preview', 'WaiveraPreviews']
   UnusedPrivateMember:
     # WaiveraPreviews is the light/dark/200% font multipreview from core:designsystem.
     ignoreAnnotated: ['Preview', 'WaiveraPreviews']

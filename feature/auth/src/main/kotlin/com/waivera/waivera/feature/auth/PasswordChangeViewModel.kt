@@ -46,9 +46,7 @@ data class PasswordChangeUiState(
  * voluntary change from Settings; the screen decides what happens after [AuthEffect.Success].
  */
 @HiltViewModel
-class PasswordChangeViewModel @Inject constructor(
-    private val session: SessionRepository,
-) : ViewModel() {
+class PasswordChangeViewModel @Inject constructor(private val session: SessionRepository) : ViewModel() {
     private val _state = MutableStateFlow(PasswordChangeUiState())
     val state: StateFlow<PasswordChangeUiState> = _state.asStateFlow()
 

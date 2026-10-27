@@ -86,11 +86,13 @@ object TicketNotifications {
     fun date(preferred: String?, iso: String?): TicketDate {
         val value = preferred?.takeIf { it.isNotEmpty() && it != "--" } ?: iso?.takeIf(String::isNotEmpty)
             ?: return TicketDate.NotSet
-        US_DATE.matchEntire(value)?.groupValues?.let { g ->
-            return runCatching { TicketDate.OnDate(LocalDate.of(g[3].toInt(), g[1].toInt(), g[2].toInt())) }
+        US_DATE.matchEntire(value)?.destructured?.let { (month, day, year) ->
+            return runCatching { TicketDate.OnDate(LocalDate.of(year.toInt(), month.toInt(), day.toInt())) }
                 .getOrDefault(TicketDate.Raw(value))
         }
-        WaiveraTime.parseLocalDate(value)?.takeIf { value.length == ISO_DATE_LENGTH }?.let { return TicketDate.OnDate(it) }
+        WaiveraTime.parseLocalDate(value)?.takeIf {
+            value.length == ISO_DATE_LENGTH
+        }?.let { return TicketDate.OnDate(it) }
         return WaiveraTime.parseInstant(value)?.let { TicketDate.OnDate(it.atZone(ZoneOffset.UTC).toLocalDate()) }
             ?: TicketDate.Raw(value)
     }

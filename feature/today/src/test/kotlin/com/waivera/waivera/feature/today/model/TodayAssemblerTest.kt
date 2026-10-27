@@ -11,8 +11,8 @@ import com.waivera.waivera.core.data.model.RealtimeStatus
 import com.waivera.waivera.core.data.model.ScheduleEvent
 import com.waivera.waivera.core.data.model.ScheduleFeed
 import com.waivera.waivera.core.data.model.SyncStatus
-import com.waivera.waivera.core.data.model.TicketUpdate
 import com.waivera.waivera.core.data.model.Synced
+import com.waivera.waivera.core.data.model.TicketUpdate
 import com.waivera.waivera.core.designsystem.component.ConnectionBannerState
 import com.waivera.waivera.core.network.dto.ChatActivityType
 import com.waivera.waivera.core.network.dto.MilestoneType

@@ -20,7 +20,12 @@ class RichInlineAnnotationTest {
     @Test
     fun boldItalicCodeAndDecorationsCompose() {
         val text = annotateInlines(
-            listOf(RichInline.Text("x", setOf(RichMark.Bold, RichMark.Italic, RichMark.Code, RichMark.Strike, RichMark.Underline))),
+            listOf(
+                RichInline.Text(
+                    "x",
+                    setOf(RichMark.Bold, RichMark.Italic, RichMark.Code, RichMark.Strike, RichMark.Underline),
+                ),
+            ),
             colors,
         ) {}
         val style = text.spanStyles.single().item

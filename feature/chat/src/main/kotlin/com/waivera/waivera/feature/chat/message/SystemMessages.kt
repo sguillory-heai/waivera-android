@@ -16,6 +16,14 @@ object SystemMessages {
         """\s*-?\s*\{\[\s*TIMESTAMP\s*[-·:]\s*(\d{1,2})/(\d{1,2})/(\d{4})\s+(\d{1,2}):(\d{2}):(\d{2})\s*]}\s*""",
         RegexOption.IGNORE_CASE,
     )
+
+    // Capture groups of TIMESTAMP: month/day/year hour:minute:second.
+    private const val MONTH = 1
+    private const val DAY = 2
+    private const val YEAR = 3
+    private const val HOUR = 4
+    private const val MINUTE = 5
+    private const val SECOND = 6
     private val TRAILING_DASH = Regex("""\s*-\s*$""")
     private val WHITESPACE = Regex("""\s+""")
 
@@ -23,7 +31,14 @@ object SystemMessages {
         if (value.isNullOrEmpty()) return ParsedSystemMessage("", null)
         val timestamp = TIMESTAMP.find(value)?.groupValues?.let { g ->
             try {
-                LocalDateTime.of(g[3].toInt(), g[1].toInt(), g[2].toInt(), g[4].toInt(), g[5].toInt(), g[6].toInt())
+                LocalDateTime.of(
+                    g[YEAR].toInt(),
+                    g[MONTH].toInt(),
+                    g[DAY].toInt(),
+                    g[HOUR].toInt(),
+                    g[MINUTE].toInt(),
+                    g[SECOND].toInt(),
+                )
                     .toInstant(ZoneOffset.UTC)
             } catch (_: DateTimeException) {
                 null

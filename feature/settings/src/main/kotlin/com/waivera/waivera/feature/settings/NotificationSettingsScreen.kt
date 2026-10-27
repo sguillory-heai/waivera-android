@@ -43,10 +43,7 @@ import com.waivera.waivera.core.designsystem.theme.WaiveraTheme
 
 /** Entry point for the notifications screen. Owned by `:feature:settings`; routed by `:app`. */
 @Composable
-fun NotificationSettingsScreen(
-    onBack: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
+fun NotificationSettingsScreen(onBack: () -> Unit, modifier: Modifier = Modifier) {
     val viewModel: NotificationSettingsViewModel = hiltViewModel()
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current

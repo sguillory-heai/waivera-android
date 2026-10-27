@@ -84,12 +84,7 @@ internal val GutterPadding = Modifier.padding(horizontal = WaiveraSpacing.Gutter
 
 /** Icon tile, heading and supporting text at the top of a gate screen. */
 @Composable
-internal fun AuthHeader(
-    title: String,
-    message: String,
-    @DrawableRes icon: Int,
-    modifier: Modifier = Modifier,
-) {
+internal fun AuthHeader(title: String, message: String, @DrawableRes icon: Int, modifier: Modifier = Modifier) {
     val colors = WaiveraTheme.colors
     Column(
         modifier = modifier

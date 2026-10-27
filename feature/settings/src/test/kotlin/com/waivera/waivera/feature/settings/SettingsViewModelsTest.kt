@@ -37,10 +37,8 @@ private class CountingSession(private val delegate: SessionRepository) : Session
     }
 }
 
-private class FakeSystemStatus(
-    var allowed: Boolean = true,
-    var blocked: Set<String> = emptySet(),
-) : SystemNotificationStatus {
+private class FakeSystemStatus(var allowed: Boolean = true, var blocked: Set<String> = emptySet()) :
+    SystemNotificationStatus {
     override fun appNotificationsAllowed(): Boolean = allowed
 
     override fun blockedChannelIds(): Set<String> = blocked

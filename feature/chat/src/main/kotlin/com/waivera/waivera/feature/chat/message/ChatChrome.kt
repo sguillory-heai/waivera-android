@@ -109,7 +109,11 @@ fun Composer(
                 placeholder = {
                     Text(
                         text = stringResource(
-                            if (config.isReply) R.string.feature_chat_composer_reply_placeholder else R.string.feature_chat_composer_placeholder,
+                            if (config.isReply) {
+                                R.string.feature_chat_composer_reply_placeholder
+                            } else {
+                                R.string.feature_chat_composer_placeholder
+                            },
                         ),
                         color = colors.textSecondary,
                     )
@@ -337,7 +341,11 @@ fun ReadOnlyNotice(reason: ReadOnlyReason, isThread: Boolean, modifier: Modifier
 @Composable
 fun CallBanner(onJoin: () -> Unit, modifier: Modifier = Modifier) {
     val colors = WaiveraTheme.colors
-    WaiveraPressable(onClick = onJoin, onClickLabel = stringResource(R.string.feature_chat_call_join), modifier = modifier.fillMaxWidth()) {
+    WaiveraPressable(
+        onClick = onJoin,
+        onClickLabel = stringResource(R.string.feature_chat_call_join),
+        modifier = modifier.fillMaxWidth(),
+    ) {
         Column {
             Row(
                 modifier = Modifier
@@ -407,7 +415,11 @@ fun MessageListSkeleton(modifier: Modifier = Modifier, rows: Int = ChatDimens.SK
 @Composable
 fun JumpToLatestPill(onClick: () -> Unit, modifier: Modifier = Modifier) {
     val colors = WaiveraTheme.colors
-    WaiveraPressable(onClick = onClick, shape = WaiveraShapes.Pill, modifier = modifier.heightIn(min = WaiveraSpacing.MinTouchTarget)) {
+    WaiveraPressable(
+        onClick = onClick,
+        shape = WaiveraShapes.Pill,
+        modifier = modifier.heightIn(min = WaiveraSpacing.MinTouchTarget),
+    ) {
         Row(
             modifier = Modifier
                 .align(Alignment.Center)
@@ -417,8 +429,17 @@ fun JumpToLatestPill(onClick: () -> Unit, modifier: Modifier = Modifier) {
             horizontalArrangement = Arrangement.spacedBy(WaiveraSpacing.ExtraSmall),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Icon(painterResource(ChatIcons.ChevronDown), contentDescription = null, tint = colors.accent, modifier = Modifier.size(WaiveraSizes.IconSmall))
-            Text(text = stringResource(R.string.feature_chat_jump_to_latest), style = MaterialTheme.typography.labelLarge, color = colors.accent)
+            Icon(
+                painterResource(ChatIcons.ChevronDown),
+                contentDescription = null,
+                tint = colors.accent,
+                modifier = Modifier.size(WaiveraSizes.IconSmall),
+            )
+            Text(
+                text = stringResource(R.string.feature_chat_jump_to_latest),
+                style = MaterialTheme.typography.labelLarge,
+                color = colors.accent,
+            )
         }
     }
 }

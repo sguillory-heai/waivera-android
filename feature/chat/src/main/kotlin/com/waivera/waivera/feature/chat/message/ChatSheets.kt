@@ -182,7 +182,9 @@ fun MessageActionsContent(
             if (model.canCopy) {
                 ActionRow(
                     icon = ChatIcons.Copy,
-                    label = stringResource(if (model.copied) R.string.feature_chat_action_copied else R.string.feature_chat_action_copy),
+                    label = stringResource(
+                        if (model.copied) R.string.feature_chat_action_copied else R.string.feature_chat_action_copy,
+                    ),
                     onClick = onCopy,
                     accent = model.copied,
                 )
@@ -194,12 +196,21 @@ fun MessageActionsContent(
             ActionRow(
                 icon = if (model.message.isBookmarked) ChatIcons.BookmarkFilled else WaiveraIcons.Bookmark,
                 label = stringResource(
-                    if (model.message.isBookmarked) R.string.feature_chat_action_bookmarked else R.string.feature_chat_action_bookmark,
+                    if (model.message.isBookmarked) {
+                        R.string.feature_chat_action_bookmarked
+                    } else {
+                        R.string.feature_chat_action_bookmark
+                    },
                 ),
                 onClick = onBookmark,
             )
             if (model.canDelete) {
-                ActionRow(ChatIcons.Delete, stringResource(R.string.feature_chat_action_delete), onDelete, danger = true)
+                ActionRow(
+                    ChatIcons.Delete,
+                    stringResource(R.string.feature_chat_action_delete),
+                    onDelete,
+                    danger = true,
+                )
             }
         }
     }
@@ -222,7 +233,12 @@ private fun ActionRow(icon: Int, label: String, onClick: () -> Unit, danger: Boo
             horizontalArrangement = Arrangement.spacedBy(WaiveraSpacing.Medium),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Icon(painterResource(icon), contentDescription = null, tint = tint, modifier = Modifier.size(WaiveraSizes.Icon))
+            Icon(
+                painterResource(icon),
+                contentDescription = null,
+                tint = tint,
+                modifier = Modifier.size(WaiveraSizes.Icon),
+            )
             Text(text = label, style = MaterialTheme.typography.titleSmall, color = tint)
         }
     }

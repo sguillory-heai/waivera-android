@@ -27,12 +27,7 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
 @Immutable
-internal data class PersonRow(
-    val userId: String,
-    val name: String,
-    val detail: String?,
-    val celebration: Celebration?,
-)
+internal data class PersonRow(val userId: String, val name: String, val detail: String?, val celebration: Celebration?)
 
 /** Which block the list area shows. */
 internal enum class ListPhase { Loading, Error, Empty, Content }

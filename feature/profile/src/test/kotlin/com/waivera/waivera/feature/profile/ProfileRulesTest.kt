@@ -51,6 +51,7 @@ class ProfileFormatTest {
     @Test
     fun instantsAreDatedInTheEmployeesZoneAcrossTheFallBackBoundary() {
         val chicago = ZoneId.of("America/Chicago")
+
         // 1 November 2026: 01:30 CDT (before the change) and 01:30 CST (after) are both Nov 1.
         fun dated(utc: String) = ProfileFormat.instantDate(Instant.parse(utc), chicago, Locale.US)
         assertEquals("Nov 1, 2026", dated("2026-11-01T06:30:00Z"))

@@ -103,9 +103,10 @@ fun ConversationScreen(
     onOpenEvent: (eventId: String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val viewModel = hiltViewModel<ConversationViewModel, ConversationViewModel.Factory>(key = "conversation-$conversationId") {
-        it.create(conversationId)
-    }
+    val viewModel =
+        hiltViewModel<ConversationViewModel, ConversationViewModel.Factory>(key = "conversation-$conversationId") {
+            it.create(conversationId)
+        }
     val state by viewModel.state.collectAsStateWithLifecycle()
     var draft by rememberSaveable { mutableStateOf("") }
     val listState = rememberLazyListState()
@@ -141,7 +142,12 @@ fun ConversationScreen(
         onFocusComposer = {},
         scrollToLatest = { listState.animateScrollToItem(0) },
         // The list is newest first (reverse layout), so the index counts from the newest row.
-        indexOfKey = { key -> state.items.indexOfLast { it.key == key }.takeIf { it >= 0 }?.let { state.items.lastIndex - it } },
+        indexOfKey = { key ->
+            state.items.indexOfLast { it.key == key }.takeIf { it >= 0 }?.let {
+                state.items.lastIndex -
+                    it
+            }
+        },
     )
 
     val rowCallbacks = remember(viewModel, onOpenPerson) {
@@ -230,7 +236,9 @@ class ConversationActions(
     val sheets: ChatSheetCallbacks,
 ) {
     companion object {
-        val None = ConversationActions({}, {}, {}, {}, {}, {}, {}, {}, {}, {}, MessageRowCallbacks.None, ChatSheetCallbacks.None)
+        val None =
+            ConversationActions({
+            }, {}, {}, {}, {}, {}, {}, {}, {}, {}, MessageRowCallbacks.None, ChatSheetCallbacks.None)
     }
 }
 
@@ -271,7 +279,11 @@ fun ConversationScreenContent(
             Column(
                 modifier = Modifier
                     .weight(1f)
-                    .windowInsetsPadding(WindowInsets.navigationBars.union(WindowInsets.displayCutout).only(WindowInsetsSides.Horizontal)),
+                    .windowInsetsPadding(
+                        WindowInsets.navigationBars.union(
+                            WindowInsets.displayCutout,
+                        ).only(WindowInsetsSides.Horizontal),
+                    ),
             ) {
                 if (state.call.isLive) CallBanner(onJoin = actions.onOpenCall)
                 ConnectionBanner(state = state.connection.banner, onRetry = actions.onRetryConnection)
@@ -382,14 +394,19 @@ private fun MessageList(
     val jumpThresholdPx = with(density) { ChatDimens.JumpToLatestThreshold.roundToPx() }
     val stickThresholdPx = with(density) { ChatDimens.StickToBottomThreshold.roundToPx() }
     val showJump by remember {
-        derivedStateOf { listState.firstVisibleItemIndex > 0 || listState.firstVisibleItemScrollOffset > jumpThresholdPx }
+        derivedStateOf {
+            listState.firstVisibleItemIndex > 0 || listState.firstVisibleItemScrollOffset > jumpThresholdPx
+        }
     }
 
     HideKeyboardOnDrag(listState)
     // A new newest row keeps the list pinned when the person was already at (or next to) it.
     val newestKey = newestFirst.firstOrNull()?.key
     LaunchedEffect(newestKey) {
-        if (newestKey != null && listState.firstVisibleItemIndex <= 1 && listState.firstVisibleItemScrollOffset <= stickThresholdPx) {
+        if (newestKey != null &&
+            listState.firstVisibleItemIndex <= 1 &&
+            listState.firstVisibleItemScrollOffset <= stickThresholdPx
+        ) {
             listState.animateScrollToItem(0)
         }
     }
@@ -420,7 +437,11 @@ private fun MessageList(
                     item = item,
                     context = context,
                     callbacks = actions.rows,
-                    modifier = Modifier.animateItem(fadeInSpec = null, placementSpec = motion.layout(), fadeOutSpec = motion.state()),
+                    modifier = Modifier.animateItem(
+                        fadeInSpec = null,
+                        placementSpec = motion.layout(),
+                        fadeOutSpec = motion.state(),
+                    ),
                 )
             }
             if (state.hasOlder || state.olderFailed) {

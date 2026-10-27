@@ -40,7 +40,11 @@ class ConversationViewModelTest {
     @get:Rule
     val main = MainDispatcherRule()
 
-    private class Subject(val viewModel: ConversationViewModel, val graph: DemoGraph, val conversations: RecordingConversations)
+    private class Subject(
+        val viewModel: ConversationViewModel,
+        val graph: DemoGraph,
+        val conversations: RecordingConversations,
+    )
 
     private fun TestScope.subject(
         conversationId: Long = DemoData.DM_PRIYA,
@@ -224,7 +228,12 @@ class ConversationViewModelTest {
             cancelAndIgnoreRemainingEvents()
         }
         assertNull(s.viewModel.state.value.sendError)
-        assertTrue(s.viewModel.state.value.rows.none { it.message.clientMessageId == failed.clientMessageId && it.message.isPending })
+        assertTrue(
+            s.viewModel.state.value.rows.none {
+                it.message.clientMessageId == failed.clientMessageId &&
+                    it.message.isPending
+            },
+        )
     }
 
     @Test
@@ -248,7 +257,9 @@ class ConversationViewModelTest {
     @Test
     fun editingAFailedRowRestoresItsTextAndDropsIt() = runTest {
         val s = subject()
-        val failed = s.viewModel.state.value.rows.single { it.message.clientMessageId == DemoData.FAILED_CLIENT_ID }.message
+        val failed = s.viewModel.state.value.rows.single {
+            it.message.clientMessageId == DemoData.FAILED_CLIENT_ID
+        }.message
         s.viewModel.effects.test {
             s.viewModel.editFailed(failed)
             runCurrent()
@@ -272,7 +283,9 @@ class ConversationViewModelTest {
     @Test
     fun editingAnOwnMessageSavesTheNewText() = runTest {
         val s = subject()
-        val mine = s.viewModel.state.value.rows.first { it.isMine && !it.message.isPending && !it.message.isDeleted }.message
+        val mine = s.viewModel.state.value.rows.first {
+            it.isMine && !it.message.isPending && !it.message.isDeleted
+        }.message
         s.viewModel.startEdit(mine)
         assertEquals(mine.id, s.viewModel.state.value.editingMessageId)
         s.viewModel.send("Corrected text")
@@ -343,13 +356,20 @@ class ConversationViewModelTest {
             assertEquals(R.string.feature_chat_reaction_needs_connection, snackbar.detail)
             cancelAndIgnoreRemainingEvents()
         }
-        assertEquals(target.reactions, s.viewModel.state.value.rows.single { it.message.id == target.id }.message.reactions)
+        assertEquals(
+            target.reactions,
+            s.viewModel.state.value.rows.single {
+                it.message.id == target.id
+            }.message.reactions,
+        )
     }
 
     @Test
     fun reactingTogglesMyReaction() = runTest {
         val s = subject()
-        val target = s.viewModel.state.value.rows.first { !it.message.isPending && it.reactions.none { r -> r.mine } }.message
+        val target = s.viewModel.state.value.rows.first {
+            !it.message.isPending && it.reactions.none { r -> r.mine }
+        }.message
         s.viewModel.react(target.id, "❤️")
         runCurrent()
         val after = s.viewModel.state.value.rows.single { it.message.id == target.id }
@@ -362,7 +382,9 @@ class ConversationViewModelTest {
     @Test
     fun deleteAsksFirstThenDeletes() = runTest {
         val s = subject()
-        val mine = s.viewModel.state.value.rows.first { it.isMine && !it.message.isPending && !it.message.isDeleted }.message
+        val mine = s.viewModel.state.value.rows.first {
+            it.isMine && !it.message.isPending && !it.message.isDeleted
+        }.message
         s.viewModel.requestDelete(mine.id)
         assertEquals(ChatSheet.ConfirmDelete(mine.id), s.viewModel.state.value.sheet)
         s.viewModel.confirmDelete()
@@ -387,7 +409,10 @@ class ConversationViewModelTest {
     fun copyPutsThePlainTextOnTheClipboardAndMarksTheSheet() = runTest {
         val s = subject()
         val message = s.viewModel.state.value.rows.first {
-            !it.message.isPending && !it.message.isDeleted && it.message.type == MessageType.USER && it.message.plainText().isNotEmpty()
+            !it.message.isPending &&
+                !it.message.isDeleted &&
+                it.message.type == MessageType.USER &&
+                it.message.plainText().isNotEmpty()
         }.message
         s.viewModel.openActions(message)
         s.viewModel.effects.test {

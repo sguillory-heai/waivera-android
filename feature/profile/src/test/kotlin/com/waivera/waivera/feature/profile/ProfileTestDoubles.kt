@@ -5,8 +5,8 @@ import com.waivera.waivera.core.data.model.EmployeeFilePage
 import com.waivera.waivera.core.data.model.EmployeeProfile
 import com.waivera.waivera.core.data.model.Organization
 import com.waivera.waivera.core.data.model.RealtimeStatus
-import com.waivera.waivera.core.data.model.Synced
 import com.waivera.waivera.core.data.model.SyncStatus
+import com.waivera.waivera.core.data.model.Synced
 import com.waivera.waivera.core.data.model.TimeOffSummary
 import com.waivera.waivera.core.data.repository.ProfileRepository
 import com.waivera.waivera.core.data.repository.RealtimeStatusRepository

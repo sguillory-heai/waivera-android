@@ -68,7 +68,14 @@ class PersonDetailViewModelTest {
         conversations: ConversationRepository = graph.conversations,
     ): PersonDetailViewModel {
         val vm = PersonDetailViewModel(
-            userId, details, conversations, graph.people, graph.session, graph.calendar, realtime, TestClock,
+            userId,
+            details,
+            conversations,
+            graph.people,
+            graph.session,
+            graph.calendar,
+            realtime,
+            TestClock,
         )
         backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { vm.uiState.collect {} }
         return vm

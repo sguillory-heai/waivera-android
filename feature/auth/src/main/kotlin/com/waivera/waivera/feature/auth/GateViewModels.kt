@@ -33,9 +33,7 @@ data class BootstrapFailedUiState(
  * reason, retries once per tap, and leaves a way out through sign-out.
  */
 @HiltViewModel
-class BootstrapFailedViewModel @Inject constructor(
-    private val session: SessionRepository,
-) : ViewModel() {
+class BootstrapFailedViewModel @Inject constructor(private val session: SessionRepository) : ViewModel() {
     private val _state = MutableStateFlow(BootstrapFailedUiState())
     val state: StateFlow<BootstrapFailedUiState> = _state.asStateFlow()
 
@@ -84,9 +82,7 @@ data class OnboardingUiState(
  * setup elsewhere, or sign out.
  */
 @HiltViewModel
-class OnboardingRequiredViewModel @Inject constructor(
-    private val session: SessionRepository,
-) : ViewModel() {
+class OnboardingRequiredViewModel @Inject constructor(private val session: SessionRepository) : ViewModel() {
     private val _state = MutableStateFlow(OnboardingUiState())
     val state: StateFlow<OnboardingUiState> = _state.asStateFlow()
 

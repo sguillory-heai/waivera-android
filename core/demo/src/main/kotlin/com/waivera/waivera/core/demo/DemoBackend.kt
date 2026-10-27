@@ -17,9 +17,9 @@ import java.time.Instant
 import java.time.ZoneOffset
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
-import okhttp3.HttpUrl
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.update
+import okhttp3.HttpUrl
 
 /**
  * In-memory state shared by every demo repository, seeded from [DemoData]. Tests and
