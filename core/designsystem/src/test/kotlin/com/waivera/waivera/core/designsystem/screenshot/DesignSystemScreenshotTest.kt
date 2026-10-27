@@ -35,6 +35,7 @@ import com.waivera.waivera.core.designsystem.component.WaiveraListRow
 import com.waivera.waivera.core.designsystem.component.WaiveraLoadingScreen
 import com.waivera.waivera.core.designsystem.component.WaiveraLoadingState
 import com.waivera.waivera.core.designsystem.component.WaiveraNavigationBar
+import com.waivera.waivera.core.designsystem.component.WaiveraPlaceholderScreen
 import com.waivera.waivera.core.designsystem.component.WaiveraSectionHeader
 import com.waivera.waivera.core.designsystem.component.WaiveraSegmentedControl
 import com.waivera.waivera.core.designsystem.component.WaiveraSheetContent
@@ -291,6 +292,16 @@ class DesignSystemScreenshotTest {
     @Test
     fun loadingScreen() = capture("LoadingScreen", padded = false) {
         WaiveraLoadingScreen()
+    }
+
+    @Test
+    fun placeholderScreen() = capture("PlaceholderScreen", padded = false) {
+        WaiveraPlaceholderScreen(
+            title = "Schedule",
+            message = "Your shifts and events will appear here.",
+            icon = WaiveraIcons.Calendar,
+            onBack = {},
+        )
     }
 
     @Test
