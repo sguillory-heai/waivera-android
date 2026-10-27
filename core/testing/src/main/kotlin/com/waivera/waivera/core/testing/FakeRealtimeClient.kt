@@ -11,16 +11,18 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
-import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.drop
+import kotlinx.coroutines.flow.filter
 import kotlinx.serialization.json.JsonElement
 
 /**
  * A [RealtimeClient] driven by the test: set [connected], push events with [emit], simulate a
  * reconnect with [reconnect]. Calls are recorded; [sendResult] answers `SendMessage`.
  */
+@Suppress("TooManyFunctions")
 class FakeRealtimeClient(connected: Boolean = true) : RealtimeClient {
-    val mutableState = MutableStateFlow<ConnectionState>(if (connected) ConnectionState.Connected else ConnectionState.Disconnected)
+    val mutableState =
+        MutableStateFlow<ConnectionState>(if (connected) ConnectionState.Connected else ConnectionState.Disconnected)
     override val state: StateFlow<ConnectionState> = mutableState
 
     private val epoch = MutableStateFlow(if (connected) 1L else 0L)
@@ -37,7 +39,12 @@ class FakeRealtimeClient(connected: Boolean = true) : RealtimeClient {
     var foreground: Boolean? = null
     var retries = 0
     var failNext: WaiveraError? = null
-    var sendResult: (conversationId: Long, text: String, clientMessageId: String?, parentMessageId: Long?) -> MessageSendResponse =
+    var sendResult: (
+        conversationId: Long,
+        text: String,
+        clientMessageId: String?,
+        parentMessageId: Long?,
+    ) -> MessageSendResponse =
         { conversationId, text, clientId, parent ->
             MessageSendResponse(
                 id = nextId++,
@@ -48,6 +55,8 @@ class FakeRealtimeClient(connected: Boolean = true) : RealtimeClient {
                 parentMessageId = parent,
             )
         }
+
+    @Suppress("MagicNumber")
     private var nextId = 90_000L
 
     var connected: Boolean
@@ -116,5 +125,6 @@ class FakeRealtimeClient(connected: Boolean = true) : RealtimeClient {
 
     override suspend fun markAsRead(conversationId: Long) = record("MarkAsRead", listOf(conversationId))
 
-    override suspend fun sendReaction(messageId: Long, reactionType: String) = record("SendReaction", listOf(messageId, reactionType))
+    override suspend fun sendReaction(messageId: Long, reactionType: String) =
+        record("SendReaction", listOf(messageId, reactionType))
 }

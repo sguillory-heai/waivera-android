@@ -24,10 +24,7 @@ import kotlinx.coroutines.sync.withLock
  * last confirmed the data (persisted, so a warm start is not shown as a first load).
  */
 @Singleton
-class SyncTracker @Inject constructor(
-    private val documents: DocumentDao,
-    private val clock: Clock,
-) {
+class SyncTracker @Inject constructor(private val documents: DocumentDao, private val clock: Clock) {
     private val statuses = MutableStateFlow<Map<String, SyncStatus>>(emptyMap())
     private val locks = mutableMapOf<String, Mutex>()
     private val locksGuard = Mutex()
@@ -37,7 +34,8 @@ class SyncTracker @Inject constructor(
     fun lastSynced(key: String): Flow<Instant?> =
         documents.observe(metaKey(key)).map { row -> row?.updatedAt?.let(Instant::ofEpochMilli) }.distinctUntilChanged()
 
-    suspend fun lastSyncedNow(key: String): Instant? = documents.get(metaKey(key))?.updatedAt?.let(Instant::ofEpochMilli)
+    suspend fun lastSyncedNow(key: String): Instant? =
+        documents.get(metaKey(key))?.updatedAt?.let(Instant::ofEpochMilli)
 
     /** Runs [block] once at a time per key, recording the outcome. */
     suspend fun <T> track(key: String, block: suspend () -> T): Result<T> {

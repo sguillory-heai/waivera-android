@@ -34,7 +34,10 @@ data class AttendeeResponseDto(
 /** `CalendarEventResponseDto`. Timed values are UTC instants; all-day values are literal dates, end exclusive. */
 @Serializable
 data class CalendarEventResponseDto(
-    val cancelledAllDayDates: List<@Serializable(with = LocalDateSerializer::class) LocalDate> = emptyList(),
+    val cancelledAllDayDates: List<
+        @Serializable(with = LocalDateSerializer::class)
+        LocalDate,
+        > = emptyList(),
     @Serializable(with = StringOrNumberSerializer::class) val id: String? = null,
     val title: String? = null,
     val startTime: Instant? = null,

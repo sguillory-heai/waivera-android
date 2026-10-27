@@ -86,10 +86,8 @@ class RecordingOutboxScheduler : OutboxScheduler {
 }
 
 /** Firebase stand-in: [accounts] maps email to password; [signInError] forces a failure. */
-class FakeAuthGateway(
-    override val missingKeys: List<String> = emptyList(),
-    initialUser: AuthUser? = null,
-) : AuthGateway {
+class FakeAuthGateway(override val missingKeys: List<String> = emptyList(), initialUser: AuthUser? = null) :
+    AuthGateway {
     val accounts = mutableMapOf("alex.rivera@example.com" to "correct-horse")
     var signInError: WaiveraError? = null
     var token: String? = "test-token"
@@ -128,7 +126,9 @@ class FakeAuthGateway(
 
 /** A session repository whose state tests set directly. */
 class TestSessionRepository(
-    initial: SessionState = SessionState.SignedIn(CurrentUser(userId = "usr_alex_rivera", timeZoneId = "America/Chicago")),
+    initial: SessionState = SessionState.SignedIn(
+        CurrentUser(userId = "usr_alex_rivera", timeZoneId = "America/Chicago"),
+    ),
 ) : SessionRepository {
     val mutableState = MutableStateFlow(initial)
     override val state: StateFlow<SessionState> = mutableState
@@ -149,5 +149,6 @@ class TestSessionRepository(
         return Result.success(Unit)
     }
 
-    override suspend fun changePassword(currentPassword: String, newPassword: String): Result<Unit> = Result.success(Unit)
+    override suspend fun changePassword(currentPassword: String, newPassword: String): Result<Unit> =
+        Result.success(Unit)
 }

@@ -24,10 +24,8 @@ fun interface AuthTokenProvider {
  * One-shot bodies (streamed uploads) cannot be replayed, so their 401 is returned to the caller,
  * which re-creates the body and retries once (see the attachments repository).
  */
-class AuthTokenInterceptor(
-    private val tokens: AuthTokenProvider,
-    private val apiBaseUrl: HttpUrl? = null,
-) : Interceptor {
+class AuthTokenInterceptor(private val tokens: AuthTokenProvider, private val apiBaseUrl: HttpUrl? = null) :
+    Interceptor {
     @Suppress("ReturnCount")
     override fun intercept(chain: Interceptor.Chain): Response {
         val request = chain.request()

@@ -10,9 +10,9 @@ import com.waivera.waivera.core.data.model.ScheduleEvent
 import com.waivera.waivera.core.data.model.ScheduleFeed
 import com.waivera.waivera.core.data.model.TimeOffEntry
 import com.waivera.waivera.core.network.dto.AttendeeType
+import com.waivera.waivera.core.network.dto.CalendarEmployeeMilestoneResponseDto
 import com.waivera.waivera.core.network.dto.CalendarEventResponseDto
 import com.waivera.waivera.core.network.dto.CalendarFeedResponseDto
-import com.waivera.waivera.core.network.dto.CalendarEmployeeMilestoneResponseDto
 import com.waivera.waivera.core.network.dto.InviteStatus
 import com.waivera.waivera.core.network.dto.MilestoneType
 import java.time.DayOfWeek
@@ -29,6 +29,7 @@ import java.time.ZoneId
  * `[start, endExclusive)` days in the employee's zone; all-day values are literal dates that a
  * zone never shifts. No RRULE expansion happens here: the server returns occurrences.
  */
+@Suppress("TooManyFunctions")
 object CalendarMath {
     private const val GRID_DAYS = 42L
     private const val WEEK_DAYS = 7L
@@ -37,14 +38,16 @@ object CalendarMath {
     private const val JOIN_LEAD_MINUTES = 30L
     private val JOIN_LEAD: Duration = Duration.ofMinutes(JOIN_LEAD_MINUTES)
 
-    fun startOfWeek(date: LocalDate): LocalDate = date.minusDays((date.dayOfWeek.value % DayOfWeek.entries.size).toLong())
+    fun startOfWeek(date: LocalDate): LocalDate =
+        date.minusDays((date.dayOfWeek.value % DayOfWeek.entries.size).toLong())
 
     fun day(date: LocalDate): DateRange = DateRange(date, date.plusDays(1))
 
     fun week(date: LocalDate): DateRange = startOfWeek(date).let { DateRange(it, it.plusDays(WEEK_DAYS)) }
 
     /** Always 42 cells from the Sunday on or before the 1st, so spill days get their events too. */
-    fun monthGrid(month: YearMonth): DateRange = startOfWeek(month.atDay(1)).let { DateRange(it, it.plusDays(GRID_DAYS)) }
+    fun monthGrid(month: YearMonth): DateRange =
+        startOfWeek(month.atDay(1)).let { DateRange(it, it.plusDays(GRID_DAYS)) }
 
     /** The instants bounding [range] in [zone]; DST days are 23 or 25 hours long. */
     fun window(range: DateRange, zone: ZoneId): Pair<Instant, Instant> =
@@ -88,7 +91,10 @@ object CalendarMath {
         milestones.mapNotNull { resolve(it, date) }
 
     fun resolve(milestone: Milestone, date: LocalDate): MilestoneOccurrence? {
-        val effectiveDay = if (milestone.month == FEBRUARY && milestone.day == LEAP_DAY && !Year.isLeap(date.year.toLong())) {
+        val effectiveDay = if (milestone.month == FEBRUARY &&
+            milestone.day == LEAP_DAY &&
+            !Year.isLeap(date.year.toLong())
+        ) {
             LEAP_DAY - 1
         } else {
             milestone.day
@@ -166,22 +172,23 @@ object CalendarMath {
         )
     }
 
-    fun feed(dto: CalendarFeedResponseDto, range: DateRange, zone: ZoneId, myUserId: String?): ScheduleFeed = ScheduleFeed(
-        range = range,
-        zoneId = zone.id,
-        events = dto.events.mapNotNull { event(it, myUserId) },
-        timeOff = dto.timeOff.filter { it.startTime != null }.map {
-            TimeOffEntry(
-                it.id, it.userId, it.startTime, it.endTime, it.leaveType, it.requestType,
-                it.durationMinutes, it.status, it.isCancellationPending,
-            )
-        },
-        holidays = dto.holidays.mapNotNull { h ->
-            val start = h.startDate ?: return@mapNotNull null
-            // Holiday end dates are exclusive like all-day events (Thanksgiving is 26 to 27).
-            Holiday(h.id, h.title, start, h.endDate?.takeIf { it.isAfter(start) }?.minusDays(1) ?: start)
-        },
-    )
+    fun feed(dto: CalendarFeedResponseDto, range: DateRange, zone: ZoneId, myUserId: String?): ScheduleFeed =
+        ScheduleFeed(
+            range = range,
+            zoneId = zone.id,
+            events = dto.events.mapNotNull { event(it, myUserId) },
+            timeOff = dto.timeOff.filter { it.startTime != null }.map {
+                TimeOffEntry(
+                    it.id, it.userId, it.startTime, it.endTime, it.leaveType, it.requestType,
+                    it.durationMinutes, it.status, it.isCancellationPending,
+                )
+            },
+            holidays = dto.holidays.mapNotNull { h ->
+                val start = h.startDate ?: return@mapNotNull null
+                // Holiday end dates are exclusive like all-day events (Thanksgiving is 26 to 27).
+                Holiday(h.id, h.title, start, h.endDate?.takeIf { it.isAfter(start) }?.minusDays(1) ?: start)
+            },
+        )
 
     @Suppress("ReturnCount")
     fun milestone(dto: CalendarEmployeeMilestoneResponseDto): Milestone? {

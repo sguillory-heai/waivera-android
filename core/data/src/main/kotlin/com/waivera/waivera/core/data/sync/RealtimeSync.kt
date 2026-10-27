@@ -75,7 +75,12 @@ class RealtimeSync @Inject constructor(
                 activity.markLocally(event.state.readActivityIds)
             }
             is HubEvent.TypingStatus ->
-                typing.onRemoteTyping(event.conversationId, event.userId, event.isTyping, session.state.value.currentUserId)
+                typing.onRemoteTyping(
+                    event.conversationId,
+                    event.userId,
+                    event.isTyping,
+                    session.state.value.currentUserId,
+                )
             is HubEvent.ReadReceipt -> Unit
             is HubEvent.Reaction -> messages.applyReaction(
                 event.messageId,

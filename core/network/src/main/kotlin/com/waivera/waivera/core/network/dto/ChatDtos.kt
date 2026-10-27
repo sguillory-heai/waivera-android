@@ -124,7 +124,10 @@ data class OngoingCallDto(
     val callRecordId: Long? = null,
 )
 
-/** `dto/Response/ConversationResponse.cs`, from `/my-conversations`, `/conversation/{id}` and hub `ConversationCreated`. */
+/**
+ * `dto/Response/ConversationResponse.cs`, from `/my-conversations`, `/conversation/{id}` and hub
+ * `ConversationCreated`.
+ */
 @Serializable
 data class ConversationResponse(
     val id: Long = 0,

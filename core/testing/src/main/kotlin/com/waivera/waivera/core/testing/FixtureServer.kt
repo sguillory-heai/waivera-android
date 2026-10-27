@@ -26,7 +26,11 @@ class FixtureServer : AutoCloseable {
                 requests += request
                 val key = "${request.method} ${request.url.encodedPath}"
                 val handler = synchronized(routes) {
-                    routes[key] ?: routes.entries.firstOrNull { (route, _) -> route.endsWith("*") && key.startsWith(route.dropLast(1)) }?.value
+                    routes[key]
+                        ?: routes.entries.firstOrNull { (route, _) ->
+                            route.endsWith("*") &&
+                                key.startsWith(route.dropLast(1))
+                        }?.value
                 }
                 return handler?.invoke(request) ?: MockResponse.Builder().code(NOT_FOUND).build()
             }
@@ -36,7 +40,10 @@ class FixtureServer : AutoCloseable {
 
     val baseUrl: String get() = server.url("/").toString()
 
-    val config: NetworkConfig get() = NetworkConfig(apiBaseUrl = baseUrl.trimEnd('/'), webBaseUrl = "https://app.example.test")
+    val config: NetworkConfig get() = NetworkConfig(
+        apiBaseUrl = baseUrl.trimEnd('/'),
+        webBaseUrl = "https://app.example.test",
+    )
 
     fun route(key: String, handler: (RecordedRequest) -> MockResponse) {
         synchronized(routes) { routes[key] = handler }

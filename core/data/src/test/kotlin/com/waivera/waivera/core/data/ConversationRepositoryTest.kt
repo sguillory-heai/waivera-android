@@ -57,7 +57,11 @@ class ConversationRepositoryTest {
     fun errorKeepsCachedDataAndReportsTypedError() = testScope.runTest {
         serveInbox()
         repo.refresh().getOrThrow()
-        graph.server.json("GET /api/chat/my-conversations", Fixtures.text("rest-error-exception-middleware-500.json"), code = 500)
+        graph.server.json(
+            "GET /api/chat/my-conversations",
+            Fixtures.text("rest-error-exception-middleware-500.json"),
+            code = 500,
+        )
         val failure = repo.refresh()
         assertIs<WaiveraError.Server>(failure.exceptionOrNull())
         val state = repo.observeConversations().first()

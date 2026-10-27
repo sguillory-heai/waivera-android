@@ -142,13 +142,19 @@ class FeedRepositoriesTest {
 
     @Test
     fun directoryLoadsAndAvatarsDecodeWithANegativeCache() = testScope.runTest {
-        graph.server.json("GET /api/chat/initiation-directory", """[{"id":"usr_jordan_lee","displayName":"Jordan Lee"}]""")
+        graph.server.json(
+            "GET /api/chat/initiation-directory",
+            """[{"id":"usr_jordan_lee","displayName":"Jordan Lee"}]""",
+        )
         graph.people.refresh().getOrThrow()
         assertEquals(listOf("usr_jordan_lee"), graph.people.observeDirectory().first().data.map { it.id })
 
         graph.server.fixture("GET /api/file/avatar/usr_jordan_lee", "rest-file-avatar-base64.json")
         val bytes = assertNotNull(graph.people.avatar("usr_jordan_lee"))
-        assertContentEquals(byteArrayOf(0x89.toByte(), 'P'.code.toByte(), 'N'.code.toByte(), 'G'.code.toByte()), bytes.copyOf(4))
+        assertContentEquals(
+            byteArrayOf(0x89.toByte(), 'P'.code.toByte(), 'N'.code.toByte(), 'G'.code.toByte()),
+            bytes.copyOf(4),
+        )
         graph.people.avatar("usr_jordan_lee")
         assertEquals(1, graph.server.requestsTo("/api/file/avatar/usr_jordan_lee").size, "cached")
 
@@ -172,7 +178,10 @@ class FeedRepositoriesTest {
         graph.profile.refresh().getOrThrow()
         val profile = assertNotNull(graph.profile.observeMyProfile().first().data)
         assertNotNull(profile.employeeId)
-        graph.server.fixture("GET /api/TimeOff/get-timeOffs-for-user-profile/usr_alex_rivera", "rest-timeoff-get-for-user-profile.json")
+        graph.server.fixture(
+            "GET /api/TimeOff/get-timeOffs-for-user-profile/usr_alex_rivera",
+            "rest-timeoff-get-for-user-profile.json",
+        )
         assertTrue(graph.profile.timeOff("usr_alex_rivera").getOrThrow().requests.isNotEmpty())
         graph.server.fixture("GET /api/employee/get-employee-files", "rest-employee-get-employee-files.json")
         assertTrue(graph.profile.files("usr_alex_rivera", 1).getOrThrow().items.isNotEmpty())
@@ -187,15 +196,26 @@ class FeedRepositoriesTest {
     @Test
     fun attachmentUrlsResolveAgainstTheApiHost() {
         val attachments = com.waivera.waivera.core.data.live.LiveAttachmentRepository(
-            graph.chatApi, graph.server.config, java.nio.file.Files.createTempDirectory("att").toFile(), kotlinx.coroutines.Dispatchers.IO,
+            graph.chatApi,
+            graph.server.config,
+            java.nio.file.Files.createTempDirectory("att").toFile(),
+            kotlinx.coroutines.Dispatchers.IO,
         )
-        assertEquals(graph.server.baseUrl + "api/chat/message/9301/attachment", attachments.resolve("/api/chat/message/9301/attachment"))
+        assertEquals(
+            graph.server.baseUrl + "api/chat/message/9301/attachment",
+            attachments.resolve("/api/chat/message/9301/attachment"),
+        )
     }
 
     @Test
     fun rejectedAttachmentDownloadIsTyped() = testScope.runTest {
         val dir = java.nio.file.Files.createTempDirectory("att").toFile()
-        val attachments = com.waivera.waivera.core.data.live.LiveAttachmentRepository(graph.chatApi, graph.server.config, dir, kotlinx.coroutines.Dispatchers.IO)
+        val attachments = com.waivera.waivera.core.data.live.LiveAttachmentRepository(
+            graph.chatApi,
+            graph.server.config,
+            dir,
+            kotlinx.coroutines.Dispatchers.IO,
+        )
         graph.server.status("GET /api/chat/message/9301/attachment", 423)
         assertIs<WaiveraError.AttachmentRejected>(attachments.download(9301, "plan.pdf").exceptionOrNull())
         graph.server.route("GET /api/chat/message/9302/attachment") {

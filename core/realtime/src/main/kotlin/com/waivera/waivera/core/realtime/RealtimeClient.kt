@@ -61,7 +61,12 @@ interface RealtimeClient {
      */
     fun attendConversation(conversationId: Long): AutoCloseable
 
-    /** Throws [com.waivera.waivera.core.network.error.WaiveraError] (RealtimeUnavailable when disconnected). */
+    /**
+     * Throws [com.waivera.waivera.core.network.error.WaiveraError] (RealtimeUnavailable when disconnected).
+     *
+     * Suppressed: Mirrors the hub method signature one to one.
+     */
+    @Suppress("LongParameterList")
     suspend fun sendMessage(
         conversationId: Long,
         text: String,

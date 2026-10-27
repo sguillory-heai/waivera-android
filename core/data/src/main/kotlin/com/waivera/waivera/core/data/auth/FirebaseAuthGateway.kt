@@ -51,9 +51,7 @@ data class FirebaseConfig(val apiKey: String, val appId: String, val projectId: 
  * initialised and every call fails with [WaiveraError.Configuration] instead of crashing.
  */
 @Singleton
-class FirebaseAuthGateway @Inject constructor(
-    @ApplicationContext private val context: Context,
-) : AuthGateway {
+class FirebaseAuthGateway @Inject constructor(@ApplicationContext private val context: Context) : AuthGateway {
     private val config = FirebaseConfig.fromBuildConfig()
     override val missingKeys: List<String> = config.missingKeys
     override val isConfigured: Boolean = missingKeys.isEmpty()
@@ -135,7 +133,13 @@ class FirebaseAuthGateway @Inject constructor(
         is FirebaseAuthWeakPasswordException -> WaiveraError.WeakPassword()
         is FirebaseAuthInvalidCredentialsException -> WaiveraError.InvalidCredentials()
         is FirebaseAuthInvalidUserException ->
-            if (e.errorCode == "ERROR_USER_DISABLED") WaiveraError.AccountDisabled() else WaiveraError.InvalidCredentials()
+            if (e.errorCode ==
+                "ERROR_USER_DISABLED"
+            ) {
+                WaiveraError.AccountDisabled()
+            } else {
+                WaiveraError.InvalidCredentials()
+            }
         is FirebaseAuthRecentLoginRequiredException -> WaiveraError.RecentLoginRequired()
         is FirebaseTooManyRequestsException -> WaiveraError.TooManyAttempts()
         is FirebaseNetworkException -> WaiveraError.Network(e)

@@ -62,7 +62,13 @@ class TinkSecureStore @Inject constructor(
                 Base64.getEncoder().encodeToString(aead.encrypt(it.toByteArray(Charsets.UTF_8), key.toByteArray()))
             }
             context.secureDataStore.edit { prefs ->
-                if (sealed == null) prefs.remove(stringPreferencesKey(key)) else prefs[stringPreferencesKey(key)] = sealed
+                if (sealed ==
+                    null
+                ) {
+                    prefs.remove(stringPreferencesKey(key))
+                } else {
+                    prefs[stringPreferencesKey(key)] = sealed
+                }
             }
         }
     }

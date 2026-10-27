@@ -50,6 +50,7 @@ interface SessionRepository {
     suspend fun changePassword(currentPassword: String, newPassword: String): Result<Unit>
 }
 
+@Suppress("TooManyFunctions")
 interface ConversationRepository {
     /** Inbox, newest activity first. */
     fun observeConversations(): Flow<Synced<List<Conversation>>>
@@ -193,7 +194,8 @@ interface CalendarRepository {
 
     companion object {
         /** The 42-cell month grid range, starting the Sunday on or before the 1st. */
-        fun monthGrid(month: YearMonth): DateRange = com.waivera.waivera.core.data.calendar.CalendarMath.monthGrid(month)
+        fun monthGrid(month: YearMonth): DateRange =
+            com.waivera.waivera.core.data.calendar.CalendarMath.monthGrid(month)
     }
 }
 

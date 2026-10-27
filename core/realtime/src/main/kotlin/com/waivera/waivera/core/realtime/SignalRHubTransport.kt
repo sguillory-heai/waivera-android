@@ -1,6 +1,7 @@
 package com.waivera.waivera.core.realtime
 
 import com.google.gson.Gson
+import com.google.gson.JsonElement as GsonElement
 import com.google.gson.JsonParser
 import com.microsoft.signalr.HubConnection
 import com.microsoft.signalr.HubConnectionBuilder
@@ -12,14 +13,16 @@ import kotlinx.coroutines.rx3.await
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonNull
-import com.google.gson.JsonElement as GsonElement
 
 /**
  * [HubTransport] over the Microsoft SignalR Java client (JSON protocol). Arguments arrive as Gson
  * trees and are re-parsed into kotlinx JSON so one decoder ([HubEventDecoder]) handles every
  * source, fixtures included. The Java client has no automatic reconnect; [DefaultRealtimeClient]
  * owns that.
+ *
+ * Suppressed: The Java client throws unchecked RuntimeExceptions and takes varargs.
  */
+@Suppress("TooGenericExceptionCaught", "SpreadOperator")
 class SignalRHubTransport(
     url: String,
     accessToken: (Boolean) -> String?,
@@ -56,7 +59,11 @@ class SignalRHubTransport(
                 5 -> connection.on(
                     target,
                     { a, b, c, d, e -> dispatch(target, a, b, c, d, e) },
-                    type, type, type, type, type,
+                    type,
+                    type,
+                    type,
+                    type,
+                    type,
                 )
                 else -> error("Unsupported argument count $count for $target")
             }

@@ -21,6 +21,7 @@ import com.waivera.waivera.core.network.dto.UnifiedConversationResponse
 import com.waivera.waivera.core.network.dto.UserInfoResponse
 
 /** DTO to domain mapping. Pure functions; every rule here cites the gap it works around. */
+@Suppress("TooManyFunctions")
 object Mappers {
     fun person(dto: UserInfoResponse?): Person? {
         val id = dto?.id?.takeIf(String::isNotBlank) ?: return null

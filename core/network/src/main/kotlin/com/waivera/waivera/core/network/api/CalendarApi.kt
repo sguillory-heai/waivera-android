@@ -54,7 +54,10 @@ interface CalendarApi {
     ): Response<JsonElement>
 
     @DELETE("api/CalendarEvent/DeleteEvent/{id}")
-    suspend fun deleteEvent(@Path("id") id: String, @Query("deleteScope") deleteScope: String = "single"): Response<JsonElement>
+    suspend fun deleteEvent(
+        @Path("id") id: String,
+        @Query("deleteScope") deleteScope: String = "single",
+    ): Response<JsonElement>
 
     @GET("api/CalendarEvent/next-upcoming-events/{userId}")
     suspend fun getNextUpcomingEvents(@Path("userId") userId: String): Response<JsonElement>

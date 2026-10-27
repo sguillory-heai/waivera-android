@@ -22,14 +22,20 @@ object MeetingHandoff {
     )
 
     // Nulls are written explicitly, matching JSON.stringify in the reference client.
-    private val json = Json { encodeDefaults = true; explicitNulls = true }
+    private val json = Json {
+        encodeDefaults = true
+        explicitNulls = true
+    }
 
     fun lobbyUrl(webBase: HttpUrl, roomId: String, state: State): String {
         val payload = json.encodeToString(State.serializer(), state)
-        val encoded = Base64.getEncoder().encodeToString(encodeUriComponent(payload).toByteArray(StandardCharsets.UTF_8))
+        val encoded = Base64.getEncoder().encodeToString(
+            encodeUriComponent(payload).toByteArray(StandardCharsets.UTF_8),
+        )
         // Built by hand so the encoding matches encodeURIComponent exactly (OkHttp's query
         // encoder leaves some base64 characters alone).
-        return webBase.toString().trimEnd('/') + "/lobby/" + encodeUriComponent(roomId) + "?state=" + encodeUriComponent(encoded)
+        return webBase.toString().trimEnd('/') + "/lobby/" + encodeUriComponent(roomId) + "?state=" +
+            encodeUriComponent(encoded)
     }
 
     /** JavaScript `encodeURIComponent`: like form encoding, but spaces are %20 and `!'()*~` stay. */

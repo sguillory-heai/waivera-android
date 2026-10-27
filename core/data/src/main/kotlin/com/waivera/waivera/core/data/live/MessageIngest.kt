@@ -13,10 +13,7 @@ import javax.inject.Singleton
  * every payload yet; that needs an API change (gaps log).
  */
 @Singleton
-class MessageIngest @Inject constructor(
-    private val cache: ChatCache,
-    private val outbox: OutboxStore,
-) {
+class MessageIngest @Inject constructor(private val cache: ChatCache, private val outbox: OutboxStore) {
     suspend fun ingest(messages: List<Message>) {
         if (messages.isEmpty()) return
         cache.putMessages(messages)

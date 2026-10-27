@@ -86,7 +86,10 @@ data class GetUserNameResponseVM(
     val userName: String? = null,
 )
 
-/** `GetUserNameResponseDBVM` from `get-combined-user-list`; includes waiver participants, so the app does not use it. */
+/**
+ * `GetUserNameResponseDBVM` from `get-combined-user-list`; includes waiver participants, so the app
+ * does not use it.
+ */
 @Serializable
 data class GetUserNameResponseDBVM(
     @Serializable(with = StringOrNumberSerializer::class) val userId: String? = null,

@@ -7,7 +7,10 @@ package com.waivera.waivera.core.realtime
  */
 object ChatHubContract {
     object Methods {
-        /** `(int conversationId, string messageText, object? doc, int? parentMessageId, Guid? clientMessageId, string? attachmentUrl)`. */
+        /**
+         * `(int conversationId, string messageText, object? doc, int? parentMessageId,
+         * Guid? clientMessageId, string? attachmentUrl)`.
+         */
         const val SEND_MESSAGE = "SendMessage"
         const val JOIN_CONVERSATION = "JoinConversation"
         const val LEAVE_CONVERSATION = "LeaveConversation"

@@ -13,7 +13,10 @@ class WaiveraTimeTest {
     fun zoneLessTimestampsAreUtcWithAnyFractionLength() {
         val expected = Instant.parse("2026-10-20T14:32:11Z")
         assertEquals(expected, WaiveraTime.parseInstant("2026-10-20T14:32:11"))
-        assertEquals(expected.plusMillis(482).plusNanos(913_000), WaiveraTime.parseInstant("2026-10-20T14:32:11.482913"))
+        assertEquals(
+            expected.plusMillis(482).plusNanos(913_000),
+            WaiveraTime.parseInstant("2026-10-20T14:32:11.482913"),
+        )
         assertEquals(expected.plusMillis(500), WaiveraTime.parseInstant("2026-10-20T14:32:11.5"))
         assertEquals(expected.plusNanos(123_456_700), WaiveraTime.parseInstant("2026-10-20T14:32:11.1234567"))
     }

@@ -38,7 +38,9 @@ class ErrorMapperTest {
         assertIs<WaiveraError.Server>(error)
         assertEquals(500, error.httpStatus)
         assertNull(error.message)
-        assertIs<WaiveraError.Server>(ErrorMapper.fromHttp(500, Fixtures.text("rest-error-exception-middleware-500.json")))
+        assertIs<WaiveraError.Server>(
+            ErrorMapper.fromHttp(500, Fixtures.text("rest-error-exception-middleware-500.json")),
+        )
         assertIs<WaiveraError.Server>(ErrorMapper.fromHttp(503, null))
     }
 
@@ -47,11 +49,15 @@ class ErrorMapperTest {
         val unauthorized = ErrorMapper.fromHttp(401, Fixtures.text("rest-error-apiresponse-unauthorized.json"))
         assertIs<WaiveraError.SessionExpired>(unauthorized)
         assertEquals("USER_CONTEXT_MISSING", unauthorized.errorCode)
-        assertIs<WaiveraError.SessionExpired>(ErrorMapper.fromHttp(401, "Session expired. Logged in from another device."))
+        assertIs<WaiveraError.SessionExpired>(
+            ErrorMapper.fromHttp(401, "Session expired. Logged in from another device."),
+        )
         assertIs<WaiveraError.Forbidden>(ErrorMapper.fromHttp(403, ""))
         assertIs<WaiveraError.NotFound>(ErrorMapper.fromHttp(404, "\"Thread root message not found.\""))
         assertIs<WaiveraError.Conflict>(ErrorMapper.fromHttp(409, """{"Message":"conflict","StatusCode":409}"""))
-        assertIs<WaiveraError.AttachmentRejected>(ErrorMapper.fromHttp(423, "Attachment was rejected by security validation."))
+        assertIs<WaiveraError.AttachmentRejected>(
+            ErrorMapper.fromHttp(423, "Attachment was rejected by security validation."),
+        )
         assertIs<WaiveraError.RateLimited>(ErrorMapper.fromHttp(429, null))
         assertIs<WaiveraError.Unexpected>(ErrorMapper.fromHttp(418, null))
     }
@@ -59,8 +65,12 @@ class ErrorMapperTest {
     @Test
     fun classifiesSendRejections() {
         assertIs<WaiveraError.ChannelArchived>(ErrorMapper.fromHttp(403, "\"This channel is archived.\""))
-        assertIs<WaiveraError.ChannelReadOnly>(ErrorMapper.fromHttp(403, "\"This channel is read-only for your account.\""))
-        assertIs<WaiveraError.AttachmentExpired>(ErrorMapper.fromHttp(400, "\"The attachment upload is missing or expired.\""))
+        assertIs<WaiveraError.ChannelReadOnly>(
+            ErrorMapper.fromHttp(403, "\"This channel is read-only for your account.\""),
+        )
+        assertIs<WaiveraError.AttachmentExpired>(
+            ErrorMapper.fromHttp(400, "\"The attachment upload is missing or expired.\""),
+        )
         assertIs<WaiveraError.Validation>(ErrorMapper.fromHttp(400, "\"You cannot send a message to yourself.\""))
     }
 

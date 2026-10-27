@@ -28,7 +28,8 @@ class LiveAttachmentRepository @Inject constructor(
     private val config: NetworkConfig,
     @AttachmentCacheDirectory private val directory: File,
     @IoDispatcher private val io: CoroutineDispatcher,
-) : AttachmentRepository, SignOutCleaner {
+) : AttachmentRepository,
+    SignOutCleaner {
     override suspend fun download(messageId: Long, fileName: String?): Result<File> = catchingWaivera {
         withContext(io) {
             directory.mkdirs()

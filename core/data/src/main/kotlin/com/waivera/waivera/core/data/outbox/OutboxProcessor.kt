@@ -1,7 +1,7 @@
 package com.waivera.waivera.core.data.outbox
 
-import com.waivera.waivera.core.data.live.MessageIngest
 import com.waivera.waivera.core.data.live.Mappers
+import com.waivera.waivera.core.data.live.MessageIngest
 import com.waivera.waivera.core.data.model.SendState
 import com.waivera.waivera.core.network.api.ChatApi
 import com.waivera.waivera.core.network.dto.SendMessageRequest
@@ -43,8 +43,9 @@ class OutboxProcessor @Inject constructor(
         var retryLater = false
         for (item in store.withState(SendState.QUEUED)) {
             // Keep per-conversation order: nothing overtakes a message waiting for retry.
-            if (item.conversationId in blocked) continue
-            val current = store.get(item.clientMessageId)?.takeIf { it.state == SendState.QUEUED } ?: continue
+            val current = store.get(item.clientMessageId)
+                ?.takeIf { it.state == SendState.QUEUED && item.conversationId !in blocked }
+                ?: continue
             when (sendOne(current)) {
                 Outcome.SENT, Outcome.FAILED -> Unit
                 Outcome.RETRY -> {
@@ -68,7 +69,13 @@ class OutboxProcessor @Inject constructor(
                 sendOverRest(withUpload)
             }
             val mapped = Mappers.message(dto)
-            val message = if (mapped.clientMessageId == null) mapped.copy(clientMessageId = item.clientMessageId) else mapped
+            val message = if (mapped.clientMessageId ==
+                null
+            ) {
+                mapped.copy(clientMessageId = item.clientMessageId)
+            } else {
+                mapped
+            }
             ingest.ingest(listOf(message))
             // The echo may not carry our id; make sure the optimistic row is gone either way.
             store.get(item.clientMessageId)?.let { store.remove(it) }

@@ -30,15 +30,17 @@ class OutboxWorker(context: Context, params: WorkerParameters) : CoroutineWorker
     }
 
     override suspend fun doWork(): Result {
-        val processor = EntryPointAccessors.fromApplication(applicationContext, Dependencies::class.java).outboxProcessor()
+        val processor = EntryPointAccessors.fromApplication(
+            applicationContext,
+            Dependencies::class.java,
+        ).outboxProcessor()
         return if (processor.process()) Result.retry() else Result.success()
     }
 }
 
 @Singleton
-class WorkManagerOutboxScheduler @Inject constructor(
-    @ApplicationContext private val context: Context,
-) : OutboxScheduler {
+class WorkManagerOutboxScheduler @Inject constructor(@ApplicationContext private val context: Context) :
+    OutboxScheduler {
     override fun schedule() {
         val request = OneTimeWorkRequestBuilder<OutboxWorker>()
             .setConstraints(Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build())

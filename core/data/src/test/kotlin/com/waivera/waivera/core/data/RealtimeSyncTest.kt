@@ -43,13 +43,15 @@ class RealtimeSyncTest {
         graph.server.fixture("GET /api/chat/conversation/41", "rest-chat-get-conversation-channel.json")
         graph.server.fixture("GET /api/chat/bookmarks", "rest-chat-get-bookmarks.json")
         val failures = mutableListOf<String>()
-        com.waivera.waivera.core.network.log.WaiveraLog.sink = com.waivera.waivera.core.network.log.LogSink { _, tag, message, _ ->
-            if (tag == "RealtimeSync") failures += message
-        }
+        com.waivera.waivera.core.network.log.WaiveraLog.sink =
+            com.waivera.waivera.core.network.log.LogSink { _, tag, message, _ ->
+                if (tag == "RealtimeSync") failures += message
+            }
         try {
             Fixtures.names("hub-").filterNot { it.startsWith("hub-video-") }.forEach { sync.apply(event(it)) }
         } finally {
-            com.waivera.waivera.core.network.log.WaiveraLog.sink = com.waivera.waivera.core.network.log.LogSink { _, _, _, _ -> }
+            com.waivera.waivera.core.network.log.WaiveraLog.sink =
+                com.waivera.waivera.core.network.log.LogSink { _, _, _, _ -> }
         }
         assertEquals(emptyList(), failures)
     }
@@ -59,7 +61,9 @@ class RealtimeSyncTest {
         seedInbox()
         val before = graph.cache.conversation(7)?.unreadCount ?: 0
         val received = event("hub-receive-message.json") as HubEvent.MessageReceived
-        val fromOther = received.copy(message = received.message.copy(id = 9999, conversationId = 7, userId = "usr_priya_raman", author = null))
+        val fromOther = received.copy(
+            message = received.message.copy(id = 9999, conversationId = 7, userId = "usr_priya_raman", author = null),
+        )
         sync.apply(fromOther)
         sync.apply(HubEvent.ConversationListMessage(fromOther.message))
         val after = graph.cache.conversation(7)
@@ -73,9 +77,17 @@ class RealtimeSyncTest {
         seedInbox()
         val before = graph.cache.conversation(7)?.unreadCount ?: 0
         val base = (event("hub-receive-message.json") as HubEvent.MessageReceived).message
-        sync.apply(HubEvent.MessageReceived(base.copy(id = 10_001, conversationId = 7, userId = "usr_alex_rivera", author = null)))
+        sync.apply(
+            HubEvent.MessageReceived(
+                base.copy(id = 10_001, conversationId = 7, userId = "usr_alex_rivera", author = null),
+            ),
+        )
         graph.visible.set(7)
-        sync.apply(HubEvent.MessageReceived(base.copy(id = 10_002, conversationId = 7, userId = "usr_priya_raman", author = null)))
+        sync.apply(
+            HubEvent.MessageReceived(
+                base.copy(id = 10_002, conversationId = 7, userId = "usr_priya_raman", author = null),
+            ),
+        )
         assertEquals(before, graph.cache.conversation(7)?.unreadCount)
     }
 

@@ -13,7 +13,9 @@ import retrofit2.http.POST
 /** `Controllers/VideoController.cs`; the app only hands calls off to the web lobby. */
 interface VideoApi {
     @POST("api/video/createmeetingroom")
-    suspend fun createMeetingRoom(@Body request: CreateMeetingRoomRequest): Response<ApiResponse<CreateMeetingRoomResponse>>
+    suspend fun createMeetingRoom(
+        @Body request: CreateMeetingRoomRequest,
+    ): Response<ApiResponse<CreateMeetingRoomResponse>>
 
     @POST("api/video/token")
     suspend fun getVideoToken(): Response<ApiResponse<String>>

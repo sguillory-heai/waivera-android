@@ -31,13 +31,21 @@ class SessionRepositoryTest {
 
     private fun serveLogin(login: String = "rest-auth-login.json") {
         graph.server.fixture("GET /api/Authentication/login", login)
-        graph.server.fixture("GET /api/Authentication/GetUserDetailsByUserID/usr_alex_rivera", "rest-auth-get-user-details.json")
+        graph.server.fixture(
+            "GET /api/Authentication/GetUserDetailsByUserID/usr_alex_rivera",
+            "rest-auth-get-user-details.json",
+        )
     }
 
-    private fun repository(gateway: FakeAuthGateway, config: NetworkConfig = graph.server.config): LiveSessionRepository {
+    private fun repository(
+        gateway: FakeAuthGateway,
+        config: NetworkConfig = graph.server.config,
+    ): LiveSessionRepository {
         val push = object : PushRegistrationRepository {
-            override suspend fun register(token: String, preferences: com.waivera.waivera.core.data.model.NotificationPreferences) =
-                Result.success(Unit)
+            override suspend fun register(
+                token: String,
+                preferences: com.waivera.waivera.core.data.model.NotificationPreferences,
+            ) = Result.success(Unit)
 
             override suspend fun unregister(): Result<Unit> {
                 calls += "unregister"
@@ -53,7 +61,9 @@ class SessionRepositoryTest {
                 graph.realtime.stop()
             }
         }
-        return LiveSessionRepository(gateway, graph.authApi, graph.secureStore, realtime, { push }, setOf(cleaner), config, testScope.backgroundScope)
+        return LiveSessionRepository(gateway, graph.authApi, graph.secureStore, realtime, {
+            push
+        }, setOf(cleaner), config, testScope.backgroundScope)
     }
 
     @Test
@@ -75,7 +85,10 @@ class SessionRepositoryTest {
         val signedIn = assertIs<SessionState.SignedIn>(repo.state.value)
         assertEquals("usr_alex_rivera", signedIn.user.userId, "the backend id, never the Firebase uid")
         assertEquals("usr_alex_rivera", graph.realtime.startedFor)
-        assertTrue(graph.server.requestsTo("/api/Authentication/login").single().headers["Authorization"] == "Bearer test-token")
+        assertTrue(
+            graph.server.requestsTo("/api/Authentication/login").single().headers["Authorization"] ==
+                "Bearer test-token",
+        )
     }
 
     @Test
@@ -96,14 +109,22 @@ class SessionRepositoryTest {
 
     @Test
     fun rejectedBootstrapSignsOutWithAReason() = testScope.runTest {
-        graph.server.json("GET /api/Authentication/login", Fixtures.text("rest-error-apiresponse-unauthorized.json"), code = 401)
+        graph.server.json(
+            "GET /api/Authentication/login",
+            Fixtures.text("rest-error-apiresponse-unauthorized.json"),
+            code = 401,
+        )
         val gateway = FakeAuthGateway()
         val repo = repository(gateway)
         assertTrue(repo.signIn("alex.rivera@example.com", "correct-horse").isFailure)
         val out = assertIs<SessionState.SignedOut>(repo.state.value)
         assertIs<WaiveraError.SessionExpired>(out.reason)
         assertEquals(1, gateway.signOuts)
-        assertEquals(2, graph.server.requestsTo("/api/Authentication/login").size, "401 is retried once with a refreshed token first")
+        assertEquals(
+            2,
+            graph.server.requestsTo("/api/Authentication/login").size,
+            "401 is retried once with a refreshed token first",
+        )
     }
 
     @Test

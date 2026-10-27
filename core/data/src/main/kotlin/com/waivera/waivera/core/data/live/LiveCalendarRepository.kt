@@ -50,9 +50,12 @@ class LiveCalendarRepository @Inject constructor(
     private val clock: Clock,
     @ApplicationScope private val scope: CoroutineScope,
 ) : CalendarRepository {
-    override val zone: Flow<ZoneId> = session.state.map { currentZone(it.currentUser?.timeZoneId) }.distinctUntilChanged()
+    override val zone: Flow<ZoneId> = session.state.map {
+        currentZone(it.currentUser?.timeZoneId)
+    }.distinctUntilChanged()
 
-    private fun currentZone(raw: String? = session.state.value.currentUser?.timeZoneId): ZoneId = WaiveraTime.employeeZone(raw)
+    private fun currentZone(raw: String? = session.state.value.currentUser?.timeZoneId): ZoneId =
+        WaiveraTime.employeeZone(raw)
 
     override fun observeRange(range: DateRange): Flow<Synced<ScheduleFeed>> {
         val key = feedKey(range)
@@ -103,7 +106,9 @@ class LiveCalendarRepository @Inject constructor(
 
     override suspend fun meetingLobbyUrl(eventId: String): Result<String> = catchingWaivera {
         val web = config.webBase ?: throw WaiveraError.Configuration(listOf("waivera.webBaseUrl"))
-        val meeting = apiCall { videoApi.createMeetingRoom(CreateMeetingRoomRequest(calendarEventId = eventId)) }.requireData()
+        val meeting = apiCall {
+            videoApi.createMeetingRoom(CreateMeetingRoomRequest(calendarEventId = eventId))
+        }.requireData()
         val roomId = meeting.roomId ?: throw WaiveraError.Unexpected()
         MeetingHandoff.lobbyUrl(
             web,

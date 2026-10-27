@@ -5,11 +5,11 @@ import android.net.ConnectivityManager
 import android.net.Network
 import android.net.NetworkCapabilities
 import android.net.NetworkRequest
+import android.os.Handler
+import android.os.Looper
 import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.ProcessLifecycleOwner
-import android.os.Handler
-import android.os.Looper
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -18,9 +18,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
 @Singleton
-class AndroidConnectivityMonitor @Inject constructor(
-    @ApplicationContext context: Context,
-) : ConnectivityMonitor {
+class AndroidConnectivityMonitor @Inject constructor(@ApplicationContext context: Context) : ConnectivityMonitor {
     private val manager = context.getSystemService(ConnectivityManager::class.java)
     private val online = MutableStateFlow(currentlyOnline())
     private val validNetworks = mutableSetOf<Network>()

@@ -58,7 +58,8 @@ class RestFixtureDecodingTest {
         "rest-auth-organization-details.json" to envelope(ListSerializer(OrganizationDto.serializer())),
         "rest-auth-update-contact-and-timezone.json" to envelope(String.serializer()),
         "rest-calendar-get-all-event.json" to envelope(CalendarFeedResponseDto.serializer()),
-        "rest-calendar-get-milestones.json" to envelope(ListSerializer(CalendarEmployeeMilestoneResponseDto.serializer())),
+        "rest-calendar-get-milestones.json" to
+            envelope(ListSerializer(CalendarEmployeeMilestoneResponseDto.serializer())),
         "rest-chat-create-conversation-existing.json" to envelope(ConversationResponse.serializer()),
         "rest-chat-create-conversation.json" to envelope(ConversationResponse.serializer()),
         "rest-chat-delete-message.json" to envelope(MessageResponse.serializer()),
@@ -121,7 +122,8 @@ class RestFixtureDecodingTest {
 
     @Test
     fun loginAcceptsPascalCaseKeysAndLooseFlags() {
-        val body = """{"Data":{"UserId":4471,"RequiresPasswordChange":"TRUE","RequiresOnboarding":1},"StatusCode":200}"""
+        val body =
+            """{"Data":{"UserId":4471,"RequiresPasswordChange":"TRUE","RequiresOnboarding":1},"StatusCode":200}"""
         val login = WaiveraJson.decodeNormalized(envelope(UserLoginResponseDto.serializer()), body).data
 
         assertEquals("4471", login?.userId)
@@ -131,7 +133,10 @@ class RestFixtureDecodingTest {
 
     @Test
     fun unifiedListDecodesChannelsAttachmentsAndArchivedRows() {
-        val items = decode("rest-chat-get-all.json", envelope(ListSerializer(UnifiedConversationResponse.serializer()))).data!!
+        val items = decode(
+            "rest-chat-get-all.json",
+            envelope(ListSerializer(UnifiedConversationResponse.serializer())),
+        ).data!!
         val channel = items.single { it.conversationId == 41L }
 
         assertEquals(ChannelType.TEAM, channel.channel?.channelType)
@@ -144,7 +149,9 @@ class RestFixtureDecodingTest {
 
     @Test
     fun stringEncodedMessageDocDecodesToAnObject() {
-        val body = """{"id":1,"conversationId":7,"createDate":"2026-10-20T14:32:11","messageDoc":"{\"type\":\"doc\",\"content\":[]}"}"""
+        val body =
+            """{"id":1,"conversationId":7,"createDate":"2026-10-20T14:32:11",""" +
+                """"messageDoc":"{\"type\":\"doc\",\"content\":[]}"}"""
         val message = WaiveraJson.decodeNormalized(MessageSendResponse.serializer(), body)
 
         assertEquals("doc", (message.messageDoc as JsonObject)["type"]?.jsonPrimitive?.content)
@@ -164,10 +171,18 @@ class RestFixtureDecodingTest {
         assertTrue(list.single { it.id == 14L }.isBotDirect)
         assertEquals("avatars/bot-3.png", list.single { it.id == 14L }.participants.last().avatarUrl)
 
-        val meeting = decode("rest-chat-get-my-conversations-with-meeting.json", ListSerializer(ConversationResponse.serializer()))
+        val meeting =
+            decode(
+                "rest-chat-get-my-conversations-with-meeting.json",
+                ListSerializer(ConversationResponse.serializer()),
+            )
         assertEquals("room_7f3c91", meeting.single().activeMeeting?.roomId)
 
-        val empty = decode("rest-chat-get-my-conversations-null-last-message.json", ListSerializer(ConversationResponse.serializer()))
+        val empty =
+            decode(
+                "rest-chat-get-my-conversations-null-last-message.json",
+                ListSerializer(ConversationResponse.serializer()),
+            )
         assertNull(empty.single().lastMessage)
     }
 
@@ -200,7 +215,12 @@ class RestFixtureDecodingTest {
 
         assertEquals(Instant.parse("2026-10-20T15:00:00Z"), weekly.startTime)
         assertEquals("usr_priya_raman", weekly.ownerUserID)
-        assertEquals(listOf(InviteStatus.ACCEPTED, InviteStatus.INVITED, InviteStatus.TENTATIVE), weekly.attendees.map { it.inviteStatus })
+        assertEquals(
+            listOf(InviteStatus.ACCEPTED, InviteStatus.INVITED, InviteStatus.TENTATIVE),
+            weekly.attendees.map {
+                it.inviteStatus
+            },
+        )
         assertEquals(LocalDate.of(2026, 11, 5), allDay.allDayStart)
         assertEquals(LocalDate.of(2026, 11, 6), allDay.allDayEndExclusive)
         assertEquals(listOf(LocalDate.of(2026, 11, 26)), allDay.cancelledAllDayDates)
@@ -210,7 +230,10 @@ class RestFixtureDecodingTest {
 
     @Test
     fun milestonesAndProfileDatesStayCalendarDates() {
-        val milestones = decode("rest-calendar-get-milestones.json", envelope(ListSerializer(CalendarEmployeeMilestoneResponseDto.serializer()))).data!!
+        val milestones = decode(
+            "rest-calendar-get-milestones.json",
+            envelope(ListSerializer(CalendarEmployeeMilestoneResponseDto.serializer())),
+        ).data!!
         assertEquals(listOf(MilestoneType.BIRTHDAY, MilestoneType.WORK_ANNIVERSARY), milestones.map { it.type })
         assertEquals(2024, milestones.last().startYear)
 
@@ -254,7 +277,11 @@ class RestFixtureDecodingTest {
         val ios = WaiveraJson.parseToJsonElement(Fixtures.text("rest-mobile-push-register-request-ios.json")).jsonObject
         assertEquals("fcm", ios.getValue("provider").jsonPrimitive.content)
         assertTrue(Fixtures.names("rest-chat-get-messages").isNotEmpty())
-        assertTrue(WaiveraJson.parseToJsonElement(Fixtures.text("rest-chat-get-messages-pagination-empty.json")).jsonArray.isEmpty())
+        assertTrue(
+            WaiveraJson.parseToJsonElement(
+                Fixtures.text("rest-chat-get-messages-pagination-empty.json"),
+            ).jsonArray.isEmpty(),
+        )
     }
 
     private fun <T> envelope(inner: KSerializer<T>) = ApiResponse.serializer(inner)

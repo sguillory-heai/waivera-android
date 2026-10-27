@@ -38,8 +38,13 @@ class InMemoryDatabase {
     class Conversations : ConversationDao {
         val rows = MutableStateFlow<Map<Long, ConversationEntity>>(emptyMap())
 
-        override fun observeAll(): Flow<List<ConversationEntity>> =
-            rows.map { it.values.sortedWith(compareByDescending<ConversationEntity> { r -> r.activityAt }.thenByDescending { r -> r.id }) }
+        override fun observeAll(): Flow<List<ConversationEntity>> = rows.map {
+            it.values.sortedWith(
+                compareByDescending<ConversationEntity> { r ->
+                    r.activityAt
+                }.thenByDescending { r -> r.id },
+            )
+        }
 
         override fun observe(id: Long): Flow<ConversationEntity?> = rows.map { it[id] }.distinctUntilChanged()
 
@@ -47,7 +52,10 @@ class InMemoryDatabase {
 
         override suspend fun getAll(): List<ConversationEntity> = rows.value.values.toList()
 
-        override suspend fun upsert(rows: List<ConversationEntity>) = this.rows.update { it + rows.associateBy { r -> r.id } }
+        override suspend fun upsert(rows: List<ConversationEntity>) = this.rows.update {
+            it +
+                rows.associateBy { r -> r.id }
+        }
 
         override suspend fun delete(ids: List<Long>) = rows.update { it - ids.toSet() }
 
@@ -57,11 +65,13 @@ class InMemoryDatabase {
     class Messages : MessageDao {
         val rows = MutableStateFlow<Map<Long, MessageEntity>>(emptyMap())
 
-        override fun observeConversation(conversationId: Long): Flow<List<MessageEntity>> =
-            rows.map { all -> all.values.filter { it.conversationId == conversationId }.sortedBy { it.id } }.distinctUntilChanged()
+        override fun observeConversation(conversationId: Long): Flow<List<MessageEntity>> = rows.map { all ->
+            all.values.filter { it.conversationId == conversationId }.sortedBy { it.id }
+        }.distinctUntilChanged()
 
-        override fun observeThread(rootId: Long): Flow<List<MessageEntity>> =
-            rows.map { all -> all.values.filter { it.id == rootId || it.threadRootId == rootId }.sortedBy { it.id } }.distinctUntilChanged()
+        override fun observeThread(rootId: Long): Flow<List<MessageEntity>> = rows.map { all ->
+            all.values.filter { it.id == rootId || it.threadRootId == rootId }.sortedBy { it.id }
+        }.distinctUntilChanged()
 
         override suspend fun get(id: Long): MessageEntity? = rows.value[id]
 
@@ -70,10 +80,13 @@ class InMemoryDatabase {
         override suspend fun newestId(conversationId: Long): Long? =
             rows.value.values.filter { it.conversationId == conversationId }.maxOfOrNull { it.id }
 
-        override suspend fun getOldestId(conversationId: Long): Long? =
-            rows.value.values.filter { it.conversationId == conversationId && it.threadRootId == null }.minOfOrNull { it.id }
+        override suspend fun getOldestId(conversationId: Long): Long? = rows.value.values.filter {
+            it.conversationId == conversationId && it.threadRootId == null
+        }.minOfOrNull { it.id }
 
-        override suspend fun upsert(rows: List<MessageEntity>) = this.rows.update { it + rows.associateBy { r -> r.id } }
+        override suspend fun upsert(rows: List<MessageEntity>) = this.rows.update {
+            it + rows.associateBy { r -> r.id }
+        }
 
         override suspend fun deleteConversation(conversationId: Long) =
             rows.update { all -> all.filterValues { it.conversationId != conversationId } }
@@ -87,16 +100,22 @@ class InMemoryDatabase {
     class Outbox : OutboxDao {
         val rows = MutableStateFlow<Map<String, OutboxEntity>>(emptyMap())
 
-        private fun sorted(filter: (OutboxEntity) -> Boolean) = rows.value.values.filter(filter).sortedBy { it.createdAt }
+        private fun sorted(filter: (OutboxEntity) -> Boolean) = rows.value.values.filter(filter).sortedBy {
+            it.createdAt
+        }
 
-        override fun observeConversation(conversationId: Long): Flow<List<OutboxEntity>> =
-            rows.map { all -> all.values.filter { it.conversationId == conversationId }.sortedBy { it.createdAt } }.distinctUntilChanged()
+        override fun observeConversation(conversationId: Long): Flow<List<OutboxEntity>> = rows.map { all ->
+            all.values.filter { it.conversationId == conversationId }.sortedBy { it.createdAt }
+        }.distinctUntilChanged()
 
         override fun observeAll(): Flow<List<OutboxEntity>> = rows.map { all -> all.values.sortedBy { it.createdAt } }
 
         override suspend fun withState(state: String): List<OutboxEntity> = sorted { it.state == state }
 
-        override suspend fun forConversation(conversationId: Long): List<OutboxEntity> = sorted { it.conversationId == conversationId }
+        override suspend fun forConversation(conversationId: Long): List<OutboxEntity> = sorted {
+            it.conversationId ==
+                conversationId
+        }
 
         override suspend fun get(clientMessageId: String): OutboxEntity? = rows.value[clientMessageId]
 
@@ -110,14 +129,21 @@ class InMemoryDatabase {
     class Activity : ActivityDao {
         val rows = MutableStateFlow<Map<Long, ActivityEntity>>(emptyMap())
 
-        override fun observeAll(): Flow<List<ActivityEntity>> =
-            rows.map { it.values.sortedWith(compareByDescending<ActivityEntity> { r -> r.createdAt }.thenByDescending { r -> r.id }) }
+        override fun observeAll(): Flow<List<ActivityEntity>> = rows.map {
+            it.values.sortedWith(
+                compareByDescending<ActivityEntity> { r ->
+                    r.createdAt
+                }.thenByDescending { r -> r.id },
+            )
+        }
 
         override suspend fun getMany(ids: List<Long>): List<ActivityEntity> = ids.mapNotNull { rows.value[it] }
 
         override suspend fun getAll(): List<ActivityEntity> = rows.value.values.toList()
 
-        override suspend fun upsert(rows: List<ActivityEntity>) = this.rows.update { it + rows.associateBy { r -> r.id } }
+        override suspend fun upsert(rows: List<ActivityEntity>) = this.rows.update {
+            it + rows.associateBy { r -> r.id }
+        }
 
         override suspend fun delete(ids: List<Long>) = rows.update { it - ids.toSet() }
 
@@ -127,10 +153,18 @@ class InMemoryDatabase {
     class Bookmarks : BookmarkDao {
         val rows = MutableStateFlow<Map<Long, BookmarkEntity>>(emptyMap())
 
-        override fun observeAll(): Flow<List<BookmarkEntity>> =
-            rows.map { it.values.sortedWith(compareByDescending<BookmarkEntity> { r -> r.createdAt }.thenByDescending { r -> r.messageId }) }
+        override fun observeAll(): Flow<List<BookmarkEntity>> = rows.map {
+            it.values.sortedWith(
+                compareByDescending<BookmarkEntity> { r ->
+                    r.createdAt
+                }.thenByDescending { r -> r.messageId },
+            )
+        }
 
-        override suspend fun upsert(rows: List<BookmarkEntity>) = this.rows.update { it + rows.associateBy { r -> r.messageId } }
+        override suspend fun upsert(rows: List<BookmarkEntity>) = this.rows.update {
+            it +
+                rows.associateBy { r -> r.messageId }
+        }
 
         override suspend fun delete(ids: List<Long>) = rows.update { it - ids.toSet() }
 

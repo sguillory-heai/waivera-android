@@ -1,13 +1,13 @@
 package com.waivera.waivera.core.data
 
 import com.waivera.waivera.core.data.calendar.CalendarMath
+import com.waivera.waivera.core.data.model.CurrentUser
 import com.waivera.waivera.core.data.model.DateRange
 import com.waivera.waivera.core.data.model.Milestone
 import com.waivera.waivera.core.data.model.MyInvitation
 import com.waivera.waivera.core.data.model.ScheduleEvent
 import com.waivera.waivera.core.data.model.ScheduleFeed
 import com.waivera.waivera.core.data.model.SessionState
-import com.waivera.waivera.core.data.model.CurrentUser
 import com.waivera.waivera.core.network.dto.AttendeeResponseDto
 import com.waivera.waivera.core.network.dto.AttendeeType
 import com.waivera.waivera.core.network.dto.CalendarEventResponseDto
@@ -75,14 +75,24 @@ class CalendarTest {
 
     @Test
     fun eventEndingAtMidnightDoesNotSpillIntoTheNextDay() {
-        val event = ScheduleEvent(id = "e", startAt = Instant.parse("2026-03-08T05:00:00Z"), endAt = Instant.parse("2026-03-09T05:00:00Z"))
+        val event =
+            ScheduleEvent(
+                id = "e",
+                startAt = Instant.parse("2026-03-08T05:00:00Z"),
+                endAt = Instant.parse("2026-03-09T05:00:00Z"),
+            )
         assertTrue(CalendarMath.occursOn(event, LocalDate.of(2026, 3, 8), chicago))
         assertFalse(CalendarMath.occursOn(event, LocalDate.of(2026, 3, 9), chicago))
     }
 
     @Test
     fun allDayEventsUseLiteralDatesInAnyZone() {
-        val event = ScheduleEvent(id = "a", allDayStart = LocalDate.of(2026, 11, 5), allDayEndExclusive = LocalDate.of(2026, 11, 6))
+        val event =
+            ScheduleEvent(
+                id = "a",
+                allDayStart = LocalDate.of(2026, 11, 5),
+                allDayEndExclusive = LocalDate.of(2026, 11, 6),
+            )
         listOf(chicago, ZoneId.of("Pacific/Auckland"), ZoneId.of("UTC")).forEach { zone ->
             assertTrue(CalendarMath.occursOn(event, LocalDate.of(2026, 11, 5), zone))
             assertFalse(CalendarMath.occursOn(event, LocalDate.of(2026, 11, 6), zone))
@@ -96,7 +106,11 @@ class CalendarTest {
             CalendarMath.day(LocalDate.of(2026, 11, 5)),
             chicago.id,
             events = listOf(
-                ScheduleEvent(id = "t", startAt = Instant.parse("2026-11-05T15:00:00Z"), endAt = Instant.parse("2026-11-05T16:00:00Z")),
+                ScheduleEvent(
+                    id = "t",
+                    startAt = Instant.parse("2026-11-05T15:00:00Z"),
+                    endAt = Instant.parse("2026-11-05T16:00:00Z"),
+                ),
                 ScheduleEvent(id = "a", allDayStart = LocalDate.of(2026, 11, 5)),
             ),
         )
@@ -121,21 +135,42 @@ class CalendarTest {
 
     @Test
     fun invitationStateComesFromInviteStatusNotNullAcceptance() {
-        val base = CalendarEventResponseDto(id = "e", ownerUserID = "owner", startTime = Instant.parse("2026-11-03T15:00:00Z"))
-        fun me(status: InviteStatus) = AttendeeResponseDto(attendeeId = "1", type = AttendeeType.EMPLOYEE, ref = "me", inviteStatus = status)
-        assertEquals(MyInvitation.PENDING, CalendarMath.myInvitation(base.copy(attendees = listOf(me(InviteStatus.INVITED))), "me"))
-        assertEquals(MyInvitation.ACCEPTED, CalendarMath.myInvitation(base.copy(attendees = listOf(me(InviteStatus.ACCEPTED))), "me"))
-        assertEquals(MyInvitation.DECLINED, CalendarMath.myInvitation(base.copy(attendees = listOf(me(InviteStatus.DECLINED))), "me"))
-        assertEquals(MyInvitation.NOT_INVITED_OR_UNKNOWN, CalendarMath.myInvitation(base, "me"), "null acceptance is not pending")
+        val base =
+            CalendarEventResponseDto(id = "e", ownerUserID = "owner", startTime = Instant.parse("2026-11-03T15:00:00Z"))
+        fun me(status: InviteStatus) =
+            AttendeeResponseDto(attendeeId = "1", type = AttendeeType.EMPLOYEE, ref = "me", inviteStatus = status)
+        assertEquals(
+            MyInvitation.PENDING,
+            CalendarMath.myInvitation(base.copy(attendees = listOf(me(InviteStatus.INVITED))), "me"),
+        )
+        assertEquals(
+            MyInvitation.ACCEPTED,
+            CalendarMath.myInvitation(base.copy(attendees = listOf(me(InviteStatus.ACCEPTED))), "me"),
+        )
+        assertEquals(
+            MyInvitation.DECLINED,
+            CalendarMath.myInvitation(base.copy(attendees = listOf(me(InviteStatus.DECLINED))), "me"),
+        )
+        assertEquals(
+            MyInvitation.NOT_INVITED_OR_UNKNOWN,
+            CalendarMath.myInvitation(base, "me"),
+            "null acceptance is not pending",
+        )
         assertEquals(MyInvitation.ORGANIZER, CalendarMath.myInvitation(base, "owner"))
-        val pending = assertIs<ScheduleEvent>(CalendarMath.event(base.copy(attendees = listOf(me(InviteStatus.INVITED))), "me"))
+        val pending =
+            assertIs<ScheduleEvent>(CalendarMath.event(base.copy(attendees = listOf(me(InviteStatus.INVITED))), "me"))
         assertTrue(CalendarMath.canRespond(pending, Instant.parse("2026-11-03T14:00:00Z")))
         assertFalse(CalendarMath.canRespond(pending, Instant.parse("2026-11-03T15:00:01Z")), "not once started")
     }
 
     @Test
     fun joinWindowOpensThirtyMinutesEarly() {
-        val event = ScheduleEvent(id = "e", startAt = Instant.parse("2026-11-03T15:00:00Z"), endAt = Instant.parse("2026-11-03T16:00:00Z"))
+        val event =
+            ScheduleEvent(
+                id = "e",
+                startAt = Instant.parse("2026-11-03T15:00:00Z"),
+                endAt = Instant.parse("2026-11-03T16:00:00Z"),
+            )
         assertFalse(CalendarMath.joinWindowOpen(event, Instant.parse("2026-11-03T14:29:59Z")))
         assertTrue(CalendarMath.joinWindowOpen(event, Instant.parse("2026-11-03T14:30:00Z")))
         assertFalse(CalendarMath.joinWindowOpen(event, Instant.parse("2026-11-03T16:00:01Z")))
@@ -165,9 +200,11 @@ class CalendarTest {
 
     @Test
     fun unknownSavedZoneFallsBackToChicagoNotTheDevice() = testScope.runTest {
-        graph.session.mutableState.value = SessionState.SignedIn(CurrentUser("usr_alex_rivera", timeZoneId = "Not/AZone"))
+        graph.session.mutableState.value =
+            SessionState.SignedIn(CurrentUser("usr_alex_rivera", timeZoneId = "Not/AZone"))
         assertEquals(chicago, graph.calendar.zone.first())
-        graph.session.mutableState.value = SessionState.SignedIn(CurrentUser("usr_alex_rivera", timeZoneId = "America/New_York"))
+        graph.session.mutableState.value =
+            SessionState.SignedIn(CurrentUser("usr_alex_rivera", timeZoneId = "America/New_York"))
         assertEquals(ZoneId.of("America/New_York"), graph.calendar.zone.first())
     }
 
@@ -182,7 +219,11 @@ class CalendarTest {
 
     @Test
     fun invitationResponseFailureIsTyped() = testScope.runTest {
-        graph.server.json("POST /api/invitation/AcceptDenyMeeting", """{"data":false,"statusCode":400,"success":false}""", code = 400)
+        graph.server.json(
+            "POST /api/invitation/AcceptDenyMeeting",
+            """{"data":false,"statusCode":400,"success":false}""",
+            code = 400,
+        )
         assertIs<WaiveraError>(graph.calendar.respondToInvitation("evt_8f2b19c4", accept = true).exceptionOrNull())
         graph.server.fixture("POST /api/invitation/AcceptDenyMeeting", "rest-invitation-accept-deny-meeting.json")
         graph.calendar.respondToInvitation("evt_8f2b19c4", accept = true).getOrThrow()
@@ -206,6 +247,8 @@ class CalendarTest {
 
     @Test
     fun rangeRejectsEmpty() {
-        kotlin.test.assertFailsWith<IllegalArgumentException> { DateRange(LocalDate.of(2026, 1, 1), LocalDate.of(2026, 1, 1)) }
+        kotlin.test.assertFailsWith<IllegalArgumentException> {
+            DateRange(LocalDate.of(2026, 1, 1), LocalDate.of(2026, 1, 1))
+        }
     }
 }

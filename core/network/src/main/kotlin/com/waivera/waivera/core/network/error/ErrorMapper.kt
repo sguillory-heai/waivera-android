@@ -22,7 +22,11 @@ object ErrorMapper {
         return when {
             status >= HTTP_SERVER_ERROR -> WaiveraError.Server(status)
             status == HTTP_UNAUTHORIZED -> WaiveraError.SessionExpired(parsed.errorCode)
-            status == HTTP_FORBIDDEN || status == HTTP_BAD_REQUEST -> classifyRejection(status, message, parsed.errorCode)
+            status == HTTP_FORBIDDEN || status == HTTP_BAD_REQUEST -> classifyRejection(
+                status,
+                message,
+                parsed.errorCode,
+            )
             else -> fromOtherStatus(status)
         }
     }

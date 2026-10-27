@@ -33,7 +33,7 @@ import kotlinx.serialization.SerializationException
  * (an older app version's shape) is skipped rather than crashing the screen.
  */
 @Singleton
-@Suppress("TooManyFunctions")
+@Suppress("TooManyFunctions", "LongParameterList")
 class ChatCache @Inject constructor(
     val conversationDao: ConversationDao,
     val messageDao: MessageDao,
@@ -49,12 +49,17 @@ class ChatCache @Inject constructor(
     fun observeConversations(): Flow<List<Conversation>> =
         conversationDao.observeAll().map { rows -> rows.mapNotNull { decode(Conversation.serializer(), it.json) } }
 
-    fun observeConversation(id: Long): Flow<Conversation?> =
-        conversationDao.observe(id).map { row -> row?.let { decode(Conversation.serializer(), it.json) } }.distinctUntilChanged()
+    fun observeConversation(id: Long): Flow<Conversation?> = conversationDao.observe(id).map { row ->
+        row?.let { decode(Conversation.serializer(), it.json) }
+    }.distinctUntilChanged()
 
-    suspend fun conversation(id: Long): Conversation? = conversationDao.get(id)?.let { decode(Conversation.serializer(), it.json) }
+    suspend fun conversation(id: Long): Conversation? = conversationDao.get(id)?.let {
+        decode(Conversation.serializer(), it.json)
+    }
 
-    suspend fun conversations(): List<Conversation> = conversationDao.getAll().mapNotNull { decode(Conversation.serializer(), it.json) }
+    suspend fun conversations(): List<Conversation> = conversationDao.getAll().mapNotNull {
+        decode(Conversation.serializer(), it.json)
+    }
 
     suspend fun putConversations(items: List<Conversation>) {
         if (items.isEmpty()) return
@@ -78,7 +83,9 @@ class ChatCache @Inject constructor(
     // Messages
 
     fun observeMessages(conversationId: Long): Flow<List<Message>> =
-        messageDao.observeConversation(conversationId).map { rows -> rows.mapNotNull { decode(Message.serializer(), it.json) } }
+        messageDao.observeConversation(conversationId).map { rows ->
+            rows.mapNotNull { decode(Message.serializer(), it.json) }
+        }
 
     fun observeThread(rootId: Long): Flow<List<Message>> =
         messageDao.observeThread(rootId).map { rows -> rows.mapNotNull { decode(Message.serializer(), it.json) } }
@@ -115,7 +122,11 @@ class ChatCache @Inject constructor(
         if (items.isEmpty()) return
         activityDao.upsert(
             items.map {
-                ActivityEntity(it.id, it.createdAt?.toEpochMilli() ?: 0, WaiveraJson.encodeToString(ActivityItem.serializer(), it))
+                ActivityEntity(
+                    it.id,
+                    it.createdAt?.toEpochMilli() ?: 0,
+                    WaiveraJson.encodeToString(ActivityItem.serializer(), it),
+                )
             },
         )
     }
@@ -123,31 +134,46 @@ class ChatCache @Inject constructor(
     suspend fun activity(ids: List<Long>): List<ActivityItem> =
         activityDao.getMany(ids).mapNotNull { decode(ActivityItem.serializer(), it.json) }
 
-    suspend fun allActivity(): List<ActivityItem> = activityDao.getAll().mapNotNull { decode(ActivityItem.serializer(), it.json) }
+    suspend fun allActivity(): List<ActivityItem> = activityDao.getAll().mapNotNull {
+        decode(ActivityItem.serializer(), it.json)
+    }
 
     // Bookmarks
 
-    fun observeBookmarks(): Flow<List<Bookmark>> =
-        bookmarkDao.observeAll().map { rows -> rows.mapNotNull { decode(Message.serializer(), it.json)?.let(::Bookmark) } }
+    fun observeBookmarks(): Flow<List<Bookmark>> = bookmarkDao.observeAll().map { rows ->
+        rows.mapNotNull { decode(Message.serializer(), it.json)?.let(::Bookmark) }
+    }
 
     suspend fun putBookmarks(items: List<Message>) {
         if (items.isEmpty()) return
         bookmarkDao.upsert(
             items.map {
-                BookmarkEntity(it.id, it.createdAt?.toEpochMilli() ?: 0, WaiveraJson.encodeToString(Message.serializer(), it))
+                BookmarkEntity(
+                    it.id,
+                    it.createdAt?.toEpochMilli() ?: 0,
+                    WaiveraJson.encodeToString(Message.serializer(), it),
+                )
             },
         )
     }
 
     // People
 
-    fun observePeople(): Flow<List<Person>> = personDao.observeAll().map { rows -> rows.mapNotNull { decode(Person.serializer(), it.json) } }
+    fun observePeople(): Flow<List<Person>> = personDao.observeAll().map { rows ->
+        rows.mapNotNull { decode(Person.serializer(), it.json) }
+    }
 
-    fun observePerson(id: String): Flow<Person?> = personDao.observe(id).map { row -> row?.let { decode(Person.serializer(), it.json) } }
+    fun observePerson(id: String): Flow<Person?> = personDao.observe(id).map { row ->
+        row?.let { decode(Person.serializer(), it.json) }
+    }
 
     suspend fun putPeople(items: List<Person>) {
         if (items.isEmpty()) return
-        personDao.upsert(items.map { PersonEntity(it.id, it.name.lowercase(), WaiveraJson.encodeToString(Person.serializer(), it)) })
+        personDao.upsert(
+            items.map {
+                PersonEntity(it.id, it.name.lowercase(), WaiveraJson.encodeToString(Person.serializer(), it))
+            },
+        )
     }
 
     // Documents
@@ -155,7 +181,9 @@ class ChatCache @Inject constructor(
     fun <T> observeDocument(key: String, serializer: KSerializer<T>): Flow<T?> =
         documentDao.observe(key).map { row -> row?.let { decode(serializer, it.json) } }.distinctUntilChanged()
 
-    suspend fun <T> document(key: String, serializer: KSerializer<T>): T? = documentDao.get(key)?.let { decode(serializer, it.json) }
+    suspend fun <T> document(key: String, serializer: KSerializer<T>): T? = documentDao.get(key)?.let {
+        decode(serializer, it.json)
+    }
 
     suspend fun <T> putDocument(key: String, serializer: KSerializer<T>, value: T) {
         documentDao.upsert(DocumentEntity(key, clock.millis(), WaiveraJson.encodeToString(serializer, value)))

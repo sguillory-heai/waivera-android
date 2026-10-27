@@ -8,7 +8,11 @@ import kotlinx.serialization.Serializable
 enum class ChannelType(val code: Int?) { COMPANY(0), TEAM(1), CUSTOM(2), UNKNOWN(null) }
 
 internal object ChannelTypeSerializer : LenientEnumSerializer<ChannelType>(
-    "waivera.ChannelType", ChannelType.entries.toTypedArray(), ChannelType.UNKNOWN, { it.name }, { it.code },
+    "waivera.ChannelType",
+    ChannelType.entries.toTypedArray(),
+    ChannelType.UNKNOWN,
+    { it.name },
+    { it.code },
 )
 
 /** `MessageType` is converted with `.ToString()` server-side, so it is a string on both transports. */
@@ -16,7 +20,10 @@ internal object ChannelTypeSerializer : LenientEnumSerializer<ChannelType>(
 enum class MessageType { USER, SYSTEM, CHANNEL_EVENT, UNKNOWN }
 
 internal object MessageTypeSerializer : LenientEnumSerializer<MessageType>(
-    "waivera.MessageType", MessageType.entries.toTypedArray(), MessageType.UNKNOWN, { it.name },
+    "waivera.MessageType",
+    MessageType.entries.toTypedArray(),
+    MessageType.UNKNOWN,
+    { it.name },
 )
 
 /** `CALL_RECORD_STATUS` member names. Only [END] means the call is over (gaps.md G-10). */
@@ -26,13 +33,17 @@ enum class CallRecordStatus(val wireName: String) {
     ACTIVE("Active"),
     REJOINED("Rejoined"),
     END("End"),
-    UNKNOWN("");
+    UNKNOWN(""),
+    ;
 
     val isLive: Boolean get() = this == INITIATED || this == ACTIVE || this == REJOINED
 }
 
 internal object CallRecordStatusSerializer : LenientEnumSerializer<CallRecordStatus>(
-    "waivera.CallRecordStatus", CallRecordStatus.entries.toTypedArray(), CallRecordStatus.UNKNOWN, { it.wireName },
+    "waivera.CallRecordStatus",
+    CallRecordStatus.entries.toTypedArray(),
+    CallRecordStatus.UNKNOWN,
+    { it.wireName },
 )
 
 /** `attachmentScanStatus` (`Models/Chat/ChatAttachmentUpload.cs`). */
@@ -56,7 +67,10 @@ enum class ChatActivityType(val wireName: String) {
 }
 
 internal object ChatActivityTypeSerializer : LenientEnumSerializer<ChatActivityType>(
-    "waivera.ChatActivityType", ChatActivityType.entries.toTypedArray(), ChatActivityType.UNKNOWN, { it.wireName },
+    "waivera.ChatActivityType",
+    ChatActivityType.entries.toTypedArray(),
+    ChatActivityType.UNKNOWN,
+    { it.wireName },
 )
 
 /** `AttendeeResponseDto.type` (declared `string` in C#, so a string on both transports). */
@@ -64,7 +78,10 @@ internal object ChatActivityTypeSerializer : LenientEnumSerializer<ChatActivityT
 enum class AttendeeType { EMPLOYEE, WAIVER_PARTICIPANT, EXTERNAL, UNKNOWN }
 
 internal object AttendeeTypeSerializer : LenientEnumSerializer<AttendeeType>(
-    "waivera.AttendeeType", AttendeeType.entries.toTypedArray(), AttendeeType.UNKNOWN, { it.name },
+    "waivera.AttendeeType",
+    AttendeeType.entries.toTypedArray(),
+    AttendeeType.UNKNOWN,
+    { it.name },
 )
 
 /** `AttendeeResponseDto.inviteStatus`. */
@@ -72,7 +89,10 @@ internal object AttendeeTypeSerializer : LenientEnumSerializer<AttendeeType>(
 enum class InviteStatus { INVITED, ACCEPTED, DECLINED, TENTATIVE, CANCELLED, UNKNOWN }
 
 internal object InviteStatusSerializer : LenientEnumSerializer<InviteStatus>(
-    "waivera.InviteStatus", InviteStatus.entries.toTypedArray(), InviteStatus.UNKNOWN, { it.name },
+    "waivera.InviteStatus",
+    InviteStatus.entries.toTypedArray(),
+    InviteStatus.UNKNOWN,
+    { it.name },
 )
 
 /** `CalendarEmployeeMilestoneResponseDto.type`. */
@@ -80,7 +100,10 @@ internal object InviteStatusSerializer : LenientEnumSerializer<InviteStatus>(
 enum class MilestoneType { BIRTHDAY, WORK_ANNIVERSARY, UNKNOWN }
 
 internal object MilestoneTypeSerializer : LenientEnumSerializer<MilestoneType>(
-    "waivera.MilestoneType", MilestoneType.entries.toTypedArray(), MilestoneType.UNKNOWN, { it.name },
+    "waivera.MilestoneType",
+    MilestoneType.entries.toTypedArray(),
+    MilestoneType.UNKNOWN,
+    { it.name },
 )
 
 /** `ReceiveChatAttention` reason argument. */
@@ -93,7 +116,10 @@ enum class AttentionReason(val wireName: String) {
 }
 
 internal object AttentionReasonSerializer : LenientEnumSerializer<AttentionReason>(
-    "waivera.AttentionReason", AttentionReason.entries.toTypedArray(), AttentionReason.UNKNOWN, { it.wireName },
+    "waivera.AttentionReason",
+    AttentionReason.entries.toTypedArray(),
+    AttentionReason.UNKNOWN,
+    { it.wireName },
 )
 
 /** `ReceiveReaction` action argument. */
@@ -106,5 +132,8 @@ enum class ReactionAction(val wireName: String) {
 }
 
 internal object ReactionActionSerializer : LenientEnumSerializer<ReactionAction>(
-    "waivera.ReactionAction", ReactionAction.entries.toTypedArray(), ReactionAction.UNKNOWN, { it.wireName },
+    "waivera.ReactionAction",
+    ReactionAction.entries.toTypedArray(),
+    ReactionAction.UNKNOWN,
+    { it.wireName },
 )

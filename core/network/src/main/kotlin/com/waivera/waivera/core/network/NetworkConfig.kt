@@ -35,7 +35,11 @@ data class NetworkConfig(val apiBaseUrl: String, val webBaseUrl: String) {
         private fun normalize(raw: String): HttpUrl? {
             val trimmed = raw.trim().trimEnd('/')
             if (trimmed.isEmpty()) return null
-            return "$trimmed/".toHttpUrlOrNull()?.takeIf { it.scheme == "https" || it.host == "10.0.2.2" || it.host == "localhost" }
+            return "$trimmed/".toHttpUrlOrNull()?.takeIf {
+                it.scheme == "https" ||
+                    it.host == "10.0.2.2" ||
+                    it.host == "localhost"
+            }
         }
     }
 }

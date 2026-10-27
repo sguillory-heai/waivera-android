@@ -36,6 +36,7 @@ annotation class AuthenticatedHttpClient
  */
 @Module
 @InstallIn(SingletonComponent::class)
+@Suppress("TooManyFunctions")
 object NetworkModule {
     private const val CONNECT_TIMEOUT_SECONDS = 15L
     private const val READ_TIMEOUT_SECONDS = 30L
@@ -54,12 +55,11 @@ object NetworkModule {
     @Provides
     @Singleton
     @AuthenticatedHttpClient
-    fun authenticatedClient(config: NetworkConfig, tokens: AuthTokenProvider): OkHttpClient =
-        OkHttpClient.Builder()
-            .connectTimeout(CONNECT_TIMEOUT_SECONDS, TimeUnit.SECONDS)
-            .readTimeout(READ_TIMEOUT_SECONDS, TimeUnit.SECONDS)
-            .addInterceptor(AuthTokenInterceptor(tokens, config.retrofitBaseUrl))
-            .build()
+    fun authenticatedClient(config: NetworkConfig, tokens: AuthTokenProvider): OkHttpClient = OkHttpClient.Builder()
+        .connectTimeout(CONNECT_TIMEOUT_SECONDS, TimeUnit.SECONDS)
+        .readTimeout(READ_TIMEOUT_SECONDS, TimeUnit.SECONDS)
+        .addInterceptor(AuthTokenInterceptor(tokens, config.retrofitBaseUrl))
+        .build()
 
     @Provides
     @Singleton

@@ -91,7 +91,10 @@ class HubEventDecoderTest {
 
     @Test
     fun attentionReasons() {
-        assertEquals(AttentionReason.MENTION, assertIs<HubEvent.ChatAttention>(chat("hub-receive-chat-attention.json")).reason)
+        assertEquals(
+            AttentionReason.MENTION,
+            assertIs<HubEvent.ChatAttention>(chat("hub-receive-chat-attention.json")).reason,
+        )
         assertEquals(
             AttentionReason.THREAD_REPLY,
             assertIs<HubEvent.ChatAttention>(chat("hub-receive-chat-attention-thread-reply.json")).reason,
@@ -106,7 +109,10 @@ class HubEventDecoderTest {
 
     @Test
     fun readAllUsesConversationZero() {
-        assertEquals(0L, assertIs<HubEvent.ChatReadState>(chat("hub-receive-chat-read-state-read-all.json")).state.conversationId)
+        assertEquals(
+            0L,
+            assertIs<HubEvent.ChatReadState>(chat("hub-receive-chat-read-state-read-all.json")).state.conversationId,
+        )
     }
 
     @Test

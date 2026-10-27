@@ -115,7 +115,10 @@ class LifecycleAndTypingTest {
         advanceTimeBy(600)
         runCurrent()
         eventually { graph.server.requests.size == 2 }
-        assertTrue("\"vibrationEnabled\":false" in graph.server.requests.last().body?.utf8().orEmpty(), "one call with both changes")
+        assertTrue(
+            "\"vibrationEnabled\":false" in graph.server.requests.last().body?.utf8().orEmpty(),
+            "one call with both changes",
+        )
     }
 
     @Test

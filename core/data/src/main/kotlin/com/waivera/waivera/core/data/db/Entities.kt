@@ -20,7 +20,11 @@ data class ConversationEntity(
 
 @Entity(
     tableName = "messages",
-    indices = [Index(value = ["conversationId", "id"]), Index(value = ["threadRootId"]), Index(value = ["clientMessageId"])],
+    indices = [
+        Index(
+            value = ["conversationId", "id"],
+        ), Index(value = ["threadRootId"]), Index(value = ["clientMessageId"]),
+    ],
 )
 data class MessageEntity(
     @PrimaryKey val id: Long,

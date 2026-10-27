@@ -46,6 +46,7 @@ import kotlinx.serialization.json.JsonElement
  * expired while the app slept.
  */
 @Singleton
+@Suppress("TooManyFunctions")
 class DefaultRealtimeClient @Inject constructor(
     private val config: NetworkConfig,
     private val tokens: AuthTokenProvider,
@@ -60,9 +61,9 @@ class DefaultRealtimeClient @Inject constructor(
     private val _state = MutableStateFlow<ConnectionState>(ConnectionState.Disconnected)
     override val state: StateFlow<ConnectionState> = _state.asStateFlow()
 
-    private val _epoch = MutableStateFlow(0L)
-    override val connectionEpoch: StateFlow<Long> = _epoch.asStateFlow()
-    override val resyncRequests: Flow<Long> = _epoch.drop(1).filter { it > 1 }
+    private val epoch = MutableStateFlow(0L)
+    override val connectionEpoch: StateFlow<Long> = epoch.asStateFlow()
+    override val resyncRequests: Flow<Long> = epoch.drop(1).filter { it > 1 }
 
     // Unlimited inbox keeps the SignalR callback thread non-blocking while preserving order.
     private val inbox = Channel<HubEvent>(Channel.UNLIMITED)
@@ -95,7 +96,7 @@ class DefaultRealtimeClient @Inject constructor(
         val previous = this.userId.value
         if (previous != null && previous != userId) {
             scope.launch { lock.withLock { attended.clear() } }
-            _epoch.value = 0
+            epoch.value = 0
         }
         this.userId.value = userId
     }
@@ -109,7 +110,7 @@ class DefaultRealtimeClient @Inject constructor(
                 runCatching { live.transport.stop() }
             }
         }
-        _epoch.value = 0
+        epoch.value = 0
         _state.value = ConnectionState.Disconnected
     }
 
@@ -122,6 +123,7 @@ class DefaultRealtimeClient @Inject constructor(
     }
 
     /** Runs until cancelled by sign-out or backgrounding; never gives up on its own. */
+    @Suppress("NestedBlockDepth")
     private suspend fun runConnection() {
         val url = config.chatHubUrl
         if (url == null) {
@@ -204,7 +206,7 @@ class DefaultRealtimeClient @Inject constructor(
         }
         _state.value = ConnectionState.Connected
         toJoin.forEach { id -> join(live, id) }
-        _epoch.value += 1
+        epoch.value += 1
     }
 
     private suspend fun join(live: Live, conversationId: Long) {
@@ -279,13 +281,21 @@ class DefaultRealtimeClient @Inject constructor(
         transport.invokeUnit(Methods.SEND_REACTION, listOf(messageId, reactionType))
     }
 
+    // Hub failures become typed errors; the raw server text must not reach the UI.
+    @Suppress("SwallowedException")
     private suspend fun <T> call(block: suspend (HubTransport) -> T): T {
         val live = lock.withLock { current.takeIf { _state.value == ConnectionState.Connected } }
             ?: throw WaiveraError.RealtimeUnavailable()
         return try {
             block(live.transport)
         } catch (e: HubInvocationException) {
-            throw if (live.closed.isCompleted) WaiveraError.RealtimeUnavailable() else ErrorMapper.fromHubMessage(e.message)
+            throw if (live.closed.isCompleted) {
+                WaiveraError.RealtimeUnavailable()
+            } else {
+                ErrorMapper.fromHubMessage(
+                    e.message,
+                )
+            }
         }
     }
 

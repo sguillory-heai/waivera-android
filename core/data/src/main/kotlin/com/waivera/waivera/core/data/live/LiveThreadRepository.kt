@@ -30,6 +30,7 @@ import kotlinx.coroutines.launch
  * conversation's hub group, which collecting a thread joins.
  */
 @Singleton
+@Suppress("LongParameterList")
 class LiveThreadRepository @Inject constructor(
     private val chatApi: ChatApi,
     private val cache: ChatCache,
@@ -50,18 +51,32 @@ class LiveThreadRepository @Inject constructor(
         active.update { it + (rootMessageId to (it[rootMessageId] ?: 0) + 1) }
         scope.launch { refresh(rootMessageId) }
         try {
-            val merged = combine(cache.observeThread(rootMessageId), outbox.observeConversation(conversationId)) { messages, pending ->
-                val me = session.state.value.currentUser?.let {
-                    com.waivera.waivera.core.data.model.Person(it.userId, it.firstName, it.lastName, it.displayName, it.email, it.avatarUrl)
+            val merged =
+                combine(cache.observeThread(rootMessageId), outbox.observeConversation(conversationId)) {
+                        messages,
+                        pending,
+                    ->
+                    val me = session.state.value.currentUser?.let {
+                        com.waivera.waivera.core.data.model.Person(
+                            it.userId,
+                            it.firstName,
+                            it.lastName,
+                            it.displayName,
+                            it.email,
+                            it.avatarUrl,
+                        )
+                    }
+                    val confirmed = messages.mapNotNull { it.clientMessageId }.toSet()
+                    val optimistic = pending.filter {
+                        it.parentMessageId == rootMessageId &&
+                            it.clientMessageId !in confirmed
+                    }
+                        .map { it.toMessage(me) }
+                    MessageThread(
+                        root = messages.firstOrNull { it.id == rootMessageId },
+                        replies = messages.filter { it.id != rootMessageId } + optimistic,
+                    )
                 }
-                val confirmed = messages.mapNotNull { it.clientMessageId }.toSet()
-                val optimistic = pending.filter { it.parentMessageId == rootMessageId && it.clientMessageId !in confirmed }
-                    .map { it.toMessage(me) }
-                MessageThread(
-                    root = messages.firstOrNull { it.id == rootMessageId },
-                    replies = messages.filter { it.id != rootMessageId } + optimistic,
-                )
-            }
             emitAll(sync.synced(key(rootMessageId), merged))
         } finally {
             lease.close()
@@ -76,7 +91,9 @@ class LiveThreadRepository @Inject constructor(
         val messages = apiCall { chatApi.getThread(rootMessageId) }.map(Mappers::message)
         val replies = messages.count { it.id != rootMessageId }
         ingest.ingest(messages)
-        cache.updateMessage(rootMessageId) { root -> root.copy(threadReplyCount = maxOf(root.threadReplyCount, replies)) }
+        cache.updateMessage(rootMessageId) { root ->
+            root.copy(threadReplyCount = maxOf(root.threadReplyCount, replies))
+        }
     }
 
     override suspend fun markRead(conversationId: Long, rootMessageId: Long, lastVisibleMessageId: Long): Result<Unit> =

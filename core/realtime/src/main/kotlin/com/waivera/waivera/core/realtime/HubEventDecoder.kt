@@ -34,7 +34,10 @@ import kotlinx.serialization.json.longOrNull
  * decoded case-insensitively with int-or-string enums (gaps.md G-03). Returns null for unknown
  * targets and for payloads missing the ids an event cannot work without (for example a message
  * with no id or conversation id), so a malformed event never reaches the cache.
+ *
+ * Suppressed: One decoder per hub event.
  */
+@Suppress("TooManyFunctions")
 object HubEventDecoder {
     fun decode(target: String, arguments: JsonArray): HubEvent? = try {
         decodeOrThrow(target, arguments.map { it.withCamelCaseKeys() })

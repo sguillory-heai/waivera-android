@@ -26,19 +26,20 @@ import kotlinx.serialization.json.put
 class DefaultRealtimeClientTest {
     private val factory = FakeHubTransportFactory()
     private val tokenRequests = mutableListOf<Boolean>()
-    private val tokens = AuthTokenProvider { force -> tokenRequests += force; "token" }
+    private val tokens = AuthTokenProvider { force ->
+        tokenRequests += force
+        "token"
+    }
     private val config = NetworkConfig(apiBaseUrl = "https://api.example.test", webBaseUrl = "https://app.example.test")
 
-    private fun TestScope.client(
-        scope: CoroutineScope = backgroundScope,
-        networkConfig: NetworkConfig = config,
-    ) = DefaultRealtimeClient(
-        networkConfig,
-        tokens,
-        factory,
-        scope,
-        ReconnectPolicy(baseDelayMillis = 1_000, maxDelayMillis = 8_000, random = Random(1)),
-    )
+    private fun TestScope.client(scope: CoroutineScope = backgroundScope, networkConfig: NetworkConfig = config) =
+        DefaultRealtimeClient(
+            networkConfig,
+            tokens,
+            factory,
+            scope,
+            ReconnectPolicy(baseDelayMillis = 1_000, maxDelayMillis = 8_000, random = Random(1)),
+        )
 
     private fun TestScope.connected(): DefaultRealtimeClient = client().also {
         it.start("usr_alex_rivera")
@@ -92,7 +93,12 @@ class DefaultRealtimeClientTest {
             runCurrent()
             assertEquals(2, factory.created.size)
             assertEquals(ConnectionState.Connected, client.state.value)
-            assertEquals(listOf<Any?>(7L), factory.latest.calls.single { it.method == Methods.JOIN_CONVERSATION }.arguments)
+            assertEquals(
+                listOf<Any?>(7L),
+                factory.latest.calls.single {
+                    it.method == Methods.JOIN_CONVERSATION
+                }.arguments,
+            )
             assertEquals(2L, awaitItem())
         }
         lease.close()
@@ -122,7 +128,10 @@ class DefaultRealtimeClientTest {
         // Attempt 1 fails immediately; later attempts wait with capped backoff.
         val reconnecting = assertIs<ConnectionState.Reconnecting>(client.state.value)
         assertEquals(2, reconnecting.attempt)
-        repeat(6) { advanceTimeBy(8_001); runCurrent() }
+        repeat(6) {
+            advanceTimeBy(8_001)
+            runCurrent()
+        }
         assertEquals(ConnectionState.Connected, client.state.value)
         assertEquals(7, factory.created.size)
         assertEquals(false, tokenRequests.first())

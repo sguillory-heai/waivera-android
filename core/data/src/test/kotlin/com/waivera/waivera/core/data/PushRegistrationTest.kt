@@ -35,7 +35,9 @@ class PushRegistrationTest {
         assertEquals("fcm", body.getValue("provider").jsonPrimitive.content)
         assertEquals("android", body.getValue("platform").jsonPrimitive.content)
         assertEquals("fcm-token-1", body.getValue("pushToken").jsonPrimitive.content)
-        val expectedKeys = Json.parseToJsonElement(Fixtures.text("rest-mobile-push-register-request-android.json")).jsonObject.keys
+        val expectedKeys = Json.parseToJsonElement(
+            Fixtures.text("rest-mobile-push-register-request-android.json"),
+        ).jsonObject.keys
         assertEquals(expectedKeys, body.keys, "same shape as the contract fixture")
     }
 
@@ -51,16 +53,31 @@ class PushRegistrationTest {
 
     @Test
     fun categoriesMapOntoServerFlags() {
-        val prefs = NotificationPreferences(categories = NotificationCategory.entries.associateWith { it != NotificationCategory.GROUP_ACTIVITY })
+        val prefs = NotificationPreferences(
+            categories = NotificationCategory.entries.associateWith {
+                it !=
+                    NotificationCategory.GROUP_ACTIVITY
+            },
+        )
         val request = LivePushRegistrationRepository.request("d", "t", prefs)
         assertTrue(request.chatMessagesEnabled && request.mentionsEnabled)
         assertFalse(request.reactionsEnabled)
-        assertFalse(LivePushRegistrationRepository.request("d", "t", NotificationPreferences(enabled = false)).chatMessagesEnabled)
+        assertFalse(
+            LivePushRegistrationRepository.request(
+                "d",
+                "t",
+                NotificationPreferences(enabled = false),
+            ).chatMessagesEnabled,
+        )
     }
 
     @Test
     fun failureIsTypedAndNotRemembered() = testScope.runTest {
-        graph.server.json("POST /api/mobile-push/register", Fixtures.text("rest-mobile-push-register-error.json"), code = 400)
+        graph.server.json(
+            "POST /api/mobile-push/register",
+            Fixtures.text("rest-mobile-push-register-error.json"),
+            code = 400,
+        )
         assertIs<WaiveraError>(push.register("t", NotificationPreferences()).exceptionOrNull())
         graph.server.fixture("POST /api/mobile-push/register", "rest-mobile-push-register.json")
         push.register("t", NotificationPreferences()).getOrThrow()
@@ -86,7 +103,8 @@ class PushRegistrationTest {
         push.onNewToken("t1")
         assertEquals("t1", graph.secureStore.values[SecureStore.FCM_TOKEN])
         assertTrue(graph.server.requests.isEmpty())
-        graph.session.mutableState.value = SessionState.SignedIn(com.waivera.waivera.core.data.model.CurrentUser("usr_alex_rivera"))
+        graph.session.mutableState.value =
+            SessionState.SignedIn(com.waivera.waivera.core.data.model.CurrentUser("usr_alex_rivera"))
         push.onNewToken("t2")
         assertEquals(1, graph.server.requests.size)
     }

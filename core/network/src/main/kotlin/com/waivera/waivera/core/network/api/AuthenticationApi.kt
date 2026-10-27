@@ -23,7 +23,10 @@ import retrofit2.http.Query
  * `Controllers/Authentication.cs` and `Controllers/IdentityController.cs`. Endpoints whose
  * request or response DTO is not documented in rest.md use [JsonObject]/[JsonElement] until the
  * contract is pinned.
+ *
+ * Suppressed: Mirrors every route of the sprout_api controller.
  */
+@Suppress("TooManyFunctions")
 interface AuthenticationApi {
     /** Bootstrap after Firebase sign-in. Identity fields live under `data` (gaps.md G-02). */
     @GET("api/Authentication/login")

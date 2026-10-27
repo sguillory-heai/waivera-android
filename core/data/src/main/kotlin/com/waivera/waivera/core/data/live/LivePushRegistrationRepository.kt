@@ -38,8 +38,8 @@ class LivePushRegistrationRepository @Inject constructor(
 
     suspend fun deviceId(): String = lock.withLock { deviceIdLocked() }
 
-    private suspend fun deviceIdLocked(): String =
-        secureStore.get(SecureStore.DEVICE_ID) ?: UUID.randomUUID().toString().also { secureStore.put(SecureStore.DEVICE_ID, it) }
+    private suspend fun deviceIdLocked(): String = secureStore.get(SecureStore.DEVICE_ID)
+        ?: UUID.randomUUID().toString().also { secureStore.put(SecureStore.DEVICE_ID, it) }
 
     override suspend fun register(token: String, preferences: NotificationPreferences): Result<Unit> = catchingWaivera {
         val userId = session.state.value.currentUserId ?: throw WaiveraError.NotSignedIn()
@@ -78,7 +78,8 @@ class LivePushRegistrationRepository @Inject constructor(
             deviceId = deviceId,
             pushToken = token,
             pushEnabled = prefs.enabled,
-            chatMessagesEnabled = prefs.isEnabled(NotificationCategory.MESSAGES) || prefs.isEnabled(NotificationCategory.GROUP_ACTIVITY),
+            chatMessagesEnabled =
+            prefs.isEnabled(NotificationCategory.MESSAGES) || prefs.isEnabled(NotificationCategory.GROUP_ACTIVITY),
             mentionsEnabled = prefs.isEnabled(NotificationCategory.MESSAGES),
             reactionsEnabled = prefs.isEnabled(NotificationCategory.GROUP_ACTIVITY),
             activeCallsEnabled = prefs.isEnabled(NotificationCategory.MESSAGES),

@@ -59,8 +59,12 @@ class LiveProfileRepository @Inject constructor(
             // Balance figures repeat on every row; the first row carries them.
             balance = rows.firstOrNull()?.let {
                 TimeOffBalance(
-                    it.remainingLeaveDays, it.remainingLeaveHours, it.usedLeaveDays, it.usedLeaveHours,
-                    it.allocatedLeaveCount, it.pendingTimeOffCount,
+                    it.remainingLeaveDays,
+                    it.remainingLeaveHours,
+                    it.usedLeaveDays,
+                    it.usedLeaveHours,
+                    it.allocatedLeaveCount,
+                    it.pendingTimeOffCount,
                 )
             },
         )
@@ -70,7 +74,17 @@ class LiveProfileRepository @Inject constructor(
         val dto = apiCall { employeeApi.getEmployeeFiles(userId, page, EmployeeFilePage.PAGE_SIZE) }.requireData()
         EmployeeFilePage(
             items = dto.items.mapNotNull { f ->
-                f.id?.let { EmployeeFile(it, f.fileName, f.documentCategoryName, f.dateAdded, f.mimeType, f.size, f.uploadedByName) }
+                f.id?.let {
+                    EmployeeFile(
+                        it,
+                        f.fileName,
+                        f.documentCategoryName,
+                        f.dateAdded,
+                        f.mimeType,
+                        f.size,
+                        f.uploadedByName,
+                    )
+                }
             },
             totalRecords = dto.totalRecords,
             pageNumber = page,
@@ -99,7 +113,9 @@ class LiveProfileRepository @Inject constructor(
         birthday = dto.birthday,
         joinedAt = dto.joinDate,
         positions = dto.positions,
-        managers = dto.reporters.mapNotNull { r -> r.employeeId?.let { Person(it, displayName = r.name, avatarUrl = r.avatar) } },
+        managers = dto.reporters.mapNotNull { r ->
+            r.employeeId?.let { Person(it, displayName = r.name, avatarUrl = r.avatar) }
+        },
         regions = dto.regions.mapNotNull { it.name },
         agencies = dto.agencyNames,
         timeZoneId = dto.timezone,

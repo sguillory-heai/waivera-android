@@ -66,7 +66,9 @@ class LiveBookmarkRepository @Inject constructor(
         var page = 1
         while (page <= MAX_FALLBACK_PAGES) {
             val batch = catchingWaivera {
-                apiCall { chatApi.searchConversation(conversationId, bookmarkedOnly = true, pageIndex = page) }.requireData()
+                apiCall {
+                    chatApi.searchConversation(conversationId, bookmarkedOnly = true, pageIndex = page)
+                }.requireData()
             }.getOrNull().orEmpty()
             found += batch.map(Mappers::message)
             if (batch.size < ChatApi.SEARCH_PAGE_SIZE) break

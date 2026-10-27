@@ -64,13 +64,11 @@ sealed class WaiveraError(
         override val isTransient: Boolean get() = true
     }
 
-    class Network(cause: Throwable? = null) :
-        WaiveraError(R.string.core_network_error_network, cause = cause) {
+    class Network(cause: Throwable? = null) : WaiveraError(R.string.core_network_error_network, cause = cause) {
         override val isTransient: Boolean get() = true
     }
 
-    class Timeout(cause: Throwable? = null) :
-        WaiveraError(R.string.core_network_error_timeout, cause = cause) {
+    class Timeout(cause: Throwable? = null) : WaiveraError(R.string.core_network_error_timeout, cause = cause) {
         override val isTransient: Boolean get() = true
     }
 

@@ -77,7 +77,12 @@ class LiveDataLayerStarter @Inject constructor(
             }
         }
         scope.launch {
-            combine(session.state.map { it is SessionState.SignedIn }, settings.settings.map { it.notifications }) { signedIn, prefs ->
+            combine(
+                session.state.map {
+                    it is SessionState.SignedIn
+                },
+                settings.settings.map { it.notifications },
+            ) { signedIn, prefs ->
                 prefs.takeIf { signedIn }
             }.distinctUntilChanged().debounce(PUSH_DEBOUNCE_MILLIS).collectLatest { prefs ->
                 val token = push.storedToken()

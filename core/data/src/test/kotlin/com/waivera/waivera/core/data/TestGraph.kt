@@ -61,7 +61,17 @@ class TestGraph(val scope: CoroutineScope, connected: Boolean = true) : AutoClos
     val visible = VisibleConversation()
     val outboxDir = Files.createTempDirectory("outbox").toFile()
 
-    val cache = ChatCache(db.conversations, db.messages, db.activity, db.bookmarks, db.people, db.documents, db.transactions, clock)
+    val cache =
+        ChatCache(
+            db.conversations,
+            db.messages,
+            db.activity,
+            db.bookmarks,
+            db.people,
+            db.documents,
+            db.transactions,
+            clock,
+        )
     val sync = SyncTracker(db.documents, clock)
     val outbox = OutboxStore(db.outbox)
     val ingest = MessageIngest(cache, outbox)
@@ -80,7 +90,8 @@ class TestGraph(val scope: CoroutineScope, connected: Boolean = true) : AutoClos
     val profile = LiveProfileRepository(employeeApi, timeOffApi, authApi, cache, sync, session)
     val settings = LiveSettingsRepository(settingsStore)
     val push = LivePushRegistrationRepository(pushApi, secureStore, session, settings)
-    val realtimeSync = RealtimeSync(cache, ingest, conversations, messages, threads, bookmarks, activity, typing, session)
+    val realtimeSync =
+        RealtimeSync(cache, ingest, conversations, messages, threads, bookmarks, activity, typing, session)
 
     override fun close() {
         server.close()

@@ -21,8 +21,10 @@ import kotlin.test.assertTrue
 import kotlinx.serialization.builtins.ListSerializer
 
 class MappersTest {
-    private fun messages(name: String) =
-        WaiveraJson.decodeNormalized(ListSerializer(MessageSendResponse.serializer()), Fixtures.text(name)).map(Mappers::message)
+    private fun messages(name: String) = WaiveraJson.decodeNormalized(
+        ListSerializer(MessageSendResponse.serializer()),
+        Fixtures.text(name),
+    ).map(Mappers::message)
 
     @Test
     fun everyPaginationFixtureMaps() {
@@ -52,9 +54,14 @@ class MappersTest {
 
     @Test
     fun attachmentsAndReactionsMap() {
-        val withAttachment = messages("rest-chat-get-messages-pagination-with-attachment.json").first { it.attachment != null }
+        val withAttachment = messages("rest-chat-get-messages-pagination-with-attachment.json").first {
+            it.attachment !=
+                null
+        }
         assertNotNull(withAttachment.attachment?.url)
-        val withReaction = messages("rest-chat-get-messages-pagination-with-reaction.json").first { it.reactions.isNotEmpty() }
+        val withReaction = messages("rest-chat-get-messages-pagination-with-reaction.json").first {
+            it.reactions.isNotEmpty()
+        }
         assertTrue(withReaction.reactions.all { it.userId.isNotBlank() && it.emoji.isNotBlank() })
     }
 
@@ -88,7 +95,15 @@ class MappersTest {
 
     @Test
     fun mergeNeverReplacesRicherPreviewFieldsWithNull() {
-        val rich = MessagePreview(9301, authorId = "u1", authorName = "Priya", text = null, attachmentName = "plan.pdf", hasAttachment = true)
+        val rich =
+            MessagePreview(
+                9301,
+                authorId = "u1",
+                authorName = "Priya",
+                text = null,
+                attachmentName = "plan.pdf",
+                hasAttachment = true,
+            )
         val poor = MessagePreview(9301, authorId = "u1", authorName = null, text = null)
         val merged = assertNotNull(ConversationMerge.mergePreview(rich, poor))
         assertEquals("Priya", merged.authorName)

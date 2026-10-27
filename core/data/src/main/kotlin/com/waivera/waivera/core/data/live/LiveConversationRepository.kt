@@ -29,7 +29,7 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 
 @Singleton
-@Suppress("TooManyFunctions")
+@Suppress("TooManyFunctions", "LongParameterList")
 class LiveConversationRepository @Inject constructor(
     private val chatApi: ChatApi,
     private val cache: ChatCache,
@@ -41,9 +41,11 @@ class LiveConversationRepository @Inject constructor(
 ) : ConversationRepository {
     private val myUserId: String? get() = session.state.value.currentUserId
 
-    override fun observeConversations(): Flow<Synced<List<Conversation>>> = sync.synced(KEY, cache.observeConversations())
+    override fun observeConversations(): Flow<Synced<List<Conversation>>> =
+        sync.synced(KEY, cache.observeConversations())
 
-    override fun observeConversation(conversationId: Long): Flow<Conversation?> = cache.observeConversation(conversationId)
+    override fun observeConversation(conversationId: Long): Flow<Conversation?> =
+        cache.observeConversation(conversationId)
 
     override fun observeUnreadTotal(): Flow<Int> =
         cache.observeConversations().map { list -> list.sumOf { it.unreadCount } }.distinctUntilChanged()
@@ -58,14 +60,20 @@ class LiveConversationRepository @Inject constructor(
             val mine = async { apiCall { chatApi.getMyConversations(includeMeetings = true) } }
             val all = async {
                 catchingWaivera {
-                    apiCall { chatApi.getAllConversations(includeMeetings = true, includeArchived = false) }.requireData()
-                }.onFailure { WaiveraLog.w(TAG, "/all failed; inbox built from /my-conversations only", it) }.getOrNull()
+                    apiCall {
+                        chatApi.getAllConversations(includeMeetings = true, includeArchived = false)
+                    }.requireData()
+                }.onFailure {
+                    WaiveraLog.w(TAG, "/all failed; inbox built from /my-conversations only", it)
+                }.getOrNull()
             }
             mine.await() to all.await()
         }
         val mineById = mine.map(Mappers::conversation).associateBy { it.id }
         val allById = all.orEmpty().map(Mappers::conversation).associateBy { it.id }
-        val merged = (mineById.keys + allById.keys).mapNotNull { id -> ConversationMerge.combine(mineById[id], allById[id]) }
+        val merged = (mineById.keys + allById.keys).mapNotNull { id ->
+            ConversationMerge.combine(mineById[id], allById[id])
+        }
         cache.transactions.run {
             val cached = cache.conversations().associateBy { it.id }
             val fresh = merged.map { ConversationMerge.refresh(cached[it.id], it) }
@@ -106,7 +114,9 @@ class LiveConversationRepository @Inject constructor(
         val wanted = (participantIds + me).toSet()
         findExisting(wanted)?.let { return@catchingWaivera it }
         val created = catchingWaivera {
-            apiCall { chatApi.createConversation(CreateConversationRequest(participantIds.distinct().filter { it != me })) }
+            apiCall {
+                chatApi.createConversation(CreateConversationRequest(participantIds.distinct().filter { it != me }))
+            }
                 .requireData()
         }
         created.getOrNull()?.let { dto ->
@@ -119,11 +129,17 @@ class LiveConversationRepository @Inject constructor(
     }
 
     private suspend fun findExisting(participants: Set<String>): Long? = cache.conversations().firstOrNull { c ->
-        c.kind != ConversationKind.CHANNEL && c.kind != ConversationKind.BOT && c.participants.map { it.id }.toSet() == participants
+        c.kind != ConversationKind.CHANNEL &&
+            c.kind != ConversationKind.BOT &&
+            c.participants.map { it.id }.toSet() == participants
     }?.id
 
     override suspend fun conversationForEvent(calendarEventId: String): Result<Long> = catchingWaivera {
-        val conversation = Mappers.conversation(apiCall { chatApi.getOrCreateConversationForEvent(calendarEventId) }.requireData())
+        val conversation = Mappers.conversation(
+            apiCall {
+                chatApi.getOrCreateConversationForEvent(calendarEventId)
+            }.requireData(),
+        )
         upsertKeepingUnread(conversation)
         conversation.id
     }
@@ -143,7 +159,8 @@ class LiveConversationRepository @Inject constructor(
 
     override fun observeTyping(conversationId: Long): Flow<Set<String>> = typing.observe(conversationId)
 
-    override fun onComposerChanged(conversationId: Long, isEmpty: Boolean) = typing.onComposerChanged(conversationId, isEmpty)
+    override fun onComposerChanged(conversationId: Long, isEmpty: Boolean) =
+        typing.onComposerChanged(conversationId, isEmpty)
 
     // Event application, called by RealtimeSync.
 
@@ -173,7 +190,11 @@ class LiveConversationRepository @Inject constructor(
         val readAt = state.readAt ?: clock.instant()
         if (state.conversationId == 0L) {
             cache.transactions.run {
-                cache.putConversations(cache.conversations().filter { it.unreadCount > 0 }.map { it.copy(unreadCount = 0, lastReadAt = readAt) })
+                cache.putConversations(
+                    cache.conversations().filter {
+                        it.unreadCount > 0
+                    }.map { it.copy(unreadCount = 0, lastReadAt = readAt) },
+                )
             }
         } else if (state.threadRootMessageId == null) {
             cache.updateConversation(state.conversationId) { it.copy(unreadCount = 0, lastReadAt = readAt) }
@@ -184,7 +205,12 @@ class LiveConversationRepository @Inject constructor(
         cache.updateConversation(state.conversationId) { c ->
             c.copy(
                 ongoingCall = if (state.status.isLive) {
-                    com.waivera.waivera.core.data.model.OngoingCall(state.roomId, state.startTime, state.status, c.ongoingCall?.callRecordId)
+                    com.waivera.waivera.core.data.model.OngoingCall(
+                        state.roomId,
+                        state.startTime,
+                        state.status,
+                        c.ongoingCall?.callRecordId,
+                    )
                 } else {
                     null
                 },
@@ -200,7 +226,12 @@ class LiveConversationRepository @Inject constructor(
     suspend fun onMessageChanged(message: Message) {
         cache.updateConversation(message.conversationId) { c ->
             if (c.lastMessage?.messageId != message.id) return@updateConversation null
-            c.copy(lastMessage = Mappers.preview(message).copy(authorName = message.author?.name ?: c.lastMessage?.authorName))
+            c.copy(
+                lastMessage = Mappers.preview(message).copy(
+                    authorName =
+                    message.author?.name ?: c.lastMessage?.authorName,
+                ),
+            )
         }
     }
 

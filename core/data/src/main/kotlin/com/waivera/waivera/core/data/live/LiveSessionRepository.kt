@@ -79,7 +79,10 @@ class LiveSessionRepository @Inject constructor(
         _state.value = SessionState.Initializing
         val result = catchingWaivera { fetchUser() }
         result.onSuccess { (login, user) ->
-            secureStore.put(SecureStore.CACHED_SESSION, WaiveraJson.encodeToString(CachedSession.serializer(), CachedSession(uid, user)))
+            secureStore.put(
+                SecureStore.CACHED_SESSION,
+                WaiveraJson.encodeToString(CachedSession.serializer(), CachedSession(uid, user)),
+            )
             publish(user, login.requiresPasswordChange, offline = false)
         }.onFailure { failure ->
             val error = WaiveraError.from(failure)
@@ -147,7 +150,9 @@ class LiveSessionRepository @Inject constructor(
         _state.value = SessionState.SignedOut()
     }
 
-    override suspend fun sendPasswordReset(email: String): Result<Unit> = catchingWaivera { gateway.sendPasswordReset(email) }
+    override suspend fun sendPasswordReset(email: String): Result<Unit> = catchingWaivera {
+        gateway.sendPasswordReset(email)
+    }
 
     override suspend fun refresh(): Result<Unit> = catchingWaivera {
         val uid = gateway.user.value?.uid ?: throw WaiveraError.NotSignedIn()
@@ -161,9 +166,10 @@ class LiveSessionRepository @Inject constructor(
         refresh().getOrThrow()
     }
 
-    private fun WaiveraError.isAuthRejection(): Boolean =
-        this is WaiveraError.AccountNotProvisioned || this is WaiveraError.SessionExpired ||
-            this is WaiveraError.Forbidden || this is WaiveraError.NotSignedIn
+    private fun WaiveraError.isAuthRejection(): Boolean = this is WaiveraError.AccountNotProvisioned ||
+        this is WaiveraError.SessionExpired ||
+        this is WaiveraError.Forbidden ||
+        this is WaiveraError.NotSignedIn
 
     @Serializable
     private data class CachedSession(val uid: String, val user: CurrentUser)
@@ -171,7 +177,12 @@ class LiveSessionRepository @Inject constructor(
     companion object {
         private const val TAG = "Session"
 
-        fun currentUser(userId: String, details: UserWithRoleDto?, fallbackEmail: String?, requiresOnboarding: Boolean) = CurrentUser(
+        fun currentUser(
+            userId: String,
+            details: UserWithRoleDto?,
+            fallbackEmail: String?,
+            requiresOnboarding: Boolean,
+        ) = CurrentUser(
             userId = userId,
             email = details?.email ?: fallbackEmail,
             firstName = details?.firstName,

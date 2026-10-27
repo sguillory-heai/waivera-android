@@ -81,7 +81,8 @@ class OutboxStore @Inject constructor(private val dao: OutboxDao) {
 
     suspend fun withState(state: SendState): List<OutboxItem> = dao.withState(state.name).mapNotNull(::decode)
 
-    suspend fun forConversation(conversationId: Long): List<OutboxItem> = dao.forConversation(conversationId).mapNotNull(::decode)
+    suspend fun forConversation(conversationId: Long): List<OutboxItem> =
+        dao.forConversation(conversationId).mapNotNull(::decode)
 
     suspend fun put(item: OutboxItem) {
         dao.upsert(

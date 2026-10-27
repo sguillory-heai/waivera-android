@@ -27,7 +27,8 @@ class MessageRepositoryTest {
     fun tearDown() = graph.close()
 
     private fun page(ids: IntRange, conversationId: Long = 7): String = ids.joinToString(",", "[", "]") { id ->
-        """{"id":$id,"conversationId":$conversationId,"userId":"usr_priya_raman","messageContent":"m$id","createDate":"2026-10-20T13:00:00"}"""
+        """{"id":$id,"conversationId":$conversationId,"userId":"usr_priya_raman",""" +
+            """"messageContent":"m$id","createDate":"2026-10-20T13:00:00"}"""
     }
 
     private suspend fun timeline() = graph.cache.observeMessages(7).first()
@@ -93,8 +94,13 @@ class MessageRepositoryTest {
     fun sendFallsBackToRestWithTheSameClientIdWhenTheHubIsDown() = testScope.runTest {
         graph.realtime.connected = false
         graph.server.route("POST /api/chat/send") { request ->
-            val clientId = Regex("\"clientMessageId\":\"([^\"]+)\"").find(request.body?.utf8().orEmpty())?.groupValues?.get(1)
-            FixtureServer.json("""{"id":9400,"conversationId":7,"clientMessageId":"$clientId","messageContent":"hi","userId":"usr_alex_rivera"}""")
+            val clientId = Regex(
+                "\"clientMessageId\":\"([^\"]+)\"",
+            ).find(request.body?.utf8().orEmpty())?.groupValues?.get(1)
+            FixtureServer.json(
+                """{"id":9400,"conversationId":7,"clientMessageId":"$clientId",""" +
+                    """"messageContent":"hi","userId":"usr_alex_rivera"}""",
+            )
         }
         val clientId = repo.send(7, "hi")
         eventually { graph.db.outbox.rows.value.isEmpty() }
@@ -138,7 +144,10 @@ class MessageRepositoryTest {
         eventually { graph.outbox.get(clientId)?.state == SendState.FAILED }
         assertEquals(SendState.FAILED, graph.outbox.get(clientId)?.state)
 
-        graph.server.json("POST /api/chat/send", """{"id":9401,"conversationId":7,"clientMessageId":"$clientId","messageContent":"oops"}""")
+        graph.server.json(
+            "POST /api/chat/send",
+            """{"id":9401,"conversationId":7,"clientMessageId":"$clientId","messageContent":"oops"}""",
+        )
         repo.retry(clientId).getOrThrow()
         eventually { graph.outbox.get(clientId) == null }
         assertNull(graph.outbox.get(clientId))
@@ -148,11 +157,25 @@ class MessageRepositoryTest {
     @Test
     fun hubEchoBeforeTheResponseDoesNotDuplicate() = testScope.runTest {
         graph.realtime.sendResult = { conversationId, text, clientId, _ ->
-            com.waivera.waivera.core.network.dto.MessageSendResponse(id = 9500, conversationId = conversationId, clientMessageId = clientId, messageContent = text)
+            com.waivera.waivera.core.network.dto.MessageSendResponse(
+                id = 9500,
+                conversationId = conversationId,
+                clientMessageId = clientId,
+                messageContent = text,
+            )
         }
         val clientId = repo.send(7, "twice?")
         // The echo arrives with the same id, as ReceiveMessage would deliver it.
-        graph.ingest.ingest(listOf(com.waivera.waivera.core.data.model.Message(id = 9500, conversationId = 7, clientMessageId = clientId, text = "twice?")))
+        graph.ingest.ingest(
+            listOf(
+                com.waivera.waivera.core.data.model.Message(
+                    id = 9500,
+                    conversationId = 7,
+                    clientMessageId = clientId,
+                    text = "twice?",
+                ),
+            ),
+        )
         runCurrent()
         assertEquals(listOf(9500L), timeline().map { it.id })
         assertTrue(graph.db.outbox.rows.value.isEmpty())
@@ -168,7 +191,11 @@ class MessageRepositoryTest {
         graph.ingest.ingest(
             listOf(
                 com.waivera.waivera.core.data.model.Message(
-                    id = 9600, conversationId = 7, authorId = "usr_alex_rivera", text = "see you soon", createdAt = graph.clock.now.plusSeconds(20),
+                    id = 9600,
+                    conversationId = 7,
+                    authorId = "usr_alex_rivera",
+                    text = "see you soon",
+                    createdAt = graph.clock.now.plusSeconds(20),
                 ),
             ),
         )

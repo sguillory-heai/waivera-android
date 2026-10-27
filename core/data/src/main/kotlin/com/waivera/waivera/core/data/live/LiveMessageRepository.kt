@@ -109,13 +109,22 @@ class LiveMessageRepository @Inject constructor(
     private fun merge(messages: List<Message>, pending: List<OutboxItem>): List<Message> {
         val confirmed = messages.mapNotNull { it.clientMessageId }.toSet()
         val author = session.state.value.currentUser?.let {
-            com.waivera.waivera.core.data.model.Person(it.userId, it.firstName, it.lastName, it.displayName, it.email, it.avatarUrl)
+            com.waivera.waivera.core.data.model.Person(
+                it.userId,
+                it.firstName,
+                it.lastName,
+                it.displayName,
+                it.email,
+                it.avatarUrl,
+            )
         }
         return messages + pending.filter { it.clientMessageId !in confirmed }.map { it.toMessage(author) }
     }
 
     override suspend fun refreshLatest(conversationId: Long): Result<Unit> = sync.track(syncKey(conversationId)) {
-        val page = apiCall { chatApi.getMessagesPage(conversationId, ChatApi.MESSAGE_PAGE_SIZE, null) }.map(Mappers::message)
+        val page = apiCall {
+            chatApi.getMessagesPage(conversationId, ChatApi.MESSAGE_PAGE_SIZE, null)
+        }.map(Mappers::message)
         cache.transactions.run {
             val newestCached = cache.messageDao.newestId(conversationId)
             val oldestFetched = page.minOfOrNull { it.id }
@@ -137,11 +146,14 @@ class LiveMessageRepository @Inject constructor(
         loadingOlder.update { it + conversationId }
         try {
             val oldest = cache.messageDao.getOldestId(conversationId)
-            val page = apiCall { chatApi.getMessagesPage(conversationId, ChatApi.MESSAGE_PAGE_SIZE, oldest) }.map(Mappers::message)
+            val page = apiCall {
+                chatApi.getMessagesPage(conversationId, ChatApi.MESSAGE_PAGE_SIZE, oldest)
+            }.map(Mappers::message)
             ingest.ingest(page)
             val newOldest = page.minOfOrNull { it.id }
             // G-06 stop rules: a short page, or an oldest id that did not move back.
-            val hasOlder = page.size >= ChatApi.MESSAGE_PAGE_SIZE && newOldest != null && (oldest == null || newOldest < oldest)
+            val hasOlder =
+                page.size >= ChatApi.MESSAGE_PAGE_SIZE && newOldest != null && (oldest == null || newOldest < oldest)
             cache.putDocument(metaKey(conversationId), TimelineMeta.serializer(), TimelineMeta(hasOlder))
             hasOlder
         } finally {
@@ -209,9 +221,19 @@ class LiveMessageRepository @Inject constructor(
     }
 
     override suspend fun edit(messageId: Long, text: String, doc: JsonElement?): Result<Message> = catchingWaivera {
-        val updated = Mappers.message(apiCall { chatApi.editMessage(messageId, EditMessageRequest(text, doc)) }.requireData())
+        val updated = Mappers.message(
+            apiCall {
+                chatApi.editMessage(messageId, EditMessageRequest(text, doc))
+            }.requireData(),
+        )
         val merged = cache.message(messageId)?.let { cached ->
-            cached.copy(text = updated.text, doc = updated.doc, isEdited = true, updatedAt = updated.updatedAt ?: clock.instant())
+            cached.copy(
+                text = updated.text,
+                doc = updated.doc,
+                isEdited = true,
+                updatedAt =
+                updated.updatedAt ?: clock.instant(),
+            )
         } ?: updated
         cache.putMessages(listOf(merged))
         conversations.onMessageChanged(merged)

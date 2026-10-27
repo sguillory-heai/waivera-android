@@ -14,11 +14,11 @@ import com.waivera.waivera.core.data.db.PersonDao
 import com.waivera.waivera.core.data.db.TransactionRunner
 import com.waivera.waivera.core.data.db.WaiveraDatabase
 import com.waivera.waivera.core.data.image.AuthenticatedImageLoader
+import com.waivera.waivera.core.data.live.AttachmentCacheDirectory
 import com.waivera.waivera.core.data.live.ChatCache
 import com.waivera.waivera.core.data.live.LiveAttachmentRepository
 import com.waivera.waivera.core.data.live.LivePeopleRepository
 import com.waivera.waivera.core.data.live.SignOutCleaner
-import com.waivera.waivera.core.data.live.AttachmentCacheDirectory
 import com.waivera.waivera.core.data.outbox.OutboxDirectory
 import com.waivera.waivera.core.data.outbox.OutboxScheduler
 import com.waivera.waivera.core.data.outbox.OutboxStore
@@ -84,6 +84,7 @@ abstract class DataInfrastructureModule {
     @IntoSet
     abstract fun imageCleaner(loader: AuthenticatedImageLoader): SignOutCleaner
 
+    @Suppress("TooManyFunctions")
     companion object {
         @Provides
         @Singleton

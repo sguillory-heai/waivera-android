@@ -18,7 +18,9 @@ class LiveSettingsRepository @Inject constructor(private val store: SettingsStor
 
     override suspend fun setHapticsEnabled(enabled: Boolean) = store.setHapticsEnabled(enabled)
 
-    override suspend fun setNotificationsEnabled(enabled: Boolean) = store.updateNotifications { it.copy(enabled = enabled) }
+    override suspend fun setNotificationsEnabled(enabled: Boolean) = store.updateNotifications {
+        it.copy(enabled = enabled)
+    }
 
     override suspend fun setCategoryEnabled(category: NotificationCategory, enabled: Boolean) =
         store.updateNotifications { it.copy(categories = it.categories + (category to enabled)) }
@@ -27,5 +29,7 @@ class LiveSettingsRepository @Inject constructor(private val store: SettingsStor
 
     override suspend fun setVibration(enabled: Boolean) = store.updateNotifications { it.copy(vibration = enabled) }
 
-    override suspend fun setPreviewContent(enabled: Boolean) = store.updateNotifications { it.copy(previewContent = enabled) }
+    override suspend fun setPreviewContent(enabled: Boolean) = store.updateNotifications {
+        it.copy(previewContent = enabled)
+    }
 }

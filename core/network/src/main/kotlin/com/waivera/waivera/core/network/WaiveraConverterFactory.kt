@@ -35,7 +35,9 @@ class WaiveraConverterFactory(private val json: Json = WaiveraJson) : Converter.
         retrofit: Retrofit,
     ): Converter<*, RequestBody> {
         val serializer: KSerializer<Any> = json.serializersModule.serializer(type)
-        return Converter<Any, RequestBody> { value -> json.encodeToString(serializer, value).toRequestBody(JsonMediaType) }
+        return Converter<Any, RequestBody> { value ->
+            json.encodeToString(serializer, value).toRequestBody(JsonMediaType)
+        }
     }
 
     private companion object {

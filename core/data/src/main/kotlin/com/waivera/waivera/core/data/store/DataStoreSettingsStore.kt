@@ -21,9 +21,7 @@ import kotlinx.coroutines.flow.map
 private val Context.settingsDataStore: DataStore<Preferences> by preferencesDataStore(name = "waivera_settings")
 
 @Singleton
-class DataStoreSettingsStore @Inject constructor(
-    @ApplicationContext private val context: Context,
-) : SettingsStore {
+class DataStoreSettingsStore @Inject constructor(@ApplicationContext private val context: Context) : SettingsStore {
     override val settings: Flow<AppSettings> = context.settingsDataStore.data.map(::read).distinctUntilChanged()
 
     override suspend fun setTheme(theme: ThemePreference) {
@@ -46,7 +44,9 @@ class DataStoreSettingsStore @Inject constructor(
     }
 
     private fun read(prefs: Preferences): AppSettings = AppSettings(
-        theme = prefs[THEME]?.let { raw -> ThemePreference.entries.firstOrNull { it.name == raw } } ?: ThemePreference.SYSTEM,
+        theme =
+        prefs[THEME]?.let { raw -> ThemePreference.entries.firstOrNull { it.name == raw } }
+            ?: ThemePreference.SYSTEM,
         hapticsEnabled = prefs[HAPTICS] ?: true,
         notifications = prefs[NOTIFICATIONS]?.let {
             runCatching { WaiveraJson.decodeFromString(NotificationPreferences.serializer(), it) }.getOrNull()

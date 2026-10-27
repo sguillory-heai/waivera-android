@@ -25,9 +25,10 @@ class LiveActivityRepository @Inject constructor(
     private val sync: SyncTracker,
 ) : ActivityRepository {
     override fun observeActivity(): Flow<Synced<ActivityFeed>> {
-        val feed = combine(cache.observeActivity(), cache.observeDocument(META, ActivityMeta.serializer())) { items, meta ->
-            ActivityFeed(items, meta?.hasMore ?: true)
-        }
+        val feed =
+            combine(cache.observeActivity(), cache.observeDocument(META, ActivityMeta.serializer())) { items, meta ->
+                ActivityFeed(items, meta?.hasMore ?: true)
+            }
         return sync.synced(KEY, feed)
     }
 
@@ -50,8 +51,9 @@ class LiveActivityRepository @Inject constructor(
         hasMore
     }
 
-    private suspend fun fetch(page: Int): List<ActivityItem> =
-        apiCall { chatApi.getRecentActivity(page, ChatApi.ACTIVITY_PAGE_SIZE) }.filter { it.id > 0 }.map(Mappers::activity)
+    private suspend fun fetch(page: Int): List<ActivityItem> = apiCall {
+        chatApi.getRecentActivity(page, ChatApi.ACTIVITY_PAGE_SIZE)
+    }.filter { it.id > 0 }.map(Mappers::activity)
 
     override suspend fun markRead(activityId: Long): Result<Unit> = catchingWaivera {
         markLocally(listOf(activityId))

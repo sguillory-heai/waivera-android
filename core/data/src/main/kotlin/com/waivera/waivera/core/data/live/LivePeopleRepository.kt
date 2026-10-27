@@ -6,8 +6,8 @@ import com.waivera.waivera.core.data.repository.PeopleRepository
 import com.waivera.waivera.core.network.api.ChatApi
 import com.waivera.waivera.core.network.api.FileApi
 import com.waivera.waivera.core.network.error.WaiveraError
-import com.waivera.waivera.core.network.error.apiCallOrNull
 import com.waivera.waivera.core.network.error.apiCall
+import com.waivera.waivera.core.network.error.apiCallOrNull
 import com.waivera.waivera.core.network.error.catchingWaivera
 import java.time.Clock
 import java.util.Base64
@@ -30,7 +30,8 @@ class LivePeopleRepository @Inject constructor(
     private val cache: ChatCache,
     private val sync: SyncTracker,
     private val clock: Clock,
-) : PeopleRepository, SignOutCleaner {
+) : PeopleRepository,
+    SignOutCleaner {
     private val avatars = LinkedHashMap<String, CachedAvatar>()
     private val avatarLock = Mutex()
 
@@ -55,7 +56,13 @@ class LivePeopleRepository @Inject constructor(
         if (error is WaiveraError && error.isTransient) return null
         val dto = result.getOrNull()
         val bytes = dto?.base64Image?.let(::decodeDataUri)
-        val ttl = if (bytes != null) (dto.expiresInSeconds.takeIf { it > 0 }?.times(MILLIS) ?: DEFAULT_TTL) else NEGATIVE_TTL
+        val ttl = if (bytes !=
+            null
+        ) {
+            (dto.expiresInSeconds.takeIf { it > 0 }?.times(MILLIS) ?: DEFAULT_TTL)
+        } else {
+            NEGATIVE_TTL
+        }
         avatarLock.withLock {
             avatars[userId] = CachedAvatar(bytes, now + ttl)
             if (avatars.size > MAX_AVATARS) avatars.remove(avatars.keys.first())
