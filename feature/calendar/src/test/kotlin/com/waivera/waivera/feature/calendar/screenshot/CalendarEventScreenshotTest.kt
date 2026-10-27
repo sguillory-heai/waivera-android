@@ -80,8 +80,16 @@ class CalendarEventScreenshotTest {
         )
     }
 
+    /** I organize it: one plain line, no card with my own name (UI3-15). */
     @Test
     fun organizer() = capture("calendarEvent_organizer", loaded("demo_visit"))
+
+    /** A refresh that failed: the banner is as wide as the buttons below it, not inset twice (UI3-15). */
+    @Test
+    fun refreshFailed() {
+        val details = loaded("demo_invite").details
+        capture("calendarEvent_refreshFailed", EventUiState.Loaded(details.copy(refreshError = WaiveraError.Network())))
+    }
 
     @Test
     fun sproutMeetingOpen() = capture(

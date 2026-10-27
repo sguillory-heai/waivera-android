@@ -46,7 +46,6 @@ import com.waivera.waivera.core.designsystem.component.WaiveraBanner
 import com.waivera.waivera.core.designsystem.component.WaiveraButton
 import com.waivera.waivera.core.designsystem.component.WaiveraButtonVariant
 import com.waivera.waivera.core.designsystem.component.WaiveraListRow
-import com.waivera.waivera.core.designsystem.component.WaiveraPressable
 import com.waivera.waivera.core.designsystem.component.WaiveraSectionHeader
 import com.waivera.waivera.core.designsystem.component.rememberSkeletonPulse
 import com.waivera.waivera.core.designsystem.component.rememberSkeletonVisible
@@ -122,6 +121,7 @@ internal fun EventBody(
                     actionLabel = stringResource(R.string.feature_calendar_retry),
                     onAction = actions.onRetry,
                     modifier = sectionModifier,
+                    gutter = false,
                 )
             }
         }
@@ -176,7 +176,7 @@ internal fun EventBody(
         }
         details.organizer?.let { organizer ->
             item(key = "organizer") {
-                OrganizerBlock(organizer, details.isOrganizer, actions, sectionModifier)
+                OrganizerBlock(organizer, details.isOrganizer, actions, sectionModifier = sectionModifier)
             }
         }
         event.description?.takeIf(String::isNotBlank)?.let { description ->
@@ -326,6 +326,7 @@ private fun JoinBlock(join: JoinUi, details: EventDetails, actions: EventActions
                 message = message,
                 tone = BannerTone.Error,
                 onDismiss = actions.onDismissJoinError,
+                gutter = false,
             )
         }
     }
@@ -370,6 +371,7 @@ private fun InvitationBlock(invitation: InvitationUi, actions: EventActions, mod
                 actionLabel = stringResource(R.string.feature_calendar_retry),
                 onAction = actions.onRetryResponse,
                 actionIcon = WaiveraIcons.Refresh,
+                gutter = false,
             )
         }
     }
@@ -451,56 +453,37 @@ private fun responseText(response: MyInvitation): String = when (response) {
     else -> stringResource(R.string.feature_calendar_response_pending)
 }
 
+/**
+ * Who organizes the event. When it is me, one plain line says so; the attendee list already has
+ * "(you)", so a card with my own name would repeat it. Otherwise a plain row under an eyebrow,
+ * like the attendee rows below, that opens the person when there is someone to open. The tinted
+ * card it replaces looked like a tonal button (UI3-15).
+ */
 @Composable
-private fun OrganizerBlock(
-    organizer: PersonRow,
-    isMine: Boolean,
-    actions: EventActions,
-    modifier: Modifier = Modifier,
-) {
+private fun OrganizerBlock(organizer: PersonRow, isMine: Boolean, actions: EventActions, sectionModifier: Modifier) {
     val colors = WaiveraTheme.colors
-    val name = organizer.name?.takeIf(String::isNotBlank) ?: stringResource(R.string.feature_calendar_event_guest)
-    val content: @Composable () -> Unit = {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .heightIn(min = WaiveraSpacing.MinTouchTarget)
-                .padding(WaiveraSpacing.MediumSmall),
-            horizontalArrangement = Arrangement.spacedBy(WaiveraSpacing.MediumSmall),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            MilestoneAvatar(name, organizer.celebration, CalendarSizes.OrganizerAvatar, userId = organizer.userId)
-            Column(verticalArrangement = Arrangement.spacedBy(WaiveraSpacing.XxSmall)) {
-                Text(
-                    text = stringResource(R.string.feature_calendar_event_organized_by).uppercase(),
-                    style = WaiveraTextStyles.Eyebrow,
-                    color = colors.onAccentSoft,
-                )
-                Text(text = name, style = MaterialTheme.typography.titleSmall, color = colors.onAccentSoft)
-                if (isMine) {
-                    Text(
-                        text = stringResource(R.string.feature_calendar_event_you_organize),
-                        style = MaterialTheme.typography.labelMedium,
-                        color = colors.onAccentSoft,
-                    )
-                }
-            }
-        }
+    if (isMine) {
+        Text(
+            text = stringResource(R.string.feature_calendar_event_you_organize),
+            style = MaterialTheme.typography.bodyMedium,
+            color = colors.textSecondary,
+            modifier = sectionModifier,
+        )
+        return
     }
-    val container = modifier
-        .fillMaxWidth()
-        .clip(WaiveraShapes.Card)
-        .background(colors.accentSoft)
+    val name = organizer.name?.takeIf(String::isNotBlank) ?: stringResource(R.string.feature_calendar_event_guest)
     val userId = organizer.userId
-    if (userId != null) {
-        WaiveraPressable(
-            onClick = { actions.onOpenPerson(userId) },
-            onClickLabel = stringResource(R.string.feature_calendar_open_profile),
-            shape = WaiveraShapes.Card,
-            modifier = container,
-        ) { content() }
-    } else {
-        Column(modifier = container.semantics(mergeDescendants = true) { }) { content() }
+    Column {
+        WaiveraSectionHeader(text = stringResource(R.string.feature_calendar_event_organized_by))
+        WaiveraListRow(
+            headline = name,
+            onClick = userId?.let { { actions.onOpenPerson(it) } },
+            onClickLabel = userId?.let { stringResource(R.string.feature_calendar_open_profile) },
+            showChevron = userId != null,
+            leading = {
+                MilestoneAvatar(name, organizer.celebration, CalendarSizes.OrganizerAvatar, userId = userId)
+            },
+        )
     }
 }
 

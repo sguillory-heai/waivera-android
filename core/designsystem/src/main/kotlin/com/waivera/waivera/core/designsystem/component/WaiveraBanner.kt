@@ -69,6 +69,9 @@ enum class BannerTone { Info, Warning, Error, Offline }
  * reads the message, and the tap is announced as "Show details"). At 200% a full banner would
  * otherwise take a third of a small phone, and a text action would wrap the row (UI3-08). Pass
  * [compact] to force either form; a banner forced compact at normal font keeps its text action.
+ *
+ * [gutter] insets the banner by the screen gutter; turn it off inside a block that is already
+ * padded, so the banner lines up with the buttons around it instead of sitting narrower (UI3-15).
  */
 @Composable
 fun WaiveraBanner(
@@ -81,6 +84,7 @@ fun WaiveraBanner(
     @DrawableRes actionIcon: Int = WaiveraIcons.ChevronRight,
     onDismiss: (() -> Unit)? = null,
     compact: Boolean = title != null && isLargeFontScale(),
+    gutter: Boolean = true,
 ) {
     val style = tone.style(WaiveraTheme.colors)
     val action = if (actionLabel != null && onAction != null) BannerActionModel(actionLabel, onAction) else null
@@ -89,7 +93,10 @@ fun WaiveraBanner(
     BoxWithConstraints(
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = WaiveraSpacing.Gutter, vertical = WaiveraSpacing.ExtraSmall),
+            .padding(
+                horizontal = if (gutter) WaiveraSpacing.Gutter else WaiveraSpacing.None,
+                vertical = WaiveraSpacing.ExtraSmall,
+            ),
     ) {
         val stacked = action != null && !collapsible &&
             rememberBannerActionStacks(action.label, constraints.maxWidth)
