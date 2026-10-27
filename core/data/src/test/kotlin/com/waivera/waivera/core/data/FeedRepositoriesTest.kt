@@ -273,6 +273,36 @@ class FeedRepositoriesTest {
         dir.deleteRecursively()
     }
 
+    @Test
+    fun aDownloadStillRunningAtSignOutLeavesNothingInTheCache() = testScope.runTest {
+        val dir = java.nio.file.Files.createTempDirectory("att").toFile()
+        val attachments = com.waivera.waivera.core.data.live.LiveAttachmentRepository(
+            graph.chatApi,
+            graph.server.config,
+            dir,
+            kotlinx.coroutines.Dispatchers.IO,
+        )
+        val arrived = java.util.concurrent.CountDownLatch(1)
+        val release = java.util.concurrent.CountDownLatch(1)
+        graph.server.route("GET /api/chat/message/9303/attachment") {
+            arrived.countDown()
+            release.await(5, java.util.concurrent.TimeUnit.SECONDS)
+            mockwebserver3.MockResponse.Builder().code(200).body("PRIVATE").build()
+        }
+        val download = async(kotlinx.coroutines.Dispatchers.IO) {
+            runCatching { attachments.download(9303, "pay-slip.pdf").getOrThrow() }
+        }
+        kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+            arrived.await(5, java.util.concurrent.TimeUnit.SECONDS)
+        }
+        // IS-08: the sign-out wipe runs while the previous account's file is still arriving.
+        attachments.clear()
+        release.countDown()
+        assertTrue(download.await().isFailure, "the download does not complete for the next account")
+        assertEquals(emptyList(), dir.listFiles().orEmpty().toList(), "nothing was written back")
+        dir.deleteRecursively()
+    }
+
     private fun activityPage(page: Int): String = (1..30).joinToString(",", "[", "]") { n ->
         val id = page * 100 + n
         """{"id":$id,"activityType":"chat.mention","conversationId":7,"messageId":$id,""" +
