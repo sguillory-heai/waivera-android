@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
@@ -171,14 +172,18 @@ internal fun TodaySectionHeader(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(WaiveraSpacing.Small),
     ) {
+        // The heading keeps its own width on one line; the trailing actions get what is left
+        // (they turn into icons at large font), so a word like "ACTIVITY" never breaks (UI3-02).
         Text(
             text = title.uppercase(),
             style = WaiveraTextStyles.Eyebrow,
             color = WaiveraTheme.colors.textSecondary,
-            modifier = Modifier
-                .weight(1f)
-                .semantics { heading() },
+            maxLines = 1,
+            softWrap = false,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.semantics { heading() },
         )
+        Spacer(modifier = Modifier.weight(1f))
         if (trailing != null) trailing()
     }
 }

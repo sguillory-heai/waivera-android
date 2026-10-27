@@ -23,12 +23,14 @@ import com.waivera.waivera.core.designsystem.component.WaiveraButton
 import com.waivera.waivera.core.designsystem.component.WaiveraButtonVariant
 import com.waivera.waivera.core.designsystem.component.WaiveraCountBadge
 import com.waivera.waivera.core.designsystem.component.WaiveraFilterChip
+import com.waivera.waivera.core.designsystem.component.WaiveraIconButton
 import com.waivera.waivera.core.designsystem.component.formatBadgeCount
 import com.waivera.waivera.core.designsystem.icon.WaiveraIcons
 import com.waivera.waivera.core.designsystem.preview.WaiveraPreviews
 import com.waivera.waivera.core.designsystem.theme.WaiveraSizes
 import com.waivera.waivera.core.designsystem.theme.WaiveraSpacing
 import com.waivera.waivera.core.designsystem.theme.WaiveraTheme
+import com.waivera.waivera.core.designsystem.theme.isLargeFontScale
 import com.waivera.waivera.core.network.dto.ChatActivityType
 import com.waivera.waivera.feature.today.R
 import com.waivera.waivera.feature.today.model.ActivityFilter
@@ -46,17 +48,44 @@ internal fun ActivityHeader(section: ActivitySection, onMarkAllRead: () -> Unit,
         trailing = {
             UnreadCountBadge(count = section.unreadCount, lowerBound = section.unreadIsLowerBound)
             if (section.unreadCount > 0 || section.isMarkingAllRead) {
-                WaiveraButton(
-                    text = stringResource(R.string.feature_today_mark_all_read),
-                    onClick = onMarkAllRead,
-                    variant = WaiveraButtonVariant.Text,
-                    loadingText = stringResource(R.string.feature_today_marking_all_read)
-                        .takeIf { section.isMarkingAllRead },
-                    leadingIcon = WaiveraIcons.MarkRead,
-                )
+                MarkAllReadAction(busy = section.isMarkingAllRead, onClick = onMarkAllRead)
             }
         },
     )
+}
+
+/**
+ * "Mark all read" as a text button, or as an icon button at large font so the heading beside it
+ * keeps its width. The label is then the content description, and the busy state a still or
+ * spinning indicator that TalkBack reads as "Marking all read…".
+ */
+@Composable
+private fun MarkAllReadAction(busy: Boolean, onClick: () -> Unit) {
+    val label = stringResource(R.string.feature_today_mark_all_read)
+    val busyLabel = stringResource(R.string.feature_today_marking_all_read)
+    when {
+        !isLargeFontScale() -> WaiveraButton(
+            text = label,
+            onClick = onClick,
+            variant = WaiveraButtonVariant.Text,
+            loadingText = busyLabel.takeIf { busy },
+            leadingIcon = WaiveraIcons.MarkRead,
+        )
+        busy -> Box(
+            modifier = Modifier
+                .size(WaiveraSizes.IconButton)
+                .semantics { contentDescription = busyLabel },
+            contentAlignment = Alignment.Center,
+        ) {
+            WaiveraBusyIndicator()
+        }
+        else -> WaiveraIconButton(
+            icon = WaiveraIcons.MarkRead,
+            contentDescription = label,
+            onClick = onClick,
+            tint = WaiveraTheme.colors.accent,
+        )
+    }
 }
 
 @Composable
