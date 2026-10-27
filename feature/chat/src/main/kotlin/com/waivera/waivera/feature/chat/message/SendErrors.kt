@@ -56,9 +56,17 @@ sealed interface SendErrorUi {
         /**
          * [failedIndices] are the list positions of failed rows, newest first; [visibleIndices]
          * the positions laid out now (empty before the first layout, which shows nothing yet).
+         * While the connection banner already says the app is offline, a refused send's Offline
+         * banner would repeat it, so the restored draft and that banner are the signal (UI3-07).
          */
-        fun of(sendError: SendErrorKind?, failedIndices: List<Int>, visibleIndices: List<Int>): SendErrorUi = when {
+        fun of(
+            sendError: SendErrorKind?,
+            failedIndices: List<Int>,
+            visibleIndices: List<Int>,
+            connectionBannerShowing: Boolean = false,
+        ): SendErrorUi = when {
             sendError == null -> None
+            failedIndices.isEmpty() && sendError == SendErrorKind.Offline && connectionBannerShowing -> None
             failedIndices.isEmpty() -> Banner(sendError)
             visibleIndices.isEmpty() -> None
             failedIndices.any { it in visibleIndices } -> None

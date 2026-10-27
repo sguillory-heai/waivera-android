@@ -346,27 +346,45 @@ class ConversationScreenshotTest {
         ThreadView(threadState().copy(canWrite = false, readOnlyReason = ReadOnlyReason.ReadOnlyChannel))
     }
 
+    /**
+     * What the app really produces when a reply's send fails offline (UI3-07): the reply stays in
+     * the thread as a failed row with Retry, Edit and Discard, the composer is empty, and the
+     * offline banner is the one connection signal, exactly as in the conversation.
+     */
     @Test
     fun threadSendFailed() = captureScreenshots("thread_send_failed") {
         ThreadView(
-            threadState().copy(
+            threadState(extraReplies = listOf(failedReply())).copy(
                 sendError = SendErrorKind.Offline,
                 connection = ConnectionUi(ConnectionBannerState.Offline),
             ),
-            draft = "Saturday works",
         )
     }
 
-    private fun threadState(): ThreadUiState {
+    private fun failedReply() = Message(
+        id = 0 - DemoData.NOW.toEpochMilli(),
+        conversationId = DemoData.DM_PRIYA,
+        clientMessageId = "thread-reply-failed",
+        authorId = DemoData.ME,
+        text = "Saturday works",
+        createdAt = DemoData.NOW.minusSeconds(60),
+        parentMessageId = DemoData.THREAD_ROOT,
+        threadRootMessageId = DemoData.THREAD_ROOT,
+        sendState = SendState.FAILED,
+    )
+
+    private fun threadState(extraReplies: List<Message> = emptyList()): ThreadUiState {
         val thread = messages.filter { it.conversationId == DemoData.DM_PRIYA }
         val root = thread.single { it.id == DemoData.THREAD_ROOT }
-        val replies = thread.filter { it.threadRootMessageId == DemoData.THREAD_ROOT && it.id != DemoData.THREAD_ROOT }
+        val replies = thread.filter {
+            it.threadRootMessageId == DemoData.THREAD_ROOT && it.id != DemoData.THREAD_ROOT
+        } + extraReplies
         return ThreadUiState(
             content = ThreadContent.Ready,
             root = TimelineBuilder.build(listOf(root), DemoData.ME, DemoData.ZONE, false, daySeparators = false)
                 .filterIsInstance<TimelineItem.MessageRow>().single(),
             replies = TimelineBuilder.build(replies, DemoData.ME, DemoData.ZONE, false),
-            replyCount = replies.size,
+            replyCount = replies.count { !it.isPending },
             names = names,
             conversationTitle = conversations[DemoData.DM_PRIYA]?.let(::titleOf),
             canWrite = true,

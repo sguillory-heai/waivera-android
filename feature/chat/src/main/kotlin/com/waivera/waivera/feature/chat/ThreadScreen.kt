@@ -288,7 +288,12 @@ fun ThreadScreenContent(
             (entries[index] as? ThreadEntry.Item)?.item?.let(SendErrorUi::isFailedRow) == true
         }
     }
-    val sendErrorUi = rememberSendErrorUi(state.sendError, failedIndices, listState)
+    val sendErrorUi = rememberSendErrorUi(
+        sendError = state.sendError,
+        failedIndices = failedIndices,
+        listState = listState,
+        connectionBannerShowing = state.connection.banner != ConnectionBannerState.Connected,
+    )
     val scope = rememberCoroutineScope()
     val sendError = SendErrorState(sendErrorUi) { index -> scope.launch { listState.animateScrollToItem(index) } }
     Box(

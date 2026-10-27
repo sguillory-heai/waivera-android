@@ -30,6 +30,30 @@ class SendErrorUiTest {
     }
 
     @Test
+    fun anOfflineRefusalUnderTheConnectionBannerAddsNoSecondBanner() {
+        assertEquals(
+            SendErrorUi.None,
+            SendErrorUi.of(offline, emptyList(), listOf(0, 1), connectionBannerShowing = true),
+        )
+    }
+
+    @Test
+    fun otherRefusalsStillShowUnderTheConnectionBanner() {
+        assertEquals(
+            SendErrorUi.Banner(SendErrorKind.ReadOnly),
+            SendErrorUi.of(SendErrorKind.ReadOnly, emptyList(), listOf(0), connectionBannerShowing = true),
+        )
+    }
+
+    @Test
+    fun aFailedRowScrolledAwayIsStillPointedAtWhileOffline() {
+        assertEquals(
+            SendErrorUi.Offscreen(count = 1, index = 4),
+            SendErrorUi.of(offline, listOf(4), listOf(0, 1), connectionBannerShowing = true),
+        )
+    }
+
+    @Test
     fun beforeTheFirstLayoutNothingShowsYet() {
         assertEquals(SendErrorUi.None, SendErrorUi.of(offline, listOf(0), emptyList()))
     }

@@ -278,7 +278,12 @@ fun ConversationScreenContent(
     val failedIndices = remember(state.items) {
         state.items.asReversed().mapIndexedNotNull { index, item -> index.takeIf { SendErrorUi.isFailedRow(item) } }
     }
-    val sendErrorUi = rememberSendErrorUi(state.sendError, failedIndices, listState)
+    val sendErrorUi = rememberSendErrorUi(
+        sendError = state.sendError,
+        failedIndices = failedIndices,
+        listState = listState,
+        connectionBannerShowing = state.connection.banner != ConnectionBannerState.Connected,
+    )
     val scope = rememberCoroutineScope()
     val onShowFailed: (Int) -> Unit = { index -> scope.launch { listState.animateScrollToItem(index) } }
     Box(

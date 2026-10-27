@@ -14,10 +14,20 @@ import com.waivera.waivera.feature.chat.R
 
 /** [SendErrorUi.of] against the live list, recomputed only when visibility actually changes. */
 @Composable
-fun rememberSendErrorUi(sendError: SendErrorKind?, failedIndices: List<Int>, listState: LazyListState): SendErrorUi {
-    val ui by remember(sendError, failedIndices, listState) {
+fun rememberSendErrorUi(
+    sendError: SendErrorKind?,
+    failedIndices: List<Int>,
+    listState: LazyListState,
+    connectionBannerShowing: Boolean = false,
+): SendErrorUi {
+    val ui by remember(sendError, failedIndices, listState, connectionBannerShowing) {
         derivedStateOf {
-            SendErrorUi.of(sendError, failedIndices, listState.layoutInfo.visibleItemsInfo.map { it.index })
+            SendErrorUi.of(
+                sendError = sendError,
+                failedIndices = failedIndices,
+                visibleIndices = listState.layoutInfo.visibleItemsInfo.map { it.index },
+                connectionBannerShowing = connectionBannerShowing,
+            )
         }
     }
     return ui
