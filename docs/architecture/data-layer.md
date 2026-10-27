@@ -53,7 +53,7 @@ All in `core/data/.../repository/Repositories.kt`.
 | `ProfileRepository` | my profile, another profile, time off, files (pages of 20), `updateContact` | |
 | `SettingsRepository` | `settings: Flow<AppSettings>` plus setters for theme, haptics, notifications, categories, sound, vibration, previews | Category changes re-register push (debounced 500 ms). |
 | `PushRegistrationRepository` | `register(token, preferences)`, `unregister`, `onNewToken` | Registers `provider: "fcm"`; skipped when the SHA-256 fingerprint of the request is unchanged. |
-| `RealtimeStatusRepository` | `status: StateFlow<RealtimeStatus>`, `retryNow`, `setVisibleConversation`, `shouldSuppressNotification` | Suppress a push only when the hub is connected and that conversation is on screen. |
+| `RealtimeStatusRepository` | `status: StateFlow<RealtimeStatus>`, `retryNow`, `setVisibleConversation`, `shouldSuppressNotification` | Suppress a push only when the hub is connected and that conversation is on screen. Only the app shell calls `setVisibleConversation`. |
 | `DataLayerStarter` | `start()` | Call once from `Application.onCreate`. |
 
 ### Models
@@ -156,10 +156,11 @@ around one `DemoBackend`. `core:testing` re-exports `core:demo` (`api`).
    @InstallIn(SingletonComponent::class)
    object ReleaseDataModule
    ```
-3. Demo launch flag: in `MainActivity.onCreate`, before `super.onCreate`, call a debug-only hook
-   that runs `if (DemoMode.applyLaunchIntent(this, intent)) return`. Release has no `DemoMode`
-   class, so put the hook in `src/debug` and a no-op in `src/release`. A changed flag restarts the
-   process, because repositories are chosen once per process.
+3. Demo launch flag: in `MainActivity.onCreate`, before `super.onCreate`, the app calls
+   `DemoLaunch.restartIfChanged(this, intent)` (`app/src/debug`, which runs
+   `DemoMode.applyLaunchIntent`; the `app/src/release` copy always returns false because release
+   has no `DemoMode` class). A changed flag restarts the process, because repositories are chosen
+   once per process. `DemoMode` is the only demo switch in the app.
 4. In `Application.onCreate` (an `@HiltAndroidApp` class), call `dataLayerStarter.start()` once.
    This starts the realtime lifecycle, hub event sync, reconnect resync, outbox kicks on connectivity
    changes and push re-registration.
@@ -167,14 +168,20 @@ around one `DemoBackend`. `core:testing` re-exports `core:demo` (`api`).
    (G-15):
    `SingletonImageLoader.setSafe { authenticatedImageLoader.imageLoader }`.
 6. Push (core:notifications):
-   - `FirebaseMessagingService.onNewToken` → `PushRegistrationRepository.onNewToken(token)`;
+   - `FirebaseMessagingService.onNewToken` → `PushRegistrationRepository.onNewToken(token)`
+     (through the app's `PushTokenSink`);
    - before showing a chat notification, check
-     `RealtimeStatusRepository.shouldSuppressNotification(conversationId)`.
-7. Conversation and thread screens call
-   `RealtimeStatusRepository.setVisibleConversation(id)` on resume and `null` on pause.
-8. Build values come from `local.properties` or CI secrets: `waivera.apiBaseUrl`,
-   `waivera.webBaseUrl` and `waivera.firebase.apiKey`, `.appId`, `.projectId`, `.senderId`.
-   Nothing is committed.
+     `RealtimeStatusRepository.shouldSuppressNotification(conversationId)` (through the app's
+     `LiveConversationMonitor`; the shell's tracker then narrows it to the exact thread).
+7. Visible conversation: the app shell is the single owner. `AppShellViewModel` calls
+   `RealtimeStatusRepository.setVisibleConversation(id)` when the top route is a conversation or
+   thread and the activity is resumed, and `null` otherwise. Feature screens do not call it.
+8. Firebase: the app creates the default `FirebaseApp` once, in `Application.onCreate` before
+   Hilt starts, guarded by `FirebaseApp.getApps`, from `FirebaseConfig.fromBuildConfig()`.
+   core:data never initialises Firebase; `FirebaseAuthGateway` only uses the default app.
+9. Build values come from `local.properties` or CI secrets: `waivera.apiBaseUrl`,
+   `waivera.webBaseUrl` and `waivera.firebase.apiKey`, `.appId`, `.projectId`, `.senderId`
+   (read by core:network and core:data). Nothing is committed.
 
 Other modules should not inject `AuthGateway`, DAOs or `Live*` classes directly. In demo mode those
 would build the live stack.

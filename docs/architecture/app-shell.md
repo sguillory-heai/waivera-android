@@ -8,7 +8,7 @@ core agent).
 
 | Module | Owns |
 | --- | --- |
-| `:app` | `MainActivity`, `AppShellViewModel`, routes, `NavState`, the auth gate, the account menu, Firebase start-up, adapters from `:core:notifications` ports to `:core:data` |
+| `:app` | `MainActivity`, `AppShellViewModel`, routes, `NavState`, the auth gate, the account menu, Firebase start-up, the Coil image loader, `DataLayerStarter.start()`, the release-only `ReleaseDataModule`, adapters from `:core:notifications` ports to `:core:data` |
 | `:core:designsystem` | Tokens, `WaiveraTheme`, `WaiveraMotion`, `Haptics`, every shared component |
 | `:core:notifications` | FCM service, channels, payload parsing, `DeepLinkTarget` and `waivera://` URIs, chat notifications, Reply and Mark read, the permission primer state, the debug push receiver |
 | `:core:screenshot-testing` | `captureScreenshots` and the device/theme/font matrix |
@@ -127,7 +127,9 @@ The shell, not the chat feature, reports what is on screen: when the top route i
 Chat screens must not call either themselves.
 
 A chat push is suppressed only when the hub is connected and that exact conversation (and
-thread, for thread replies) is on screen. Everything else shows a notification.
+thread, for thread replies) is on screen: `PushMessageHandler` asks
+`RealtimeStatusRepository.shouldSuppressNotification` (through `LiveConversationMonitor`) and
+the tracker for the thread. Everything else shows a notification.
 
 ## Insets
 
@@ -139,14 +141,21 @@ screens without a top bar (primer, bootstrap error) use `safeDrawingPadding()`.
 
 ## Demo mode
 
-Debug builds switch to the fake server with `-Pwaivera.demoMode=true` at build time or
-`adb shell am start -S -n com.waivera.waivera/.MainActivity --ez waivera.fake true` (stored in
-`DemoModeLaunchFlag`, read before injection). Release builds ignore the extra. Which bindings
-the flag selects is defined by `:core:demo` (see `data-layer.md`).
+There is one demo switch, `:core:demo`'s `DemoMode` (see `data-layer.md`). Debug builds switch
+to demo data with `-Pwaivera.demoMode=true` at build time or
+`adb shell am start -S -n com.waivera.waivera/.MainActivity --ez waivera.fake true` (and back
+with `--ez waivera.fake false`). `MainActivity` hands the launch intent to
+`DemoLaunch.restartIfChanged` before `super.onCreate`; the debug copy calls
+`DemoMode.applyLaunchIntent`, which remembers the choice and restarts the process when it
+changed. Debug builds also fall back to demo data when the API URL or Firebase values are
+missing. Release builds have no `:core:demo`: their `DemoLaunch` ignores the extra and
+`ReleaseDataModule` (`app/src/release`) includes `LiveRepositoriesModule`.
 
 ## Firebase
 
-`FirebaseInitializer` starts Firebase from BuildConfig fields read from Gradle properties or
-`local.properties` (`waivera.firebase.apiKey`, `.appId`, `.projectId`, `.senderId`). There is no
+`FirebaseInitializer` is the only place Firebase is started: in `Application.onCreate`, before
+Hilt, guarded by `FirebaseApp.getApps`. It reads `:core:data`'s `FirebaseConfig`, which holds
+the `waivera.firebase.apiKey`, `.appId`, `.projectId` and `.senderId` values from Gradle
+properties or `local.properties`; `:core:data` never initialises Firebase itself. There is no
 `google-services.json` and no Google services plugin. Without the values the app still starts,
 the session reports `ConfigurationMissing` and push registration is skipped.
