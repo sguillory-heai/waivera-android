@@ -24,7 +24,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
@@ -60,7 +60,7 @@ fun PersonDetailScreen(
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbar = remember { SnackbarHostState() }
     val haptics = rememberHaptics()
-    val context = LocalContext.current
+    val resources = LocalResources.current
     val openConversation by rememberUpdatedState(onOpenConversation)
     LaunchedEffect(viewModel) {
         viewModel.effect.collect { effect ->
@@ -69,9 +69,9 @@ fun PersonDetailScreen(
                 is PersonDetailEffect.MessageFailed -> {
                     haptics.error()
                     snackbar.showSnackbar(
-                        context.getString(
+                        resources.getString(
                             R.string.feature_profile_person_message_failed,
-                            context.getString(effect.error.messageRes),
+                            resources.getString(effect.error.messageRes),
                         ),
                     )
                 }

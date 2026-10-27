@@ -24,7 +24,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.semantics
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -61,7 +61,7 @@ fun SettingsScreen(
     val viewModel: SettingsViewModel = hiltViewModel()
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbar = remember { SnackbarHostState() }
-    val context = LocalContext.current
+    val resources = LocalResources.current
     val haptics = rememberHaptics()
     LaunchedEffect(viewModel) {
         viewModel.effect.collect { effect ->
@@ -69,9 +69,9 @@ fun SettingsScreen(
                 is SettingsEffect.SignOutFailed -> {
                     haptics.error()
                     snackbar.showSnackbar(
-                        context.getString(
+                        resources.getString(
                             R.string.feature_settings_sign_out_failed,
-                            context.getString(effect.error.messageRes),
+                            resources.getString(effect.error.messageRes),
                         ),
                     )
                 }

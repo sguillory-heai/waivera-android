@@ -28,7 +28,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
@@ -66,7 +66,7 @@ fun BookmarksScreen(
     val viewModel: BookmarksViewModel = hiltViewModel()
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbar = remember { SnackbarHostState() }
-    val context = LocalContext.current
+    val resources = LocalResources.current
     val haptics = rememberHaptics()
     val words = BookmarkSearchWords(
         threadReply = stringResource(R.string.feature_profile_bookmarks_thread_reply),
@@ -79,15 +79,15 @@ fun BookmarksScreen(
         viewModel.effect.collect { effect ->
             when (effect) {
                 is BookmarksEffect.Removed -> snackbar.showUndo(
-                    message = context.getString(R.string.feature_profile_bookmarks_removed),
-                    undoLabel = context.getString(R.string.feature_profile_undo),
+                    message = resources.getString(R.string.feature_profile_bookmarks_removed),
+                    undoLabel = resources.getString(R.string.feature_profile_undo),
                     onUndo = { viewModel.undoRemove(effect.messageId) },
                 )
                 is BookmarksEffect.RemoveFailed -> {
                     haptics.error()
                     val result = snackbar.showSnackbar(
-                        message = context.getString(R.string.feature_profile_bookmarks_remove_failed),
-                        actionLabel = context.getString(R.string.feature_profile_try_again),
+                        message = resources.getString(R.string.feature_profile_bookmarks_remove_failed),
+                        actionLabel = resources.getString(R.string.feature_profile_try_again),
                     )
                     if (result == SnackbarResult.ActionPerformed) {
                         viewModel.remove(effect.messageId)
@@ -95,7 +95,7 @@ fun BookmarksScreen(
                 }
                 is BookmarksEffect.RestoreFailed -> {
                     haptics.error()
-                    snackbar.showSnackbar(context.getString(R.string.feature_profile_bookmarks_restore_failed))
+                    snackbar.showSnackbar(resources.getString(R.string.feature_profile_bookmarks_restore_failed))
                 }
             }
         }
@@ -214,7 +214,12 @@ private fun BookmarksList(state: BookmarksUiState, onOpen: (BookmarkRow) -> Unit
                 text = if (state.query.isBlank()) {
                     pluralStringResource(R.plurals.feature_profile_bookmarks_count, state.totalCount, state.totalCount)
                 } else {
-                    stringResource(R.string.feature_profile_bookmarks_count_filtered, state.rows.size, state.totalCount)
+                    pluralStringResource(
+                        R.plurals.feature_profile_bookmarks_count_filtered,
+                        state.totalCount,
+                        state.rows.size,
+                        state.totalCount,
+                    )
                 },
                 style = MaterialTheme.typography.labelMedium,
                 color = WaiveraTheme.colors.textSecondary,

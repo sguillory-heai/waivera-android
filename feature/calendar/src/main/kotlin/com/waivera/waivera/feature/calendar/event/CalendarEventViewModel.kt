@@ -220,7 +220,6 @@ class CalendarEventViewModel @AssistedInject constructor(
         if (pending != null) {
             appScope.launch { calendar.respondToInvitation(eventId, pending.accept) }
         }
-        super.onCleared()
     }
 
     private suspend fun commit(accept: Boolean) {

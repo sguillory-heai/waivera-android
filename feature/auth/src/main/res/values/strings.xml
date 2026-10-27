@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources>
+<resources xmlns:tools="http://schemas.android.com/tools">
     <!-- Sign in -->
     <string name="feature_auth_brand" translatable="false">Waivera</string>
     <string name="feature_auth_sign_in_title">Welcome back.</string>
@@ -28,7 +28,8 @@
     <string name="feature_auth_error_password_required">Enter your password.</string>
     <string name="feature_auth_error_current_password_required">Enter your current password.</string>
     <string name="feature_auth_error_current_password_wrong">That isn\'t your current password. Try again.</string>
-    <string name="feature_auth_error_new_password_short">Use at least %1$d characters.</string>
+    <!-- The minimum length is a fixed constant above one, so the plural form never varies. -->
+    <string name="feature_auth_error_new_password_short" tools:ignore="PluralsCandidate">Use at least %1$d characters.</string>
     <string name="feature_auth_error_new_password_same">Choose a password that\'s different from your current one.</string>
     <string name="feature_auth_error_confirm_mismatch">These passwords don\'t match.</string>
 
@@ -39,7 +40,7 @@
     <string name="feature_auth_password_change_voluntary_message">Enter your current password, then choose a new one. You\'ll stay signed in on this device.</string>
     <string name="feature_auth_current_password_label">Current password</string>
     <string name="feature_auth_new_password_label">New password</string>
-    <string name="feature_auth_new_password_hint">At least %1$d characters. A short phrase is easier to remember.</string>
+    <string name="feature_auth_new_password_hint" tools:ignore="PluralsCandidate">At least %1$d characters. A short phrase is easier to remember.</string>
     <string name="feature_auth_confirm_password_label">Confirm new password</string>
     <string name="feature_auth_password_change_save">Update password</string>
     <string name="feature_auth_password_change_saving">Updating your password…</string>

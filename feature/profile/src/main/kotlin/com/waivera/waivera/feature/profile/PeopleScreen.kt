@@ -41,11 +41,7 @@ import com.waivera.waivera.core.designsystem.theme.WaiveraTheme
 
 /** Entry point for the people screen. Owned by `:feature:profile`; routed by `:app`. */
 @Composable
-fun PeopleScreen(
-    onBack: () -> Unit,
-    onOpenPerson: (userId: String) -> Unit,
-    modifier: Modifier = Modifier,
-) {
+fun PeopleScreen(onBack: () -> Unit, onOpenPerson: (userId: String) -> Unit, modifier: Modifier = Modifier) {
     val viewModel: PeopleViewModel = hiltViewModel()
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     CompositionLocalProvider(LocalAvatarLoader provides viewModel.avatarLoader) {
@@ -156,7 +152,12 @@ private fun PeopleList(state: PeopleUiState, onOpenPerson: (String) -> Unit) {
                 text = if (state.query.isBlank()) {
                     pluralStringResource(R.plurals.feature_profile_people_count, state.totalCount, state.totalCount)
                 } else {
-                    stringResource(R.string.feature_profile_people_count_filtered, state.rows.size, state.totalCount)
+                    pluralStringResource(
+                        R.plurals.feature_profile_people_count_filtered,
+                        state.totalCount,
+                        state.rows.size,
+                        state.totalCount,
+                    )
                 },
                 style = MaterialTheme.typography.labelMedium,
                 color = colors.textSecondary,

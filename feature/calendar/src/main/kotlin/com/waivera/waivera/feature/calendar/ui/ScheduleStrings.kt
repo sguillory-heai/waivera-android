@@ -20,7 +20,7 @@ import java.util.Locale
 /** The person's first locale; dates and clocks follow it, zones never follow the device. */
 @Composable
 @ReadOnlyComposable
-internal fun currentLocale(): Locale = LocalConfiguration.current.locales.get(0) ?: Locale.getDefault()
+internal fun currentLocale(): Locale = LocalConfiguration.current.locales.get(0) ?: Locale.ROOT
 
 @Composable
 internal fun periodTitleText(title: PeriodTitle): String {

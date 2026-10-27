@@ -12,7 +12,7 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
@@ -40,7 +40,7 @@ fun ChatListRoute(
     val scope = rememberCoroutineScope()
     val haptics = rememberHaptics()
     val uriHandler = LocalUriHandler.current
-    val resources = LocalContext.current.resources
+    val resources = LocalResources.current
     val openConversation by rememberUpdatedState(onOpenConversation)
     val openPerson by rememberUpdatedState(onOpenPerson)
     var actionsFor by rememberSaveable { mutableStateOf<Long?>(null) }
