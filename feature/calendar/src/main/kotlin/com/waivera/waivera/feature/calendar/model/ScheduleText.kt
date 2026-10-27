@@ -39,19 +39,15 @@ object ScheduleText {
         format(date, if (date.year == currentYear) SHORT_DAY else SHORT_DAY_YEAR, locale)
 
     /** Sunday-first weekday headers; [narrow] gives "S M T W" for large font, where "Mon" no longer fits. */
-    fun weekdayHeaders(locale: Locale, narrow: Boolean = false): List<String> =
-        sundayFirst().map { it.getDisplayName(weekdayStyle(narrow), locale) }
+    fun weekdayHeaders(locale: Locale, narrow: Boolean = false): List<String> {
+        val style = if (narrow) TextStyle.NARROW else TextStyle.SHORT
+        return sundayFirst().map { it.getDisplayName(style, locale) }
+    }
 
     fun weekdayShort(date: LocalDate, locale: Locale): String = date.dayOfWeek.getDisplayName(TextStyle.SHORT, locale)
 
     /** "M" for Monday. Visual only: the cell's spoken label always carries the full day. */
-    fun weekdayNarrow(date: LocalDate, locale: Locale): String =
-        date.dayOfWeek.getDisplayName(TextStyle.NARROW, locale)
-
-    private fun weekdayStyle(narrow: Boolean): TextStyle = if (narrow) TextStyle.NARROW else TextStyle.SHORT
-
-    private fun format(date: LocalDate, pattern: String, locale: Locale): String =
-        DateTimeFormatter.ofPattern(pattern, locale).format(date)
+    fun weekdayNarrow(date: LocalDate, locale: Locale): String = date.dayOfWeek.getDisplayName(TextStyle.NARROW, locale)
 }
 
 /**
@@ -72,6 +68,9 @@ data class ZoneNotice(val zone: ZoneId, val isFallback: Boolean) {
         }
     }
 }
+
+private fun format(date: LocalDate, pattern: String, locale: Locale): String =
+    DateTimeFormatter.ofPattern(pattern, locale).format(date)
 
 private fun sundayFirst(): List<DayOfWeek> =
     listOf(DayOfWeek.SUNDAY) + DayOfWeek.entries.filter { it != DayOfWeek.SUNDAY }
