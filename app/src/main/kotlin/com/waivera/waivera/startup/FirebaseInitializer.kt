@@ -3,12 +3,13 @@ package com.waivera.waivera.startup
 import android.content.Context
 import com.google.firebase.FirebaseApp
 import com.google.firebase.FirebaseOptions
-import com.waivera.waivera.BuildConfig
+import com.waivera.waivera.core.data.auth.FirebaseConfig
 
 /**
- * Starts Firebase from BuildConfig values (from `local.properties` or CI secrets), because no
- * `google-services.json` is committed. Without values the app still runs: the session reports
- * missing configuration and sign-in offers demo mode.
+ * The only place the default FirebaseApp is created. Values are the `waivera.firebase.*` keys
+ * that `:core:data` reads into [FirebaseConfig] (from `local.properties` or CI secrets), because no
+ * `google-services.json` is committed. Without them the app still runs: the session reports
+ * missing configuration and debug builds fall back to demo data.
  */
 object FirebaseInitializer {
     fun initialize(context: Context): Boolean {
@@ -18,19 +19,14 @@ object FirebaseInitializer {
         return true
     }
 
-    /** Null when any required value is missing. */
-    fun options(
-        apiKey: String = BuildConfig.FIREBASE_API_KEY,
-        appId: String = BuildConfig.FIREBASE_APP_ID,
-        projectId: String = BuildConfig.FIREBASE_PROJECT_ID,
-        senderId: String = BuildConfig.FIREBASE_SENDER_ID,
-    ): FirebaseOptions? {
-        if (listOf(apiKey, appId, projectId, senderId).any(String::isBlank)) return null
+    /** Null when a required value is missing. The sender id is optional (push only). */
+    fun options(config: FirebaseConfig = FirebaseConfig.fromBuildConfig()): FirebaseOptions? {
+        if (config.missingKeys.isNotEmpty()) return null
         return FirebaseOptions.Builder()
-            .setApiKey(apiKey)
-            .setApplicationId(appId)
-            .setProjectId(projectId)
-            .setGcmSenderId(senderId)
+            .setApiKey(config.apiKey)
+            .setApplicationId(config.appId)
+            .setProjectId(config.projectId)
+            .apply { if (config.senderId.isNotBlank()) setGcmSenderId(config.senderId) }
             .build()
     }
 }

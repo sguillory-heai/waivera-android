@@ -5,7 +5,6 @@ import com.google.android.gms.tasks.Tasks
 import com.google.firebase.FirebaseApp
 import com.google.firebase.FirebaseException
 import com.google.firebase.FirebaseNetworkException
-import com.google.firebase.FirebaseOptions
 import com.google.firebase.FirebaseTooManyRequestsException
 import com.google.firebase.auth.EmailAuthProvider
 import com.google.firebase.auth.FirebaseAuth
@@ -46,9 +45,10 @@ data class FirebaseConfig(val apiKey: String, val appId: String, val projectId: 
 }
 
 /**
- * [AuthGateway] over the Firebase Auth SDK. The default FirebaseApp is initialised here from
- * [FirebaseConfig]; there is no google-services plugin. With missing values nothing is
- * initialised and every call fails with [WaiveraError.Configuration] instead of crashing.
+ * [AuthGateway] over the Firebase Auth SDK. This module never initialises Firebase: the app
+ * creates the default FirebaseApp from the same [FirebaseConfig] keys in `Application.onCreate`,
+ * before Hilt builds anything. With missing values (or no default app) every call fails with
+ * [WaiveraError.Configuration] instead of crashing.
  */
 @Singleton
 class FirebaseAuthGateway @Inject constructor(@ApplicationContext private val context: Context) : AuthGateway {
@@ -62,15 +62,7 @@ class FirebaseAuthGateway @Inject constructor(@ApplicationContext private val co
     private val auth: FirebaseAuth? by lazy {
         if (!isConfigured) return@lazy null
         val app = FirebaseApp.getApps(context).firstOrNull { it.name == FirebaseApp.DEFAULT_APP_NAME }
-            ?: FirebaseApp.initializeApp(
-                context,
-                FirebaseOptions.Builder()
-                    .setApiKey(config.apiKey)
-                    .setApplicationId(config.appId)
-                    .setProjectId(config.projectId)
-                    .apply { if (config.senderId.isNotBlank()) setGcmSenderId(config.senderId) }
-                    .build(),
-            )
+            ?: return@lazy null
         FirebaseAuth.getInstance(app).also { firebase ->
             // currentUser is restored synchronously from disk, so the first value is authoritative.
             _user.value = firebase.currentUser?.let { AuthUser(it.uid, it.email) }
