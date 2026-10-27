@@ -13,11 +13,12 @@ complexity:
     # Stateless composables take state plus callbacks plus a Modifier.
     ignoreAnnotated: ['Composable']
   TooManyFunctions:
-    ignoreAnnotated: ['Preview']
+    ignoreAnnotated: ['Preview', 'WaiveraPreviews']
 
 style:
   MagicNumber:
     # Design tokens are the one place literal dp, sp and colour values live.
     excludes: ['**/core/designsystem/**', '**/test/**', '**/androidTest/**']
   UnusedPrivateMember:
-    ignoreAnnotated: ['Preview']
+    # WaiveraPreviews is the light/dark/200% font multipreview from core:designsystem.
+    ignoreAnnotated: ['Preview', 'WaiveraPreviews']
