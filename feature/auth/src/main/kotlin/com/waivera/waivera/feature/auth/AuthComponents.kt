@@ -40,6 +40,7 @@ import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
+import com.waivera.waivera.core.designsystem.component.WaiveraBottomActionBar
 import com.waivera.waivera.core.designsystem.component.WaiveraIconButton
 import com.waivera.waivera.core.designsystem.component.WaiveraIconTile
 import com.waivera.waivera.core.designsystem.component.WaiveraTextField
@@ -51,13 +52,17 @@ import com.waivera.waivera.core.designsystem.theme.WaiveraTheme
  * Full-screen frame for the gate screens. It is the single insets owner: the default [insets]
  * (`safeDrawing`) cover the status bar, cutout, navigation bar and the keyboard, and the column
  * scrolls so a focused field is never hidden behind the IME. Under a top bar, pass insets
- * without the top side. Content is width-capped so
- * the form stays readable on tablets and in landscape.
+ * without the top side. Content is width-capped so the form stays readable on tablets and in
+ * landscape.
+ *
+ * [bottomBar] pins the screen's primary actions under the scrolling content, in thumb reach and
+ * above the keyboard, so they stay on screen at 200% font.
  */
 @Composable
 internal fun AuthScaffold(
     modifier: Modifier = Modifier,
     insets: WindowInsets = WindowInsets.safeDrawing,
+    bottomBar: (@Composable ColumnScope.() -> Unit)? = null,
     content: @Composable ColumnScope.() -> Unit,
 ) {
     Box(
@@ -67,15 +72,25 @@ internal fun AuthScaffold(
             .windowInsetsPadding(insets),
         contentAlignment = Alignment.TopCenter,
     ) {
+        val scrollState = rememberScrollState()
         Column(
             modifier = Modifier
                 .widthIn(max = WaiveraSizes.SheetMaxWidth)
-                .fillMaxWidth()
-                .verticalScroll(rememberScrollState())
-                .padding(vertical = WaiveraSpacing.Large),
-            verticalArrangement = Arrangement.spacedBy(WaiveraSpacing.Medium),
-            content = content,
-        )
+                .fillMaxSize(),
+        ) {
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxWidth()
+                    .verticalScroll(scrollState)
+                    .padding(vertical = WaiveraSpacing.Large),
+                verticalArrangement = Arrangement.spacedBy(WaiveraSpacing.Medium),
+                content = content,
+            )
+            if (bottomBar != null) {
+                WaiveraBottomActionBar(showDivider = scrollState.canScrollForward, content = bottomBar)
+            }
+        }
     }
 }
 

@@ -115,7 +115,24 @@ internal fun NotificationPrimerContent(
     modifier: Modifier = Modifier,
     requesting: Boolean = false,
 ) {
-    AuthScaffold(modifier = modifier) {
+    AuthScaffold(
+        modifier = modifier,
+        bottomBar = {
+            WaiveraButton(
+                text = stringResource(R.string.feature_auth_primer_enable),
+                onClick = onEnable,
+                loading = requesting,
+                fullWidth = true,
+            )
+            WaiveraButton(
+                text = stringResource(R.string.feature_auth_primer_not_now),
+                onClick = onNotNow,
+                variant = WaiveraButtonVariant.Text,
+                enabled = !requesting,
+                fullWidth = true,
+            )
+        },
+    ) {
         AuthHeader(
             title = stringResource(R.string.feature_auth_primer_title),
             message = stringResource(R.string.feature_auth_primer_message),
@@ -133,19 +150,6 @@ internal fun NotificationPrimerContent(
                 style = MaterialTheme.typography.bodyMedium,
                 color = WaiveraTheme.colors.textSecondary,
                 modifier = Modifier.padding(top = WaiveraSpacing.ExtraSmall),
-            )
-            WaiveraButton(
-                text = stringResource(R.string.feature_auth_primer_enable),
-                onClick = onEnable,
-                loading = requesting,
-                fullWidth = true,
-            )
-            WaiveraButton(
-                text = stringResource(R.string.feature_auth_primer_not_now),
-                onClick = onNotNow,
-                variant = WaiveraButtonVariant.Text,
-                enabled = !requesting,
-                fullWidth = true,
             )
         }
     }

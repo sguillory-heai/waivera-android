@@ -3,6 +3,7 @@ package com.waivera.waivera.feature.auth
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.fillMaxSize
@@ -21,6 +22,9 @@ import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.ImeAction
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -28,6 +32,7 @@ import com.waivera.waivera.core.designsystem.component.BannerTone
 import com.waivera.waivera.core.designsystem.component.WaiveraBanner
 import com.waivera.waivera.core.designsystem.component.WaiveraButton
 import com.waivera.waivera.core.designsystem.component.WaiveraButtonVariant
+import com.waivera.waivera.core.designsystem.component.WaiveraEmptyState
 import com.waivera.waivera.core.designsystem.component.WaiveraTopBar
 import com.waivera.waivera.core.designsystem.feedback.rememberHaptics
 import com.waivera.waivera.core.designsystem.icon.WaiveraIcons
@@ -104,14 +109,24 @@ internal fun PasswordChangeContent(
     actions: PasswordChangeActions,
     modifier: Modifier = Modifier,
 ) {
+    val done = state.phase == PasswordChangePhase.Done
+    val bottomBar: (@Composable ColumnScope.() -> Unit)? = if (done) {
+        null
+    } else {
+        { PasswordChangeButtons(state = state, actions = actions, showSignOut = required) }
+    }
     if (required) {
-        AuthScaffold(modifier = modifier) {
-            AuthHeader(
-                title = stringResource(R.string.feature_auth_password_change_required_title),
-                message = stringResource(R.string.feature_auth_password_change_required_message),
-                icon = WaiveraIcons.Lock,
-            )
-            PasswordChangeForm(state = state, actions = actions, showSignOut = true)
+        AuthScaffold(modifier = modifier, bottomBar = bottomBar) {
+            if (done) {
+                PasswordChangeDone(onDone = null)
+            } else {
+                AuthHeader(
+                    title = stringResource(R.string.feature_auth_password_change_required_title),
+                    message = stringResource(R.string.feature_auth_password_change_required_message),
+                    icon = WaiveraIcons.Lock,
+                )
+                PasswordChangeForm(state = state, actions = actions)
+            }
         }
     } else {
         // The voluntary screen sits under the app's top bar convention: the bar owns the status
@@ -125,23 +140,43 @@ internal fun PasswordChangeContent(
                 title = stringResource(R.string.feature_auth_password_change_title),
                 onBack = actions.onBack,
             )
-            AuthScaffold(insets = BelowTopBarInsets) {
-                Text(
-                    text = stringResource(R.string.feature_auth_password_change_voluntary_message),
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = WaiveraTheme.colors.textSecondary,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .then(GutterPadding),
-                )
-                PasswordChangeForm(state = state, actions = actions, showSignOut = false)
+            AuthScaffold(insets = BelowTopBarInsets, bottomBar = bottomBar) {
+                if (done) {
+                    PasswordChangeDone(onDone = actions.onBack)
+                } else {
+                    Text(
+                        text = stringResource(R.string.feature_auth_password_change_voluntary_message),
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = WaiveraTheme.colors.textSecondary,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .then(GutterPadding),
+                    )
+                    PasswordChangeForm(state = state, actions = actions)
+                }
             }
         }
     }
 }
 
+/**
+ * The confirm step: the form is replaced by a success block. The required flow has no button,
+ * because the gate moves on by itself as soon as the session refreshes.
+ */
 @Composable
-private fun PasswordChangeForm(state: PasswordChangeUiState, actions: PasswordChangeActions, showSignOut: Boolean) {
+private fun PasswordChangeDone(onDone: (() -> Unit)?) {
+    WaiveraEmptyState(
+        title = stringResource(R.string.feature_auth_password_change_done_title),
+        message = stringResource(R.string.feature_auth_password_change_done_message),
+        icon = WaiveraIcons.Check,
+        actionLabel = onDone?.let { stringResource(R.string.feature_auth_password_change_done_action) },
+        onAction = onDone,
+        modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
+    )
+}
+
+@Composable
+private fun PasswordChangeForm(state: PasswordChangeUiState, actions: PasswordChangeActions) {
     PasswordChangeBanners(state = state, onDismiss = actions.onDismissMessage)
     Column(
         modifier = Modifier
@@ -150,29 +185,29 @@ private fun PasswordChangeForm(state: PasswordChangeUiState, actions: PasswordCh
         verticalArrangement = Arrangement.spacedBy(WaiveraSpacing.Medium),
     ) {
         PasswordChangeFields(state = state, actions = actions)
+    }
+}
+
+/** Update (enabled so a tap explains what is missing) and, on the required flow, sign-out. */
+@Composable
+private fun PasswordChangeButtons(state: PasswordChangeUiState, actions: PasswordChangeActions, showSignOut: Boolean) {
+    val saving = state.phase == PasswordChangePhase.Saving
+    WaiveraButton(
+        text = stringResource(R.string.feature_auth_password_change_save),
+        onClick = actions.onSubmit,
+        enabled = state.fieldsEnabled || saving,
+        loading = saving,
+        loadingText = stringResource(R.string.feature_auth_password_change_saving),
+        fullWidth = true,
+    )
+    if (showSignOut) {
         WaiveraButton(
-            text = stringResource(R.string.feature_auth_password_change_save),
-            onClick = actions.onSubmit,
-            enabled = state.canSubmit || state.phase == PasswordChangePhase.Saving,
-            loading = state.phase == PasswordChangePhase.Saving,
+            text = stringResource(R.string.feature_auth_sign_out),
+            onClick = actions.onSignOut,
+            variant = WaiveraButtonVariant.Text,
+            enabled = !saving,
             fullWidth = true,
         )
-        if (state.phase == PasswordChangePhase.Saving) {
-            Text(
-                text = stringResource(R.string.feature_auth_password_change_saving),
-                style = MaterialTheme.typography.bodyMedium,
-                color = WaiveraTheme.colors.textSecondary,
-            )
-        }
-        if (showSignOut) {
-            WaiveraButton(
-                text = stringResource(R.string.feature_auth_sign_out),
-                onClick = actions.onSignOut,
-                variant = WaiveraButtonVariant.Text,
-                enabled = state.phase != PasswordChangePhase.Saving,
-                fullWidth = true,
-            )
-        }
     }
 }
 
@@ -187,13 +222,6 @@ private fun PasswordChangeBanners(state: PasswordChangeUiState, onDismiss: () ->
                 onDismiss = onDismiss,
             )
         }
-    }
-    AuthAnimatedVisibility(visible = state.phase == PasswordChangePhase.Done) {
-        WaiveraBanner(
-            title = stringResource(R.string.feature_auth_password_change_done_title),
-            message = stringResource(R.string.feature_auth_password_change_done_message),
-            tone = BannerTone.Info,
-        )
     }
 }
 
