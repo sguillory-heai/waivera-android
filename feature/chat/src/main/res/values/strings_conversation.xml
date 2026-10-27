@@ -29,6 +29,7 @@
     <string name="feature_chat_retry">Retry</string>
     <string name="feature_chat_jump_to_latest">Jump to latest</string>
     <string name="feature_chat_day_today">Today</string>
+    <string name="feature_chat_day_yesterday">Yesterday</string>
 
     <!-- Message rows -->
     <string name="feature_chat_message_deleted">Message deleted</string>
@@ -38,6 +39,9 @@
     <string name="feature_chat_saved">Saved</string>
     <string name="feature_chat_sending">Sending…</string>
     <string name="feature_chat_sent_at">Sent · %1$s</string>
+    <!-- Under my last bubble when the clock line above already shows its time. -->
+    <string name="feature_chat_sent">Sent</string>
+    <string name="feature_chat_edited">Edited</string>
     <string name="feature_chat_queued">Waiting for connection…</string>
     <string name="feature_chat_failed">Failed</string>
     <string name="feature_chat_failed_retry">Retry</string>

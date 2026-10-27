@@ -355,10 +355,13 @@ private fun Footer(
     val endOfRun = !row.groupedWithNext && !message.isDeleted
     val label = when {
         createdAt == null -> null
-        endOfRun -> runEndLabel(createdAt, time, mine = row.isMine)
+        // The clock line above already says this minute: keep only "Sent" / "Edited" (UI3-04).
+        endOfRun && row.timeShownAbove -> untimedRunEndLabel(mine = row.isMine, edited = message.isEdited)
+        endOfRun -> runEndLabel(createdAt, time, mine = row.isMine).withEdited(message.isEdited)
         timestampVisible -> relativeTimeText(ChatTime.relative(createdAt, time.now, time.zone))
+            .withEdited(message.isEdited)
         else -> null
-    }?.let { if (message.isEdited) stringResource(R.string.feature_chat_timestamp_edited, it) else it }
+    }
     if (label == null && !message.isBookmarked) return
     Row(
         modifier = Modifier.padding(top = WaiveraSpacing.ExtraSmall),
@@ -381,6 +384,19 @@ private fun Footer(
 private fun runEndLabel(createdAt: Instant, time: RowTime, mine: Boolean): String {
     val clock = remember(createdAt, time.zone) { ChatTime.clock(createdAt, time.zone) }
     return if (mine) stringResource(R.string.feature_chat_sent_at, clock) else clock
+}
+
+@Composable
+private fun String.withEdited(edited: Boolean): String =
+    if (edited) stringResource(R.string.feature_chat_timestamp_edited, this) else this
+
+/** "Sent", "Sent · edited" or "Edited" when the time is already on the clock line above. */
+@Composable
+private fun untimedRunEndLabel(mine: Boolean, edited: Boolean): String? = when {
+    mine && edited -> stringResource(R.string.feature_chat_timestamp_edited, stringResource(R.string.feature_chat_sent))
+    mine -> stringResource(R.string.feature_chat_sent)
+    edited -> stringResource(R.string.feature_chat_edited)
+    else -> null
 }
 
 @Composable

@@ -7,6 +7,7 @@ import java.time.Duration
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
+import java.time.temporal.ChronoUnit
 
 /** One row of a message list. [key] is stable across updates and unique within a list. */
 @Immutable
@@ -33,6 +34,11 @@ sealed interface TimelineItem {
         val reactions: List<ReactionSummary>,
         /** True for a message that arrived while the list was on screen (drives the arrival motion). */
         val isLiveArrival: Boolean = false,
+        /**
+         * True on the last bubble of a run whose clock line above already shows this minute, so
+         * the footer drops its time and keeps only "Sent" or "Edited" (UI3-04).
+         */
+        val timeShownAbove: Boolean = false,
     ) : TimelineItem
 
     /** A plain system line (not a call): centred, italic, never grouped or long-pressable. */
@@ -127,18 +133,22 @@ object TimelineBuilder {
         val callPosition = calls.mapValues { (_, group) -> group.last().id }
         val items = mutableListOf<TimelineItem>()
         var lastDay: LocalDate? = null
+        // The clock line the current run of bubbles started under, if any.
+        var runSeparatorAt: Instant? = null
         sorted.forEachIndexed { index, message ->
             val callId = SystemMessages.callRecordId(message)
             if (callId != null && callPosition[callId] != message.id) return@forEachIndexed
             val day = message.createdAt?.let { ChatTime.day(it, zone) }
+            var separatorAt: Instant? = null
             if (daySeparators && day != null && day != lastDay) {
                 items += TimelineItem.DaySeparator("day-$day", day)
                 lastDay = day
             } else if (daySeparators) {
-                gapAfter(sorted.getOrNull(index - 1), message)?.let { at ->
-                    items += TimelineItem.TimeSeparator("time-${message.id}", at)
-                }
+                separatorAt = gapAfter(sorted.getOrNull(index - 1), message)
+                separatorAt?.let { at -> items += TimelineItem.TimeSeparator("time-${message.id}", at) }
             }
+            val previous = sorted.getOrNull(index - 1)
+            if (separatorAt != null || !MessageGrouping.canGroup(previous, message, zone)) runSeparatorAt = separatorAt
             items += when {
                 callId != null -> {
                     val group = calls.getValue(callId)
@@ -153,6 +163,7 @@ object TimelineBuilder {
                     zone = zone,
                     botConversation = botConversation,
                     liveArrivals = liveArrivals,
+                    runSeparatorAt = runSeparatorAt,
                 )
             }
         }
@@ -180,23 +191,32 @@ object TimelineBuilder {
         zone: ZoneId,
         botConversation: Boolean,
         liveArrivals: Set<Long>,
+        runSeparatorAt: Instant?,
     ): TimelineItem {
         val ticket = TicketNotifications.from(message, botConversation)
         if (ticket == null && SystemMessages.isSystem(message)) {
             return TimelineItem.SystemRow(key, message, SystemMessages.parse(message.text).text)
         }
+        val groupedWithNext = MessageGrouping.canGroup(message, next, zone)
         return TimelineItem.MessageRow(
             key = key,
             message = message,
             isMine = message.isMine(myUserId),
             isBot = TicketNotifications.isBot(message, botConversation),
             groupedWithPrevious = MessageGrouping.canGroup(previous, message, zone),
-            groupedWithNext = MessageGrouping.canGroup(message, next, zone),
+            groupedWithNext = groupedWithNext,
             rich = if (message.isDeleted || ticket != null) null else TipTapParser.documentFor(message),
             ticket = ticket,
             reactions = Reactions.summarize(message.reactions, myUserId),
             isLiveArrival = message.id in liveArrivals,
+            timeShownAbove = !groupedWithNext && sameMinute(runSeparatorAt, message.createdAt, zone),
         )
+    }
+
+    /** Both times read the same on a clock in [zone] ("12:00 PM"). */
+    private fun sameMinute(a: Instant?, b: Instant?, zone: ZoneId): Boolean {
+        if (a == null || b == null) return false
+        return a.atZone(zone).truncatedTo(ChronoUnit.MINUTES) == b.atZone(zone).truncatedTo(ChronoUnit.MINUTES)
     }
 
     /**

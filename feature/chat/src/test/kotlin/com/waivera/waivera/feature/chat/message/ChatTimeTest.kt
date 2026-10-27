@@ -57,10 +57,31 @@ class ChatTimeTest {
     }
 
     @Test
-    fun dayLabelIsTodayOrTheDate() {
+    fun dayLabelIsTodayYesterdayOrTheDateWithTheYearOnlyInAnotherYear() {
         val today = LocalDate.of(2026, 11, 1)
         assertEquals(DayLabel.Today, DayLabel.of(today, today))
-        assertEquals(DayLabel.OnDate(LocalDate.of(2026, 10, 31)), DayLabel.of(LocalDate.of(2026, 10, 31), today))
+        assertEquals(DayLabel.Yesterday, DayLabel.of(LocalDate.of(2026, 10, 31), today))
+        assertEquals(
+            DayLabel.OnDate(LocalDate.of(2026, 10, 20), showYear = false),
+            DayLabel.of(LocalDate.of(2026, 10, 20), today),
+        )
+        assertEquals(
+            DayLabel.OnDate(LocalDate.of(2025, 12, 30), showYear = true),
+            DayLabel.of(LocalDate.of(2025, 12, 30), today),
+        )
+    }
+
+    @Test
+    fun dayLabelsCountSavedZoneDaysAcrossTheFallBack() {
+        // 1 November 2026 is 25 hours long in Chicago. Late that evening, its 00:30 CDT is still
+        // Today and 31 October 01:00 CDT is Yesterday, though more than 24 hours have passed.
+        val evening = Instant.parse("2026-11-02T05:30:00Z")
+        val today = ChatTime.day(evening, chicago)
+        assertEquals(DayLabel.Today, DayLabel.of(ChatTime.day(Instant.parse("2026-11-01T05:30:00Z"), chicago), today))
+        assertEquals(
+            DayLabel.Yesterday,
+            DayLabel.of(ChatTime.day(Instant.parse("2026-10-31T06:00:00Z"), chicago), today),
+        )
     }
 
     @Test

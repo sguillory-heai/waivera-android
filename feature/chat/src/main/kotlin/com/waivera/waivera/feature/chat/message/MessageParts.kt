@@ -497,13 +497,31 @@ fun SystemRowView(text: String, modifier: Modifier = Modifier) {
 fun DaySeparatorView(label: DayLabel, modifier: Modifier = Modifier) {
     val text = when (label) {
         DayLabel.Today -> stringResource(R.string.feature_chat_day_today)
-        is DayLabel.OnDate -> ChatTime.shortDate(label.date, showYear = true)
+        DayLabel.Yesterday -> stringResource(R.string.feature_chat_day_yesterday)
+        is DayLabel.OnDate -> ChatTime.shortDate(label.date, showYear = label.showYear)
     }
+    SeparatorRule(text = text, heading = true, modifier = modifier)
+}
+
+/**
+ * The clock line after an hour's pause inside a day ([TimelineItem.TimeSeparator]). It uses the
+ * day separator's centred rule, so at 200% it can't be mistaken for the previous bubble's
+ * footer (UI3-04).
+ */
+@Composable
+fun TimeSeparatorView(at: Instant, zone: ZoneId, modifier: Modifier = Modifier) {
+    val text = remember(at, zone) { ChatTime.clock(at, zone) }
+    SeparatorRule(text = text, heading = false, modifier = modifier)
+}
+
+/** A label centred between two hairlines; day lines are TalkBack headings, clock lines are not. */
+@Composable
+private fun SeparatorRule(text: String, heading: Boolean, modifier: Modifier = Modifier) {
     Row(
         modifier = modifier
             .fillMaxWidth()
             .padding(horizontal = WaiveraSpacing.Gutter, vertical = WaiveraSpacing.MediumSmall)
-            .semantics(mergeDescendants = true) { heading() },
+            .semantics(mergeDescendants = true) { if (heading) heading() },
         horizontalArrangement = Arrangement.spacedBy(WaiveraSpacing.MediumSmall),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -511,21 +529,6 @@ fun DaySeparatorView(label: DayLabel, modifier: Modifier = Modifier) {
         Text(text = text, style = MaterialTheme.typography.labelMedium, color = WaiveraTheme.colors.textSecondary)
         WaiveraDivider(Modifier.weight(1f))
     }
-}
-
-/** The clock line after an hour's pause inside a day ([TimelineItem.TimeSeparator]). */
-@Composable
-fun TimeSeparatorView(at: Instant, zone: ZoneId, modifier: Modifier = Modifier) {
-    val text = remember(at, zone) { ChatTime.clock(at, zone) }
-    Text(
-        text = text,
-        style = MaterialTheme.typography.labelMedium,
-        color = WaiveraTheme.colors.textSecondary,
-        textAlign = TextAlign.Center,
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(horizontal = WaiveraSpacing.Gutter, vertical = WaiveraSpacing.Small),
-    )
 }
 
 @Composable

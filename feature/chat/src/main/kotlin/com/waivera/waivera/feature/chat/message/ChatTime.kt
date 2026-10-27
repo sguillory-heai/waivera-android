@@ -70,14 +70,23 @@ object ChatTime {
     fun day(value: Instant, zone: ZoneId): LocalDate = value.atZone(zone).toLocalDate()
 }
 
-/** Day separator copy (`messageDateLabel`): "Today", else "Oct 20, 2026". */
+/**
+ * Day separator copy: "Today", "Yesterday", else "Oct 20", with the year only when it is not
+ * this year, the way the inbox and Bookmarks write dates (UI3-13). [today] is the saved zone's.
+ */
 @Immutable
 sealed interface DayLabel {
     data object Today : DayLabel
 
-    data class OnDate(val date: LocalDate) : DayLabel
+    data object Yesterday : DayLabel
+
+    data class OnDate(val date: LocalDate, val showYear: Boolean = false) : DayLabel
 
     companion object {
-        fun of(day: LocalDate, today: LocalDate): DayLabel = if (day == today) Today else OnDate(day)
+        fun of(day: LocalDate, today: LocalDate): DayLabel = when (day) {
+            today -> Today
+            today.minusDays(1) -> Yesterday
+            else -> OnDate(day, showYear = day.year != today.year)
+        }
     }
 }

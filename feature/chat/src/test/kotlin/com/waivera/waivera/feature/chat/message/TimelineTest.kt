@@ -213,6 +213,64 @@ class TimelineTest {
         assertEquals("message-3", items[items.indexOf(times.single()) + 1].key)
     }
 
+    private fun rows(items: List<TimelineItem>) = items.filterIsInstance<TimelineItem.MessageRow>()
+
+    @Test
+    fun aRunUnderAClockLineInTheSameMinuteDropsItsFooterTime() {
+        val items = TimelineBuilder.build(
+            listOf(message(1), message(2, at = base.plusSeconds(3600)), message(3, at = base.plusSeconds(3630))),
+            "usr_a",
+            chicago,
+            false,
+        )
+        val rows = rows(items)
+        assertFalse(rows[0].timeShownAbove, "no clock line above the first run")
+        assertFalse(rows[1].timeShownAbove, "only the last bubble of a run carries a footer")
+        assertTrue(rows[2].timeShownAbove, "12:00 PM line, run ending at 12:00 PM")
+    }
+
+    @Test
+    fun aRunThatEndsInALaterMinuteKeepsItsFooterTime() {
+        val items = TimelineBuilder.build(
+            listOf(
+                message(1),
+                message(2, at = base.plusSeconds(3600)),
+                message(3, at = base.plusSeconds(3600 + 180)),
+            ),
+            "usr_a",
+            chicago,
+            false,
+        )
+        assertFalse(rows(items).last().timeShownAbove, "12:00 PM line, run ending at 12:03 PM")
+    }
+
+    @Test
+    fun aNewRunAfterTheClockLineRunDoesNotInheritIt() {
+        val items = TimelineBuilder.build(
+            listOf(
+                message(1),
+                message(2, at = base.plusSeconds(3600)),
+                message(3, author = "usr_b", at = base.plusSeconds(3610)),
+            ),
+            "usr_a",
+            chicago,
+            false,
+        )
+        val rows = rows(items)
+        assertTrue(rows[1].timeShownAbove)
+        assertFalse(rows[2].timeShownAbove, "another author's run has no clock line of its own")
+    }
+
+    @Test
+    fun theClockLineMinuteIsReadInTheZoneAcrossTheFallBack() {
+        // 01:30 CDT, then 01:30 CST an hour later: same wall clock, and the line and footer agree.
+        val first = message(1, at = Instant.parse("2026-11-01T06:30:00Z"))
+        val second = message(2, at = Instant.parse("2026-11-01T07:30:20Z"))
+        val items = TimelineBuilder.build(listOf(first, second), "usr_a", chicago, false)
+        assertTrue(rows(items).last().timeShownAbove)
+        assertFalse(rows(items).first().timeShownAbove)
+    }
+
     @Test
     fun theFallBackHourIsAPauseEvenThoughTheWallClockRepeats() {
         // 1 November 2026 in Chicago: 01:30 CDT (06:30Z), then 01:30 CST (07:30Z) an hour later.
