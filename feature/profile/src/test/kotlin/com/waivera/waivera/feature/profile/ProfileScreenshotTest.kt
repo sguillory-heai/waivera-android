@@ -270,7 +270,11 @@ class ProfileScreenshotTest {
         runBlocking {
             val reply = graph.backend.messages.value.values.flatten().first { it.isThreadReply }
             graph.bookmarks.toggle(reply.id)
-            BookmarkRules.rows(graph.bookmarks.observeBookmarks().first().data)
+            BookmarkRules.dated(
+                BookmarkRules.rows(graph.bookmarks.observeBookmarks().first().data),
+                DemoData.NOW,
+                DemoData.ZONE,
+            )
         }
     }
 

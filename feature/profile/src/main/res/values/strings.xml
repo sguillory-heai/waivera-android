@@ -119,6 +119,7 @@
 
     <!-- Bookmarks -->
     <string name="feature_profile_bookmarks_title">Bookmarks</string>
+    <string name="feature_profile_bookmarks_yesterday">Yesterday</string>
     <string name="feature_profile_bookmarks_search">Search saved messages or people</string>
     <string name="feature_profile_bookmarks_search_clear">Clear bookmark search</string>
     <string name="feature_profile_bookmarks_refresh_failed">Couldn\'t refresh your bookmarks. Showing the last list.</string>

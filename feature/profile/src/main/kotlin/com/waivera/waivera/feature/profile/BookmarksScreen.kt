@@ -1,6 +1,5 @@
 package com.waivera.waivera.feature.profile
 
-import android.text.format.DateUtils
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -53,6 +52,7 @@ import com.waivera.waivera.core.designsystem.preview.WaiveraPreviews
 import com.waivera.waivera.core.designsystem.theme.WaiveraShapes
 import com.waivera.waivera.core.designsystem.theme.WaiveraSpacing
 import com.waivera.waivera.core.designsystem.theme.WaiveraTheme
+import com.waivera.waivera.core.network.time.WaiveraTime
 import java.time.Instant
 
 /** Entry point for the bookmarks screen. Owned by `:feature:profile`; routed by `:app`. */
@@ -232,7 +232,6 @@ private fun BookmarksList(state: BookmarksUiState, onOpen: (BookmarkRow) -> Unit
         items(state.rows, key = { it.messageId }) { row ->
             BookmarkCard(
                 row = row,
-                now = state.now,
                 onOpen = { onOpen(row) },
                 onRemove = { onRemove(row) },
                 modifier = Modifier.animateItem(),
@@ -242,13 +241,7 @@ private fun BookmarksList(state: BookmarksUiState, onOpen: (BookmarkRow) -> Unit
 }
 
 @Composable
-private fun BookmarkCard(
-    row: BookmarkRow,
-    now: Instant,
-    onOpen: () -> Unit,
-    onRemove: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
+private fun BookmarkCard(row: BookmarkRow, onOpen: () -> Unit, onRemove: () -> Unit, modifier: Modifier = Modifier) {
     val colors = WaiveraTheme.colors
     val author = row.author.ifBlank { stringResource(R.string.feature_profile_bookmarks_unknown_author) }
     WaiveraPressable(
@@ -272,9 +265,9 @@ private fun BookmarkCard(
                 verticalArrangement = Arrangement.spacedBy(WaiveraSpacing.ExtraSmall),
             ) {
                 Text(text = author, style = MaterialTheme.typography.titleSmall, color = colors.text)
-                row.createdAt?.let { at ->
+                row.date?.let { date ->
                     Text(
-                        text = relativeTime(at, now),
+                        text = bookmarkDateText(date),
                         style = MaterialTheme.typography.labelSmall,
                         color = colors.textSecondary,
                     )
@@ -309,12 +302,12 @@ private fun previewText(preview: BookmarkPreview): String = when (preview) {
     BookmarkPreview.Saved -> stringResource(R.string.feature_profile_bookmarks_saved_message)
 }
 
-private fun relativeTime(at: Instant, now: Instant): String = DateUtils.getRelativeTimeSpanString(
-    at.toEpochMilli(),
-    now.toEpochMilli(),
-    DateUtils.MINUTE_IN_MILLIS,
-    DateUtils.FORMAT_ABBREV_RELATIVE,
-).toString()
+@Composable
+private fun bookmarkDateText(date: BookmarkDate): String = when (date) {
+    is BookmarkDate.Today -> ProfileFormat.clock(date.at)
+    BookmarkDate.Yesterday -> stringResource(R.string.feature_profile_bookmarks_yesterday)
+    is BookmarkDate.OnDate -> if (date.showYear) ProfileFormat.date(date.date) else ProfileFormat.birthday(date.date)
+}
 
 private const val PREVIEW_LINES = 2
 
@@ -325,16 +318,20 @@ private fun BookmarksScreenPreview() {
     WaiveraTheme {
         BookmarksContent(
             state = BookmarksUiState(
-                rows = listOf(
-                    BookmarkRow(
-                        1,
-                        7,
-                        null,
-                        "Priya Raman",
-                        now.minusSeconds(3_600),
-                        BookmarkPreview.Text("Shift notes are in the log."),
+                rows = BookmarkRules.dated(
+                    listOf(
+                        BookmarkRow(
+                            1,
+                            7,
+                            null,
+                            "Priya Raman",
+                            now.minusSeconds(3_600),
+                            BookmarkPreview.Text("Shift notes are in the log."),
+                        ),
+                        BookmarkRow(2, 7, 9330, "Jordan Lee", now.minusSeconds(86_400), BookmarkPreview.Photo),
                     ),
-                    BookmarkRow(2, 7, 9330, "Jordan Lee", now.minusSeconds(86_400), BookmarkPreview.Photo),
+                    now,
+                    WaiveraTime.FallbackZone,
                 ),
                 totalCount = 2,
                 phase = ListPhase.Content,

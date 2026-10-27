@@ -3,6 +3,7 @@ package com.waivera.waivera.feature.profile
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
+import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 import java.time.format.TextStyle
 import java.util.Locale
@@ -15,6 +16,7 @@ import java.util.Locale
 internal object ProfileFormat {
     private const val DATE_PATTERN = "MMM d, yyyy"
     private const val MONTH_DAY_PATTERN = "MMM d"
+    private const val CLOCK_PATTERN = "h:mm a"
 
     /** "Mar 14, 2022". */
     fun date(value: LocalDate, locale: Locale = Locale.getDefault()): String =
@@ -23,6 +25,10 @@ internal object ProfileFormat {
     /** "Apr 2": birthdays never show the year. */
     fun birthday(value: LocalDate, locale: Locale = Locale.getDefault()): String =
         DateTimeFormatter.ofPattern(MONTH_DAY_PATTERN, locale).format(value)
+
+    /** "2:15 PM", the 12-hour clock the inbox uses for today. */
+    fun clock(value: ZonedDateTime, locale: Locale = Locale.getDefault()): String =
+        DateTimeFormatter.ofPattern(CLOCK_PATTERN, locale).format(value)
 
     /** An instant (for example a file upload time) as a date in the employee's saved [zone]. */
     fun instantDate(value: Instant, zone: ZoneId, locale: Locale = Locale.getDefault()): String =

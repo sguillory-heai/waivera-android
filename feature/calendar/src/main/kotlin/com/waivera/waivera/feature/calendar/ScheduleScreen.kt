@@ -164,7 +164,8 @@ fun ScheduleContent(state: ScheduleUiState, actions: ScheduleActions, modifier: 
                 item(key = "grid") {
                     ScheduleGrid(view = state.view, cells = state.cells, onSelectDate = actions.onSelectDate)
                 }
-                if (state.agenda !is AgendaState.Error) {
+                // The Day view's period row already names the day (UI2-27); a second heading repeated it.
+                if (state.agenda !is AgendaState.Error && state.view != ScheduleView.DAY) {
                     item(key = "agendaHeader") { AgendaHeader(state) }
                 }
                 agendaItems(state, actions)
@@ -270,7 +271,10 @@ private fun ViewPicker(state: ScheduleUiState, actions: ScheduleActions) {
     )
 }
 
-/** Previous, the period title, next; the saved zone is a quiet caption under the title. */
+/**
+ * Previous, the period title, next; the saved zone is a quiet caption under the title. In the Day
+ * view the title is the only day heading, so it carries the Today chip.
+ */
 @Composable
 private fun PeriodRow(state: ScheduleUiState, actions: ScheduleActions) {
     Column(modifier = Modifier.padding(horizontal = WaiveraSpacing.Gutter, vertical = WaiveraSpacing.ExtraSmall)) {
@@ -280,18 +284,27 @@ private fun PeriodRow(state: ScheduleUiState, actions: ScheduleActions) {
                 contentDescription = stringResource(R.string.feature_calendar_previous_period),
                 onClick = { actions.onStep(-1) },
             )
-            Text(
-                text = periodTitleText(state.title),
-                style = MaterialTheme.typography.titleMedium,
-                color = WaiveraTheme.colors.text,
-                textAlign = TextAlign.Center,
-                modifier = Modifier
-                    .weight(1f)
-                    .semantics {
-                        heading()
-                        liveRegion = LiveRegionMode.Polite
-                    },
-            )
+            Row(
+                modifier = Modifier.weight(1f),
+                horizontalArrangement = Arrangement.spacedBy(WaiveraSpacing.Small, Alignment.CenterHorizontally),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    text = periodTitleText(state.title),
+                    style = MaterialTheme.typography.titleMedium,
+                    color = WaiveraTheme.colors.text,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier
+                        .weight(1f, fill = false)
+                        .semantics {
+                            heading()
+                            liveRegion = LiveRegionMode.Polite
+                        },
+                )
+                if (state.view == ScheduleView.DAY && state.isTodaySelected) {
+                    WaiveraStatusBadge(text = stringResource(R.string.feature_calendar_today), tone = BadgeTone.Accent)
+                }
+            }
             WaiveraIconButton(
                 icon = WaiveraIcons.ChevronRight,
                 contentDescription = stringResource(R.string.feature_calendar_next_period),

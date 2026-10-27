@@ -12,6 +12,9 @@ import com.waivera.waivera.core.network.error.WaiveraError
 import com.waivera.waivera.core.network.time.WaiveraTime
 import com.waivera.waivera.core.realtime.ConnectionState
 import com.waivera.waivera.core.testing.MainDispatcherRule
+import java.time.Instant
+import java.time.LocalDate
+import java.time.ZoneId
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -130,7 +133,7 @@ class BookmarksViewModelTest {
         graph: DemoGraph,
         bookmarks: BookmarkRepository = graph.bookmarks,
     ): BookmarksViewModel {
-        val vm = BookmarksViewModel(bookmarks, realtime, TestClock)
+        val vm = BookmarksViewModel(bookmarks, realtime, graph.calendar, TestClock)
         backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { vm.uiState.collect {} }
         return vm
     }
@@ -257,5 +260,23 @@ class BookmarksViewModelTest {
         realtime.set(ConnectionState.Connected)
 
         assertEquals(2, counting.refreshes)
+    }
+
+    @Test
+    fun datesReadLikeTheInboxInTheSavedZoneAcrossTheFallBack() {
+        val chicago = ZoneId.of("America/Chicago")
+        // Sunday 1 Nov 2026 10:30 CST, the day the clocks fell back in Chicago.
+        val now = Instant.parse("2026-11-01T16:30:00Z")
+        val earlyToday = Instant.parse("2026-11-01T05:30:00Z") // 00:30 CDT, still today
+        assertEquals(BookmarkDate.Today(earlyToday.atZone(chicago)), BookmarkDate.of(earlyToday, now, chicago))
+        assertEquals(BookmarkDate.Yesterday, BookmarkDate.of(Instant.parse("2026-11-01T04:30:00Z"), now, chicago))
+        assertEquals(
+            BookmarkDate.OnDate(LocalDate.of(2026, 10, 20), showYear = false),
+            BookmarkDate.of(Instant.parse("2026-10-20T14:30:00Z"), now, chicago),
+        )
+        assertEquals(
+            BookmarkDate.OnDate(LocalDate.of(2025, 12, 31), showYear = true),
+            BookmarkDate.of(Instant.parse("2026-01-01T03:00:00Z"), now, chicago),
+        )
     }
 }

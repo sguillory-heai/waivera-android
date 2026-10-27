@@ -6,12 +6,17 @@ import androidx.lifecycle.viewModelScope
 import com.waivera.waivera.core.data.model.Bookmark
 import com.waivera.waivera.core.data.model.Message
 import com.waivera.waivera.core.data.repository.BookmarkRepository
+import com.waivera.waivera.core.data.repository.CalendarRepository
 import com.waivera.waivera.core.data.repository.RealtimeStatusRepository
 import com.waivera.waivera.core.designsystem.component.ConnectionBannerState
 import com.waivera.waivera.core.network.error.WaiveraError
+import com.waivera.waivera.core.network.time.WaiveraTime
 import dagger.hilt.android.lifecycle.HiltViewModel
 import java.time.Clock
 import java.time.Instant
+import java.time.LocalDate
+import java.time.ZoneId
+import java.time.ZonedDateTime
 import java.util.Locale
 import javax.inject.Inject
 import kotlinx.coroutines.Job
@@ -46,6 +51,8 @@ internal data class BookmarkRow(
     val author: String,
     val createdAt: Instant?,
     val preview: BookmarkPreview,
+    /** [createdAt] in the inbox's words, set by the ViewModel from its clock and the saved zone. */
+    val date: BookmarkDate? = null,
 ) {
     val isThreadReply: Boolean get() = threadRootId != null
 }
@@ -61,7 +68,30 @@ internal data class BookmarksUiState(
     val connection: ConnectionBannerState = ConnectionBannerState.Connected,
     /** "Now" for relative times, from the injected clock so screenshots are stable. */
     val now: Instant = Instant.EPOCH,
+    /** The employee's saved zone, so "today" and dates agree with the inbox (never the device zone). */
+    val zone: ZoneId = WaiveraTime.FallbackZone,
 )
+
+/** When a bookmarked message was sent, in the inbox's words (UI2-27): a time today, Yesterday, "Oct 20". */
+internal sealed interface BookmarkDate {
+    data class Today(val at: ZonedDateTime) : BookmarkDate
+
+    data object Yesterday : BookmarkDate
+
+    data class OnDate(val date: LocalDate, val showYear: Boolean) : BookmarkDate
+
+    companion object {
+        fun of(at: Instant, now: Instant, zone: ZoneId): BookmarkDate {
+            val sent = at.atZone(zone)
+            val today = now.atZone(zone).toLocalDate()
+            return when (sent.toLocalDate()) {
+                today -> Today(sent)
+                today.minusDays(1) -> Yesterday
+                else -> OnDate(sent.toLocalDate(), showYear = sent.year != today.year)
+            }
+        }
+    }
+}
 
 /** Localised words a search can match besides the message itself ("thread reply", "photo"...). */
 internal data class BookmarkSearchWords(
@@ -100,6 +130,10 @@ internal object BookmarkRules {
         createdAt = message.createdAt,
         preview = preview(message),
     )
+
+    /** Fills each row's [BookmarkRow.date] for [now] in the employee's [zone]. */
+    fun dated(rows: List<BookmarkRow>, now: Instant, zone: ZoneId): List<BookmarkRow> =
+        rows.map { row -> row.copy(date = row.createdAt?.let { BookmarkDate.of(it, now, zone) }) }
 
     /** `threadRootMessageId ?? parentMessageId`, ignoring a root that points at itself. */
     fun threadRoot(message: Message): Long? =
@@ -147,6 +181,7 @@ internal object BookmarkRules {
 internal class BookmarksViewModel @Inject constructor(
     private val bookmarks: BookmarkRepository,
     private val realtime: RealtimeStatusRepository,
+    private val calendar: CalendarRepository,
     private val clock: Clock,
 ) : ViewModel() {
     private val query = MutableStateFlow("")
@@ -164,10 +199,12 @@ internal class BookmarksViewModel @Inject constructor(
         combine(query, words) { q, w -> q to w },
         combine(refreshing, refreshError) { busy, error -> busy to error },
         hidden,
-        realtime.status,
-    ) { synced, (text, searchWords), (busy, failed), removed, status ->
+        combine(realtime.status, calendar.zone) { status, zone -> status to zone },
+    ) { synced, (text, searchWords), (busy, failed), removed, (status, zone) ->
         val all = BookmarkRules.rows(synced.data).filter { it.messageId !in removed }
+        val now = clock.instant()
         val shown = all.filter { BookmarkRules.matches(it, text, searchWords) }
+            .let { BookmarkRules.dated(it, now, zone) }
         val error = synced.error ?: failed
         BookmarksUiState(
             query = text,
@@ -182,7 +219,8 @@ internal class BookmarksViewModel @Inject constructor(
             error = error,
             isRefreshing = busy,
             connection = status.toBannerState(),
-            now = clock.instant(),
+            now = now,
+            zone = zone,
         )
     }.stateIn(
         viewModelScope,
