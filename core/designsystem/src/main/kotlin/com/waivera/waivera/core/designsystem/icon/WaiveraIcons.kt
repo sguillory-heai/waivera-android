@@ -55,9 +55,6 @@ object WaiveraIcons {
      */
     @DrawableRes val JumpToToday: Int = R.drawable.core_designsystem_ic_jump_to_today
 
-    /** A place: event locations that open in maps. */
-    @DrawableRes val Location: Int = R.drawable.core_designsystem_ic_location
-
     /** Read-only or secured. */
     @DrawableRes val Lock: Int = R.drawable.core_designsystem_ic_lock
 
