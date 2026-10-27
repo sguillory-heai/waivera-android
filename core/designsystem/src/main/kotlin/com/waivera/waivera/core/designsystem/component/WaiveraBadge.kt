@@ -3,7 +3,8 @@ package com.waivera.waivera.core.designsystem.component
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Text
@@ -33,7 +34,10 @@ fun formatBadgeCount(count: Int, max: Int = BADGE_MAX): String? = when {
 
 const val BADGE_MAX = 99
 
-/** Unread count pill. Hidden at 0. Announces "N unread" rather than a bare number. */
+/**
+ * Unread count pill in the `unread` token (spec 10 §1), so red keeps its "failed or urgent"
+ * meaning. Hidden at 0. Announces "N unread" rather than a bare number.
+ */
 @Composable
 fun WaiveraCountBadge(count: Int, modifier: Modifier = Modifier) {
     val text = formatBadgeCount(count) ?: return
@@ -46,18 +50,22 @@ fun WaiveraCountBadge(count: Int, modifier: Modifier = Modifier) {
     Box(
         modifier = modifier
             .defaultMinSize(minWidth = WaiveraSizes.BadgeMin, minHeight = WaiveraSizes.BadgeMin)
-            .background(colors.dangerFill, WaiveraShapes.Pill)
+            .background(colors.unread, WaiveraShapes.Pill)
             .padding(horizontal = WaiveraSpacing.ExtraSmall + WaiveraSpacing.XxSmall)
             .clearAndSetSemantics { contentDescription = description },
         contentAlignment = Alignment.Center,
     ) {
-        Text(text = text, style = WaiveraTextStyles.Badge, color = colors.onDangerFill, maxLines = 1)
+        Text(text = text, style = WaiveraTextStyles.Badge, color = colors.onAccent, maxLines = 1, softWrap = false)
     }
 }
 
 enum class BadgeTone { Neutral, Accent, Success, Warning, Danger }
 
-/** A short text status label such as "Saved", "Thread reply" or "Pending". */
+/**
+ * A short text status label such as "Thread reply" or "Pending". Always one line: it never
+ * breaks inside a word at large font scales. Put several side by side in a `FlowRow` so whole
+ * chips wrap instead.
+ */
 @Composable
 fun WaiveraStatusBadge(text: String, modifier: Modifier = Modifier, tone: BadgeTone = BadgeTone.Neutral) {
     val (container, content) = tone.colorsFrom(WaiveraTheme.colors)
@@ -65,6 +73,8 @@ fun WaiveraStatusBadge(text: String, modifier: Modifier = Modifier, tone: BadgeT
         text = text,
         style = WaiveraTextStyles.Badge,
         color = content,
+        maxLines = 1,
+        softWrap = false,
         modifier = modifier
             .background(container, WaiveraShapes.Chip)
             .padding(horizontal = WaiveraSpacing.Small, vertical = WaiveraSpacing.XxSmall),
@@ -79,14 +89,15 @@ private fun BadgeTone.colorsFrom(colors: WaiveraColors): Pair<Color, Color> = wh
     BadgeTone.Danger -> colors.dangerContainer to colors.onDangerContainer
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @WaiveraPreviews
 @Composable
 private fun WaiveraBadgePreview() {
     WaiveraTheme {
-        Row(
+        FlowRow(
             Modifier.padding(WaiveraSpacing.Medium),
             horizontalArrangement = Arrangement.spacedBy(WaiveraSpacing.Small),
-            verticalAlignment = Alignment.CenterVertically,
+            verticalArrangement = Arrangement.spacedBy(WaiveraSpacing.Small),
         ) {
             WaiveraCountBadge(count = 3)
             WaiveraCountBadge(count = 120)

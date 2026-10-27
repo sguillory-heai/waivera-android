@@ -6,7 +6,6 @@ import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -23,10 +22,13 @@ import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.graphics.Shape
-import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.drawOutline
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
@@ -39,19 +41,23 @@ import com.waivera.waivera.core.designsystem.theme.WaiveraSpacing
 import com.waivera.waivera.core.designsystem.theme.WaiveraTheme
 import kotlinx.coroutines.delay
 
-/** Skeleton pulse: opacity 0.45 to 0.85 over 650ms, looped. Static at the midpoint when motion is reduced. */
+/**
+ * Skeleton pulse position: 0 is the `skeletonBase` colour token, 1 is
+ * `skeletonHighlight`, looping over 650ms. Reduced motion holds the base colour,
+ * so the static frame is still clearly visible.
+ */
 @Composable
-fun rememberSkeletonAlpha(): Float {
+fun rememberSkeletonPulse(): Float {
     val motion = WaiveraTheme.motion
-    if (!motion.allowsLoopingMotion) return SKELETON_STATIC_ALPHA
+    if (!motion.allowsLoopingMotion) return SKELETON_STATIC_PULSE
     val transition = rememberInfiniteTransition(label = "skeleton")
-    val alpha by transition.animateFloat(
-        initialValue = SKELETON_MIN_ALPHA,
-        targetValue = SKELETON_MAX_ALPHA,
+    val pulse by transition.animateFloat(
+        initialValue = 0f,
+        targetValue = 1f,
         animationSpec = infiniteRepeatable(tween(SKELETON_PULSE_MILLIS, easing = LinearEasing), RepeatMode.Reverse),
-        label = "skeletonAlpha",
+        label = "skeletonPulse",
     )
-    return alpha
+    return pulse
 }
 
 /** A skeleton block. Compose these into shapes that match the final layout. */
@@ -59,34 +65,36 @@ fun rememberSkeletonAlpha(): Float {
 fun SkeletonBlock(
     modifier: Modifier = Modifier,
     shape: Shape = WaiveraShapes.Chip,
-    alpha: Float = rememberSkeletonAlpha(),
+    pulse: Float = rememberSkeletonPulse(),
 ) {
+    val colors = WaiveraTheme.colors
     Box(
-        modifier = modifier
-            .graphicsLayer { this.alpha = alpha }
-            .background(WaiveraTheme.colors.surfaceMuted, shape),
+        modifier = modifier.drawBehind {
+            val color = lerp(colors.skeletonBase, colors.skeletonHighlight, pulse)
+            drawOutline(shape.createOutline(size, layoutDirection, this), color)
+        },
     )
 }
 
 @Composable
-fun SkeletonLine(modifier: Modifier = Modifier, widthFraction: Float = 1f, alpha: Float = rememberSkeletonAlpha()) {
+fun SkeletonLine(modifier: Modifier = Modifier, widthFraction: Float = 1f, pulse: Float = rememberSkeletonPulse()) {
     SkeletonBlock(
         modifier = modifier
             .fillMaxWidth(widthFraction)
             .height(WaiveraSizes.SkeletonLine),
         shape = WaiveraShapes.Chip,
-        alpha = alpha,
+        pulse = pulse,
     )
 }
 
 @Composable
-fun SkeletonCircle(size: Dp, modifier: Modifier = Modifier, alpha: Float = rememberSkeletonAlpha()) {
-    SkeletonBlock(modifier = modifier.size(size), shape = WaiveraShapes.Circle, alpha = alpha)
+fun SkeletonCircle(size: Dp, modifier: Modifier = Modifier, pulse: Float = rememberSkeletonPulse()) {
+    SkeletonBlock(modifier = modifier.size(size), shape = WaiveraShapes.Circle, pulse = pulse)
 }
 
 /** A list row skeleton (avatar, two lines), matching [WaiveraListRow] with a leading avatar. */
 @Composable
-fun SkeletonListRow(modifier: Modifier = Modifier, alpha: Float = rememberSkeletonAlpha()) {
+fun SkeletonListRow(modifier: Modifier = Modifier, pulse: Float = rememberSkeletonPulse()) {
     Row(
         modifier = modifier
             .fillMaxWidth()
@@ -95,10 +103,10 @@ fun SkeletonListRow(modifier: Modifier = Modifier, alpha: Float = rememberSkelet
         horizontalArrangement = Arrangement.spacedBy(WaiveraSpacing.MediumSmall),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        SkeletonCircle(size = WaiveraSizes.AvatarMedium, alpha = alpha)
+        SkeletonCircle(size = WaiveraSizes.AvatarMedium, pulse = pulse)
         Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(WaiveraSpacing.Small)) {
-            SkeletonLine(widthFraction = HEADLINE_FRACTION, alpha = alpha)
-            SkeletonLine(widthFraction = SUPPORTING_FRACTION, alpha = alpha)
+            SkeletonLine(widthFraction = HEADLINE_FRACTION, pulse = pulse)
+            SkeletonLine(widthFraction = SUPPORTING_FRACTION, pulse = pulse)
         }
     }
 }
@@ -106,10 +114,10 @@ fun SkeletonListRow(modifier: Modifier = Modifier, alpha: Float = rememberSkelet
 /** A loading list made of [rows] skeleton rows that share one pulse, announced once as "Loading". */
 @Composable
 fun SkeletonList(modifier: Modifier = Modifier, rows: Int = DEFAULT_ROWS) {
-    val alpha = rememberSkeletonAlpha()
+    val pulse = rememberSkeletonPulse()
     val loading = stringResource(R.string.core_designsystem_loading)
     Column(modifier = modifier.clearAndSetSemantics { contentDescription = loading }) {
-        repeat(rows) { SkeletonListRow(alpha = alpha) }
+        repeat(rows) { SkeletonListRow(pulse = pulse) }
     }
 }
 
@@ -121,7 +129,7 @@ fun SkeletonList(modifier: Modifier = Modifier, rows: Int = DEFAULT_ROWS) {
 @Composable
 fun rememberSkeletonVisible(
     loading: Boolean,
-    delayMillis: Long = SKELETON_DELAY_MILLIS,
+    delayMillis: Long = LocalWaiveraSkeletonDelay.current,
     minVisibleMillis: Long = SKELETON_MIN_VISIBLE_MILLIS,
 ): Boolean {
     var visible by remember { mutableStateOf(false) }
@@ -142,15 +150,19 @@ fun rememberSkeletonVisible(
     return visible
 }
 
-private const val SKELETON_MIN_ALPHA = 0.45f
-private const val SKELETON_MAX_ALPHA = 0.85f
-private const val SKELETON_STATIC_ALPHA = 0.65f
+private const val SKELETON_STATIC_PULSE = 0f
 private const val SKELETON_PULSE_MILLIS = 650
 private const val HEADLINE_FRACTION = 0.6f
 private const val SUPPORTING_FRACTION = 0.85f
 private const val DEFAULT_ROWS = 6
 const val SKELETON_DELAY_MILLIS = 300L
 const val SKELETON_MIN_VISIBLE_MILLIS = 300L
+
+/**
+ * The default skeleton delay for [rememberSkeletonVisible]. Screenshot tests provide 0 so the
+ * loading state under test is the skeleton, not the blank first 300 ms.
+ */
+val LocalWaiveraSkeletonDelay = staticCompositionLocalOf { SKELETON_DELAY_MILLIS }
 
 @WaiveraPreviews
 @Composable

@@ -45,7 +45,7 @@ import com.waivera.waivera.core.designsystem.component.WaiveraButton
 import com.waivera.waivera.core.designsystem.component.WaiveraEmptyState
 import com.waivera.waivera.core.designsystem.component.WaiveraErrorState
 import com.waivera.waivera.core.designsystem.component.WaiveraTextField
-import com.waivera.waivera.core.designsystem.component.rememberSkeletonAlpha
+import com.waivera.waivera.core.designsystem.component.rememberSkeletonPulse
 import com.waivera.waivera.core.designsystem.component.rememberSkeletonVisible
 import com.waivera.waivera.core.designsystem.icon.WaiveraIcons
 import com.waivera.waivera.core.designsystem.preview.WaiveraPreviews
@@ -157,8 +157,8 @@ fun ColumnScope.NewChatSheetContent(
         Box(modifier = Modifier.weight(1f, fill = false)) {
             when {
                 showSkeleton -> {
-                    val alpha = rememberSkeletonAlpha()
-                    Column { repeat(SKELETON_ROWS) { SkeletonListRow(alpha = alpha) } }
+                    val pulse = rememberSkeletonPulse()
+                    Column { repeat(SKELETON_ROWS) { SkeletonListRow(pulse = pulse) } }
                 }
                 state.loadErrorRes != null -> WaiveraErrorState(
                     message = stringResource(state.loadErrorRes),

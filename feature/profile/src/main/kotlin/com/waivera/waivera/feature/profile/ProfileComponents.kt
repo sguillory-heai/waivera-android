@@ -29,7 +29,7 @@ import androidx.compose.ui.text.input.KeyboardCapitalization
 import com.waivera.waivera.core.designsystem.component.SKELETON_DELAY_MILLIS
 import com.waivera.waivera.core.designsystem.component.SkeletonLine
 import com.waivera.waivera.core.designsystem.component.WaiveraIconButton
-import com.waivera.waivera.core.designsystem.component.rememberSkeletonAlpha
+import com.waivera.waivera.core.designsystem.component.rememberSkeletonPulse
 import com.waivera.waivera.core.designsystem.component.rememberSkeletonVisible
 import com.waivera.waivera.core.designsystem.icon.WaiveraIcons
 import com.waivera.waivera.core.designsystem.preview.WaiveraPreviews
@@ -112,7 +112,7 @@ internal fun rememberDelayedSkeleton(loading: Boolean): Boolean =
 /** Placeholder lines for a section still loading (shown only after the skeleton delay). */
 @Composable
 internal fun SectionSkeleton(modifier: Modifier = Modifier, lines: Int = 3) {
-    val alpha = rememberSkeletonAlpha()
+    val pulse = rememberSkeletonPulse()
     val loading = stringResource(R.string.feature_profile_loading_section)
     Column(
         modifier = modifier
@@ -122,7 +122,7 @@ internal fun SectionSkeleton(modifier: Modifier = Modifier, lines: Int = 3) {
         verticalArrangement = Arrangement.spacedBy(WaiveraSpacing.Small),
     ) {
         repeat(lines) { index ->
-            SkeletonLine(widthFraction = if (index % 2 == 0) WIDE_LINE else NARROW_LINE, alpha = alpha)
+            SkeletonLine(widthFraction = if (index % 2 == 0) WIDE_LINE else NARROW_LINE, pulse = pulse)
         }
     }
 }

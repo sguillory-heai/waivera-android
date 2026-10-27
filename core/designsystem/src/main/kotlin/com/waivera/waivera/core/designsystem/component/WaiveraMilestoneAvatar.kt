@@ -110,14 +110,18 @@ private fun MilestoneCornerBadge(badge: MilestoneBadge, avatarSize: Dp, modifier
             modifier = Modifier.size(edge * BADGE_GLYPH_RATIO),
         )
         if (showYears) {
-            // Sized from the badge, not the font scale: the badge is a fixed-size image.
+            // Sized from the badge, not the font scale: the badge is a fixed-size image. The line
+            // height is pinned too, or the inherited sp line height grows the badge at 200% font
+            // until it covers the initials.
             val fontSize = with(LocalDensity.current) { (edge * BADGE_YEARS_RATIO).toSp() }
             Text(
                 text = badge.years.toString(),
                 color = content,
                 fontSize = fontSize,
+                lineHeight = fontSize,
                 fontWeight = FontWeight.Black,
                 maxLines = 1,
+                softWrap = false,
             )
         }
     }

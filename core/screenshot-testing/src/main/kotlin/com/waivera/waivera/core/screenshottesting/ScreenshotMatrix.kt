@@ -11,6 +11,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Density
 import com.github.takahirom.roborazzi.ExperimentalRoborazziApi
 import com.github.takahirom.roborazzi.captureRoboImage
+import com.waivera.waivera.core.designsystem.component.LocalWaiveraSkeletonDelay
 import com.waivera.waivera.core.designsystem.theme.WaiveraMotionScheme
 import com.waivera.waivera.core.designsystem.theme.WaiveraTheme
 import org.robolectric.RuntimeEnvironment
@@ -86,7 +87,10 @@ fun captureScreenshots(
         RuntimeEnvironment.setQualifiers(variant.device.qualifiers(variant.darkTheme))
         captureRoboImage(filePath = "${ScreenshotMatrix.outputDirectory}/${name}_${variant.suffix}.png") {
             val density = LocalDensity.current
-            CompositionLocalProvider(LocalDensity provides Density(density.density, variant.fontScale)) {
+            CompositionLocalProvider(
+                LocalDensity provides Density(density.density, variant.fontScale),
+                LocalWaiveraSkeletonDelay provides 0L,
+            ) {
                 WaiveraTheme(
                     darkTheme = variant.darkTheme,
                     motion = WaiveraMotionScheme.Reduced,

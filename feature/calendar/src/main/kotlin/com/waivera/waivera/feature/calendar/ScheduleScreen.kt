@@ -47,7 +47,7 @@ import com.waivera.waivera.core.designsystem.component.WaiveraIconButton
 import com.waivera.waivera.core.designsystem.component.WaiveraSegmentedControl
 import com.waivera.waivera.core.designsystem.component.WaiveraStatusBadge
 import com.waivera.waivera.core.designsystem.component.WaiveraTopBar
-import com.waivera.waivera.core.designsystem.component.rememberSkeletonAlpha
+import com.waivera.waivera.core.designsystem.component.rememberSkeletonPulse
 import com.waivera.waivera.core.designsystem.component.rememberSkeletonVisible
 import com.waivera.waivera.core.designsystem.component.rememberTopBarAccount
 import com.waivera.waivera.core.designsystem.icon.WaiveraIcons
@@ -333,9 +333,9 @@ private fun AgendaSkeleton() {
     val visible = rememberSkeletonVisible(loading = true)
     val caption = stringResource(R.string.feature_calendar_loading)
     if (!visible) return
-    val alpha = rememberSkeletonAlpha()
+    val pulse = rememberSkeletonPulse()
     Column(modifier = Modifier.clearAndSetSemantics { contentDescription = caption }) {
-        repeat(SKELETON_ROWS) { SkeletonListRow(alpha = alpha) }
+        repeat(SKELETON_ROWS) { SkeletonListRow(pulse = pulse) }
     }
 }
 

@@ -106,12 +106,15 @@ fun WaiveraAvatar(
                 initials.isNotEmpty() -> {
                     // Sized from the avatar, not the font scale: the avatar is a fixed-size image.
                     val fontSize = with(LocalDensity.current) { (size * INITIALS_RATIO).toSp() }
+                    // Line height pinned with the size so 200% font cannot push the initials off centre.
                     Text(
                         text = initials,
                         color = colors.onAccentSoft,
                         fontSize = fontSize,
+                        lineHeight = fontSize,
                         fontWeight = FontWeight.Bold,
                         maxLines = 1,
+                        softWrap = false,
                     )
                 }
                 else -> Icon(
@@ -132,17 +135,36 @@ fun WaiveraAvatar(
                 )
             }
         }
-        if (presence != null) {
-            Box(
-                modifier = Modifier
-                    .align(Alignment.BottomEnd)
-                    .size(WaiveraSizes.PresenceDot)
-                    .border(WaiveraSizes.AvatarRing, colors.surface, WaiveraShapes.Circle)
-                    .padding(WaiveraSizes.AvatarRing)
-                    .background(presence.color(colors), WaiveraShapes.Circle),
-            )
-        }
+        if (presence != null) PresenceDot(presence, Modifier.align(Alignment.BottomEnd))
     }
+}
+
+/**
+ * Presence is never colour-only: online is a solid dot, away a thick ring and offline a thin
+ * hollow ring, and the avatar's content description names the status.
+ */
+@Composable
+private fun PresenceDot(presence: PresenceStatus, modifier: Modifier = Modifier) {
+    val colors = WaiveraTheme.colors
+    val color = presence.color(colors)
+    Box(
+        modifier = modifier
+            .size(WaiveraSizes.PresenceDot)
+            .border(WaiveraSizes.AvatarRing, colors.surface, WaiveraShapes.Circle)
+            .padding(WaiveraSizes.AvatarRing)
+            .then(
+                when (presence) {
+                    PresenceStatus.Online -> Modifier.background(color, WaiveraShapes.Circle)
+                    PresenceStatus.Away -> Modifier
+                        .background(color, WaiveraShapes.Circle)
+                        .padding(WaiveraSizes.PresenceRing)
+                        .background(colors.surface, WaiveraShapes.Circle)
+                    PresenceStatus.Offline -> Modifier
+                        .background(colors.surface, WaiveraShapes.Circle)
+                        .border(WaiveraSizes.PresenceHairline, color, WaiveraShapes.Circle)
+                },
+            ),
+    )
 }
 
 /** Up to two initials: first and last word, uppercased. Empty when the name has no letters or digits. */

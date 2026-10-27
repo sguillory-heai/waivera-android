@@ -43,7 +43,7 @@ import com.waivera.waivera.core.designsystem.component.WaiveraButtonVariant
 import com.waivera.waivera.core.designsystem.component.WaiveraDivider
 import com.waivera.waivera.core.designsystem.component.WaiveraIconButton
 import com.waivera.waivera.core.designsystem.component.WaiveraPressable
-import com.waivera.waivera.core.designsystem.component.rememberSkeletonAlpha
+import com.waivera.waivera.core.designsystem.component.rememberSkeletonPulse
 import com.waivera.waivera.core.designsystem.component.rememberSkeletonVisible
 import com.waivera.waivera.core.designsystem.icon.WaiveraIcons
 import com.waivera.waivera.core.designsystem.preview.WaiveraPreviews
@@ -387,7 +387,7 @@ fun CallBanner(onJoin: () -> Unit, modifier: Modifier = Modifier) {
 /** Five bubble bones, alternating sides, sharing one pulse; announced once as loading (03 §21). */
 @Composable
 fun MessageListSkeleton(modifier: Modifier = Modifier, rows: Int = ChatDimens.SKELETON_FRACTIONS_COUNT) {
-    val alpha = rememberSkeletonAlpha()
+    val pulse = rememberSkeletonPulse()
     val loading = stringResource(R.string.feature_chat_messages_loading)
     Column(
         modifier = modifier
@@ -405,7 +405,7 @@ fun MessageListSkeleton(modifier: Modifier = Modifier, rows: Int = ChatDimens.SK
                         .fillMaxWidth(fraction)
                         .heightIn(min = ChatDimens.SkeletonBubbleHeight),
                     shape = if (mine) ChatDimens.SkeletonMineShape else ChatDimens.SkeletonOtherShape,
-                    alpha = alpha,
+                    pulse = pulse,
                 )
             }
         }

@@ -78,4 +78,7 @@ object WaiveraIcons {
     @DrawableRes val Video: Int = R.drawable.core_designsystem_ic_video
 
     @DrawableRes val Warning: Int = R.drawable.core_designsystem_ic_warning
+
+    /** The Waivera brand mark, single colour: tint it with the accent. */
+    @DrawableRes val WaiveraMark: Int = R.drawable.core_designsystem_ic_waivera_mark
 }

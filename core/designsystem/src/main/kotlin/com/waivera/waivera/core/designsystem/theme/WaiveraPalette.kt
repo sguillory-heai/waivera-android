@@ -36,6 +36,10 @@ internal object WaiveraPalette {
     val WarningContainerLight = Color(0xFFFEF3C7)
     val OnWarningContainerLight = Color(0xFF92400E)
 
+    // Skeleton bones need at least 1.3:1 against the page to read as "loading", not blank.
+    val SkeletonBaseLight = Color(0xFFD6D9DF)
+    val SkeletonHighlightLight = Color(0xFFE5E7EB)
+
     // Dark
     val BackgroundDark = Color(0xFF0F0F12)
     val SurfaceDark = Color(0xFF1F2937)
@@ -60,6 +64,8 @@ internal object WaiveraPalette {
     val WarningDark = Color(0xFFFBBF24)
     val WarningContainerDark = Color(0xFF3A2A0A)
     val OnWarningContainerDark = Color(0xFFFDE68A)
+    val SkeletonBaseDark = Color(0xFF2B3546)
+    val SkeletonHighlightDark = Color(0xFF374151)
 
     // Calendar and milestone colours that were raw literals in the Expo app (spec 10 §1).
     val MilestoneDot = Color(0xFFF59E0B)

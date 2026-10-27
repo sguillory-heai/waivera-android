@@ -41,7 +41,7 @@ import com.waivera.waivera.core.designsystem.component.WaiveraButtonVariant
 import com.waivera.waivera.core.designsystem.component.WaiveraListRow
 import com.waivera.waivera.core.designsystem.component.WaiveraPressable
 import com.waivera.waivera.core.designsystem.component.WaiveraSectionHeader
-import com.waivera.waivera.core.designsystem.component.rememberSkeletonAlpha
+import com.waivera.waivera.core.designsystem.component.rememberSkeletonPulse
 import com.waivera.waivera.core.designsystem.component.rememberSkeletonVisible
 import com.waivera.waivera.core.designsystem.icon.WaiveraIcons
 import com.waivera.waivera.core.designsystem.theme.WaiveraShapes
@@ -484,7 +484,7 @@ private fun AttendeeItem(attendee: AttendeeRow, actions: EventActions, avatarLoa
 @Composable
 internal fun EventBodySkeleton(modifier: Modifier = Modifier) {
     if (!rememberSkeletonVisible(loading = true)) return
-    val alpha = rememberSkeletonAlpha()
+    val pulse = rememberSkeletonPulse()
     val loading = stringResource(R.string.feature_calendar_loading)
     Column(
         modifier = modifier
@@ -493,10 +493,10 @@ internal fun EventBodySkeleton(modifier: Modifier = Modifier) {
             .clearAndSetSemantics { contentDescription = loading },
         verticalArrangement = Arrangement.spacedBy(WaiveraSpacing.MediumSmall),
     ) {
-        SkeletonLine(widthFraction = TITLE_FRACTION, alpha = alpha)
-        SkeletonLine(widthFraction = LINE_FRACTION, alpha = alpha)
-        SkeletonLine(widthFraction = SHORT_FRACTION, alpha = alpha)
-        repeat(SKELETON_ROWS) { SkeletonListRow(alpha = alpha) }
+        SkeletonLine(widthFraction = TITLE_FRACTION, pulse = pulse)
+        SkeletonLine(widthFraction = LINE_FRACTION, pulse = pulse)
+        SkeletonLine(widthFraction = SHORT_FRACTION, pulse = pulse)
+        repeat(SKELETON_ROWS) { SkeletonListRow(pulse = pulse) }
     }
 }
 

@@ -23,7 +23,7 @@ import com.waivera.waivera.core.designsystem.component.SkeletonLine
 import com.waivera.waivera.core.designsystem.component.SkeletonListRow
 import com.waivera.waivera.core.designsystem.component.WaiveraBanner
 import com.waivera.waivera.core.designsystem.component.WaiveraEmptyState
-import com.waivera.waivera.core.designsystem.component.rememberSkeletonAlpha
+import com.waivera.waivera.core.designsystem.component.rememberSkeletonPulse
 import com.waivera.waivera.core.designsystem.preview.WaiveraPreviews
 import com.waivera.waivera.core.designsystem.theme.WaiveraSizes
 import com.waivera.waivera.core.designsystem.theme.WaiveraSpacing
@@ -85,7 +85,7 @@ internal fun QuietLine(text: String, modifier: Modifier = Modifier) {
 /** First-load skeleton shaped like the final list: two section headers with rows, one shared pulse. */
 @Composable
 internal fun TodaySkeleton(modifier: Modifier = Modifier) {
-    val alpha = rememberSkeletonAlpha()
+    val pulse = rememberSkeletonPulse()
     val loading = stringResource(R.string.feature_today_loading)
     Column(
         modifier = modifier
@@ -96,14 +96,14 @@ internal fun TodaySkeleton(modifier: Modifier = Modifier) {
         repeat(SKELETON_SECTIONS) {
             SkeletonLine(
                 widthFraction = SKELETON_HEADER_FRACTION,
-                alpha = alpha,
+                pulse = pulse,
                 modifier = Modifier.padding(
                     start = WaiveraSpacing.Gutter,
                     top = WaiveraSpacing.Large,
                     bottom = WaiveraSpacing.Small,
                 ),
             )
-            repeat(SKELETON_ROWS) { SkeletonListRow(alpha = alpha) }
+            repeat(SKELETON_ROWS) { SkeletonListRow(pulse = pulse) }
         }
     }
 }
@@ -111,10 +111,10 @@ internal fun TodaySkeleton(modifier: Modifier = Modifier) {
 /** Placeholder rows for one section whose source is still loading. */
 @Composable
 internal fun SectionSkeleton(modifier: Modifier = Modifier) {
-    val alpha = rememberSkeletonAlpha()
+    val pulse = rememberSkeletonPulse()
     val loading = stringResource(R.string.feature_today_loading)
     Column(modifier = modifier.clearAndSetSemantics { contentDescription = loading }) {
-        repeat(SKELETON_ROWS) { SkeletonListRow(alpha = alpha) }
+        repeat(SKELETON_ROWS) { SkeletonListRow(pulse = pulse) }
     }
 }
 
