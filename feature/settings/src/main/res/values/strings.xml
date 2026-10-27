@@ -1,9 +1,55 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <!-- Settings index and account -->
     <string name="feature_settings_settings_title">Settings</string>
-    <string name="feature_settings_settings_placeholder">Appearance, notifications and account settings will appear here.</string>
-    <string name="feature_settings_notification_settings_title">Notifications</string>
-    <string name="feature_settings_notification_settings_placeholder">Choose which notifications you get for messages, group activity and your schedule.</string>
+    <string name="feature_settings_section_preferences">Preferences</string>
+    <string name="feature_settings_section_account">Account</string>
+    <string name="feature_settings_notifications_row_detail">Messages, group activity and your schedule</string>
+    <string name="feature_settings_appearance_row_detail">Theme and haptics</string>
+    <string name="feature_settings_sign_out">Sign out</string>
+    <string name="feature_settings_sign_out_detail">Signing out stops notifications for this account on this device.</string>
+    <string name="feature_settings_sign_out_confirm_title">Sign out of Waivera?</string>
+    <string name="feature_settings_sign_out_confirm_message">You\'ll stop getting notifications on this device until you sign in again.</string>
+    <string name="feature_settings_sign_out_failed">Couldn\'t sign out. %1$s</string>
+
+    <!-- Appearance -->
     <string name="feature_settings_appearance_title">Appearance</string>
-    <string name="feature_settings_appearance_placeholder">Theme and haptics settings will appear here.</string>
+    <string name="feature_settings_theme_section">Theme</string>
+    <string name="feature_settings_theme_system">System</string>
+    <string name="feature_settings_theme_system_detail">Match your device\'s light or dark setting</string>
+    <string name="feature_settings_theme_light">Light</string>
+    <string name="feature_settings_theme_light_detail">Always use the light theme</string>
+    <string name="feature_settings_theme_dark">Dark</string>
+    <string name="feature_settings_theme_dark_detail">Always use the dark theme</string>
+    <string name="feature_settings_feedback_section">Feedback</string>
+    <string name="feature_settings_haptics_title">Haptics</string>
+    <string name="feature_settings_haptics_subtitle">Gentle vibrations when you send a message, flip a switch or something goes wrong.</string>
+
+    <!-- Notifications -->
+    <string name="feature_settings_notification_settings_title">Notifications</string>
+    <string name="feature_settings_system_blocked_title">Notifications are off for Waivera</string>
+    <string name="feature_settings_system_blocked_message">Android is blocking notifications from this app, so nothing below will reach you until you turn them on.</string>
+    <string name="feature_settings_open_system_settings">Open Android settings</string>
+    <string name="feature_settings_push_section">Push notifications</string>
+    <string name="feature_settings_push_title">Push notifications</string>
+    <string name="feature_settings_push_subtitle">Get notified when Waivera isn\'t open.</string>
+    <string name="feature_settings_categories_section">Notify me about</string>
+    <string name="feature_settings_category_messages">Direct messages and mentions</string>
+    <string name="feature_settings_category_messages_detail">Messages sent to you and times someone mentions you.</string>
+    <string name="feature_settings_category_group_activity">Group chat activity</string>
+    <string name="feature_settings_category_group_activity_detail">New messages in group chats and channels.</string>
+    <string name="feature_settings_category_schedule_reminders">Schedule reminders</string>
+    <string name="feature_settings_category_schedule_reminders_detail">Shifts and events starting soon.</string>
+    <string name="feature_settings_category_schedule_changes">Schedule changes</string>
+    <string name="feature_settings_category_schedule_changes_detail">Events that were added, moved or cancelled.</string>
+    <string name="feature_settings_category_digest">Digest and announcements</string>
+    <string name="feature_settings_category_digest_detail">Milestones, announcements and other low-priority updates.</string>
+    <string name="feature_settings_privacy_section">Privacy</string>
+    <string name="feature_settings_previews_title">Show message previews</string>
+    <string name="feature_settings_previews_subtitle">When off, notifications say you have a new message without showing what it says.</string>
+    <string name="feature_settings_sound_section">Sound and vibration</string>
+    <string name="feature_settings_sound_explainer">Android lets you pick the sound, vibration and pop-up style for each kind of notification.</string>
+    <string name="feature_settings_channel_open">Change in Android settings</string>
+    <string name="feature_settings_channel_blocked">Turned off in Android settings</string>
+    <string name="feature_settings_channel_open_label">open Android settings</string>
 </resources>

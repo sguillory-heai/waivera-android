@@ -1,31 +1,193 @@
 package com.waivera.waivera.feature.profile
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
-import com.waivera.waivera.core.designsystem.component.WaiveraPlaceholderScreen
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.waivera.waivera.core.designsystem.component.BannerTone
+import com.waivera.waivera.core.designsystem.component.ConnectionBanner
+import com.waivera.waivera.core.designsystem.component.ConnectionBannerState
+import com.waivera.waivera.core.designsystem.component.SkeletonList
+import com.waivera.waivera.core.designsystem.component.TopBarAction
+import com.waivera.waivera.core.designsystem.component.WaiveraAvatar
+import com.waivera.waivera.core.designsystem.component.WaiveraBanner
+import com.waivera.waivera.core.designsystem.component.WaiveraDivider
+import com.waivera.waivera.core.designsystem.component.WaiveraEmptyState
+import com.waivera.waivera.core.designsystem.component.WaiveraErrorState
+import com.waivera.waivera.core.designsystem.component.WaiveraListRow
+import com.waivera.waivera.core.designsystem.component.WaiveraTopBar
 import com.waivera.waivera.core.designsystem.icon.WaiveraIcons
 import com.waivera.waivera.core.designsystem.preview.WaiveraPreviews
+import com.waivera.waivera.core.designsystem.theme.WaiveraSizes
+import com.waivera.waivera.core.designsystem.theme.WaiveraSpacing
 import com.waivera.waivera.core.designsystem.theme.WaiveraTheme
 
-/**
- * Entry point for the people screen. Owned by `:feature:profile`; routed by `:app`.
- *
- * Every navigation lambda is part of the routed contract, even before the screen body uses it.
- */
-@Suppress("UnusedParameter")
+/** Entry point for the people screen. Owned by `:feature:profile`; routed by `:app`. */
 @Composable
 fun PeopleScreen(
     onBack: () -> Unit,
     onOpenPerson: (userId: String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    WaiveraPlaceholderScreen(
-        title = stringResource(R.string.feature_profile_people_title),
-        message = stringResource(R.string.feature_profile_people_placeholder),
-        icon = WaiveraIcons.People,
-        onBack = onBack,
-        modifier = modifier,
+    val viewModel: PeopleViewModel = hiltViewModel()
+    val state by viewModel.uiState.collectAsStateWithLifecycle()
+    CompositionLocalProvider(LocalAvatarLoader provides viewModel.avatarLoader) {
+        PeopleContent(
+            state = state,
+            onBack = onBack,
+            onQueryChange = viewModel::onQueryChange,
+            onRefresh = viewModel::refresh,
+            onRetryConnection = viewModel::retryConnection,
+            onOpenPerson = onOpenPerson,
+            modifier = modifier,
+        )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+internal fun PeopleContent(
+    state: PeopleUiState,
+    onBack: () -> Unit,
+    onQueryChange: (String) -> Unit,
+    onRefresh: () -> Unit,
+    onRetryConnection: () -> Unit,
+    onOpenPerson: (String) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val refreshLabel = stringResource(
+        if (state.isRefreshing) R.string.feature_profile_people_refreshing else R.string.feature_profile_people_refresh,
+    )
+    Column(modifier = modifier.fillMaxSize().background(WaiveraTheme.colors.background)) {
+        WaiveraTopBar(
+            title = stringResource(R.string.feature_profile_people_title),
+            onBack = onBack,
+            actions = listOf(
+                TopBarAction(WaiveraIcons.Refresh, refreshLabel, { if (!state.isRefreshing) onRefresh() }),
+            ),
+        )
+        ConnectionBanner(state = state.connection, onRetry = onRetryConnection)
+        ProfileSearchField(
+            value = state.query,
+            onValueChange = onQueryChange,
+            placeholder = stringResource(R.string.feature_profile_people_search),
+            clearDescription = stringResource(R.string.feature_profile_people_search_clear),
+        )
+        if (state.error != null && state.phase == ListPhase.Content) {
+            WaiveraBanner(
+                message = stringResource(R.string.feature_profile_people_refresh_failed),
+                tone = BannerTone.Error,
+                actionLabel = stringResource(R.string.feature_profile_try_again),
+                onAction = onRefresh,
+            )
+        }
+        PullToRefreshBox(
+            isRefreshing = state.isRefreshing && state.phase != ListPhase.Loading,
+            onRefresh = onRefresh,
+            modifier = Modifier.weight(1f),
+        ) {
+            when (state.phase) {
+                ListPhase.Loading -> if (rememberDelayedSkeleton(loading = true)) SkeletonList()
+                ListPhase.Error -> WaiveraErrorState(
+                    title = stringResource(R.string.feature_profile_people_error_title),
+                    message = stringResource(requireNotNull(state.error).messageRes),
+                    onRetry = onRefresh,
+                    modifier = Modifier.padding(top = WaiveraSpacing.Large),
+                )
+                ListPhase.Empty -> PeopleEmpty(searching = state.totalCount > 0, onClear = { onQueryChange("") })
+                ListPhase.Content -> PeopleList(state, onOpenPerson)
+            }
+        }
+    }
+}
+
+@Composable
+private fun PeopleEmpty(searching: Boolean, onClear: () -> Unit) {
+    // Wrapped in a scrolling list so pull-to-refresh still works on an empty screen.
+    LazyColumn(modifier = Modifier.fillMaxSize()) {
+        item {
+            if (searching) {
+                WaiveraEmptyState(
+                    title = stringResource(R.string.feature_profile_people_no_match_title),
+                    message = stringResource(R.string.feature_profile_people_no_match_message),
+                    icon = WaiveraIcons.Search,
+                    actionLabel = stringResource(R.string.feature_profile_clear_search),
+                    onAction = onClear,
+                    modifier = Modifier.padding(top = WaiveraSpacing.Large),
+                )
+            } else {
+                WaiveraEmptyState(
+                    title = stringResource(R.string.feature_profile_people_empty_title),
+                    message = stringResource(R.string.feature_profile_people_empty_message),
+                    icon = WaiveraIcons.People,
+                    modifier = Modifier.padding(top = WaiveraSpacing.Large),
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun PeopleList(state: PeopleUiState, onOpenPerson: (String) -> Unit) {
+    val colors = WaiveraTheme.colors
+    LazyColumn(
+        modifier = Modifier.fillMaxSize(),
+        contentPadding = WindowInsets.navigationBars.asPaddingValues(),
+    ) {
+        item(key = "meta") {
+            Text(
+                text = if (state.query.isBlank()) {
+                    pluralStringResource(R.plurals.feature_profile_people_count, state.totalCount, state.totalCount)
+                } else {
+                    stringResource(R.string.feature_profile_people_count_filtered, state.rows.size, state.totalCount)
+                },
+                style = MaterialTheme.typography.labelMedium,
+                color = colors.textSecondary,
+                modifier = Modifier.padding(horizontal = WaiveraSpacing.Gutter, vertical = WaiveraSpacing.ExtraSmall),
+            )
+        }
+        items(state.rows, key = { it.userId }) { row ->
+            PersonListRow(row = row, onClick = { onOpenPerson(row.userId) })
+            WaiveraDivider(modifier = Modifier.padding(start = WaiveraSpacing.Gutter))
+        }
+    }
+}
+
+@Composable
+private fun PersonListRow(row: PersonRow, onClick: () -> Unit) {
+    val supporting = listOfNotNull(row.celebration?.compactLabel(), row.detail).joinToString(" · ")
+    WaiveraListRow(
+        headline = row.name,
+        supporting = supporting.takeIf(String::isNotEmpty),
+        onClick = onClick,
+        onClickLabel = stringResource(R.string.feature_profile_open_person),
+        showChevron = true,
+        leading = {
+            WaiveraAvatar(
+                name = row.name,
+                painter = rememberAvatarPainter(row.userId),
+                size = WaiveraSizes.AvatarMedium,
+                milestone = row.celebration?.milestoneKind,
+                contentDescription = null,
+            )
+        },
     )
 }
 
@@ -33,6 +195,36 @@ fun PeopleScreen(
 @Composable
 private fun PeopleScreenPreview() {
     WaiveraTheme {
-        PeopleScreen(onBack = {}, onOpenPerson = { _ -> })
+        PeopleContent(
+            state = PeopleUiState(
+                rows = listOf(
+                    PersonRow("1", "Priya Raman", "priya.raman@example.com", Celebration(true, null)),
+                    PersonRow("2", "Jordan Lee", "jordan.lee@example.com", null),
+                ),
+                totalCount = 2,
+                phase = ListPhase.Content,
+                connection = ConnectionBannerState.Connected,
+            ),
+            onBack = {},
+            onQueryChange = {},
+            onRefresh = {},
+            onRetryConnection = {},
+            onOpenPerson = {},
+        )
+    }
+}
+
+@WaiveraPreviews
+@Composable
+private fun PeopleEmptyPreview() {
+    WaiveraTheme {
+        PeopleContent(
+            state = PeopleUiState(phase = ListPhase.Empty),
+            onBack = {},
+            onQueryChange = {},
+            onRefresh = {},
+            onRetryConnection = {},
+            onOpenPerson = {},
+        )
     }
 }
