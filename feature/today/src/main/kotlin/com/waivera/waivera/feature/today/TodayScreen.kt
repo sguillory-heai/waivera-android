@@ -69,6 +69,7 @@ private fun TodayEffects(viewModel: TodayViewModel, snackbarHostState: SnackbarH
         declined = stringResource(R.string.feature_today_invitation_declined),
         invitationFailed = stringResource(R.string.feature_today_invitation_failed),
         retry = stringResource(R.string.feature_today_retry),
+        undo = stringResource(R.string.feature_today_undo),
     )
     val currentMessages by rememberUpdatedState(messages)
     LaunchedEffect(viewModel, snackbarHostState) {
@@ -86,6 +87,7 @@ private data class TodayMessages(
     val declined: String,
     val invitationFailed: String,
     val retry: String,
+    val undo: String,
 )
 
 private suspend fun handleEffect(
@@ -109,14 +111,25 @@ private suspend fun handleEffect(
             snackbar.showRetry(messages.markAllFailed, messages.retry) { onAction(TodayAction.MarkAllActivityRead) }
         }
         TodayEffect.MarkedAllRead -> haptics.success()
-        is TodayEffect.InvitationAnswered -> {
+        is TodayEffect.OfferUndo -> {
             haptics.success()
-            snackbar.showSnackbar(if (effect.accept) messages.accepted else messages.declined)
+            val result = snackbar.showSnackbar(
+                message = if (effect.accept) messages.accepted else messages.declined,
+                actionLabel = messages.undo,
+                duration = SnackbarDuration.Long,
+            )
+            onAction(
+                if (result == SnackbarResult.ActionPerformed) {
+                    TodayAction.UndoInvitation(effect.eventId, effect.token)
+                } else {
+                    TodayAction.InvitationUndoClosed(effect.eventId, effect.token)
+                },
+            )
         }
         is TodayEffect.InvitationFailed -> {
             haptics.error()
             snackbar.showRetry(messages.invitationFailed, messages.retry) {
-                onAction(TodayAction.RespondToInvitation(effect.eventId, effect.accept))
+                onAction(TodayAction.RetryInvitation(effect.eventId, effect.accept))
             }
         }
     }

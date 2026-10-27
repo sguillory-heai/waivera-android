@@ -1,5 +1,8 @@
 package com.waivera.waivera.feature.today
 
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.ViewModelStore
 import com.waivera.waivera.core.data.model.ActivityFeed
 import com.waivera.waivera.core.data.model.CurrentUser
 import com.waivera.waivera.core.data.model.MyInvitation
@@ -28,6 +31,8 @@ import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.TestScope
+import kotlinx.coroutines.test.advanceTimeBy
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import org.junit.Rule
 import org.junit.Test
@@ -44,10 +49,27 @@ class TodayViewModelTest {
     private val calendar = FakeCalendarRepository()
     private val realtime = FakeRealtimeStatusRepository()
     private val now = TestNowSource()
+    private val window = InvitationAnswers.UNDO_WINDOW_MILLIS
+
+    // Owning the ViewModel through a store lets a test clear it the way navigation does.
+    private val viewModels = ViewModelStore()
 
     private fun TestScope.start(): Pair<TodayViewModel, MutableList<TodayEffect>> {
-        val viewModel =
-            TodayViewModel(session, conversations, activity, calendar, realtime, now, EnglishConversationTitles)
+        val created = TodayViewModel(
+            session,
+            conversations,
+            activity,
+            calendar,
+            realtime,
+            now,
+            EnglishConversationTitles,
+            backgroundScope,
+        )
+        val factory = object : ViewModelProvider.Factory {
+            @Suppress("UNCHECKED_CAST")
+            override fun <T : ViewModel> create(modelClass: Class<T>): T = created as T
+        }
+        val viewModel = ViewModelProvider(viewModels, factory)[TodayViewModel::class.java]
         val effects = mutableListOf<TodayEffect>()
         backgroundScope.launch { viewModel.state.collect {} }
         backgroundScope.launch { viewModel.effects.toList(effects) }
@@ -254,8 +276,7 @@ class TodayViewModelTest {
 
     @Test
     fun invitation_answeringHidesItAtOnceAndAFailureBringsItBack() = runTest(main.testDispatcher) {
-        val invite = timedEvent("invite", "2026-11-02T15:00:00Z", "2026-11-02T16:00:00Z", MyInvitation.PENDING)
-        calendar.feedFor.value = { range -> ScheduleFeed(range, TEST_ZONE.id, listOf(invite)) }
+        givenInvitation()
         calendar.respondResult = Result.failure(WaiveraError.Network())
         val gate = CompletableDeferred<Unit>()
         calendar.respondGate = gate
@@ -264,20 +285,80 @@ class TodayViewModelTest {
 
         viewModel.onAction(TodayAction.RespondToInvitation("invite", accept = true))
         assertTrue(viewModel.ui.needsYou.items.isEmpty(), "optimistic")
+        advanceTimeBy(window + 1)
         gate.complete(Unit)
+        runCurrent()
         assertEquals(listOf("invite-invite"), viewModel.ui.needsYou.items.map { it.key })
-        assertEquals(TodayEffect.InvitationFailed("invite", accept = true), effects.single())
+        val offer = TodayEffect.OfferUndo("invite", accept = true, token = 1)
+        assertEquals(listOf(offer, TodayEffect.InvitationFailed("invite", accept = true)), effects)
     }
 
     @Test
-    fun invitation_aSuccessfulAnswerConfirms() = runTest(main.testDispatcher) {
-        val invite = timedEvent("invite", "2026-11-02T15:00:00Z", "2026-11-02T16:00:00Z", MyInvitation.PENDING)
-        calendar.feedFor.value = { range -> ScheduleFeed(range, TEST_ZONE.id, listOf(invite)) }
+    fun invitation_anAnswerIsSentOnlyWhenTheUndoWindowCloses() = runTest(main.testDispatcher) {
+        givenInvitation()
         val (viewModel, effects) = start()
         viewModel.onAction(TodayAction.RespondToInvitation("invite", accept = false))
+        assertTrue(viewModel.ui.needsYou.items.isEmpty())
+        assertEquals(listOf<TodayEffect>(TodayEffect.OfferUndo("invite", accept = false, token = 1)), effects)
+
+        advanceTimeBy(window - 1)
+        assertTrue(calendar.responses.isEmpty(), "still inside the undo window")
+        advanceTimeBy(2)
         assertEquals(listOf("invite" to false), calendar.responses)
         assertTrue(viewModel.ui.needsYou.items.isEmpty())
-        assertEquals(TodayEffect.InvitationAnswered(accept = false), effects.single())
+        assertEquals(1, effects.size, "the Undo snackbar already confirmed the answer")
+    }
+
+    @Test
+    fun invitation_undoBringsItBackAndNothingIsSent() = runTest(main.testDispatcher) {
+        givenInvitation()
+        val (viewModel, _) = start()
+        viewModel.onAction(TodayAction.RespondToInvitation("invite", accept = true))
+        viewModel.onAction(TodayAction.UndoInvitation("invite", token = 1))
+        assertEquals(listOf("invite-invite"), viewModel.ui.needsYou.items.map { it.key })
+        advanceTimeBy(window * 2)
+        assertTrue(calendar.responses.isEmpty())
+    }
+
+    @Test
+    fun invitation_closingTheSnackbarSendsAtOnceAndAStaleUndoIsIgnored() = runTest(main.testDispatcher) {
+        givenInvitation()
+        val (viewModel, _) = start()
+        viewModel.onAction(TodayAction.RespondToInvitation("invite", accept = true))
+        viewModel.onAction(TodayAction.InvitationUndoClosed("invite", token = 1))
+        runCurrent()
+        assertEquals(listOf("invite" to true), calendar.responses)
+        viewModel.onAction(TodayAction.UndoInvitation("invite", token = 1))
+        assertTrue(viewModel.ui.needsYou.items.isEmpty(), "the answer was already sent")
+        advanceTimeBy(window * 2)
+        assertEquals(1, calendar.responses.size)
+    }
+
+    @Test
+    fun invitation_leavingTodayDuringTheUndoWindowStillSendsTheAnswer() = runTest(main.testDispatcher) {
+        givenInvitation()
+        val (viewModel, _) = start()
+        viewModel.onAction(TodayAction.RespondToInvitation("invite", accept = true))
+        viewModels.clear()
+        runCurrent()
+        assertEquals(listOf("invite" to true), calendar.responses)
+        advanceTimeBy(window * 2)
+        assertEquals(1, calendar.responses.size)
+    }
+
+    @Test
+    fun invitation_retryAfterAFailureSendsStraightAway() = runTest(main.testDispatcher) {
+        givenInvitation()
+        val (viewModel, _) = start()
+        viewModel.onAction(TodayAction.RetryInvitation("invite", accept = true))
+        runCurrent()
+        assertEquals(listOf("invite" to true), calendar.responses)
+        assertTrue(viewModel.ui.needsYou.items.isEmpty())
+    }
+
+    private fun givenInvitation() {
+        val invite = timedEvent("invite", "2026-11-02T15:00:00Z", "2026-11-02T16:00:00Z", MyInvitation.PENDING)
+        calendar.feedFor.value = { range -> ScheduleFeed(range, TEST_ZONE.id, listOf(invite)) }
     }
 
     @Test

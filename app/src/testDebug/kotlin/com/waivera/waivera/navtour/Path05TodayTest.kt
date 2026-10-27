@@ -92,10 +92,20 @@ class Path05TodayTest : NavTourHarness() {
     @Test
     fun path05_invitationAccept_onToday() {
         launch()
-        click(hasContentDescription("Accept invitation to Care plan review"))
+        click(hasContentDescription(ACCEPT_INVITE))
         expectScreen("Invitation accepted")
         expectStack(TodayRoute)
         shot("path_05_today_07_invitation_accepted")
+    }
+
+    @Test
+    fun path05_invitationAccept_onToday_undoBringsItBack() {
+        launch()
+        click(hasContentDescription(ACCEPT_INVITE))
+        expectScreen("Invitation accepted")
+        click("Undo")
+        expectScreen(ACCEPT_INVITE)
+        expectStack(TodayRoute)
     }
 
     @Test
@@ -127,5 +137,6 @@ class Path05TodayTest : NavTourHarness() {
         const val VISIT = "demo_visit"
         const val INVITE = "demo_invite"
         const val INVITE_TITLE = "Care plan review"
+        const val ACCEPT_INVITE = "Accept invitation to $INVITE_TITLE"
     }
 }

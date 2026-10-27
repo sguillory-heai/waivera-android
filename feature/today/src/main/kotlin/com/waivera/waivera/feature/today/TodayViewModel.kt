@@ -14,6 +14,7 @@ import com.waivera.waivera.core.data.repository.CalendarRepository
 import com.waivera.waivera.core.data.repository.ConversationRepository
 import com.waivera.waivera.core.data.repository.RealtimeStatusRepository
 import com.waivera.waivera.core.data.repository.SessionRepository
+import com.waivera.waivera.core.network.di.ApplicationScope
 import com.waivera.waivera.core.network.error.WaiveraError
 import com.waivera.waivera.feature.today.model.ActivityFilter
 import com.waivera.waivera.feature.today.model.TodayAssembler
@@ -24,6 +25,7 @@ import com.waivera.waivera.feature.today.model.TodayUiState
 import dagger.hilt.android.lifecycle.HiltViewModel
 import java.time.Duration
 import javax.inject.Inject
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
@@ -47,7 +49,7 @@ import kotlinx.coroutines.launch
 /**
  * Today: one prioritised list rendered straight from the local cache (Room in live mode), then
  * refreshed. Every write is optimistic and reversible on failure; the screen never blocks on
- * the network.
+ * the network. Invitation answers wait out an Undo window first ([InvitationAnswers]).
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel
@@ -59,10 +61,12 @@ class TodayViewModel @Inject constructor(
     private val realtimeStatus: RealtimeStatusRepository,
     private val nowSource: NowSource,
     private val titles: ConversationTitleText,
+    @ApplicationScope appScope: CoroutineScope,
 ) : ViewModel() {
     private val local = MutableStateFlow(TodayLocalState())
     private val pager = ActivityPager(viewModelScope, activity, local)
     private val effectChannel = Channel<TodayEffect>(Channel.BUFFERED)
+    private val invitations = InvitationAnswers(viewModelScope, appScope, calendar, local, effectChannel)
 
     /** Snackbar and haptic moments, delivered once. */
     val effects: Flow<TodayEffect> = effectChannel.receiveAsFlow()
@@ -112,7 +116,10 @@ class TodayViewModel @Inject constructor(
             TodayAction.ShowAllActivity -> local.update { it.copy(filter = ActivityFilter.ALL, unreadOnly = false) }
             TodayAction.LoadMoreActivity -> pager.loadMore()
             TodayAction.ToggleNeedsYouExpanded -> local.update { it.copy(needsYouExpanded = !it.needsYouExpanded) }
-            is TodayAction.RespondToInvitation -> respond(action.eventId, action.accept)
+            is TodayAction.RespondToInvitation -> invitations.respond(action.eventId, action.accept)
+            is TodayAction.RetryInvitation -> invitations.retry(action.eventId, action.accept)
+            is TodayAction.UndoInvitation -> invitations.undo(action.eventId, action.token)
+            is TodayAction.InvitationUndoClosed -> invitations.sendNow(action.eventId, action.token)
         }
     }
 
@@ -168,16 +175,8 @@ class TodayViewModel @Inject constructor(
         }
     }
 
-    private fun respond(eventId: String, accept: Boolean) {
-        local.update { it.copy(answeredInvitations = it.answeredInvitations + eventId) }
-        viewModelScope.launch {
-            calendar.respondToInvitation(eventId, accept)
-                .onSuccess { effectChannel.send(TodayEffect.InvitationAnswered(accept)) }
-                .onFailure {
-                    local.update { it.copy(answeredInvitations = it.answeredInvitations - eventId) }
-                    effectChannel.send(TodayEffect.InvitationFailed(eventId, accept))
-                }
-        }
+    override fun onCleared() {
+        invitations.flush()
     }
 
     private suspend fun currentRange(): DateRange {

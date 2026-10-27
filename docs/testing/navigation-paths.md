@@ -114,10 +114,11 @@ Rows push onto the Today tab, so back returns to Today; "See schedule" switches 
 | Thread reply activity | Today ▸ Thread 7/9330 at reply 9332 | `path_05_today_04_thread_reply` |
 | Next up: Client home visit | Today ▸ Event | `path_05_today_05_event` |
 | See schedule | Today ▸ Schedule (Schedule tab) | `path_05_today_06_see_schedule` |
-| Accept on the invitation row | "Invitation accepted", stays on Today | `path_05_today_07_invitation_accepted` |
+| Accept on the invitation row | "Invitation accepted" with Undo, stays on Today | `path_05_today_07_invitation_accepted` |
+| Accept on the invitation row → Undo | The invitation is back in Needs you, nothing was sent | (no shot) |
 | Invitation row body → Accept → Undo | Today ▸ Event; "You accepted the invitation" with Undo; Undo restores "You haven't responded yet." | `path_05_today_08_invitation_event`, `_09_invitation_accepted_undo`, `_10_invitation_undone` |
 
-Undo is offered on the event screen; Today's one-tap answer shows a plain confirmation.
+Both answers wait out the same 10 s Undo window before they are sent: on the event screen and on Today's one-tap row.
 
 ## 6. Schedule (`Path06ScheduleTest`)
 

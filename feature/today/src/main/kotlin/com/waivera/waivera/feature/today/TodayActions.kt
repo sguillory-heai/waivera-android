@@ -25,6 +25,15 @@ sealed interface TodayAction {
     data object ToggleNeedsYouExpanded : TodayAction
 
     data class RespondToInvitation(val eventId: String, val accept: Boolean) : TodayAction
+
+    /** Sends a failed answer again straight away; the decision was already made. */
+    data class RetryInvitation(val eventId: String, val accept: Boolean) : TodayAction
+
+    /** Undo on the answer's snackbar; [token] ties it to that snackbar. */
+    data class UndoInvitation(val eventId: String, val token: Long) : TodayAction
+
+    /** The answer's snackbar went away without Undo, so the answer can go out now. */
+    data class InvitationUndoClosed(val eventId: String, val token: Long) : TodayAction
 }
 
 /** One-off results the screen turns into a snackbar and a haptic. */
@@ -39,7 +48,8 @@ sealed interface TodayEffect {
 
     data object MarkedAllRead : TodayEffect
 
-    data class InvitationAnswered(val accept: Boolean) : TodayEffect
+    /** The invitation is answered on screen; the snackbar offers Undo until the answer is sent. */
+    data class OfferUndo(val eventId: String, val accept: Boolean, val token: Long) : TodayEffect
 
     /** The invitation is back in Needs you; Retry sends the same answer again. */
     data class InvitationFailed(val eventId: String, val accept: Boolean) : TodayEffect

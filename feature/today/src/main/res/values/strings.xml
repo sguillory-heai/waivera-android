@@ -150,4 +150,5 @@
     <string name="feature_today_invitation_declined">Invitation declined</string>
     <string name="feature_today_invitation_failed">Your response wasn\'t saved.</string>
     <string name="feature_today_retry">Retry</string>
+    <string name="feature_today_undo">Undo</string>
 </resources>
