@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "attribution": {
+    "commit": "",
+    "pr": ""
+  },
+  "includeCoAuthoredBy": false,
+  "permissions": {
+    "allow": [
+      "Bash(./gradlew *)",
+      "Bash(adb *)",
+      "Bash(emulator *)",
+      "Bash(android *)",
+      "Bash(ktlint *)",
+      "Bash(git status)",
+      "Bash(git diff *)",
+      "Bash(git log *)"
+    ],
+    "deny": [
+      "Read(./**/*.jks)",
+      "Read(./**/*.keystore)",
+      "Read(./**/play-service-account*.json)",
+      "Bash(./gradlew publish*)",
+      "Bash(fastlane *supply*)"
+    ]
+  },
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "command -v jq >/dev/null && command -v ktlint >/dev/null || exit 0; f=$(jq -r '.tool_input.file_path // empty'); case \"$f\" in *.kt|*.kts) ktlint --format \"$f\" >/dev/null 2>&1; ktlint \"$f\" >&2 || exit 2;; esac"
+          }
+        ]
+      }
+    ]
+  }
+}
