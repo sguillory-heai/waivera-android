@@ -5,6 +5,7 @@ import android.os.Handler
 import android.os.Looper
 import android.provider.Settings
 import androidx.compose.animation.ContentTransform
+import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.core.FiniteAnimationSpec
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.snap
@@ -12,6 +13,7 @@ import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
@@ -23,6 +25,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.staticCompositionLocalOf
+import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.IntOffset
 
@@ -98,6 +101,27 @@ class WaiveraMotionScheme internal constructor(val reduced: Boolean) {
             slideOutHorizontally(navigate<IntOffset>()) { it / SLIDE_DIVISOR } + fadeOut(state())
     }
 
+    /**
+     * The predictive back preview (M3 "back preview"). Nothing fades, so two screens' text never
+     * overlaps mid-gesture: the leaving screen stays opaque on top, shrinks to [BACK_PREVIEW_SCALE]
+     * and follows the finger away from [swipeFromRight]'s edge, while the screen underneath shows
+     * around it with a slight parallax. Reduced motion keeps only a small shrink, then swaps on commit.
+     */
+    fun predictiveBackTransition(swipeFromRight: Boolean): ContentTransform {
+        val direction = if (swipeFromRight) -1 else 1
+        val transform = if (reduced) {
+            EnterTransition.None togetherWith
+                scaleOut(tween(REDUCED_FADE_MILLIS, easing = LinearEasing), targetScale = REDUCED_BACK_SCALE)
+        } else {
+            slideInHorizontally(navigate<IntOffset>()) { -direction * it / BACK_PARALLAX_DIVISOR } togetherWith
+                scaleOut(navigate(), targetScale = BACK_PREVIEW_SCALE, transformOrigin = TransformOrigin.Center) +
+                slideOutHorizontally(navigate<IntOffset>()) { direction * it / BACK_SHIFT_DIVISOR }
+        }
+        // The screen being revealed sits underneath the one being dismissed.
+        transform.targetContentZIndex = BACK_TARGET_Z_INDEX
+        return transform
+    }
+
     private fun <T> reducedFade(): FiniteAnimationSpec<T> = tween(REDUCED_FADE_MILLIS, easing = LinearEasing)
 
     override fun equals(other: Any?): Boolean = other is WaiveraMotionScheme && other.reduced == reduced
@@ -115,6 +139,13 @@ class WaiveraMotionScheme internal constructor(val reduced: Boolean) {
         internal const val CELEBRATE_DAMPING = 0.8f
         internal const val CELEBRATE_STIFFNESS = 200f
         private const val SLIDE_DIVISOR = 4
+        const val BACK_PREVIEW_SCALE = 0.9f
+        const val REDUCED_BACK_SCALE = 0.97f
+
+        /** Half the scale gap, so the shrunken screen's far side stays on the display edge. */
+        private const val BACK_SHIFT_DIVISOR = 20
+        private const val BACK_PARALLAX_DIVISOR = 10
+        private const val BACK_TARGET_Z_INDEX = -1f
 
         val Standard = WaiveraMotionScheme(reduced = false)
         val Reduced = WaiveraMotionScheme(reduced = true)

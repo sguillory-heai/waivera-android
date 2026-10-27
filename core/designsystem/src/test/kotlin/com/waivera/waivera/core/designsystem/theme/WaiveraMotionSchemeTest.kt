@@ -1,8 +1,12 @@
 package com.waivera.waivera.core.designsystem.theme
 
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.SnapSpec
 import androidx.compose.animation.core.SpringSpec
 import androidx.compose.animation.core.TweenSpec
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.scaleOut
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -49,5 +53,37 @@ class WaiveraMotionSchemeTest {
         }
         assertEquals(1f, motion.pressScale, "no press scale when animations are off")
         assertFalse(motion.allowsLoopingMotion, "no skeleton pulse when animations are off")
+    }
+
+    // Transition data is internal to Compose; the public toString() names each part (Fade(...), Scale(...)).
+    @Test
+    fun `predictive back never fades and keeps the leaving screen on top`() {
+        listOf(WaiveraMotionScheme.Standard, WaiveraMotionScheme.Reduced).forEach { motion ->
+            listOf(true, false).forEach { fromRight ->
+                val transform = motion.predictiveBackTransition(swipeFromRight = fromRight)
+                val label = "reduced=${motion.reduced} fromRight=$fromRight"
+                assertFalse("Fade(" in transform.targetContentEnter.toString(), "incoming screen is opaque: $label")
+                assertFalse("Fade(" in transform.initialContentExit.toString(), "leaving screen is opaque: $label")
+                assertTrue("Scale(" in transform.initialContentExit.toString(), "leaving screen shrinks: $label")
+                assertTrue(transform.targetContentZIndex < 0f, "leaving screen draws on top: $label")
+            }
+        }
+    }
+
+    @Test
+    fun `predictive back slides only when animations are on`() {
+        val standard = WaiveraMotionScheme.Standard.predictiveBackTransition(swipeFromRight = false)
+        assertTrue("Slide(" in standard.initialContentExit.toString(), "the preview follows the finger")
+        assertTrue("Slide(" in standard.targetContentEnter.toString(), "the screen underneath has parallax")
+        val reduced = WaiveraMotionScheme.Reduced.predictiveBackTransition(swipeFromRight = false)
+        assertEquals(EnterTransition.None, reduced.targetContentEnter, "nothing moves underneath")
+        assertEquals(
+            scaleOut(
+                tween(WaiveraMotionScheme.REDUCED_FADE_MILLIS, easing = LinearEasing),
+                targetScale = WaiveraMotionScheme.REDUCED_BACK_SCALE,
+            ),
+            reduced.initialContentExit,
+            "only a small shrink when animations are off",
+        )
     }
 }

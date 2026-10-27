@@ -1,5 +1,6 @@
 package com.waivera.waivera.ui
 
+import androidx.activity.BackEventCompat
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -57,7 +58,9 @@ fun MainShell(state: ShellUiState, actions: ShellActions, modifier: Modifier = M
                 ),
                 transitionSpec = { motion.forwardTransition() },
                 popTransitionSpec = { motion.backTransition() },
-                predictivePopTransitionSpec = { motion.backTransition() },
+                predictivePopTransitionSpec = { swipeEdge ->
+                    motion.predictiveBackTransition(swipeFromRight = swipeEdge == BackEventCompat.EDGE_RIGHT)
+                },
                 entryProvider = { entry: ShellEntry ->
                     NavEntry(key = entry, contentKey = entry.key) {
                         RouteContent(route = entry.route, actions = routeActions)
