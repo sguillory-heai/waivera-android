@@ -227,6 +227,7 @@ class DesignSystemScreenshotTest {
             WaiveraFilterChip(label = "All", selected = true, onClick = {})
             WaiveraFilterChip(label = "Mentions", selected = false, onClick = {})
             WaiveraFilterChip(label = "Unread", selected = false, onClick = {})
+            WaiveraFilterChip(label = "Unread", selected = true, onClick = {}, leadingIcon = WaiveraIcons.Check)
         }
         WaiveraSegmentedControl(options = listOf("Day", "Week", "Month"), selectedIndex = 1, onSelect = {})
         WaiveraSegmentedControl(options = listOf("All", "Unread", "Channels"), selectedIndex = 0, onSelect = {})

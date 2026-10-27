@@ -15,6 +15,7 @@ import com.waivera.waivera.core.data.repository.ConversationRepository
 import com.waivera.waivera.core.data.repository.RealtimeStatusRepository
 import com.waivera.waivera.core.data.repository.SessionRepository
 import com.waivera.waivera.core.network.error.WaiveraError
+import com.waivera.waivera.feature.today.model.ActivityFilter
 import com.waivera.waivera.feature.today.model.TodayAssembler
 import com.waivera.waivera.feature.today.model.TodayContext
 import com.waivera.waivera.feature.today.model.TodayLocalState
@@ -108,6 +109,7 @@ class TodayViewModel @Inject constructor(
             TodayAction.MarkAllActivityRead -> markAllRead()
             is TodayAction.SetActivityFilter -> local.update { it.copy(filter = action.filter) }
             TodayAction.ToggleUnreadOnly -> local.update { it.copy(unreadOnly = !it.unreadOnly) }
+            TodayAction.ShowAllActivity -> local.update { it.copy(filter = ActivityFilter.ALL, unreadOnly = false) }
             TodayAction.LoadMoreActivity -> pager.loadMore()
             TodayAction.ToggleNeedsYouExpanded -> local.update { it.copy(needsYouExpanded = !it.needsYouExpanded) }
             is TodayAction.RespondToInvitation -> respond(action.eventId, action.accept)

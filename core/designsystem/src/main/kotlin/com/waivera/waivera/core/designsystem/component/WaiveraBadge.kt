@@ -46,13 +46,22 @@ fun WaiveraCountBadge(count: Int, modifier: Modifier = Modifier) {
     } else {
         pluralStringResource(R.plurals.core_designsystem_badge_count, count, count)
     }
+    WaiveraCountBadge(text = text, contentDescription = description, modifier = modifier)
+}
+
+/**
+ * The count badge with caller-made copy, for counts that aren't exact (for example "30+" when
+ * only part of a feed is loaded). Looks the same as the numeric badge.
+ */
+@Composable
+fun WaiveraCountBadge(text: String, contentDescription: String, modifier: Modifier = Modifier) {
     val colors = WaiveraTheme.colors
     Box(
         modifier = modifier
             .defaultMinSize(minWidth = WaiveraSizes.BadgeMin, minHeight = WaiveraSizes.BadgeMin)
             .background(colors.unread, WaiveraShapes.Pill)
             .padding(horizontal = WaiveraSpacing.ExtraSmall + WaiveraSpacing.XxSmall)
-            .clearAndSetSemantics { contentDescription = description },
+            .clearAndSetSemantics { this.contentDescription = contentDescription },
         contentAlignment = Alignment.Center,
     ) {
         Text(text = text, style = WaiveraTextStyles.Badge, color = colors.onAccent, maxLines = 1, softWrap = false)

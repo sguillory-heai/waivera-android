@@ -198,6 +198,20 @@ class TodayViewModelTest {
     }
 
     @Test
+    fun filters_showAllClearsTheTypeAndUnread() = runTest(main.testDispatcher) {
+        val items = listOf(activity(1), activity(2, read = true))
+        activity.state.value = Synced(ActivityFeed(items, false), lastSyncedAt = TEST_NOW)
+        val (viewModel, _) = start()
+        viewModel.onAction(TodayAction.SetActivityFilter(ActivityFilter.REACTIONS))
+        viewModel.onAction(TodayAction.ToggleUnreadOnly)
+        assertTrue(viewModel.ui.activity.isFilteredEmpty)
+        viewModel.onAction(TodayAction.ShowAllActivity)
+        assertEquals(ActivityFilter.ALL, viewModel.ui.activity.filter)
+        assertFalse(viewModel.ui.activity.unreadOnly)
+        assertEquals(listOf(1L, 2L), viewModel.ui.activity.rows.map { it.id }.sorted())
+    }
+
+    @Test
     fun realtime_aNewActivityAppearsAtTheTopWithoutARefetch() = runTest(main.testDispatcher) {
         activity.state.value = Synced(ActivityFeed(listOf(activity(2, read = true)), false), lastSyncedAt = TEST_NOW)
         val (viewModel, _) = start()

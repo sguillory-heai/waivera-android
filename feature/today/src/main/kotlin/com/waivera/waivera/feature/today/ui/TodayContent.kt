@@ -288,6 +288,8 @@ private fun LazyListScope.activityItems(state: TodayUiState, callbacks: TodayCal
                         title = stringResource(R.string.feature_today_activity_filtered_title),
                         message = stringResource(R.string.feature_today_activity_filtered_message),
                         icon = WaiveraIcons.Search,
+                        actionLabel = stringResource(R.string.feature_today_activity_show_all),
+                        onAction = { callbacks.onAction(TodayAction.ShowAllActivity) },
                     )
                 }
             }

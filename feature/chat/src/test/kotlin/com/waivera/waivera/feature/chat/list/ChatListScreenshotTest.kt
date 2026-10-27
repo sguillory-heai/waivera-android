@@ -18,6 +18,7 @@ import com.waivera.waivera.feature.chat.R
 import com.waivera.waivera.feature.chat.newchat.NewChatPreviewData
 import com.waivera.waivera.feature.chat.newchat.NewChatSheetContent
 import com.waivera.waivera.feature.chat.newchat.NewChatUiState
+import com.waivera.waivera.feature.chat.newchat.createErrorRes
 import java.util.Locale
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.flowOf
@@ -160,7 +161,7 @@ class ChatListScreenshotTest {
     @Test
     fun newChatError() = newChat(
         "error",
-        NewChatPreviewData.state.copy(errorRes = WaiveraError.Conflict().messageRes, isCreating = false),
+        NewChatPreviewData.state.copy(errorRes = createErrorRes(WaiveraError.Conflict()), isCreating = false),
     )
 
     @Test

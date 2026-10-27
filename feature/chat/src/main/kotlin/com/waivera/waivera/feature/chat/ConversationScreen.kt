@@ -387,11 +387,22 @@ private fun MessageArea(
             label = stringResource(R.string.feature_chat_messages_loading),
             delayMillis = skeletonDelayMillis,
         )
-        is ConversationContent.Error -> WaiveraErrorState(
-            message = stringResource(conversationErrorMessage(content.message)),
-            onRetry = actions.onRetryLoad,
-            title = stringResource(R.string.feature_chat_messages_error_title),
-        )
+        // Retrying a removed conversation can't succeed, so a missing one offers Go back (UI2-12).
+        is ConversationContent.Error -> if (isMissingConversation(content.message)) {
+            WaiveraEmptyState(
+                title = stringResource(R.string.feature_chat_conversation_unavailable_title),
+                message = stringResource(R.string.feature_chat_conversation_not_found),
+                icon = WaiveraIcons.Chat,
+                actionLabel = stringResource(DesignR.string.core_designsystem_go_back),
+                onAction = actions.onBack,
+            )
+        } else {
+            WaiveraErrorState(
+                message = stringResource(conversationErrorMessage(content.message)),
+                onRetry = actions.onRetryLoad,
+                title = stringResource(R.string.feature_chat_messages_error_title),
+            )
+        }
         ConversationContent.Empty -> WaiveraEmptyState(
             title = stringResource(R.string.feature_chat_messages_empty_title),
             message = stringResource(R.string.feature_chat_messages_empty),
@@ -509,6 +520,10 @@ internal class SendErrorState(val ui: SendErrorUi, val onShow: (index: Int) -> U
  */
 internal fun ConversationContent.offersComposer(): Boolean =
     this != ConversationContent.Invalid && this !is ConversationContent.Error
+
+/** The load failed because the conversation is gone (removed, or I was taken out of it). */
+internal fun isMissingConversation(@StringRes messageRes: Int): Boolean =
+    messageRes == NetworkR.string.core_network_error_not_found
 
 /** A missing conversation gets conversation copy instead of the generic "couldn't find that". */
 internal fun conversationErrorMessage(@StringRes messageRes: Int): Int =

@@ -7,25 +7,23 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
-import com.waivera.waivera.core.designsystem.component.BadgeTone
-import com.waivera.waivera.core.designsystem.component.BannerTone
-import com.waivera.waivera.core.designsystem.component.WaiveraBanner
 import com.waivera.waivera.core.designsystem.component.WaiveraButton
 import com.waivera.waivera.core.designsystem.component.WaiveraButtonVariant
+import com.waivera.waivera.core.designsystem.component.WaiveraCountBadge
 import com.waivera.waivera.core.designsystem.component.WaiveraFilterChip
-import com.waivera.waivera.core.designsystem.component.WaiveraStatusBadge
 import com.waivera.waivera.core.designsystem.component.formatBadgeCount
 import com.waivera.waivera.core.designsystem.icon.WaiveraIcons
 import com.waivera.waivera.core.designsystem.preview.WaiveraPreviews
@@ -70,9 +68,8 @@ private fun UnreadCountBadge(count: Int, lowerBound: Boolean) {
     } else {
         pluralStringResource(R.plurals.feature_today_unread_a11y, count, count)
     }
-    Box(Modifier.clearAndSetSemantics { contentDescription = description }) {
-        WaiveraStatusBadge(text = text, tone = BadgeTone.Accent)
-    }
+    // The same solid count badge as every other unread count (UI2-16).
+    WaiveraCountBadge(text = text, contentDescription = description)
 }
 
 /** Type chips (All, Mentions, Replies, Reactions) and the Unread toggle; they combine with AND. */
@@ -92,14 +89,21 @@ internal fun ActivityFilterRow(
         horizontalArrangement = Arrangement.spacedBy(WaiveraSpacing.Small),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        ActivityFilter.entries.forEach { option ->
-            WaiveraFilterChip(label = filterLabel(option), selected = option == filter, onClick = { onFilter(option) })
-        }
+        // Unread is a separate on/off switch, not a fourth type: a check mark and a divider set it
+        // apart, so "All" and "Unread" never read as two picks of one choice (UI2-19).
         WaiveraFilterChip(
             label = stringResource(R.string.feature_today_filter_unread),
             selected = unreadOnly,
             onClick = onToggleUnread,
+            leadingIcon = if (unreadOnly) WaiveraIcons.Check else null,
         )
+        VerticalDivider(
+            modifier = Modifier.height(WaiveraSizes.Icon),
+            color = WaiveraTheme.colors.border,
+        )
+        ActivityFilter.entries.forEach { option ->
+            WaiveraFilterChip(label = filterLabel(option), selected = option == filter, onClick = { onFilter(option) })
+        }
     }
 }
 
@@ -144,11 +148,10 @@ private fun activityIcon(type: ChatActivityType): Int = when (type) {
 @Composable
 internal fun ActivityFooter(section: ActivitySection, onRetry: () -> Unit, modifier: Modifier = Modifier) {
     when {
-        section.loadMoreFailed -> WaiveraBanner(
+        // Quiet, like the section failures above it: the loaded feed is still fine.
+        section.loadMoreFailed -> SectionError(
             message = stringResource(R.string.feature_today_activity_more_failed),
-            tone = BannerTone.Error,
-            actionLabel = stringResource(R.string.feature_today_retry),
-            onAction = onRetry,
+            onRetry = onRetry,
             modifier = modifier,
         )
         section.isLoadingMore -> {

@@ -58,7 +58,8 @@ fun WaiveraNavigationBar(
                         badge = {
                             val badgeText = formatBadgeCount(item.badgeCount)
                             if (badgeText != null) {
-                                Badge(containerColor = colors.dangerFill, contentColor = colors.onDangerFill) {
+                                // Unread, not failure: the same purple as every other count (UI2-16).
+                                Badge(containerColor = colors.unread, contentColor = colors.onAccent) {
                                     Text(text = badgeText, style = WaiveraTextStyles.Badge)
                                 }
                             }

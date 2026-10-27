@@ -17,6 +17,9 @@ sealed interface TodayAction {
 
     data object ToggleUnreadOnly : TodayAction
 
+    /** Clears the type filter and Unread, from the filtered empty state. */
+    data object ShowAllActivity : TodayAction
+
     data object LoadMoreActivity : TodayAction
 
     data object ToggleNeedsYouExpanded : TodayAction

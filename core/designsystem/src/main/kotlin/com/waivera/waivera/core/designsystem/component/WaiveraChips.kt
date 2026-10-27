@@ -1,5 +1,6 @@
 package com.waivera.waivera.core.designsystem.component
 
+import androidx.annotation.DrawableRes
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
@@ -11,11 +12,13 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -25,17 +28,22 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextAlign
 import com.waivera.waivera.core.designsystem.feedback.rememberHaptics
+import com.waivera.waivera.core.designsystem.icon.WaiveraIcons
 import com.waivera.waivera.core.designsystem.preview.WaiveraPreviews
 import com.waivera.waivera.core.designsystem.theme.WaiveraShapes
 import com.waivera.waivera.core.designsystem.theme.WaiveraSizes
 import com.waivera.waivera.core.designsystem.theme.WaiveraSpacing
 import com.waivera.waivera.core.designsystem.theme.WaiveraTheme
 
-/** Filter chip (All, Mentions, Unread...). Selecting fires the selection haptic. */
+/**
+ * Filter chip (All, Mentions, Unread...). Selecting fires the selection haptic. [leadingIcon]
+ * marks an on/off toggle (a check while on) so it reads apart from single-choice chips.
+ */
 @Composable
 fun WaiveraFilterChip(
     label: String,
@@ -43,6 +51,7 @@ fun WaiveraFilterChip(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
+    @DrawableRes leadingIcon: Int? = null,
 ) {
     val haptics = rememberHaptics()
     val colors = WaiveraTheme.colors
@@ -55,12 +64,22 @@ fun WaiveraFilterChip(
         label = { Text(text = label, style = MaterialTheme.typography.labelMedium) },
         modifier = modifier,
         enabled = enabled,
+        leadingIcon = leadingIcon?.let { icon ->
+            {
+                Icon(
+                    painter = painterResource(icon),
+                    contentDescription = null,
+                    modifier = Modifier.size(FilterChipDefaults.IconSize),
+                )
+            }
+        },
         shape = WaiveraShapes.Chip,
         colors = FilterChipDefaults.filterChipColors(
             containerColor = colors.surface,
             labelColor = colors.text,
             selectedContainerColor = colors.accentSoft,
             selectedLabelColor = colors.onAccentSoft,
+            selectedLeadingIconColor = colors.onAccentSoft,
         ),
         border = FilterChipDefaults.filterChipBorder(
             enabled = enabled,
@@ -178,6 +197,7 @@ private fun WaiveraChipsPreview() {
             Row(horizontalArrangement = Arrangement.spacedBy(WaiveraSpacing.Small)) {
                 WaiveraFilterChip(label = "All", selected = true, onClick = {})
                 WaiveraFilterChip(label = "Mentions", selected = false, onClick = {})
+                WaiveraFilterChip(label = "Unread", selected = true, onClick = {}, leadingIcon = WaiveraIcons.Check)
             }
             WaiveraSegmentedControl(options = listOf("Day", "Week", "Month"), selectedIndex = 1, onSelect = {})
         }
