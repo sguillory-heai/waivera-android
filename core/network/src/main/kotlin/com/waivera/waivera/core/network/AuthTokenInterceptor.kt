@@ -21,9 +21,13 @@ class AuthTokenInterceptor(private val tokens: AuthTokenProvider) : Interceptor 
     override fun intercept(chain: Interceptor.Chain): Response {
         val token = tokens.idToken(forceRefresh = false)
         val response = chain.proceed(chain.request().withBearer(token))
-        if (response.code != HTTP_UNAUTHORIZED || token == null) return response
+        val refreshed = if (response.code == HTTP_UNAUTHORIZED && token != null) {
+            tokens.idToken(forceRefresh = true)
+        } else {
+            null
+        }
+        if (refreshed == null) return response
 
-        val refreshed = tokens.idToken(forceRefresh = true) ?: return response
         response.close()
         return chain.proceed(chain.request().withBearer(refreshed))
     }
