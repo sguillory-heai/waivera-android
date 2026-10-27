@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="feature_chat_chat_list_title">Chat</string>
+    <string name="feature_chat_chat_list_placeholder">Your conversations will appear here.</string>
+    <string name="feature_chat_account_name">Your account</string>
+    <string name="feature_chat_conversation_title">Conversation</string>
+    <string name="feature_chat_conversation_placeholder">Messages in this conversation will appear here.</string>
+    <string name="feature_chat_conversation_reference">Reference %1$s</string>
+    <string name="feature_chat_thread_title">Thread</string>
+    <string name="feature_chat_thread_placeholder">Replies in this thread will appear here.</string>
+    <string name="feature_chat_thread_reference">Reference %1$s</string>
+</resources>

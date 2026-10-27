@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="core_designsystem_go_back">Go back</string>
+    <string name="core_designsystem_account_menu">Account menu</string>
+    <string name="core_designsystem_loading">Loading</string>
+    <string name="core_designsystem_loading_app">Loading Waivera…</string>
+    <string name="core_designsystem_cancel">Cancel</string>
+    <string name="core_designsystem_retry">Retry</string>
+    <string name="core_designsystem_try_again">Try again</string>
+    <string name="core_designsystem_dismiss">Dismiss</string>
+    <string name="core_designsystem_undo">Undo</string>
+    <string name="core_designsystem_selected">Selected</string>
+    <string name="core_designsystem_not_selected">Not selected</string>
+    <string name="core_designsystem_error_title">Something went wrong</string>
+    <string name="core_designsystem_presence_online">Online</string>
+    <string name="core_designsystem_presence_away">Away</string>
+    <string name="core_designsystem_presence_offline">Offline</string>
+    <string name="core_designsystem_milestone_birthday">Birthday today</string>
+    <string name="core_designsystem_milestone_anniversary">Work anniversary today</string>
+    <string name="core_designsystem_milestone_new_hire">New to the team</string>
+    <string name="core_designsystem_connection_connecting">Connecting…</string>
+    <string name="core_designsystem_connection_reconnecting">Reconnecting…</string>
+    <string name="core_designsystem_connection_reconnecting_detail">Messages may be delayed. We\'ll keep trying.</string>
+    <string name="core_designsystem_connection_offline">You\'re offline</string>
+    <string name="core_designsystem_connection_offline_detail">Messages you send will go out when you\'re back online.</string>
+    <string name="core_designsystem_connection_retry">Retry now</string>
+    <string name="core_designsystem_sync_pending">Sending…</string>
+    <string name="core_designsystem_sync_failed">Not sent · Tap to retry</string>
+    <string name="core_designsystem_sync_failed_a11y">Not sent</string>
+    <plurals name="core_designsystem_badge_count">
+        <item quantity="one">%d unread</item>
+        <item quantity="other">%d unread</item>
+    </plurals>
+    <string name="core_designsystem_badge_count_overflow">More than 99 unread</string>
+</resources>

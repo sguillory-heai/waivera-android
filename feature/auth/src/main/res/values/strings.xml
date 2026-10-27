@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="feature_auth_sign_in_title">Sign in</string>
+    <string name="feature_auth_sign_in_placeholder">Sign in with your Waivera email and password.</string>
+    <string name="feature_auth_password_change_title">Change your password</string>
+    <string name="feature_auth_password_change_placeholder">Your organisation asks you to set a new password before you continue.</string>
+    <string name="feature_auth_primer_title">Stay in the loop</string>
+    <string name="feature_auth_primer_message">Turn on notifications so you know when something needs you.</string>
+    <string name="feature_auth_primer_messages">Messages and mentions from your team</string>
+    <string name="feature_auth_primer_schedule">Schedule changes and reminders before a shift</string>
+    <string name="feature_auth_primer_control">You choose which kinds you get in Settings</string>
+    <string name="feature_auth_primer_enable">Turn on notifications</string>
+    <string name="feature_auth_primer_not_now">Not now</string>
+</resources>

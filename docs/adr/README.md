@@ -11,3 +11,4 @@ Format: `NNNN-title.md` with Status, Context, Decision, Consequences.
 | [0001](0001-native-rebuild.md) | Rebuild natively instead of staying cross-platform | Accepted |
 | [0002](0002-app-architecture.md) | Modular, unidirectional architecture with a local source of truth | Accepted |
 | [0003](0003-push-through-fcm.md) | Deliver pushes through FCM HTTP v1, data-only on Android | Accepted |
+| [0004](0004-notification-channels-by-meaning.md) | Notification channels by meaning (supersedes the channel part of 0003) | Accepted |

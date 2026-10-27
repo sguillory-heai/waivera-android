@@ -24,6 +24,7 @@ dependencies {
     compileOnly(libs.kotlin.gradlePlugin)
     compileOnly(libs.ksp.gradlePlugin)
     compileOnly(libs.ktlint.gradlePlugin)
+    compileOnly(libs.roborazzi.gradlePlugin)
 }
 
 gradlePlugin {
@@ -43,6 +44,14 @@ gradlePlugin {
         register("androidLibraryCompose") {
             id = libs.plugins.waivera.android.library.compose.get().pluginId
             implementationClass = "AndroidLibraryComposeConventionPlugin"
+        }
+        register("androidFeature") {
+            id = libs.plugins.waivera.android.feature.get().pluginId
+            implementationClass = "AndroidFeatureConventionPlugin"
+        }
+        register("androidScreenshot") {
+            id = libs.plugins.waivera.android.screenshot.get().pluginId
+            implementationClass = "AndroidScreenshotConventionPlugin"
         }
         register("hilt") {
             id = libs.plugins.waivera.hilt.get().pluginId

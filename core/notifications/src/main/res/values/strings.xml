@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Must match WaiveraChannel.Messages.id; used by FCM for any system-rendered notification. -->
+    <string name="core_notifications_default_channel_id" translatable="false">messages</string>
+
+    <string name="core_notifications_channel_messages">Direct messages and mentions</string>
+    <string name="core_notifications_channel_messages_description">Messages sent to you and times someone mentions you.</string>
+    <string name="core_notifications_channel_group_activity">Group chat activity</string>
+    <string name="core_notifications_channel_group_activity_description">New messages in group chats and channels.</string>
+    <string name="core_notifications_channel_schedule_reminders">Schedule reminders</string>
+    <string name="core_notifications_channel_schedule_reminders_description">Shifts and events starting soon.</string>
+    <string name="core_notifications_channel_schedule_changes">Schedule changes</string>
+    <string name="core_notifications_channel_schedule_changes_description">Events that were added, moved or cancelled.</string>
+    <string name="core_notifications_channel_digest">Digest and announcements</string>
+    <string name="core_notifications_channel_digest_description">Milestones, announcements and other low-priority updates.</string>
+
+    <string name="core_notifications_reply">Reply</string>
+    <string name="core_notifications_reply_hint">Message</string>
+    <string name="core_notifications_mark_read">Mark read</string>
+    <string name="core_notifications_you">You</string>
+    <string name="core_notifications_someone">Someone</string>
+    <string name="core_notifications_new_message">New message</string>
+    <string name="core_notifications_reply_failed">Couldn\'t send your reply. Open the chat to try again.</string>
+    <string name="core_notifications_summary_title">Waivera</string>
+    <plurals name="core_notifications_summary_text">
+        <item quantity="one">%d conversation</item>
+        <item quantity="other">%d conversations</item>
+    </plurals>
+</resources>
