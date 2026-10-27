@@ -83,6 +83,7 @@ internal fun AuthEffects(effects: Flow<AuthEffect>, haptics: Haptics) {
         effects.collect { effect ->
             when (effect) {
                 AuthEffect.Error -> haptics.error()
+                AuthEffect.Warning -> haptics.warning()
                 AuthEffect.Success -> haptics.success()
             }
         }

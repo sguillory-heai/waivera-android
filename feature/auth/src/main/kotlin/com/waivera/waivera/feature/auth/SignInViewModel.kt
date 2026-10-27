@@ -53,7 +53,8 @@ data class SignInUiState(
             "signedOutNotice=$signedOutNotice)"
 }
 
-enum class AuthEffect { Error, Success }
+/** Haptic moments: [Warning] is a failure the person did not cause and can retry (UI2-15). */
+enum class AuthEffect { Error, Warning, Success }
 
 /**
  * Sign-in form. The session repository owns Firebase and the backend bootstrap; this only

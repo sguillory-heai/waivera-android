@@ -61,7 +61,7 @@ class BootstrapFailedViewModelTest {
         val vm = BootstrapFailedViewModel(session, clock)
         vm.effects.test {
             vm.retry()
-            assertEquals(AuthEffect.Error, awaitItem())
+            assertEquals(AuthEffect.Warning, awaitItem(), "the server is unreachable; nothing the person did wrong")
         }
         assertEquals(NetworkR.string.core_network_error_server, vm.state.value.message)
         assertFalse(vm.state.value.isOffline)

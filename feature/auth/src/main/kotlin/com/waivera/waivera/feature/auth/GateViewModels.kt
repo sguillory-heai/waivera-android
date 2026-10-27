@@ -74,7 +74,7 @@ class BootstrapFailedViewModel @Inject constructor(private val session: SessionR
                         lastFailedRetryAt = clock.instant(),
                     )
                 }
-                _effects.trySend(AuthEffect.Error)
+                _effects.trySend(AuthEffect.Warning)
             }
         }
     }
