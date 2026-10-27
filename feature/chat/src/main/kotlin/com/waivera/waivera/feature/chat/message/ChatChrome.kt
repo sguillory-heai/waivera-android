@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
@@ -43,6 +44,7 @@ import com.waivera.waivera.core.designsystem.component.WaiveraDivider
 import com.waivera.waivera.core.designsystem.component.WaiveraIconButton
 import com.waivera.waivera.core.designsystem.component.WaiveraPressable
 import com.waivera.waivera.core.designsystem.component.rememberSkeletonAlpha
+import com.waivera.waivera.core.designsystem.component.rememberSkeletonVisible
 import com.waivera.waivera.core.designsystem.icon.WaiveraIcons
 import com.waivera.waivera.core.designsystem.preview.WaiveraPreviews
 import com.waivera.waivera.core.designsystem.theme.WaiveraShapes
@@ -408,6 +410,27 @@ fun JumpToLatestPill(onClick: () -> Unit, modifier: Modifier = Modifier) {
             Icon(painterResource(ChatIcons.ChevronDown), contentDescription = null, tint = colors.accent, modifier = Modifier.size(WaiveraSizes.IconSmall))
             Text(text = stringResource(R.string.feature_chat_jump_to_latest), style = MaterialTheme.typography.labelLarge, color = colors.accent)
         }
+    }
+}
+
+/**
+ * The first-load skeleton, shown only once loading has taken longer than the design-system delay
+ * (~300 ms, 10 §3) so fast loads never flash it. [delayMillis] overrides it for screenshots.
+ */
+@Composable
+fun DelayedListSkeleton(label: String, modifier: Modifier = Modifier, delayMillis: Long? = null) {
+    val visible = if (delayMillis == null) {
+        rememberSkeletonVisible(loading = true)
+    } else {
+        rememberSkeletonVisible(loading = true, delayMillis = delayMillis)
+    }
+    if (visible) {
+        MessageListSkeleton(
+            modifier = modifier
+                .fillMaxSize()
+                .semantics { contentDescription = label }
+                .padding(vertical = WaiveraSpacing.Medium),
+        )
     }
 }
 

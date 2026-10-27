@@ -55,7 +55,6 @@ import com.waivera.waivera.core.designsystem.component.WaiveraSnackbarHost
 import com.waivera.waivera.core.designsystem.component.WaiveraTopBar
 import com.waivera.waivera.core.designsystem.icon.WaiveraIcons
 import com.waivera.waivera.core.designsystem.preview.WaiveraPreviews
-import com.waivera.waivera.core.designsystem.theme.WaiveraSpacing
 import com.waivera.waivera.core.designsystem.theme.WaiveraTheme
 import com.waivera.waivera.feature.chat.conversation.CallUi
 import com.waivera.waivera.feature.chat.conversation.ConversationContent
@@ -73,7 +72,7 @@ import com.waivera.waivera.feature.chat.message.ComposerConfig
 import com.waivera.waivera.feature.chat.message.HideKeyboardOnDrag
 import com.waivera.waivera.feature.chat.message.JumpToLatestPill
 import com.waivera.waivera.feature.chat.message.LocalChatImages
-import com.waivera.waivera.feature.chat.message.MessageListSkeleton
+import com.waivera.waivera.feature.chat.message.DelayedListSkeleton
 import com.waivera.waivera.feature.chat.message.MessageRowCallbacks
 import com.waivera.waivera.feature.chat.message.OlderMessagesRow
 import com.waivera.waivera.feature.chat.message.ReadOnlyNotice
@@ -146,7 +145,7 @@ fun ConversationScreen(
         indexOfKey = { key -> state.items.indexOfLast { it.key == key }.takeIf { it >= 0 }?.let { state.items.lastIndex - it } },
     )
 
-    val rowCallbacks = remember(viewModel) {
+    val rowCallbacks = remember(viewModel, onOpenPerson) {
         MessageRowCallbacks(
             onToggleTimestamp = viewModel::toggleTimestamp,
             onLongPress = viewModel::openActions,
@@ -254,6 +253,7 @@ fun ConversationScreenContent(
     listState: LazyListState = rememberLazyListState(),
     snackbarHostState: SnackbarHostState = remember { SnackbarHostState() },
     onJumpToLatest: () -> Unit = {},
+    skeletonDelayMillis: Long? = null,
 ) {
     val colors = WaiveraTheme.colors
     val title = state.title ?: stringResource(R.string.feature_chat_conversation_fallback_title)
@@ -289,7 +289,7 @@ fun ConversationScreenContent(
                         .weight(1f)
                         .fillMaxWidth(),
                 ) {
-                    MessageArea(state, time, actions, listState, onJumpToLatest)
+                    MessageArea(state, time, actions, listState, onJumpToLatest, skeletonDelayMillis)
                 }
                 ComposerArea(state, draft, onDraftChange, actions)
             }
@@ -335,6 +335,7 @@ private fun MessageArea(
     actions: ConversationActions,
     listState: LazyListState,
     onJumpToLatest: () -> Unit,
+    skeletonDelayMillis: Long?,
 ) {
     when (val content = state.content) {
         ConversationContent.Invalid -> WaiveraEmptyState(
@@ -342,15 +343,10 @@ private fun MessageArea(
             message = stringResource(R.string.feature_chat_conversation_invalid),
             icon = WaiveraIcons.Error,
         )
-        ConversationContent.Loading -> {
-            val loading = stringResource(R.string.feature_chat_messages_loading)
-            MessageListSkeleton(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .semantics { contentDescription = loading }
-                    .padding(vertical = WaiveraSpacing.Medium),
-            )
-        }
+        ConversationContent.Loading -> DelayedListSkeleton(
+            label = stringResource(R.string.feature_chat_messages_loading),
+            delayMillis = skeletonDelayMillis,
+        )
         is ConversationContent.Error -> WaiveraErrorState(
             message = stringResource(content.message),
             onRetry = actions.onRetryLoad,

@@ -35,6 +35,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
@@ -70,7 +71,7 @@ import com.waivera.waivera.feature.chat.message.Composer
 import com.waivera.waivera.feature.chat.message.ComposerConfig
 import com.waivera.waivera.feature.chat.message.HideKeyboardOnDrag
 import com.waivera.waivera.feature.chat.message.LocalChatImages
-import com.waivera.waivera.feature.chat.message.MessageListSkeleton
+import com.waivera.waivera.feature.chat.message.DelayedListSkeleton
 import com.waivera.waivera.feature.chat.message.MessageRowCallbacks
 import com.waivera.waivera.feature.chat.message.ReadOnlyNotice
 import com.waivera.waivera.feature.chat.message.RowTime
@@ -102,14 +103,16 @@ fun ThreadScreen(
     val listState = rememberLazyListState()
     val snackbarHostState = remember { SnackbarHostState() }
     val focusRequester = remember { FocusRequester() }
-    val entries = remember(state.root, state.replies, state.content) { threadEntries(state) }
+    val entries = remember(state.root, state.replies, state.content, state.replyCount) { threadEntries(state) }
     val time by produceState(viewModel.rowTime(), viewModel) {
         while (true) {
             delay(ChatDimens.TIME_TICK_MILLIS)
             value = viewModel.rowTime()
         }
     }
-    val saveFile = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument(THREAD_SAVE_MIME_TYPE)) { uri -> viewModel.onSaveLocationPicked(uri?.toString()) }
+    val saveFile = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument(THREAD_SAVE_MIME_TYPE)) { uri ->
+        viewModel.onSaveLocationPicked(uri?.toString())
+    }
 
     LaunchedEffect(viewModel, highlightMessageId) { viewModel.highlight(highlightMessageId) }
     LifecycleResumeEffect(viewModel) {
@@ -125,11 +128,16 @@ fun ThreadScreen(
         onPickSaveLocation = { name -> saveFile.launch(name) },
         onUndoBookmark = viewModel::undoBookmark,
         onFocusComposer = { runCatching { focusRequester.requestFocus() } },
-        scrollToLatest = { if (entries.isNotEmpty()) listState.animateScrollToItem(entries.lastIndex) },
+        // The reply lands in the list a frame after the send returns; scroll once it is laid out.
+        scrollToLatest = {
+            withFrameNanos { }
+            val last = listState.layoutInfo.totalItemsCount - 1
+            if (last >= 0) listState.animateScrollToItem(last)
+        },
         indexOfKey = { key -> entries.indexOfFirst { it.key == key }.takeIf { it >= 0 } },
     )
 
-    val rowCallbacks = remember(viewModel) {
+    val rowCallbacks = remember(viewModel, onOpenPerson) {
         MessageRowCallbacks(
             onToggleTimestamp = viewModel::toggleTimestamp,
             onLongPress = viewModel::openActions,
@@ -261,6 +269,7 @@ fun ThreadScreenContent(
     snackbarHostState: SnackbarHostState = remember { SnackbarHostState() },
     focusRequester: FocusRequester? = null,
     scrollToNewestOnOpen: Boolean = true,
+    skeletonDelayMillis: Long? = null,
 ) {
     val colors = WaiveraTheme.colors
     Box(
@@ -293,7 +302,7 @@ fun ThreadScreenContent(
                         .weight(1f)
                         .fillMaxWidth(),
                 ) {
-                    ThreadBody(state, time, actions, listState, scrollToNewestOnOpen)
+                    ThreadBody(state, time, actions, listState, scrollToNewestOnOpen, skeletonDelayMillis)
                 }
                 if (state.content != ThreadContent.Invalid) {
                     ThreadComposerArea(state, draft, onDraftChange, actions, focusRequester)
@@ -324,6 +333,7 @@ private fun ThreadBody(
     actions: ThreadActions,
     listState: LazyListState,
     scrollToNewestOnOpen: Boolean,
+    skeletonDelayMillis: Long?,
 ) {
     when (val content = state.content) {
         ThreadContent.Invalid -> WaiveraEmptyState(
@@ -331,15 +341,10 @@ private fun ThreadBody(
             message = stringResource(R.string.feature_chat_thread_invalid),
             icon = WaiveraIcons.Error,
         )
-        ThreadContent.Loading -> {
-            val loading = stringResource(R.string.feature_chat_thread_loading)
-            MessageListSkeleton(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .semantics { contentDescription = loading }
-                    .padding(vertical = WaiveraSpacing.Medium),
-            )
-        }
+        ThreadContent.Loading -> DelayedListSkeleton(
+            label = stringResource(R.string.feature_chat_thread_loading),
+            delayMillis = skeletonDelayMillis,
+        )
         is ThreadContent.Error -> WaiveraErrorState(
             message = stringResource(content.message),
             onRetry = actions.onRetryLoad,
@@ -359,7 +364,7 @@ private fun ThreadList(
     scrollToNewestOnOpen: Boolean,
 ) {
     val motion = WaiveraTheme.motion
-    val entries = remember(state.root, state.replies, state.content) { threadEntries(state) }
+    val entries = remember(state.root, state.replies, state.content, state.replyCount) { threadEntries(state) }
     val context = remember(time, state.names, state.conversationTitle, state.visibleTimestamps, state.highlightKey) {
         TimelineContext(time, state.names, state.conversationTitle, state.visibleTimestamps, state.highlightKey)
     }
