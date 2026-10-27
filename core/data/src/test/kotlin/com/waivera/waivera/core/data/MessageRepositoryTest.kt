@@ -206,6 +206,54 @@ class MessageRepositoryTest {
     }
 
     @Test
+    fun aRepeatedEchoWithAClientIdNeverRemovesAnotherQueuedMessageWithTheSameText() = testScope.runTest {
+        graph.realtime.connected = false
+        graph.server.status("POST /api/chat/send", 503)
+        val first = repo.send(7, "ok")
+        graph.clock.advanceMillis(5_000)
+        val second = repo.send(7, "ok")
+        eventually { graph.db.outbox.rows.value.size == 2 && graph.scheduler.scheduled > 0 }
+        val echo = com.waivera.waivera.core.data.model.Message(
+            id = 9700,
+            conversationId = 7,
+            clientMessageId = first,
+            authorId = "usr_alex_rivera",
+            text = "ok",
+            createdAt = graph.clock.now,
+        )
+        // Send response and hub echo of the same message: the second ingest finds no row by id.
+        graph.ingest.ingest(listOf(echo))
+        graph.ingest.ingest(listOf(echo))
+        assertNull(graph.outbox.get(first))
+        assertEquals(second, graph.outbox.get(second)?.clientMessageId, "the second \"ok\" is still queued")
+    }
+
+    @Test
+    fun theTextFallbackSkipsAMessageThatIsBeingSent() = testScope.runTest {
+        val sending = OutboxItem(
+            clientMessageId = "in-flight",
+            conversationId = 7,
+            authorId = "usr_alex_rivera",
+            text = "on it",
+            state = SendState.SENDING,
+            createdAt = graph.clock.now,
+        )
+        graph.outbox.put(sending)
+        graph.ingest.ingest(
+            listOf(
+                com.waivera.waivera.core.data.model.Message(
+                    id = 9701,
+                    conversationId = 7,
+                    authorId = "usr_alex_rivera",
+                    text = "on it",
+                    createdAt = graph.clock.now.plusSeconds(1),
+                ),
+            ),
+        )
+        assertEquals(SendState.SENDING, graph.outbox.get("in-flight")?.state, "settled by its own response")
+    }
+
+    @Test
     fun reactionsAreOptimisticAndRollBackOnFailure() = testScope.runTest {
         graph.server.fixture("GET /api/chat/7/messages/pagination", "rest-chat-get-messages-pagination.json")
         repo.refreshLatest(7).getOrThrow()
