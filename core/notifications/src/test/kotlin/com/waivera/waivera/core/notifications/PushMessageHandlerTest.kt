@@ -111,7 +111,7 @@ class PushMessageHandlerTest {
 
     @Test
     fun `legacy pushes use the notification block for their text`() = runTest {
-        val fixture = PushFixtures.load("legacy-meeting.json")
+        val fixture = PushFixtures.load("push-legacy-meeting.json")
         handler.handle(fixture.data, fixture.title, fixture.body)
         val (message, channel) = notifier.shown.single()
         assertEquals(WaiveraChannel.ScheduleChanges, channel)
