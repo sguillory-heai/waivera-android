@@ -149,7 +149,7 @@ class FakeRealtimeStatusRepository(
 
     override fun retryNow() = Unit
 
-    override fun setVisibleConversation(conversationId: Long?) = Unit
+    override fun setVisibleConversation(conversationId: Long?, threadRootMessageId: Long?) = Unit
 
     override fun shouldSuppressNotification(conversationId: Long): Boolean = false
 }

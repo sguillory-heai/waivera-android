@@ -288,10 +288,15 @@ class DemoRealtimeStatusRepository @Inject constructor(
 
     override fun retryNow() = realtime.retryNow()
 
-    override fun setVisibleConversation(conversationId: Long?) {
-        backend.visibleConversation.value = conversationId
+    @Volatile
+    private var visibleChat: Long? = null
+
+    override fun setVisibleConversation(conversationId: Long?, threadRootMessageId: Long?) {
+        visibleChat = conversationId
+        // Only the main timeline marks its new messages as seen (IF-02).
+        backend.visibleConversation.value = conversationId.takeIf { threadRootMessageId == null }
     }
 
     override fun shouldSuppressNotification(conversationId: Long): Boolean =
-        realtime.state.value == ConnectionState.Connected && backend.visibleConversation.value == conversationId
+        realtime.state.value == ConnectionState.Connected && visibleChat == conversationId
 }

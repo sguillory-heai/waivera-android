@@ -143,6 +143,15 @@ class PushMessageHandlerTest {
     }
 
     @Test
+    fun `a main timeline message is shown while only one of its threads is on screen`() = runTest {
+        hubConnected = true
+        tracker.enter(conversationId = 7, threadRootMessageId = 9310)
+        handler.handle(chatData)
+        val shown = assertIs<PushMessage.Chat>(notifier.shown.single().first)
+        assertNull(shown.threadRootMessageId)
+    }
+
+    @Test
     fun `legacy pushes use the notification block for their text`() = runTest {
         val fixture = PushFixtures.load("push-legacy-meeting.json")
         handler.handle(fixture.data, fixture.title, fixture.body)

@@ -94,6 +94,21 @@ class RealtimeSyncTest {
     }
 
     @Test
+    fun aMainTimelineMessageWhileOnlyAThreadIsOpenStillCountsAsUnread() = testScope.runTest {
+        seedInbox()
+        val before = graph.cache.conversation(7)?.unreadCount ?: 0
+        val base = (event("hub-receive-message.json") as HubEvent.MessageReceived).message
+        // IF-02: the thread is on screen, the main timeline under it is not.
+        graph.visible.set(7, threadRootMessageId = 9_310)
+        sync.apply(
+            HubEvent.MessageReceived(
+                base.copy(id = 10_003, conversationId = 7, userId = "usr_priya_raman", author = null),
+            ),
+        )
+        assertEquals(before + 1, graph.cache.conversation(7)?.unreadCount)
+    }
+
+    @Test
     fun messageForAnUnknownConversationHydratesIt() = testScope.runTest {
         graph.server.fixture("GET /api/chat/conversation/7", "rest-chat-get-conversation.json")
         sync.apply(event("hub-receive-conversation-list-message.json"))
@@ -222,6 +237,9 @@ class RealtimeSyncTest {
         status.setVisibleConversation(7)
         assertTrue(status.shouldSuppressNotification(7))
         assertTrue(!status.shouldSuppressNotification(8))
+        // A thread on screen still counts here; the notification layer narrows it to the thread.
+        status.setVisibleConversation(7, threadRootMessageId = 9_310)
+        assertTrue(status.shouldSuppressNotification(7))
         graph.realtime.connected = false
         assertTrue(!status.shouldSuppressNotification(7))
         assertTrue(graph.conversations.observeConversations().first().data.isEmpty())

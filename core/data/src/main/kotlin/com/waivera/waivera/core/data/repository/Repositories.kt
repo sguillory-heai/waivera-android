@@ -305,13 +305,18 @@ interface RealtimeStatusRepository {
     fun retryNow()
 
     /**
-     * The conversation on screen, or null. The app shell is the single owner: it sets this from
-     * navigation state (top route is a conversation or thread and the activity is resumed) and
-     * clears it otherwise. Feature screens never call it.
+     * The conversation on screen, or null, with [threadRootMessageId] set when the screen is one
+     * of its threads rather than its timeline. The app shell is the single owner: it sets this
+     * from navigation state (top route is a conversation or thread and the activity is resumed)
+     * and clears it otherwise. Feature screens never call it.
      */
-    fun setVisibleConversation(conversationId: Long?)
+    fun setVisibleConversation(conversationId: Long?, threadRootMessageId: Long? = null)
 
-    /** Foreground push suppression: only when the hub is connected and that conversation is on screen. */
+    /**
+     * Foreground push suppression: only when the hub is connected and that conversation's
+     * timeline or one of its threads is on screen. The notification layer narrows it to the
+     * exact surface, so a main-timeline message still alerts while only a thread is open.
+     */
     fun shouldSuppressNotification(conversationId: Long): Boolean
 }
 
