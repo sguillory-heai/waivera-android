@@ -43,6 +43,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonElement
 
@@ -307,6 +308,27 @@ class LiveMessageRepository @Inject constructor(
         attachment: AttachmentSource?,
         parentMessageId: Long?,
     ): String {
+        val clientId = enqueue(conversationId, text, doc, attachment, parentMessageId)
+        kick()
+        return clientId
+    }
+
+    override suspend fun sendDurably(conversationId: Long, text: String, parentMessageId: Long?): String {
+        val clientId = enqueue(conversationId, text, doc = null, attachment = null, parentMessageId)
+        // WorkManager first: it outlives this process if the system ends it mid-attempt.
+        scheduler.schedule()
+        // Bounded so the receiver's window is never overrun; the scheduled retry finishes the job.
+        withTimeoutOrNull(FIRST_ATTEMPT_MILLIS) { processor.process() }
+        return clientId
+    }
+
+    private suspend fun enqueue(
+        conversationId: Long,
+        text: String,
+        doc: JsonElement?,
+        attachment: AttachmentSource?,
+        parentMessageId: Long?,
+    ): String {
         // A reply from a notification can arrive while a cold start is still bootstrapping (AF-07).
         val me = session.state.value.currentUserId
             ?: session.settledUserId(SESSION_WAIT_MILLIS)
@@ -326,7 +348,6 @@ class LiveMessageRepository @Inject constructor(
             ),
         )
         typing.onMessageSent(conversationId)
-        kick()
         return clientId
     }
 
@@ -431,6 +452,9 @@ class LiveMessageRepository @Inject constructor(
 
         /** Inside the notification receiver's 8 s budget; the outbox sends once signed in. */
         const val SESSION_WAIT_MILLIS = 5_000L
+
+        /** With [SESSION_WAIT_MILLIS], still inside the notification receiver's 8 s budget. */
+        const val FIRST_ATTEMPT_MILLIS = 2_500L
     }
 
     private fun syncKey(conversationId: Long) = "messages:$conversationId"

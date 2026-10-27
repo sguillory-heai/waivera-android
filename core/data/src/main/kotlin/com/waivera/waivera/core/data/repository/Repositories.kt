@@ -145,6 +145,14 @@ interface MessageRepository {
         parentMessageId: Long? = null,
     ): String
 
+    /**
+     * Like [send], for a caller whose process may end right after it returns (an inline reply
+     * from a notification): returns once a durable retry is scheduled and the first attempt has
+     * finished, so the message is never left queued with nothing to send it (IF-03).
+     */
+    suspend fun sendDurably(conversationId: Long, text: String, parentMessageId: Long?): String =
+        send(conversationId = conversationId, text = text, parentMessageId = parentMessageId)
+
     /** Re-queues a failed message. */
     suspend fun retry(clientMessageId: String): Result<Unit>
 

@@ -188,6 +188,21 @@ class MessageRepositoryTest {
     }
 
     @Test
+    fun aNotificationReplyIsSentOrGivenADurableRetryBeforeSendDurablyReturns() = testScope.runTest {
+        hubAnswers(null)
+        val sent = repo.sendDurably(7, "On my way", parentMessageId = null)
+        // Nothing has run in the background yet: the attempt happened inside the call.
+        assertNull(graph.outbox.get(sent), "the reply went out before the receiver could finish")
+        assertEquals(1, graph.scheduler.scheduled, "a durable retry exists in case the process ends")
+
+        graph.connectivity.online.value = false
+        hubAnswers(WaiveraError.Network())
+        val waiting = repo.sendDurably(7, "Running late", parentMessageId = null)
+        assertEquals(SendState.QUEUED, graph.outbox.get(waiting)?.state, "saved, not lost")
+        assertEquals(2, graph.scheduler.scheduled)
+    }
+
+    @Test
     fun permanentFailureShowsRetryAndRetrySucceedsWithoutDuplicates() = testScope.runTest {
         graph.realtime.connected = false
         graph.server.status("POST /api/chat/send", 400, "\"Bad request\"")

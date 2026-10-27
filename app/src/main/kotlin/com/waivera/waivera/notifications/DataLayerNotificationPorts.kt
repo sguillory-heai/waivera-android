@@ -34,8 +34,9 @@ class DataLayerChatNotificationActions @Inject constructor(
     private val conversations: ConversationRepository,
 ) : ChatNotificationActions {
     override suspend fun reply(conversationId: Long, text: String, threadRootMessageId: Long?) {
-        // send() queues in the outbox and returns the client id at once; the outbox retries.
-        messages.send(conversationId = conversationId, text = text, parentMessageId = threadRootMessageId)
+        // The receiver finishes right after this returns and the process may go with it, so the
+        // reply is persisted, given a durable retry and tried once before returning (IF-03).
+        messages.sendDurably(conversationId = conversationId, text = text, parentMessageId = threadRootMessageId)
     }
 
     override suspend fun markRead(conversationId: Long, lastMessageId: Long?) {

@@ -6,8 +6,9 @@ package com.waivera.waivera.core.notifications.action
  */
 interface ChatNotificationActions {
     /**
-     * Queues an inline reply in the outbox (optimistic, retried by the outbox) and returns once it
-     * is queued. Throws if it could not be queued; the notification then shows a failure line.
+     * Saves an inline reply in the outbox with a durable retry, tries it once, and returns. The
+     * receiver may lose its process right after, so nothing may be left only in memory. Throws
+     * if it could not be saved; the notification then shows a failure line.
      */
     suspend fun reply(conversationId: Long, text: String, threadRootMessageId: Long?)
 
