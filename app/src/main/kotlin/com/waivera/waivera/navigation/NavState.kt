@@ -52,16 +52,6 @@ data class NavState(
         else -> withStack(selected, stack(selected) + route)
     }
 
-    /**
-     * Pushes [route] with [parent] directly under it, so back from [route] lands on [parent]
-     * (08 §6: Settings opened from the account menu sits over Profile).
-     */
-    fun pushOver(parent: AppRoute, route: AppRoute): NavState = when (top) {
-        route -> this
-        parent -> push(route)
-        else -> push(parent).push(route)
-    }
-
     /** Pops the selected tab, or returns to Today from another tab's root. At Today's root it is a no-op. */
     fun back(): NavState {
         val current = stack(selected)

@@ -109,10 +109,12 @@ class AppShellViewModel @Inject constructor(
 
     fun push(route: AppRoute) = shell.update { state -> state.onNav { it.push(route) } }
 
-    /** Account menu choices; Settings goes over Profile so back from it lands on the profile (08 §6). */
-    fun openFromAccountMenu(route: AppRoute) = shell.update { state ->
-        state.onNav { if (route == SettingsRoute) it.pushOver(ProfileRoute, route) else it.push(route) }
-    }
+    /**
+     * The menu's Profile, People, Bookmarks and Settings are peers: each goes straight onto the
+     * current tab, so back returns to where the menu was opened (UI2-10). Profile ▸ Settings is
+     * only for the Settings row inside Profile.
+     */
+    fun openFromAccountMenu(route: AppRoute) = shell.update { state -> state.onNav { it.push(route) } }
 
     fun back() = shell.update { state -> state.onNav(NavState::back) }
 

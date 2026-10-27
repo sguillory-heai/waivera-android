@@ -145,14 +145,15 @@ tab, and back returns to the event (`path_06_schedule_08_meeting_chat`).
 | View profile | Today ▸ Profile | `path_07_account_02_profile` (+ `_dark`) |
 | People → Priya → Message | Today ▸ People ▸ Person ▸ Conversation; back walks up each step | `_03_people`, `_04_person` (+ `_dark`), `_05_person_conversation` |
 | Bookmarks → saved thread root | Today ▸ Bookmarks ▸ Conversation 7 at 9330 (a root opens its conversation; a reply would open its thread) | `_06_bookmarks` (+ `_dark`), `_07_bookmark_thread_root` |
-| Settings | Today ▸ Profile ▸ Settings (Settings sits over Profile) | `_08_settings` (+ `_dark`, `_font200`) |
+| Settings | Today ▸ Settings (the menu's items are peers, so Settings goes straight onto the current tab) | `_08_settings` (+ `_dark`, `_font200`) |
 | Appearance → Dark | ▸ Appearance; the app turns dark; back to Settings in dark | `_09_appearance`, `_10_appearance_dark`, `_11_settings_in_dark` |
 | Notifications | ▸ Notifications, back → Settings | `_12_notifications` (+ `_dark`) |
 | Change password | ▸ Change password, top bar back → Settings | `_13_change_password` |
 | Sign out | Styled confirmation "Sign out of Waivera?"; Cancel keeps Settings; Sign out → sign-in gate with every stack cleared | `_14_sign_out_confirm` (+ `_dark`, `_font200`), `_15_signed_out` |
 
-Also: back from Settings lands on Profile, whose Settings row opens it again
-(`path_07_account_16_back_from_settings`); the menu opened on the Chat tab pushes People onto
+Also: back from Settings opened in the menu lands on Today, where the menu was opened
+(`path_07_account_16_back_from_settings`). Profile's own Settings row still stacks Today ▸ Profile ▸
+Settings, and back from there returns to Profile. The menu opened on the Chat tab pushes People onto
 Chat (`path_07_account_17_people_over_chat`).
 
 ## 8. Links and notification taps (`Path08DeepLinksTest`)
@@ -195,7 +196,7 @@ A predictive back swipe held halfway (`_swipe`), then committed:
 | People | Today | `path_09_back_08_people_*` |
 | Person | People | `path_09_back_09_person_*` |
 | Bookmarks | Today | `path_09_back_10_bookmarks_*` |
-| Settings from the account menu | Profile | `path_09_back_11_settings_*` |
+| Settings from the account menu | Today (where the menu was opened) | `path_09_back_11_settings_*` |
 | Notification settings | Settings | `path_09_back_12_notification_settings_*` |
 | Appearance | Settings | `path_09_back_13_appearance_*` |
 | Change password | Settings | `path_09_back_14_change_password_*` |

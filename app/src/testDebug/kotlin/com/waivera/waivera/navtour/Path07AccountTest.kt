@@ -103,13 +103,13 @@ class Path07AccountTest : NavTourHarness() {
         launch()
         openAccountMenu()
         click("Settings", last = true)
-        expectStack(TodayRoute, ProfileRoute, SettingsRoute)
+        expectStack(TodayRoute, SettingsRoute)
         expectScreen("Preferences")
         shot("path_07_account_08_settings")
         shotDark("path_07_account_08_settings")
 
         click("Appearance")
-        expectStack(TodayRoute, ProfileRoute, SettingsRoute, AppearanceRoute)
+        expectStack(TodayRoute, SettingsRoute, AppearanceRoute)
         expectScreen("Theme")
         shot("path_07_account_09_appearance")
 
@@ -118,7 +118,7 @@ class Path07AccountTest : NavTourHarness() {
         shot("path_07_account_10_appearance_dark")
 
         systemBack()
-        expectStack(TodayRoute, ProfileRoute, SettingsRoute)
+        expectStack(TodayRoute, SettingsRoute)
         shot("path_07_account_11_settings_in_dark")
     }
 
@@ -127,32 +127,32 @@ class Path07AccountTest : NavTourHarness() {
         launch()
         openAccountMenu()
         click("Settings", last = true)
-        expectStack(TodayRoute, ProfileRoute, SettingsRoute)
+        expectStack(TodayRoute, SettingsRoute)
 
         click("Notifications")
-        expectStack(TodayRoute, ProfileRoute, SettingsRoute, NotificationSettingsRoute)
+        expectStack(TodayRoute, SettingsRoute, NotificationSettingsRoute)
         expectScreen("Push notifications")
         shot("path_07_account_12_notifications")
         shotDark("path_07_account_12_notifications")
         systemBack()
-        expectStack(TodayRoute, ProfileRoute, SettingsRoute)
+        expectStack(TodayRoute, SettingsRoute)
 
         click("Change password")
-        expectStack(TodayRoute, ProfileRoute, SettingsRoute, ChangePasswordRoute)
+        expectStack(TodayRoute, SettingsRoute, ChangePasswordRoute)
         expectScreen("Change your password")
         shot("path_07_account_13_change_password")
         click(hasContentDescriptionGoBack())
-        expectStack(TodayRoute, ProfileRoute, SettingsRoute)
+        expectStack(TodayRoute, SettingsRoute)
 
         click("Sign out")
         expectScreen("Sign out of Waivera?")
-        expectStack(TodayRoute, ProfileRoute, SettingsRoute)
+        expectStack(TodayRoute, SettingsRoute)
         shot("path_07_account_14_sign_out_confirm")
         shotDark("path_07_account_14_sign_out_confirm")
 
         click("Cancel", last = true)
         expectGone("Sign out of Waivera?")
-        expectStack(TodayRoute, ProfileRoute, SettingsRoute)
+        expectStack(TodayRoute, SettingsRoute)
 
         click("Sign out")
         expectScreen("Sign out of Waivera?")
@@ -166,19 +166,24 @@ class Path07AccountTest : NavTourHarness() {
     }
 
     @Test
-    fun path07_backFromSettings_landsOnProfile() {
+    fun path07_backFromSettings_returnsWhereTheMenuWasOpened() {
         launch()
         openAccountMenu()
         click("Settings", last = true)
-        expectStack(TodayRoute, ProfileRoute, SettingsRoute)
+        expectStack(TodayRoute, SettingsRoute)
 
         systemBack()
-        expectStack(TodayRoute, ProfileRoute)
-        expectScreen("Profile")
+        expectStack(TodayRoute)
+        expectScreen("Needs you")
         shot("path_07_account_16_back_from_settings")
 
+        // Profile's own Settings row still stacks Settings over Profile, and back returns there.
+        openAccountMenu()
+        click(VIEW_PROFILE, last = true)
         click(textOrDescription("Notifications, appearance and account", substring = true))
         expectStack(TodayRoute, ProfileRoute, SettingsRoute)
+        systemBack()
+        expectStack(TodayRoute, ProfileRoute)
     }
 
     @Test

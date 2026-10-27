@@ -64,7 +64,9 @@ local adapter so the screens do not change when the request lands.
    `ProfileRoute` then `SettingsRoute`, or the shell could treat Profile as Settings' parent.
    Decide in the shell; the settings screens just call `onBack`.
 
-   **Status: Done.** The account menu opens Settings over Profile (`NavState.pushOver`), so back lands on Profile.
+   **Status: Changed after UI review UI2-10.** The account menu now pushes Settings straight onto the
+   current tab, so back returns to where the menu was opened; only Profile's own Settings row stacks
+   Settings over Profile. This departs from spec 08 §6's "back lands on the profile" on purpose.
 
 8. **Appearance before the first frame** (spec 08 §7). `MainActivity` reads the theme from
    `AppShellViewModel.uiState`; please confirm the initial state already carries the stored

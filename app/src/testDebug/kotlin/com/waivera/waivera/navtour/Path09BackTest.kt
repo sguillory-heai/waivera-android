@@ -123,15 +123,15 @@ class Path09BackTest : NavTourHarness() {
     )
 
     @Test
-    fun path09_settingsFromAccountMenu_backToProfile() = backCase(
+    fun path09_settingsFromAccountMenu_backToToday() = backCase(
         name = "path_09_back_11_settings",
         start = {
             launch()
             openAccountMenu()
             click("Settings", last = true)
         },
-        from = listOf(TodayRoute, ProfileRoute, SettingsRoute),
-        to = listOf(TodayRoute, ProfileRoute),
+        from = listOf(TodayRoute, SettingsRoute),
+        to = listOf(TodayRoute),
     )
 
     @Test

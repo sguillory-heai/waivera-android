@@ -119,17 +119,17 @@ class NavStateTest {
     }
 
     @Test
-    fun settingsFromTheAccountMenuSitsOverProfile() {
+    fun settingsFromTheAccountMenuGoesStraightOntoTheCurrentScreen() {
+        // UI2-10: the menu's items are peers, so back from Settings returns to where the menu was opened.
         val chat = NavState().select(TopLevelTab.Chat).push(ConversationRoute(42))
-        val settings = chat.pushOver(ProfileRoute, SettingsRoute)
-        assertEquals(
-            listOf(ChatListRoute, ConversationRoute(42), ProfileRoute, SettingsRoute),
-            settings.stack(TopLevelTab.Chat),
-        )
-        assertEquals(ProfileRoute, settings.back().top)
-        assertSame(settings, settings.pushOver(ProfileRoute, SettingsRoute))
-        val fromProfile = NavState().push(ProfileRoute).pushOver(ProfileRoute, SettingsRoute)
+        val settings = chat.push(SettingsRoute)
+        assertEquals(listOf(ChatListRoute, ConversationRoute(42), SettingsRoute), settings.stack(TopLevelTab.Chat))
+        assertEquals(ConversationRoute(42), settings.back().top)
+        assertSame(settings, settings.push(SettingsRoute))
+        // Profile's own Settings row stacks Settings over Profile.
+        val fromProfile = NavState().push(ProfileRoute).push(SettingsRoute)
         assertEquals(listOf(TodayRoute, ProfileRoute, SettingsRoute), fromProfile.stack(TopLevelTab.Today))
+        assertEquals(ProfileRoute, fromProfile.back().top)
     }
 
     @Test

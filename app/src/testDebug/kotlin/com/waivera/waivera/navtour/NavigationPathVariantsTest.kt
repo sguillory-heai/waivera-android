@@ -7,7 +7,6 @@ import com.waivera.waivera.navigation.AppGate
 import com.waivera.waivera.navigation.CalendarEventRoute
 import com.waivera.waivera.navigation.ChatListRoute
 import com.waivera.waivera.navigation.ConversationRoute
-import com.waivera.waivera.navigation.ProfileRoute
 import com.waivera.waivera.navigation.ScheduleRoute
 import com.waivera.waivera.navigation.SettingsRoute
 import com.waivera.waivera.navigation.ThreadRoute
@@ -108,7 +107,7 @@ class NavigationPathVariantsTest : NavTourHarness() {
         openAccountMenu()
         shot("path_07_account_01_menu_font200")
         click("Settings", last = true)
-        expectStack(TodayRoute, ProfileRoute, SettingsRoute)
+        expectStack(TodayRoute, SettingsRoute)
         shot("path_07_account_08_settings_font200")
         click("Sign out")
         expectScreen("Sign out of Waivera?")
