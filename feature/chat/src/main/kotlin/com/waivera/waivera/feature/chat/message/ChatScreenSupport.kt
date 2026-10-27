@@ -38,7 +38,8 @@ import kotlinx.coroutines.launch
 @EntryPoint
 @InstallIn(SingletonComponent::class)
 interface ChatImagesEntryPoint {
-    fun imageLoader(): CoilChatImageLoader
+    // Named apart from the app's StartupEntryPoint.imageLoader(): one component implements both.
+    fun chatImageLoader(): CoilChatImageLoader
 
     fun attachmentModels(): AttachmentModels
 
@@ -52,7 +53,11 @@ fun rememberChatImageEnvironment(): ChatImageEnvironment {
     return remember(context) {
         val entry = EntryPointAccessors.fromApplication(context, ChatImagesEntryPoint::class.java)
         val models = entry.attachmentModels()
-        ChatImageEnvironment(loader = entry.imageLoader(), attachmentModel = models::modelFor, avatars = entry.avatars())
+        ChatImageEnvironment(
+            loader = entry.chatImageLoader(),
+            attachmentModel = models::modelFor,
+            avatars = entry.avatars(),
+        )
     }
 }
 
@@ -87,14 +92,20 @@ fun ChatEffectsHandler(
     val latestIndex = rememberUpdatedState(indexOfKey)
 
     fun showSnackbar(effect: ChatEffect.Snackbar) {
-        val title = effect.argument?.let { resources.getString(effect.message, it) } ?: resources.getString(effect.message)
-        val text = effect.detail?.let { resources.getString(R.string.feature_chat_snackbar_with_detail, title, resources.getString(it)) }
-            ?: title
+        val title =
+            effect.argument?.let { resources.getString(effect.message, it) } ?: resources.getString(effect.message)
+        val text =
+            effect.detail?.let {
+                resources.getString(R.string.feature_chat_snackbar_with_detail, title, resources.getString(it))
+            }
+                ?: title
         scope.launch {
             snackbarHostState.currentSnackbarData?.dismiss()
             val undo = effect.undoBookmarkOf
             if (undo != null) {
-                snackbarHostState.showUndo(text, resources.getString(R.string.feature_chat_undo)) { latestUndo.value(undo) }
+                snackbarHostState.showUndo(text, resources.getString(R.string.feature_chat_undo)) {
+                    latestUndo.value(undo)
+                }
             } else {
                 snackbarHostState.showSnackbar(text)
             }
@@ -105,7 +116,14 @@ fun ChatEffectsHandler(
         effects.collect { effect ->
             when (effect) {
                 is ChatEffect.CopyText -> scope.launch {
-                    clipboard.setClipEntry(ClipEntry(ClipData.newPlainText(resources.getString(R.string.feature_chat_messages_list), effect.text)))
+                    clipboard.setClipEntry(
+                        ClipEntry(
+                            ClipData.newPlainText(
+                                resources.getString(R.string.feature_chat_messages_list),
+                                effect.text,
+                            ),
+                        ),
+                    )
                 }
                 is ChatEffect.OpenUrl -> {
                     val opened = try {
@@ -123,7 +141,10 @@ fun ChatEffectsHandler(
                         putExtra(Intent.EXTRA_STREAM, effect.uri.toUri())
                         addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
                     }
-                    val chooser = Intent.createChooser(send, resources.getString(R.string.feature_chat_share_title, effect.fileName))
+                    val chooser = Intent.createChooser(
+                        send,
+                        resources.getString(R.string.feature_chat_share_title, effect.fileName),
+                    )
                     try {
                         context.startActivity(chooser)
                     } catch (_: ActivityNotFoundException) {
