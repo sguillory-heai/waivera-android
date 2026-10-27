@@ -195,6 +195,19 @@ From the functional review (AF-09) and gap G-14.
 - **Client today.** A conversation first seen through a hub message from someone else starts at
   one unread; the next list refresh corrects the number.
 
+## 16. Recipient in push data
+
+From the iOS security review (IS-07), checked against Android.
+
+- **Evidence.** Chat push data names the conversation and the message, not the person it was
+  sent to. A notification tap or inline reply cannot prove it belongs to the account that is
+  signed in when it is handled.
+- **Ask.** Add `recipientUserId` (the backend user id) to every push's data.
+- **Client today.** Every end of a session cancels all notifications, and pushes are dropped
+  while signed out, so a stale notification should not survive into the next account. A tap
+  that arrives while signed out is still held until the next sign-in (spec 09), whoever signs
+  in. With the recipient id the app can drop it when another account signs in.
+
 ## Checked and not a gap
 
 `MeetingHandoff` `relatedChatConversationId`:
