@@ -189,25 +189,28 @@ fun ColumnScope.NewChatSheetContent(
                 modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
             )
         }
-        WaiveraButton(
-            text = stringResource(
-                when (state.action) {
-                    NewChatAction.OpenChat -> R.string.feature_chat_newchat_open
-                    NewChatAction.CreateGroup -> R.string.feature_chat_newchat_create_group
-                },
-            ),
-            onClick = onSubmit,
-            // Enabled while busy so the progress label is not dimmed; taps are ignored while loading.
-            enabled = state.canSubmit || state.isCreating,
-            loadingText = stringResource(
-                when (state.action) {
-                    NewChatAction.OpenChat -> R.string.feature_chat_newchat_opening
-                    NewChatAction.CreateGroup -> R.string.feature_chat_newchat_creating
-                },
-            ).takeIf { state.isCreating },
-            fullWidth = true,
-            modifier = Modifier.padding(bottom = WaiveraSpacing.Small),
-        )
+        // With no coworkers loaded there is nobody to pick, so the error state gets the space (UI2-01).
+        if (state.loadErrorRes == null) {
+            WaiveraButton(
+                text = stringResource(
+                    when (state.action) {
+                        NewChatAction.OpenChat -> R.string.feature_chat_newchat_open
+                        NewChatAction.CreateGroup -> R.string.feature_chat_newchat_create_group
+                    },
+                ),
+                onClick = onSubmit,
+                // Enabled while busy so the progress label is not dimmed; taps are ignored while loading.
+                enabled = state.canSubmit || state.isCreating,
+                loadingText = stringResource(
+                    when (state.action) {
+                        NewChatAction.OpenChat -> R.string.feature_chat_newchat_opening
+                        NewChatAction.CreateGroup -> R.string.feature_chat_newchat_creating
+                    },
+                ).takeIf { state.isCreating },
+                fullWidth = true,
+                modifier = Modifier.padding(bottom = WaiveraSpacing.Small),
+            )
+        }
     }
 }
 
