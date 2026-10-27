@@ -33,7 +33,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import com.waivera.waivera.core.designsystem.component.ConnectionBanner
-import com.waivera.waivera.core.designsystem.component.TopBarAccount
 import com.waivera.waivera.core.designsystem.component.WaiveraButton
 import com.waivera.waivera.core.designsystem.component.WaiveraButtonVariant
 import com.waivera.waivera.core.designsystem.component.WaiveraEmptyState
@@ -41,6 +40,7 @@ import com.waivera.waivera.core.designsystem.component.WaiveraErrorState
 import com.waivera.waivera.core.designsystem.component.WaiveraSnackbarHost
 import com.waivera.waivera.core.designsystem.component.WaiveraTopBar
 import com.waivera.waivera.core.designsystem.component.rememberSkeletonVisible
+import com.waivera.waivera.core.designsystem.component.rememberTopBarAccount
 import com.waivera.waivera.core.designsystem.icon.WaiveraIcons
 import com.waivera.waivera.core.designsystem.theme.WaiveraMotionScheme
 import com.waivera.waivera.core.designsystem.theme.WaiveraSpacing
@@ -85,9 +85,9 @@ internal fun TodayContent(
         WaiveraTopBar(
             title = stringResource(R.string.feature_today_today_title),
             subtitle = state.date?.let(formats::longDay),
-            account = TopBarAccount(
-                name = state.accountName.ifBlank { stringResource(R.string.feature_today_account_name) },
+            account = rememberTopBarAccount(
                 onClick = callbacks.onAccountClick,
+                fallbackName = state.accountName.ifBlank { stringResource(R.string.feature_today_account_name) },
             ),
         )
         ConnectionBanner(state = state.connection, onRetry = { callbacks.onAction(TodayAction.RetryConnection) })
@@ -269,7 +269,7 @@ private fun LazyListScope.activityItems(state: TodayUiState, callbacks: TodayCal
             WaiveraEmptyState(
                 title = stringResource(R.string.feature_today_activity_empty_title),
                 message = stringResource(R.string.feature_today_activity_empty_message),
-                icon = R.drawable.feature_today_ic_done_all,
+                icon = WaiveraIcons.MarkRead,
             )
         }
         else -> {

@@ -11,8 +11,8 @@ dependencies {
     implementation(libs.androidx.activity.compose)
     // FileProvider for sharing a downloaded attachment with another app.
     implementation(libs.androidx.core.ktx)
-    // Images load through the app's authenticated Coil singleton (G-15). coil-compose is not in
-    // the catalog yet (docs/requests/conversation.md), so the screen draws Coil results itself.
+    // Images load through the app's authenticated Coil singleton (G-15) and the screen draws the
+    // results itself. `libs.coil.compose` is in the catalog for a later move to AsyncImage.
     implementation(libs.coil.core)
     // TipTap documents and ticket payloads arrive as JsonElement.
     implementation(libs.kotlinx.serialization.json)

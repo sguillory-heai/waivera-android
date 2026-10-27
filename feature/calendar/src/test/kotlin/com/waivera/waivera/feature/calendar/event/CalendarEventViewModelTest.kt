@@ -3,10 +3,8 @@ package com.waivera.waivera.feature.calendar.event
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.ViewModelStore
-import com.waivera.waivera.core.data.calendar.CalendarMath
 import com.waivera.waivera.core.data.model.MyInvitation
 import com.waivera.waivera.core.data.model.ScheduleEvent
-import com.waivera.waivera.core.data.model.ScheduleFeed
 import com.waivera.waivera.core.data.model.Synced
 import com.waivera.waivera.core.network.error.WaiveraError
 import com.waivera.waivera.core.testing.MainDispatcherRule
@@ -16,10 +14,7 @@ import com.waivera.waivera.feature.calendar.FakeCalendarRepository
 import com.waivera.waivera.feature.calendar.FakeConversationRepository
 import com.waivera.waivera.feature.calendar.FakePeopleRepository
 import com.waivera.waivera.feature.calendar.data.DeviceZone
-import com.waivera.waivera.feature.calendar.data.EventLookup
-import com.waivera.waivera.feature.calendar.data.ScheduleEventStore
 import java.time.Instant
-import java.time.YearMonth
 import java.time.ZoneId
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -46,7 +41,6 @@ class CalendarEventViewModelTest {
     private val calendar = FakeCalendarRepository(clock)
     private val conversations = FakeConversationRepository()
     private val session = TestSessionRepository()
-    private val store = ScheduleEventStore()
     private val window = CalendarEventViewModel.UNDO_WINDOW_MILLIS
 
     private val invite = ScheduleEvent(
@@ -75,7 +69,6 @@ class CalendarEventViewModelTest {
         calendar.events = listOfNotNull(event)
         val vm = CalendarEventViewModel(
             eventId = id,
-            lookup = EventLookup(calendar, store, clock),
             calendar = calendar,
             conversations = conversations,
             people = FakePeopleRepository(),
@@ -114,7 +107,7 @@ class CalendarEventViewModelTest {
     }
 
     @Test
-    fun unknownIdIsNotFoundOnceEveryRangeHasSynced() = runTest {
+    fun unknownIdIsNotFoundOnceTheServerAnswers() = runTest {
         val h = open(event = null, id = "gone")
         assertEquals(EventUiState.NotFound, h.vm.uiState.value)
     }
@@ -132,7 +125,7 @@ class CalendarEventViewModelTest {
     @Test
     fun refreshAfterReconnectFlowsIntoTheOpenEventAndAFailedOneKeepsTheCopy() = runTest {
         val h = open()
-        // Another screen refreshes after a reconnect; the open event follows the feed.
+        // A later refresh (retry, or another screen) flows into the open event.
         calendar.events = listOf(invite.copy(title = "Care plan review (moved)"))
         h.vm.retry()
         assertEquals("Care plan review (moved)", h.details().event.title)
@@ -144,20 +137,19 @@ class CalendarEventViewModelTest {
     }
 
     @Test
-    fun coldIdIsLookedUpInTheMonthGridsAroundTodayInTheSavedZone() = runTest {
-        open(id = "invite")
-        val october = CalendarMath.monthGrid(YearMonth.of(2026, 10))
-        val november = CalendarMath.monthGrid(YearMonth.of(2026, 11))
-        val december = CalendarMath.monthGrid(YearMonth.of(2026, 12))
-        assertEquals(setOf(october, november, december), calendar.observedRanges.toSet())
+    fun coldIdIsFetchedByIdWithoutWatchingAnyFeedRange() = runTest {
+        val h = open(id = "invite")
+        assertEquals("Care plan review", h.details().event.title)
+        assertEquals(listOf("invite"), calendar.refreshedEvents)
+        assertTrue(calendar.observedRanges.isEmpty(), "no month grids are searched any more")
     }
 
     @Test
-    fun eventSeenOnTheScheduleIsWatchedInItsOwnRange() = runTest {
-        val week = CalendarMath.week(java.time.LocalDate.of(2026, 11, 2))
-        store.remember(ScheduleFeed(week, "America/Chicago", listOf(invite)))
-        open()
-        assertEquals(listOf(week), calendar.observedRanges)
+    fun aCachedEventShowsAtOnceWithoutAFetch() = runTest {
+        calendar.event("invite").value = Synced(invite, lastSyncedAt = clock.instant())
+        val h = open()
+        assertEquals("Care plan review", h.details().event.title)
+        assertTrue(calendar.refreshedEvents.isEmpty())
     }
 
     @Test
@@ -176,8 +168,9 @@ class CalendarEventViewModelTest {
         assertEquals(listOf("invite" to true), calendar.responses)
         assertEquals(ResponsePhase.SAVED, h.invitation().phase)
         assertEquals(EventEffect.ResponseSaved(accept = true), h.effects.last())
-        // The feed is refetched so every screen shows the answer from the server.
-        assertTrue(calendar.refreshedRanges.size > 3)
+        // The repository patches every cached copy, so nothing is refetched.
+        assertEquals(MyInvitation.ACCEPTED, calendar.event("invite").value.data?.myInvitation)
+        assertTrue(calendar.refreshedRanges.isEmpty())
     }
 
     @Test

@@ -24,11 +24,10 @@ class ChatListViewModel @Inject constructor(
     session: SessionRepository,
     realtime: RealtimeStatusRepository,
     people: PeopleRepository,
-    callLobby: CallLobby,
     text: ChatListText,
     clock: Clock,
 ) : ViewModel() {
-    private val holder = ChatListStateHolder(viewModelScope, conversations, session, realtime, callLobby, text, clock)
+    private val holder = ChatListStateHolder(viewModelScope, conversations, session, realtime, text, clock)
     private val avatarCache = AvatarCache(people, ::decodeAvatar, viewModelScope)
 
     val state: StateFlow<ChatListUiState> = holder.state

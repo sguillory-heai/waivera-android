@@ -42,6 +42,7 @@ import com.waivera.waivera.core.designsystem.component.WaiveraButton
 import com.waivera.waivera.core.designsystem.component.WaiveraButtonVariant
 import com.waivera.waivera.core.designsystem.component.WaiveraPressable
 import com.waivera.waivera.core.designsystem.component.WaiveraStatusBadge
+import com.waivera.waivera.core.designsystem.icon.WaiveraIcons
 import com.waivera.waivera.core.designsystem.theme.WaiveraShapes
 import com.waivera.waivera.core.designsystem.theme.WaiveraSizes
 import com.waivera.waivera.core.designsystem.theme.WaiveraSpacing
@@ -166,7 +167,7 @@ private fun AuthorAvatar(row: TimelineItem.MessageRow, authorName: String, callb
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(
-                    painterResource(ChatIcons.Bot),
+                    painterResource(WaiveraIcons.Bot),
                     contentDescription = null,
                     tint = WaiveraTheme.colors.accent,
                     modifier = Modifier.size(WaiveraSizes.IconSmall),
@@ -439,7 +440,7 @@ private fun ThreadChip(count: Int, onClick: () -> Unit) {
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Icon(
-                painterResource(ChatIcons.Reply),
+                painterResource(WaiveraIcons.Reply),
                 contentDescription = null,
                 tint = colors.accent,
                 modifier = Modifier.size(WaiveraSizes.IconSmall),

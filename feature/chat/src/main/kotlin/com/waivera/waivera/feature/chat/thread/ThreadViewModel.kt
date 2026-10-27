@@ -8,6 +8,7 @@ import com.waivera.waivera.core.data.model.Conversation
 import com.waivera.waivera.core.data.model.ConversationKind
 import com.waivera.waivera.core.data.model.Message
 import com.waivera.waivera.core.data.model.MessageThread
+import com.waivera.waivera.core.data.model.SendState
 import com.waivera.waivera.core.data.model.Synced
 import com.waivera.waivera.core.data.model.currentUserId
 import com.waivera.waivera.core.data.repository.BookmarkRepository
@@ -224,6 +225,7 @@ class ThreadViewModel @AssistedInject constructor(
         val events = sendTracker.update(replies)
         if (events.newFailures > 0) {
             val kind = SendErrors.forFailedSend(
+                error = replies.lastOrNull { it.sendState == SendState.FAILED }?.sendError,
                 isOnline = realtime.status.value.isOnline,
                 canWrite = _state.value.canWrite,
                 isArchived = conversation?.channel?.isArchived == true,

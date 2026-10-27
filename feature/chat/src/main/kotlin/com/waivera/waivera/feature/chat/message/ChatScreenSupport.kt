@@ -17,6 +17,7 @@ import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.stringResource
 import androidx.core.net.toUri
 import com.waivera.waivera.core.data.model.Message
@@ -71,6 +72,8 @@ fun ChatEffectsHandler(
     indexOfKey: (String) -> Int?,
 ) {
     val context = LocalContext.current
+    // The app shell provides a Custom Tabs handler, so links stay in the app.
+    val uriHandler = LocalUriHandler.current
     val resources = LocalResources.current
     val clipboard = LocalClipboard.current
     val haptics = rememberHaptics()
@@ -106,9 +109,9 @@ fun ChatEffectsHandler(
                 }
                 is ChatEffect.OpenUrl -> {
                     val opened = try {
-                        context.startActivity(Intent(Intent.ACTION_VIEW, effect.url.toUri()))
+                        uriHandler.openUri(effect.url)
                         true
-                    } catch (_: ActivityNotFoundException) {
+                    } catch (_: IllegalArgumentException) {
                         false
                     }
                     if (!opened) showSnackbar(ChatEffect.Snackbar(R.string.feature_chat_link_failed))

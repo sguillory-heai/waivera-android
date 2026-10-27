@@ -37,18 +37,12 @@ class ChatListStateHolderTest {
     private val session = FakeSessionRepository()
     private val realtime = FakeRealtimeStatusRepository()
     private val ticker = MutableStateFlow(NOW)
-    private var lobbyResult: Result<String> = Result.success("https://web.example.test/lobby/room?state=x")
-    private var lobbyGate: CompletableDeferred<Unit>? = null
 
     private fun TestScope.holder(): ChatListStateHolder = ChatListStateHolder(
         scope = backgroundScope,
         conversations = repo,
         session = session,
         realtime = realtime,
-        callLobby = {
-            lobbyGate?.await()
-            lobbyResult
-        },
         text = EnglishText,
         clock = clock,
         ticker = ticker,
@@ -337,25 +331,26 @@ class ChatListStateHolderTest {
     @Test
     fun joiningALiveCallOpensTheLobbyAndNeverTheConversation() = run {
         repo.setConversations(listOf(dm(7).copy(ongoingCall = OngoingCall("room", status = CallRecordStatus.ACTIVE))))
-        lobbyGate = CompletableDeferred()
+        repo.lobbyGate = CompletableDeferred()
         val h = holder()
         val effects = effects(h)
         h.onJoinCall(7)
         assertTrue(h.state.value.rows.single().isOpeningCall)
         h.onJoinCall(7)
-        lobbyGate?.complete(Unit)
+        repo.lobbyGate?.complete(Unit)
         runCurrent()
         assertEquals(
             listOf<ChatListEffect>(ChatListEffect.OpenUrl("https://web.example.test/lobby/room?state=x")),
             effects,
         )
         assertEquals(false, h.state.value.rows.single().isOpeningCall)
+        assertEquals(listOf(7L), repo.lobbyCalls, "one lobby request while one is opening")
     }
 
     @Test
     fun aFailedOrNonHttpsLobbyShowsTheCallErrorWithRetry() = run {
         repo.setConversations(listOf(dm(7).copy(ongoingCall = OngoingCall("room", status = CallRecordStatus.ACTIVE))))
-        lobbyResult = Result.success("javascript:alert(1)")
+        repo.lobbyResult = Result.success("javascript:alert(1)")
         val h = holder()
         val effects = effects(h)
         h.onJoinCall(7)

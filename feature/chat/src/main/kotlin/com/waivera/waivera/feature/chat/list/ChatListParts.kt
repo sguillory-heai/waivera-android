@@ -185,14 +185,14 @@ fun RowActionsContent(
             WaiveraListRow(
                 headline = stringResource(R.string.feature_chat_list_action_mark_read),
                 onClick = onMarkRead,
-                leading = { ActionIcon(R.drawable.feature_chat_list_ic_mark_read) },
+                leading = { ActionIcon(WaiveraIcons.MarkRead) },
             )
         }
         if (row.isCallLive) {
             WaiveraListRow(
                 headline = stringResource(R.string.feature_chat_list_call_join_action),
                 onClick = onJoinCall,
-                leading = { ActionIcon(R.drawable.feature_chat_list_ic_video) },
+                leading = { ActionIcon(WaiveraIcons.Video) },
             )
         }
         row.profileUserId?.let { userId ->

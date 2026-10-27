@@ -5,6 +5,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.waivera.waivera.core.designsystem.icon.WaiveraIcons
 import com.waivera.waivera.feature.chat.R
 
 /**
@@ -88,8 +89,6 @@ internal object ChatDimens {
 
 /** Chat icons not in the shared set; same 24dp vector style as `WaiveraIcons`. */
 internal object ChatIcons {
-    @DrawableRes val Video: Int = R.drawable.feature_chat_ic_video
-
     @DrawableRes val Send: Int = R.drawable.feature_chat_ic_send
 
     @DrawableRes val AttachImage: Int = R.drawable.feature_chat_ic_image_add
@@ -102,21 +101,13 @@ internal object ChatIcons {
 
     @DrawableRes val FileSheet: Int = R.drawable.feature_chat_ic_file_sheet
 
-    @DrawableRes val Lock: Int = R.drawable.feature_chat_ic_lock
-
     @DrawableRes val ChevronDown: Int = R.drawable.feature_chat_ic_chevron_down
-
-    @DrawableRes val Reply: Int = R.drawable.feature_chat_ic_reply
 
     @DrawableRes val Copy: Int = R.drawable.feature_chat_ic_copy
 
     @DrawableRes val Delete: Int = R.drawable.feature_chat_ic_delete
 
     @DrawableRes val Edit: Int = R.drawable.feature_chat_ic_edit
-
-    @DrawableRes val Bot: Int = R.drawable.feature_chat_ic_bot
-
-    @DrawableRes val External: Int = R.drawable.feature_chat_ic_external
 
     @DrawableRes val PhoneMissed: Int = R.drawable.feature_chat_ic_phone_missed
 

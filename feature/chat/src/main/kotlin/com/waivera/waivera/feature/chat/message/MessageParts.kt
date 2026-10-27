@@ -60,6 +60,7 @@ import com.waivera.waivera.core.designsystem.theme.WaiveraSizes
 import com.waivera.waivera.core.designsystem.theme.WaiveraSpacing
 import com.waivera.waivera.core.designsystem.theme.WaiveraTheme
 import com.waivera.waivera.feature.chat.R
+import kotlin.math.roundToInt
 
 // Reactions ---------------------------------------------------------------------------------
 
@@ -148,11 +149,12 @@ fun MessageAttachmentView(message: Message, attachment: Attachment, onOpen: () -
         Attachments.isImage(attachment) -> ImageAttachment(message, onOpen, modifier)
         else -> FileAttachment(message, attachment, onOpen, modifier)
     }
-    if (message.isPending) UploadState(message.sendState)
+    if (message.isPending) UploadState(message.sendState, message.uploadProgress)
 }
 
+/** Determinate while the outbox reports how much has gone up (03 §8), indeterminate before that. */
 @Composable
-private fun UploadState(state: SendState) {
+private fun UploadState(state: SendState, progress: Float?) {
     if (state == SendState.FAILED) {
         Text(
             text = stringResource(R.string.feature_chat_upload_failed),
@@ -164,13 +166,26 @@ private fun UploadState(state: SendState) {
             modifier = Modifier.width(ChatDimens.ImageWidth),
             verticalArrangement = Arrangement.spacedBy(WaiveraSpacing.XxSmall),
         ) {
-            LinearProgressIndicator(
-                modifier = Modifier.fillMaxWidth(),
-                color = WaiveraTheme.colors.accent,
-                trackColor = WaiveraTheme.colors.surfaceMuted,
-            )
+            if (progress != null) {
+                LinearProgressIndicator(
+                    progress = { progress },
+                    modifier = Modifier.fillMaxWidth(),
+                    color = WaiveraTheme.colors.accent,
+                    trackColor = WaiveraTheme.colors.surfaceMuted,
+                )
+            } else {
+                LinearProgressIndicator(
+                    modifier = Modifier.fillMaxWidth(),
+                    color = WaiveraTheme.colors.accent,
+                    trackColor = WaiveraTheme.colors.surfaceMuted,
+                )
+            }
             Text(
-                text = stringResource(R.string.feature_chat_uploading),
+                text = if (progress != null) {
+                    stringResource(R.string.feature_chat_uploading_percent, (progress * PERCENT).roundToInt())
+                } else {
+                    stringResource(R.string.feature_chat_uploading)
+                },
                 style = MaterialTheme.typography.labelMedium,
                 color = WaiveraTheme.colors.textSecondary,
             )
@@ -326,7 +341,7 @@ fun TicketCard(ticket: TicketNotification, onOpen: (String) -> Unit, modifier: M
             text = stringResource(R.string.feature_chat_ticket_open),
             onClick = { onOpen(ticket.url) },
             variant = WaiveraButtonVariant.Secondary,
-            leadingIcon = ChatIcons.External,
+            leadingIcon = WaiveraIcons.OpenExternal,
         )
         Column(
             modifier = Modifier
@@ -456,7 +471,7 @@ fun CallLogCard(item: TimelineItem.CallLog, time: RowTime, highlighted: Boolean,
                     contentAlignment = Alignment.Center,
                 ) {
                     Icon(
-                        painterResource(if (summary.isMissed) ChatIcons.PhoneMissed else ChatIcons.Video),
+                        painterResource(if (summary.isMissed) ChatIcons.PhoneMissed else WaiveraIcons.Video),
                         contentDescription = null,
                         tint = if (summary.isMissed) colors.onDangerContainer else colors.accent,
                         modifier = Modifier.size(WaiveraSizes.Icon),
@@ -516,3 +531,5 @@ fun CallLogCard(item: TimelineItem.CallLog, time: RowTime, highlighted: Boolean,
 }
 
 private const val HALF_TURN = 180f
+
+private const val PERCENT = 100

@@ -61,6 +61,8 @@ sealed interface NeedsYouItem {
         val snippet: MessageSnippet,
         val unreadCount: Int,
         val at: PastLabel?,
+        /** The other person, for the avatar image; null when it is not a one-to-one chat. */
+        val otherUserId: String? = null,
     ) : NeedsYouItem {
         override val key: String get() = "dm-$conversationId"
     }
@@ -86,12 +88,17 @@ sealed interface NeedsYouItem {
         override val key: String get() = "invite-$eventId"
     }
 
-    /** Unread updates in the automated Waivera conversation (ticket cards). */
+    /**
+     * Unread updates in the automated Waivera conversation (ticket cards). [ticketId] and
+     * [ticketTitle] come from the last message's `ticket.update` payload when it has one.
+     */
     data class Ticket(
         val conversationId: Long,
         val snippet: MessageSnippet,
         val unreadCount: Int,
         val at: PastLabel?,
+        val ticketId: String? = null,
+        val ticketTitle: String? = null,
     ) : NeedsYouItem {
         override val key: String get() = "ticket-$conversationId"
     }

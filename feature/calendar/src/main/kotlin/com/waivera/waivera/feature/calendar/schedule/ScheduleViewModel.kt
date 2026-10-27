@@ -13,7 +13,6 @@ import com.waivera.waivera.core.data.repository.RealtimeStatusRepository
 import com.waivera.waivera.core.data.repository.SessionRepository
 import com.waivera.waivera.core.network.time.WaiveraTime
 import com.waivera.waivera.feature.calendar.data.DeviceZone
-import com.waivera.waivera.feature.calendar.data.ScheduleEventStore
 import com.waivera.waivera.feature.calendar.model.MilestoneIndex
 import com.waivera.waivera.feature.calendar.model.SchedulePeriods
 import com.waivera.waivera.feature.calendar.model.ScheduleView
@@ -36,7 +35,6 @@ import kotlinx.coroutines.flow.distinctUntilChangedBy
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
@@ -51,7 +49,6 @@ class ScheduleViewModel @Inject constructor(
     private val calendar: CalendarRepository,
     private val session: SessionRepository,
     private val realtime: RealtimeStatusRepository,
-    private val store: ScheduleEventStore,
     private val clock: Clock,
     private val deviceZone: DeviceZone,
 ) : ViewModel() {
@@ -79,7 +76,6 @@ class ScheduleViewModel @Inject constructor(
         .flatMapLatest { (range, zone) ->
             calendar.observeRange(range).map { FeedSnapshot(range, zone, it) }
         }
-        .onEach { store.remember(it.synced.data) }
 
     private val milestones: Flow<MilestoneState> = calendar.observeMilestones()
         .distinctUntilChangedBy { it.data to it.error }

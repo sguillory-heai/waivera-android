@@ -6,8 +6,8 @@ import androidx.compose.ui.unit.dp
 import com.waivera.waivera.feature.calendar.R
 
 /**
- * Calendar-only sizes from 07-calendar.md that the design system has no token for yet. Kept in
- * one place so they can move to `WaiveraSizes` (docs/requests/calendar.md) without a hunt.
+ * Calendar-only sizes from 07-calendar.md. Only the schedule grid and agenda use them, so they
+ * stay in the feature; shared sizes (the milestone badge) live in `WaiveraSizes`.
  */
 internal object CalendarSizes {
     /** Event and milestone dots under a day number. */
@@ -25,18 +25,6 @@ internal object CalendarSizes {
     val OrganizerAvatar: Dp = 32.dp
     val AttendeeAvatar: Dp = 34.dp
     val MilestoneCardAvatar: Dp = 40.dp
-
-    /** Milestone badge: `max(17, round(size × 0.43))`, nudged out past the top-end corner. */
-    val BadgeMin: Dp = 17.dp
-    const val BADGE_RATIO = 0.43f
-    const val BADGE_OFFSET_X_RATIO = 0.28f
-    const val BADGE_OFFSET_Y_RATIO = 0.25f
-    const val BADGE_GLYPH_RATIO = 0.52f
-    const val BADGE_YEARS_RATIO = 0.42f
-    val BadgeBorder: Dp = 2.dp
-
-    /** Anniversary badges show the year count only on avatars at least this big. */
-    val BadgeYearsMinAvatar: Dp = 40.dp
 }
 
 /** Icons the design system does not ship yet; same Material shapes, prefixed for this module. */
@@ -45,15 +33,5 @@ internal object CalendarIcons {
 
     @DrawableRes val Place: Int = R.drawable.feature_calendar_ic_place
 
-    @DrawableRes val Video: Int = R.drawable.feature_calendar_ic_videocam
-
-    @DrawableRes val OpenInNew: Int = R.drawable.feature_calendar_ic_open_in_new
-
     @DrawableRes val TimeOff: Int = R.drawable.feature_calendar_ic_time_off
-
-    @DrawableRes val Award: Int = R.drawable.feature_calendar_ic_award
-
-    @DrawableRes val Cake: Int = R.drawable.feature_calendar_ic_cake
-
-    @DrawableRes val Celebration: Int = R.drawable.feature_calendar_ic_celebration
 }

@@ -33,7 +33,10 @@ object ConversationPresentation {
         if (isChannel(c)) return false
         if (c.kind == ConversationKind.BOT) return true
         if (c.participants.any { it.id.startsWith(BOT_PREFIX) }) return true
-        if (c.lastMessage?.authorId?.startsWith(BOT_PREFIX) == true) return true
+        // The data layer folds isBot, botId and a `bot:` author into the flag; previews built
+        // elsewhere (tests, the demo) may carry only the author id.
+        val last = c.lastMessage
+        if (last?.isBot == true || last?.authorId?.startsWith(BOT_PREFIX) == true) return true
         // Legacy bot DMs list only the viewer as a participant.
         if (c.participants.size != 1) return false
         return myUserId == null || c.participants.first().id == myUserId
@@ -118,9 +121,11 @@ object ConversationPresentation {
     fun isSystem(message: MessagePreview): Boolean =
         message.messageType == MessageType.SYSTEM || message.messageType == MessageType.CHANNEL_EVENT
 
+    /** The server's plain rendering when it sent one; otherwise the body, unwrapped if it is rich. */
     private fun bodyText(message: MessagePreview): String {
-        val raw = message.text?.takeIf(String::isNotBlank) ?: return ""
-        val plain = RichTextPlain.toPlainText(raw)
+        val plain = message.plainText?.takeIf(String::isNotBlank)
+            ?: message.text?.takeIf(String::isNotBlank)?.let(RichTextPlain::toPlainText)
+            ?: return ""
         return if (isSystem(message)) SystemText.clean(plain) else plain
     }
 
@@ -162,8 +167,9 @@ object ConversationPresentation {
     fun isCallLive(c: Conversation): Boolean = c.ongoingCall?.isLive == true || c.activeMeeting?.roomId != null
 
     /**
-     * Inbox order: newest activity first, rows without a timestamp last (epoch 0), then by id
-     * so the order is stable when times tie.
+     * Inbox order: newest activity first (`Conversation.activityAt` falls back from the last
+     * message to the call and meeting times; the API sends no modified or created date), rows
+     * without any timestamp last (epoch 0), then by id so the order is stable when times tie.
      */
     val Order: Comparator<Conversation> = compareByDescending<Conversation> {
         it.activityAt ?: Instant.EPOCH

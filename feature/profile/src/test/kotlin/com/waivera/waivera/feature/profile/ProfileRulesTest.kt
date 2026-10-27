@@ -90,6 +90,13 @@ class TimeOffMathTest {
     }
 
     @Test
+    fun theServersUsedPercentageWinsOverTheDerivedOne() {
+        val balance = TimeOffBalance(remainingDays = 6.0, usedDays = 4.0, allocated = 10.0, usedPercentage = 55.0)
+        assertEquals(55.0, TimeOffMath.usedPercentage(balance))
+        assertEquals(25.0, TimeOffMath.usedPercentage(TimeOffBalance(usedPercentage = 25.0)))
+    }
+
+    @Test
     fun fiveEntriesShowThreeAndSayTwoMore() {
         val summary = TimeOffSummary(requests = (1L..5L).map { TimeOffRequest(it) })
         assertEquals(2, TimeOffMath.hiddenCount(summary))

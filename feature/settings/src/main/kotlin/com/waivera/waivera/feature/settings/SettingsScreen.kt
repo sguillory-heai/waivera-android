@@ -47,7 +47,8 @@ import com.waivera.waivera.core.designsystem.theme.WaiveraTheme
 
 /**
  * Entry point for the settings screen. Owned by `:feature:settings`; routed by `:app`.
- * Account and sign-out live here (there is no separate account route).
+ * Account and sign-out live here (there is no separate account route). The Security section
+ * (voluntary password change) shows only when [onOpenChangePassword] is set.
  */
 @Composable
 fun SettingsScreen(
@@ -55,6 +56,7 @@ fun SettingsScreen(
     onOpenNotificationSettings: () -> Unit,
     onOpenAppearance: () -> Unit,
     modifier: Modifier = Modifier,
+    onOpenChangePassword: (() -> Unit)? = null,
 ) {
     val viewModel: SettingsViewModel = hiltViewModel()
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -84,6 +86,7 @@ fun SettingsScreen(
         onOpenAppearance = onOpenAppearance,
         onSignOut = viewModel::requestSignOut,
         modifier = modifier,
+        onOpenChangePassword = onOpenChangePassword,
     )
     if (state.confirmingSignOut) {
         WaiveraConfirmationSheet(
@@ -107,6 +110,7 @@ internal fun SettingsContent(
     onOpenAppearance: () -> Unit,
     onSignOut: () -> Unit,
     modifier: Modifier = Modifier,
+    onOpenChangePassword: (() -> Unit)? = null,
 ) {
     Box(modifier = modifier.fillMaxSize().background(WaiveraTheme.colors.background)) {
         Column(modifier = Modifier.fillMaxSize()) {
@@ -129,6 +133,18 @@ internal fun SettingsContent(
                         showChevron = true,
                         leading = { WaiveraIconTile(icon = R.drawable.feature_settings_ic_palette) },
                     )
+                }
+                if (onOpenChangePassword != null) {
+                    WaiveraSectionHeader(text = stringResource(R.string.feature_settings_section_security))
+                    SettingsCard {
+                        WaiveraListRow(
+                            headline = stringResource(R.string.feature_settings_change_password),
+                            supporting = stringResource(R.string.feature_settings_change_password_detail),
+                            onClick = onOpenChangePassword,
+                            showChevron = true,
+                            leading = { WaiveraIconTile(icon = WaiveraIcons.Lock) },
+                        )
+                    }
                 }
                 WaiveraSectionHeader(text = stringResource(R.string.feature_settings_section_account))
                 AccountCard(account = state.account, signingOut = state.signingOut, onSignOut = onSignOut)

@@ -22,8 +22,6 @@ data class TodayLocalState(
     val filter: ActivityFilter = ActivityFilter.ALL,
     val unreadOnly: Boolean = false,
     val needsYouExpanded: Boolean = false,
-    /** Activities whose mark-read call failed: shown unread again until a refresh or a retry succeeds. */
-    val failedReadIds: Set<Long> = emptySet(),
     /** Invitations answered optimistically; they leave Needs you at once and return if the call fails. */
     val answeredInvitations: Set<String> = emptySet(),
     val isRefreshing: Boolean = false,
@@ -91,9 +89,6 @@ object TodayAssembler {
         else -> ConnectionBannerState.Connected
     }
 
-    /** Whether the row should read as read, after undoing failed optimistic mark-reads. */
-    fun isRead(item: ActivityItem, local: TodayLocalState): Boolean = item.read && item.id !in local.failedReadIds
-
     /**
      * Unread mentions shown under Needs you (and therefore left out of the feed below). A mention
      * inside a DM that is already listed as unread is not repeated; it stays in the feed.
@@ -103,7 +98,7 @@ object TodayAssembler {
             .filter { it.kind == ConversationKind.DIRECT && it.unreadCount > 0 }
             .mapTo(mutableSetOf()) { it.id }
         return ActivityRules.merge(sources.activity.data.items).filter {
-            it.type == ChatActivityType.MENTION && !isRead(it, context.local) && it.conversationId !in unreadDirects
+            it.type == ChatActivityType.MENTION && !it.read && it.conversationId !in unreadDirects
         }
     }
 
@@ -122,6 +117,7 @@ object TodayAssembler {
                 snippet = snippet(c.lastMessage),
                 unreadCount = c.unreadCount,
                 at = c.lastMessage?.createdAt?.let { TimeLabels.past(it, context.now, context.zone) },
+                otherUserId = c.others(context.myUserId).singleOrNull()?.id,
             )
         }
         val mentionRows = pinnedMentions.map { item -> item.createdAt to mentionItem(item, context) }
@@ -135,6 +131,8 @@ object TodayAssembler {
                 snippet = snippet(c.lastMessage),
                 unreadCount = c.unreadCount,
                 at = c.lastMessage?.createdAt?.let { TimeLabels.past(it, context.now, context.zone) },
+                ticketId = c.lastMessage?.ticket?.ticketId,
+                ticketTitle = c.lastMessage?.ticket?.title,
             )
         }
         val all = conversationRows + invitations + tickets
@@ -168,26 +166,26 @@ object TodayAssembler {
         val merged = ActivityRules.merge(synced.data.items)
         val rows = merged
             .filter { it.id !in pinnedMentions }
-            .filter { ActivityRules.matches(it.type, isRead(it, local), local.filter, local.unreadOnly) }
+            .filter { ActivityRules.matches(it.type, it.read, local.filter, local.unreadOnly) }
             .map { item ->
                 ActivityRow(
                     id = item.id,
                     type = item.type,
                     summary = ActivityRules.summary(item),
                     at = item.createdAt?.let { TimeLabels.past(it, context.now, context.zone) },
-                    read = isRead(item, local),
+                    read = item.read,
                     conversationId = item.conversationId,
                     messageId = item.messageId,
                     threadRootMessageId = item.threadRootMessageId,
                 )
             }
         val ready = synced.hasContent() || synced.lastSyncedAt != null
-        val mayHoldMore = ActivityRules.olderPagesMayHoldUnread(merged, synced.data.hasMore) { isRead(it, local) }
+        val mayHoldMore = ActivityRules.olderPagesMayHoldUnread(merged, synced.data.hasMore) { it.read }
         return ActivitySection(
             rows = rows,
             filter = local.filter,
             unreadOnly = local.unreadOnly,
-            unreadCount = merged.count { !isRead(it, local) },
+            unreadCount = merged.count { !it.read },
             unreadIsLowerBound = mayHoldMore && local.autoPagingCapped,
             totalCount = merged.size - pinnedMentions.size,
             hasMore = synced.data.hasMore && synced.lastSyncedAt != null,

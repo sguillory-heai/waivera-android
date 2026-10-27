@@ -7,6 +7,7 @@ import com.waivera.waivera.core.data.model.DateRange
 import com.waivera.waivera.core.data.model.Milestone
 import com.waivera.waivera.core.data.model.MyInvitation
 import com.waivera.waivera.core.data.model.RealtimeStatus
+import com.waivera.waivera.core.data.model.ScheduleEvent
 import com.waivera.waivera.core.data.model.ScheduleFeed
 import com.waivera.waivera.core.data.model.SyncStatus
 import com.waivera.waivera.core.data.model.Synced
@@ -71,12 +72,16 @@ class FakeConversationRepository(
 
     override fun observeTyping(conversationId: Long): Flow<Set<String>> = emptyFlow()
 
+    override fun observeAllTyping(): Flow<Map<Long, Set<String>>> = emptyFlow()
+
+    override suspend fun callLobbyUrl(conversationId: Long): Result<String> = unused()
+
     override fun onComposerChanged(conversationId: Long, isEmpty: Boolean) = Unit
 }
 
 /**
- * Like `LiveActivityRepository`: mark-read writes the cache first and does not roll back on
- * failure; [pages] are what `loadMore` appends, in order.
+ * Like `LiveActivityRepository`: mark-read writes the cache first and rolls it back on failure;
+ * [pages] are what `loadMore` appends, in order.
  */
 class FakeActivityRepository(
     items: List<ActivityItem> = emptyList(),
@@ -113,19 +118,25 @@ class FakeActivityRepository(
 
     override suspend fun markRead(activityId: Long): Result<Unit> {
         markReadCalls += activityId
-        markLocally { it.id == activityId }
-        return markReadResult
+        return markOptimistically(markReadResult) { it.id == activityId }
     }
 
     override suspend fun markAllRead(): Result<Unit> {
         markAllCalls++
-        markLocally { true }
-        return markAllResult
+        return markOptimistically(markAllResult) { true }
     }
 
     /** A hub `ReceiveChatActivity`: the row lands in the cache and the flow re-emits. */
     fun receive(item: ActivityItem) =
         state.update { it.copy(data = it.data.copy(items = listOf(item) + it.data.items)) }
+
+    /** Like the real repository: the cache flips at once and rolls back when the call fails. */
+    private fun markOptimistically(result: Result<Unit>, predicate: (ActivityItem) -> Boolean): Result<Unit> {
+        val before = state.value.data.items
+        markLocally(predicate)
+        if (result.isFailure) state.update { it.copy(data = it.data.copy(items = before)) }
+        return result
+    }
 
     private fun markLocally(predicate: (ActivityItem) -> Boolean) = state.update { s ->
         s.copy(data = s.data.copy(items = s.data.items.map { if (predicate(it)) it.copy(read = true) else it }))
@@ -196,6 +207,10 @@ class FakeCalendarRepository(
     }
 
     override suspend fun meetingLobbyUrl(eventId: String): Result<String> = unused()
+
+    override fun observeEvent(eventId: String): Flow<Synced<ScheduleEvent?>> = emptyFlow()
+
+    override suspend fun refreshEvent(eventId: String): Result<Unit> = unused()
 }
 
 class FakeRealtimeStatusRepository(

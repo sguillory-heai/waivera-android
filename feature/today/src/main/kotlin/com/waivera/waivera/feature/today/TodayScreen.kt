@@ -24,8 +24,8 @@ import com.waivera.waivera.feature.today.ui.TodayPreviewStates
  * Entry point for the Today tab. Owned by `:feature:today`; routed by `:app`.
  *
  * @param onOpenMessage opens a message highlighted in its conversation, or its thread when
- *   [threadRootMessageId] is set (activity and mention rows). Until the shell passes it, rows
- *   fall back to [onOpenConversation]; see `docs/requests/today.md`.
+ *   [threadRootMessageId] is set (activity and mention rows). Without it, rows fall
+ *   back to [onOpenConversation].
  */
 @Composable
 fun TodayScreen(

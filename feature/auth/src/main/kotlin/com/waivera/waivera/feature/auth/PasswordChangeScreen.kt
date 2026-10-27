@@ -5,10 +5,10 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
-import androidx.compose.foundation.layout.only
-import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.only
+import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -16,6 +16,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.autofill.ContentType
 import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
@@ -29,6 +30,7 @@ import com.waivera.waivera.core.designsystem.component.WaiveraButton
 import com.waivera.waivera.core.designsystem.component.WaiveraButtonVariant
 import com.waivera.waivera.core.designsystem.component.WaiveraTopBar
 import com.waivera.waivera.core.designsystem.feedback.rememberHaptics
+import com.waivera.waivera.core.designsystem.icon.WaiveraIcons
 import com.waivera.waivera.core.designsystem.preview.WaiveraPreviews
 import com.waivera.waivera.core.designsystem.theme.WaiveraSpacing
 import com.waivera.waivera.core.designsystem.theme.WaiveraTheme
@@ -107,7 +109,7 @@ internal fun PasswordChangeContent(
             AuthHeader(
                 title = stringResource(R.string.feature_auth_password_change_required_title),
                 message = stringResource(R.string.feature_auth_password_change_required_message),
-                icon = R.drawable.feature_auth_ic_lock,
+                icon = WaiveraIcons.Lock,
             )
             PasswordChangeForm(state = state, actions = actions, showSignOut = true)
         }
@@ -215,6 +217,7 @@ private fun PasswordChangeFields(state: PasswordChangeUiState, actions: Password
         value = state.new,
         onValueChange = actions.onNewChange,
         label = stringResource(R.string.feature_auth_new_password_label),
+        contentType = ContentType.NewPassword,
         imeAction = ImeAction.Next,
         onImeAction = { moveNext() },
         errorText = state.newError?.let { stringResource(it, minLength) },
@@ -231,6 +234,7 @@ private fun PasswordChangeFields(state: PasswordChangeUiState, actions: Password
         value = state.confirm,
         onValueChange = actions.onConfirmChange,
         label = stringResource(R.string.feature_auth_confirm_password_label),
+        contentType = ContentType.NewPassword,
         imeAction = ImeAction.Done,
         onImeAction = {
             keyboard?.hide()

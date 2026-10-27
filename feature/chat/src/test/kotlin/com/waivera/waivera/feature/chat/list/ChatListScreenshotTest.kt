@@ -47,7 +47,6 @@ class ChatListScreenshotTest {
                 conversations = graph.conversations,
                 session = graph.session,
                 realtime = graph.realtimeStatus,
-                callLobby = { Result.failure(WaiveraError.NotFound()) },
                 text = EnglishText,
                 clock = graph.backend.clock,
                 ticker = flowOf(graph.backend.now()),

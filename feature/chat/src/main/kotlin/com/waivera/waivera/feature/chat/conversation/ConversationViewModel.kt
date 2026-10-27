@@ -6,6 +6,7 @@ import com.waivera.waivera.core.data.model.Conversation
 import com.waivera.waivera.core.data.model.ConversationKind
 import com.waivera.waivera.core.data.model.Message
 import com.waivera.waivera.core.data.model.MessageTimeline
+import com.waivera.waivera.core.data.model.SendState
 import com.waivera.waivera.core.data.model.Synced
 import com.waivera.waivera.core.data.model.currentUserId
 import com.waivera.waivera.core.data.repository.BookmarkRepository
@@ -25,7 +26,6 @@ import com.waivera.waivera.feature.chat.message.ChatClock
 import com.waivera.waivera.feature.chat.message.ChatComputeDispatcher
 import com.waivera.waivera.feature.chat.message.ChatEffect
 import com.waivera.waivera.feature.chat.message.ConnectionUi
-import com.waivera.waivera.feature.chat.message.ConversationCallLobby
 import com.waivera.waivera.feature.chat.message.MessageInteractions
 import com.waivera.waivera.feature.chat.message.ReadOnlyReason
 import com.waivera.waivera.feature.chat.message.RowTime
@@ -80,7 +80,6 @@ class ConversationViewModel @AssistedInject constructor(
     session: SessionRepository,
     private val realtime: RealtimeStatusRepository,
     private val io: AttachmentIo,
-    private val callLobby: ConversationCallLobby,
     downloads: AttachmentDownloads,
     private val clock: ChatClock,
     @ChatComputeDispatcher private val computeDispatcher: CoroutineDispatcher,
@@ -195,7 +194,12 @@ class ConversationViewModel @AssistedInject constructor(
         if (events.newFailures > 0) {
             val status = realtime.status.value
             val current = _state.value
-            val kind = SendErrors.forFailedSend(status.isOnline, current.canWrite, conversation?.channel?.isArchived == true)
+            val kind = SendErrors.forFailedSend(
+                error = visible.lastOrNull { it.sendState == SendState.FAILED }?.sendError,
+                isOnline = status.isOnline,
+                canWrite = current.canWrite,
+                isArchived = conversation?.channel?.isArchived == true,
+            )
             _state.update { it.copy(sendError = kind) }
             emit(ChatEffect.Haptic(HapticMoment.Error))
         }
@@ -512,7 +516,7 @@ class ConversationViewModel @AssistedInject constructor(
         if (_state.value.call.isOpening) return
         _state.update { it.copy(call = it.call.copy(isOpening = true)) }
         viewModelScope.launch {
-            callLobby.lobbyUrl(current)
+            conversations.callLobbyUrl(current.id)
                 .onSuccess { url ->
                     if (SafeLinks.isAllowed(url)) {
                         emit(ChatEffect.OpenUrl(url))

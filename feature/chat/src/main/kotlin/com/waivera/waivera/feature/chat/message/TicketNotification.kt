@@ -2,16 +2,13 @@ package com.waivera.waivera.feature.chat.message
 
 import androidx.compose.runtime.Immutable
 import com.waivera.waivera.core.data.model.Message
+import com.waivera.waivera.core.data.model.TicketUpdate
 import com.waivera.waivera.core.network.time.WaiveraTime
 import java.time.LocalDate
 import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
 import java.util.Locale
-import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
-import kotlinx.serialization.json.JsonObject
-import kotlinx.serialization.json.JsonPrimitive
-import kotlinx.serialization.json.contentOrNull
 
 enum class TicketPriority { Critical, High, Medium, Other }
 
@@ -56,42 +53,32 @@ sealed interface TicketDate {
 }
 
 object TicketNotifications {
-    private const val MAX_UNWRAP = 3
-    private const val TICKET_EVENT = "ticket.update"
     private val US_DATE = Regex("""^(\d{2})/(\d{2})/(\d{4})$""")
-    private val json = Json { isLenient = true }
 
     /** A bot message: flagged by bot id, a `bot:` author, or a bot conversation. */
     fun isBot(message: Message, botConversation: Boolean): Boolean =
         botConversation || message.botId != null || message.authorId?.startsWith("bot:") == true
 
     fun from(message: Message, botConversation: Boolean): TicketNotification? {
-        if (!isBot(message, botConversation) || message.systemEventType != TICKET_EVENT) return null
-        return parse(message.systemEventData)
+        if (!isBot(message, botConversation)) return null
+        return TicketUpdate.from(message.systemEventType, message.systemEventData)?.let(::from)
     }
 
-    @Suppress("ReturnCount")
-    fun parse(payload: JsonElement?): TicketNotification? {
-        var candidate: JsonElement? = payload
-        repeat(MAX_UNWRAP) {
-            val primitive = candidate as? JsonPrimitive
-            if (primitive != null && primitive.isString) {
-                candidate = runCatching { json.parseToJsonElement(primitive.content) }.getOrNull() ?: return null
-            }
-        }
-        val value = candidate as? JsonObject ?: return null
-        val ticketId = value.text("ticketId") ?: return null
-        val title = value.text("title") ?: return null
-        val url = value.text("url")?.takeIf(SafeLinks::isAllowed) ?: return null
+    /** The payload unwrapping and required fields live in core (`TicketUpdate.parse`). */
+    fun parse(payload: JsonElement?): TicketNotification? = TicketUpdate.parse(payload)?.let(::from)
+
+    /** Display defaults over the payload as sent; the url must also pass [SafeLinks]. */
+    fun from(update: TicketUpdate): TicketNotification? {
+        if (!SafeLinks.isAllowed(update.url)) return null
         return TicketNotification(
-            ticketId = ticketId,
-            title = title,
-            url = url,
-            type = value.text("type") ?: "Task",
-            createdBy = value.text("createdBy"),
-            priority = value.text("priority")?.uppercase() ?: "UNSET",
-            created = date(value.rawString("createdDate"), value.rawString("createdAt")),
-            due = date(value.rawString("dueDateLabel"), value.rawString("dueDate")),
+            ticketId = update.ticketId,
+            title = update.title,
+            url = update.url,
+            type = update.type ?: "Task",
+            createdBy = update.createdBy,
+            priority = update.priority?.uppercase() ?: "UNSET",
+            created = date(update.createdDate, update.createdAt),
+            due = date(update.dueDateLabel, update.dueDate),
         )
     }
 
@@ -109,11 +96,4 @@ object TicketNotifications {
     }
 
     private const val ISO_DATE_LENGTH = 10
-
-    private fun JsonObject.rawString(key: String): String? =
-        (this[key] as? JsonPrimitive)?.takeIf { it.isString }?.contentOrNull
-
-    /** Any primitive, as text, trimmed; null when blank (the reference app uses `String(value ?? '')`). */
-    private fun JsonObject.text(key: String): String? =
-        (this[key] as? JsonPrimitive)?.contentOrNull?.trim()?.takeIf(String::isNotEmpty)
 }

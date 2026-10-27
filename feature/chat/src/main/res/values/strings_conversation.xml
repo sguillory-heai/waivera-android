@@ -42,6 +42,7 @@
     <string name="feature_chat_failed_edit">Edit</string>
     <string name="feature_chat_failed_discard">Discard</string>
     <string name="feature_chat_uploading">Uploading…</string>
+    <string name="feature_chat_uploading_percent">Uploading… %1$d%%</string>
     <string name="feature_chat_upload_failed">Upload failed</string>
     <plurals name="feature_chat_thread_replies">
         <item quantity="one">%d reply</item>

@@ -2,8 +2,9 @@ package com.waivera.waivera.feature.calendar.event
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.waivera.waivera.core.data.model.DateRange
 import com.waivera.waivera.core.data.model.MyInvitation
+import com.waivera.waivera.core.data.model.ScheduleEvent
+import com.waivera.waivera.core.data.model.Synced
 import com.waivera.waivera.core.data.model.currentUser
 import com.waivera.waivera.core.data.model.currentUserId
 import com.waivera.waivera.core.data.repository.CalendarRepository
@@ -13,8 +14,6 @@ import com.waivera.waivera.core.data.repository.SessionRepository
 import com.waivera.waivera.core.network.di.ApplicationScope
 import com.waivera.waivera.core.network.error.WaiveraError
 import com.waivera.waivera.feature.calendar.data.DeviceZone
-import com.waivera.waivera.feature.calendar.data.EventLookup
-import com.waivera.waivera.feature.calendar.data.EventLookupResult
 import com.waivera.waivera.feature.calendar.model.MilestoneIndex
 import com.waivera.waivera.feature.calendar.model.WebLinks
 import dagger.assisted.Assisted
@@ -22,6 +21,7 @@ import dagger.assisted.AssistedFactory
 import dagger.assisted.AssistedInject
 import dagger.hilt.android.lifecycle.HiltViewModel
 import java.time.Clock
+import java.time.ZoneId
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.Channel
@@ -31,6 +31,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.distinctUntilChangedBy
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.receiveAsFlow
@@ -46,7 +47,6 @@ import kotlinx.coroutines.launch
 @Suppress("LongParameterList", "TooManyFunctions")
 class CalendarEventViewModel @AssistedInject constructor(
     @Assisted private val eventId: String,
-    private val lookup: EventLookup,
     private val calendar: CalendarRepository,
     private val conversations: ConversationRepository,
     private val people: PeopleRepository,
@@ -69,7 +69,6 @@ class CalendarEventViewModel @AssistedInject constructor(
     private val effectChannel = Channel<EventEffect>(Channel.BUFFERED)
     private var commitJob: Job? = null
     private var undoToken = 0L
-    private var lastFound: EventLookupResult.Found? = null
 
     val effects: Flow<EventEffect> = effectChannel.receiveAsFlow()
 
@@ -81,29 +80,32 @@ class CalendarEventViewModel @AssistedInject constructor(
         EventInteraction(o, f, jb, je, cb)
     }
 
+    /** The cached event (refreshed by the repository when cold or stale) with the zone to show it in. */
+    private val event: Flow<Pair<Synced<ScheduleEvent?>, ZoneId>> =
+        combine(calendar.observeEvent(eventId), calendar.zone.distinctUntilChanged()) { synced, zone -> synced to zone }
+
     val uiState: StateFlow<EventUiState> =
-        combine(lookup.observe(eventId), milestones, now, actions, session.state) { result, index, instant, a, s ->
-            when (result) {
-                EventLookupResult.Loading -> EventUiState.Loading
-                EventLookupResult.NotFound -> EventUiState.NotFound
-                is EventLookupResult.Failed -> EventUiState.Error(result.error)
-                is EventLookupResult.Found -> {
-                    lastFound = result
-                    EventUiState.Loaded(
-                        EventRules.details(
-                            event = result.event,
-                            zone = result.zone,
-                            milestones = index,
-                            now = instant,
-                            myUserId = s.currentUserId,
-                            savedZoneId = s.currentUser?.timeZoneId,
-                            deviceZone = deviceZone.current(),
-                            interaction = a,
-                            isRefreshing = result.isRefreshing,
-                            refreshError = result.error,
-                        ),
-                    )
-                }
+        combine(event, milestones, now, actions, session.state) { (synced, zone), index, instant, a, s ->
+            val found = synced.data
+            when {
+                found != null -> EventUiState.Loaded(
+                    EventRules.details(
+                        event = found,
+                        zone = zone,
+                        milestones = index,
+                        now = instant,
+                        myUserId = s.currentUserId,
+                        savedZoneId = s.currentUser?.timeZoneId,
+                        deviceZone = deviceZone.current(),
+                        interaction = a,
+                        isRefreshing = synced.isRefreshing,
+                        refreshError = synced.error,
+                    ),
+                )
+                synced.isInitialLoad -> EventUiState.Loading
+                // Never synced and the fetch failed: an error, not "not found".
+                synced.lastSyncedAt == null -> EventUiState.Error(synced.error ?: WaiveraError.Unexpected())
+                else -> EventUiState.NotFound
             }
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS), EventUiState.Loading)
 
@@ -113,10 +115,7 @@ class CalendarEventViewModel @AssistedInject constructor(
     }
 
     fun retry() {
-        viewModelScope.launch {
-            val zone = lastFound?.zone ?: session.state.value.currentUser?.zone ?: return@launch
-            lookup.refresh(eventId, zone)
-        }
+        viewModelScope.launch { calendar.refreshEvent(eventId) }
     }
 
     /** Accept (true) or Decline (false). Nothing is sent until the undo window closes. */
@@ -226,13 +225,11 @@ class CalendarEventViewModel @AssistedInject constructor(
 
     private suspend fun commit(accept: Boolean) {
         optimistic.value = OptimisticResponse(accept, ResponsePhase.SAVING)
-        val range: DateRange? = lastFound?.range
+        // On success the repository patches every cached copy (this event and the feeds).
         calendar.respondToInvitation(eventId, accept)
             .onSuccess {
                 optimistic.value = OptimisticResponse(accept, ResponsePhase.SAVED)
                 effectChannel.trySend(EventEffect.ResponseSaved(accept))
-                // The feed is the source of truth; refetch so every screen shows the new answer.
-                range?.let { calendar.refresh(it) }
             }
             .onFailure {
                 optimistic.value = null

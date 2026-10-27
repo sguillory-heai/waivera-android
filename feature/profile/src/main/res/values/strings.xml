@@ -49,6 +49,8 @@
     <string name="feature_profile_positions">Positions</string>
     <string name="feature_profile_office_locations">Office locations</string>
     <string name="feature_profile_agencies">Agencies</string>
+    <string name="feature_profile_waiver_families">Waiver families</string>
+    <string name="feature_profile_scid">SCID</string>
     <string name="feature_profile_birthday">Birthday</string>
     <string name="feature_profile_reports_to">Reports to</string>
     <string name="feature_profile_settings_row">Settings</string>

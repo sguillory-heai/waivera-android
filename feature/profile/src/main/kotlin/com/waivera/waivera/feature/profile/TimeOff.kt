@@ -34,10 +34,12 @@ internal object TimeOffMath {
         ((FULL - usedPercentage.coerceIn(0.0, FULL)) / FULL).toFloat()
 
     /**
-     * Used share of the allocation. The API sends `usedLeavePercentage`, which core does not map
-     * yet (docs/requests/feature-profile.md), so it is derived from used and allocated days.
+     * Used share of the allocation: the API's `usedLeavePercentage` when sent, otherwise derived
+     * from used and allocated days.
      */
-    fun usedPercentage(balance: TimeOffBalance): Double? {
+    fun usedPercentage(balance: TimeOffBalance): Double? = balance.usedPercentage ?: derivedUsedPercentage(balance)
+
+    private fun derivedUsedPercentage(balance: TimeOffBalance): Double? {
         val allocated = balance.allocated?.takeIf { it > 0 } ?: return null
         val used = balance.usedDays ?: balance.remainingDays?.let { allocated - it } ?: return null
         return used * FULL / allocated

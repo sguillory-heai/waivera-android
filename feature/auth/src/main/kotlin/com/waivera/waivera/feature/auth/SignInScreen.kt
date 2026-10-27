@@ -11,6 +11,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.autofill.ContentType
 import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
@@ -159,6 +160,7 @@ private fun SignInForm(state: SignInUiState, actions: SignInActions) {
             onValueChange = actions.onEmailChange,
             label = stringResource(R.string.feature_auth_email_label),
             placeholder = stringResource(R.string.feature_auth_email_placeholder),
+            contentType = ContentType.EmailAddress + ContentType.Username,
             errorText = state.emailError?.let { stringResource(it) },
             enabled = state.fieldsEnabled,
             keyboardOptions = KeyboardOptions(

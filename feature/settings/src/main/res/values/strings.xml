@@ -52,4 +52,7 @@
     <string name="feature_settings_channel_open">Change in Android settings</string>
     <string name="feature_settings_channel_blocked">Turned off in Android settings</string>
     <string name="feature_settings_channel_open_label">open Android settings</string>
+    <string name="feature_settings_section_security">Security</string>
+    <string name="feature_settings_change_password">Change password</string>
+    <string name="feature_settings_change_password_detail">Update the password you use to sign in</string>
 </resources>

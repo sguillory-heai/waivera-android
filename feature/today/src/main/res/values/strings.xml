@@ -33,6 +33,7 @@
     <string name="feature_today_kind_reaction">Reaction</string>
     <string name="feature_today_kind_update">Update</string>
     <string name="feature_today_ticket_title">Ticket update</string>
+    <string name="feature_today_ticket_number">Ticket #%1$s</string>
     <string name="feature_today_invitation_label">Invitation</string>
     <string name="feature_today_invitation_untitled">Untitled event</string>
     <string name="feature_today_invitation_from">From %1$s</string>

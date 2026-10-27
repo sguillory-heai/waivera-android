@@ -63,16 +63,15 @@ import com.waivera.waivera.feature.chat.conversation.ConversationViewModel
 import com.waivera.waivera.feature.chat.message.CallBanner
 import com.waivera.waivera.feature.chat.message.ChatDimens
 import com.waivera.waivera.feature.chat.message.ChatEffectsHandler
-import com.waivera.waivera.feature.chat.message.ChatIcons
 import com.waivera.waivera.feature.chat.message.ChatPreviewData
 import com.waivera.waivera.feature.chat.message.ChatSheetCallbacks
 import com.waivera.waivera.feature.chat.message.ChatSheetHost
 import com.waivera.waivera.feature.chat.message.Composer
 import com.waivera.waivera.feature.chat.message.ComposerConfig
+import com.waivera.waivera.feature.chat.message.DelayedListSkeleton
 import com.waivera.waivera.feature.chat.message.HideKeyboardOnDrag
 import com.waivera.waivera.feature.chat.message.JumpToLatestPill
 import com.waivera.waivera.feature.chat.message.LocalChatImages
-import com.waivera.waivera.feature.chat.message.DelayedListSkeleton
 import com.waivera.waivera.feature.chat.message.MessageRowCallbacks
 import com.waivera.waivera.feature.chat.message.OlderMessagesRow
 import com.waivera.waivera.feature.chat.message.ReadOnlyNotice
@@ -325,7 +324,7 @@ internal fun reactionNameFor(names: Map<String, String>, myUserId: String?): (St
 private fun callActions(call: CallUi, onOpenCall: () -> Unit): List<TopBarAction> {
     if (!call.available) return emptyList()
     val label = stringResource(if (call.isLive) R.string.feature_chat_call_join else R.string.feature_chat_call_start)
-    return listOf(TopBarAction(icon = ChatIcons.Video, contentDescription = label, onClick = onOpenCall))
+    return listOf(TopBarAction(icon = WaiveraIcons.Video, contentDescription = label, onClick = onOpenCall))
 }
 
 @Composable

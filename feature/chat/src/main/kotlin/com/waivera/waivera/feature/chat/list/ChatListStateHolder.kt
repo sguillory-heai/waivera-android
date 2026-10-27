@@ -33,9 +33,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flow
-import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.stateIn
@@ -58,7 +56,6 @@ class ChatListStateHolder(
     private val conversations: ConversationRepository,
     private val session: SessionRepository,
     private val realtime: RealtimeStatusRepository,
-    private val callLobby: CallLobby,
     private val text: ChatListText,
     private val clock: Clock,
     ticker: Flow<Instant> = clockTicker(clock),
@@ -87,18 +84,10 @@ class ChatListStateHolder(
 
     val effects: Flow<ChatListEffect> = effectChannel.receiveAsFlow()
 
-    private val typing: Flow<Map<Long, Set<String>>> = synced
-        .map { s -> s?.data?.map { it.id }.orEmpty().toSet() }
+    /** One map for the whole inbox; rows look themselves up by id. */
+    private val typing: Flow<Map<Long, Set<String>>> = conversations.observeAllTyping()
+        .map { all -> all.filterValues { it.isNotEmpty() } }
         .distinctUntilChanged()
-        .flatMapLatest { ids ->
-            if (ids.isEmpty()) {
-                flowOf(emptyMap())
-            } else {
-                combine(ids.map { id -> conversations.observeTyping(id).map { id to it } }) { pairs ->
-                    pairs.filter { it.second.isNotEmpty() }.toMap()
-                }
-            }
-        }
 
     val state: StateFlow<ChatListUiState> = combine(
         combine(synced, typing, ticker) { s, t, now -> Triple(s, t, now) },
@@ -169,13 +158,16 @@ class ChatListStateHolder(
         }
     }
 
-    /** Opens the web lobby for a live call; only one can be opening at a time. */
+    /**
+     * Opens the web lobby for the conversation's call (03 §19): the repository joins the live
+     * room or creates one. Only one can be opening at a time.
+     */
     fun onJoinCall(conversationId: Long) {
         if (local.value.openingCallId != null) return
-        val conversation = conversation(conversationId) ?: return
+        if (conversation(conversationId) == null) return
         local.update { it.copy(openingCallId = conversationId) }
         scope.launch {
-            val result = callLobby.lobbyUrl(conversation)
+            val result = conversations.callLobbyUrl(conversationId)
             val url = result.getOrNull()?.takeIf { it.startsWith(HTTPS) }
             effectChannel.send(
                 if (url != null) {

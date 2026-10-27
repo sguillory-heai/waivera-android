@@ -27,6 +27,7 @@ import com.waivera.waivera.core.designsystem.component.WaiveraButtonVariant
 import com.waivera.waivera.core.designsystem.component.WaiveraFilterChip
 import com.waivera.waivera.core.designsystem.component.WaiveraStatusBadge
 import com.waivera.waivera.core.designsystem.component.formatBadgeCount
+import com.waivera.waivera.core.designsystem.icon.WaiveraIcons
 import com.waivera.waivera.core.designsystem.preview.WaiveraPreviews
 import com.waivera.waivera.core.designsystem.theme.WaiveraSizes
 import com.waivera.waivera.core.designsystem.theme.WaiveraSpacing
@@ -53,7 +54,7 @@ internal fun ActivityHeader(section: ActivitySection, onMarkAllRead: () -> Unit,
                     onClick = onMarkAllRead,
                     variant = WaiveraButtonVariant.Text,
                     loading = section.isMarkingAllRead,
-                    leadingIcon = R.drawable.feature_today_ic_done_all,
+                    leadingIcon = WaiveraIcons.MarkRead,
                 )
             }
         },
@@ -136,7 +137,7 @@ internal fun ActivityItemRow(row: ActivityRow, onClick: () -> Unit, modifier: Mo
 private fun activityIcon(type: ChatActivityType): Int = when (type) {
     ChatActivityType.MENTION -> R.drawable.feature_today_ic_mention
     ChatActivityType.REACTION -> R.drawable.feature_today_ic_reaction
-    ChatActivityType.THREAD_REPLY, ChatActivityType.UNKNOWN -> R.drawable.feature_today_ic_reply
+    ChatActivityType.THREAD_REPLY, ChatActivityType.UNKNOWN -> WaiveraIcons.Reply
 }
 
 /** Footer under the feed: a spinner while the next page loads, or an inline retry when it failed. */

@@ -5,7 +5,6 @@ import android.net.Uri
 import android.provider.OpenableColumns
 import androidx.core.content.FileProvider
 import com.waivera.waivera.core.data.model.AttachmentSource
-import com.waivera.waivera.core.data.model.Conversation
 import com.waivera.waivera.core.data.repository.AttachmentRepository
 import com.waivera.waivera.core.network.error.WaiveraError
 import com.waivera.waivera.core.network.error.catchingWaivera
@@ -102,20 +101,6 @@ class AndroidAttachmentIo @Inject constructor(@ApplicationContext private val co
 }
 
 /**
- * Opens the web call lobby for a conversation (03 §19). Core has `meetingLobbyUrl` for calendar
- * events only; the conversation variant is requested in docs/requests/conversation.md, and until
- * it lands [UnavailableCallLobby] reports the "Unable to open video call" state.
- */
-fun interface ConversationCallLobby {
-    suspend fun lobbyUrl(conversation: Conversation): Result<String>
-}
-
-class UnavailableCallLobby @Inject constructor() : ConversationCallLobby {
-    override suspend fun lobbyUrl(conversation: Conversation): Result<String> =
-        Result.failure(WaiveraError.Configuration(listOf("ConversationRepository.callLobbyUrl")))
-}
-
-/**
  * Attachment downloads for Save and Share, with concurrent requests for the same file shared
  * (03 §8) and one retry, as in the reference client.
  */
@@ -150,9 +135,6 @@ annotation class ChatComputeDispatcher
 internal abstract class ChatFeatureModule {
     @Binds
     abstract fun attachmentIo(impl: AndroidAttachmentIo): AttachmentIo
-
-    @Binds
-    abstract fun callLobby(impl: UnavailableCallLobby): ConversationCallLobby
 
     companion object {
         /** Chat clocks follow the device zone (03 §3); read on every use so a zone change applies at once. */

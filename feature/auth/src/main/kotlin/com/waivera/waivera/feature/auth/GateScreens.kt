@@ -24,8 +24,7 @@ import com.waivera.waivera.core.network.R as NetworkR
 
 /**
  * Gate shown when Firebase restored a user but the backend bootstrap failed and nothing is
- * cached. Not yet routed: the app's gate shows its own simpler screen until it switches to this
- * one (see `docs/requests/feature-auth.md`).
+ * cached. Shows the mapped reason, retries the bootstrap and offers sign-out.
  */
 @Composable
 fun BootstrapFailedScreen(onSignOut: () -> Unit, modifier: Modifier = Modifier) {
@@ -67,7 +66,7 @@ internal fun BootstrapFailedContent(
 /**
  * Gate for an account whose Waivera signup is not finished (`requiresOnboarding`). There is no
  * onboarding contract yet, so this explains what to do outside the app, re-checks on request and
- * offers sign-out. Not yet routed (see `docs/requests/feature-auth.md`).
+ * offers sign-out.
  */
 @Composable
 fun OnboardingRequiredScreen(onSignOut: () -> Unit, modifier: Modifier = Modifier) {

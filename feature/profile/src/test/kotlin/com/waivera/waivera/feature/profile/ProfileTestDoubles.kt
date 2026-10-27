@@ -3,6 +3,7 @@ package com.waivera.waivera.feature.profile
 import com.waivera.waivera.core.data.model.EmployeeFile
 import com.waivera.waivera.core.data.model.EmployeeFilePage
 import com.waivera.waivera.core.data.model.EmployeeProfile
+import com.waivera.waivera.core.data.model.Organization
 import com.waivera.waivera.core.data.model.RealtimeStatus
 import com.waivera.waivera.core.data.model.Synced
 import com.waivera.waivera.core.data.model.SyncStatus
@@ -94,6 +95,10 @@ internal class FakeProfileRepository(
     }
 
     override suspend fun updateContact(phoneNumber: String?, timeZoneId: String?): Result<Unit> = Result.success(Unit)
+
+    var organizationResult: Result<Organization?> = Result.success(Organization(1, "Waivera Care"))
+
+    override suspend fun organization(): Result<Organization?> = organizationResult
 }
 
 /** Organization source with a counter. */

@@ -35,6 +35,7 @@ import com.waivera.waivera.core.designsystem.component.WaiveraListRow
 import com.waivera.waivera.core.designsystem.component.WaiveraSectionHeader
 import com.waivera.waivera.core.designsystem.component.WaiveraSwitchRow
 import com.waivera.waivera.core.designsystem.component.WaiveraTopBar
+import com.waivera.waivera.core.designsystem.icon.WaiveraIcons
 import com.waivera.waivera.core.designsystem.preview.WaiveraPreviews
 import com.waivera.waivera.core.designsystem.theme.WaiveraSizes
 import com.waivera.waivera.core.designsystem.theme.WaiveraSpacing
@@ -145,7 +146,7 @@ internal fun NotificationSettingsContent(
                         onClickLabel = stringResource(R.string.feature_settings_channel_open_label),
                         trailing = {
                             Icon(
-                                painter = painterResource(R.drawable.feature_settings_ic_open_external),
+                                painter = painterResource(WaiveraIcons.OpenExternal),
                                 contentDescription = null,
                                 tint = WaiveraTheme.colors.textSecondary,
                                 modifier = Modifier.size(WaiveraSizes.Icon),

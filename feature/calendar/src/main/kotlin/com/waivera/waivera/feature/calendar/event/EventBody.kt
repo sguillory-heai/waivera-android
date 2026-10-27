@@ -120,7 +120,7 @@ internal fun EventBody(
         locationText(details)?.let { location ->
             item(key = "location") {
                 DetailRow(
-                    icon = if (event.online || event.isSprout) CalendarIcons.Video else CalendarIcons.Place,
+                    icon = if (event.online || event.isSprout) WaiveraIcons.Video else CalendarIcons.Place,
                     iconLabel = stringResource(
                         if (event.online || event.isSprout) {
                             R.string.feature_calendar_event_online
@@ -264,7 +264,7 @@ private fun JoinBlock(join: JoinUi, details: EventDetails, actions: EventActions
             enabled = join.state == JoinState.OPEN,
             loading = join.isBusy,
             fullWidth = true,
-            leadingIcon = CalendarIcons.OpenInNew,
+            leadingIcon = WaiveraIcons.OpenExternal,
         )
         val helper = when (join.state) {
             JoinState.OPEN -> null

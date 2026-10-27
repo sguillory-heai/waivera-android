@@ -6,6 +6,7 @@ import com.waivera.waivera.core.data.model.ConversationKind
 import com.waivera.waivera.core.data.model.CurrentUser
 import com.waivera.waivera.core.data.model.MessagePreview
 import com.waivera.waivera.core.data.model.Person
+import com.waivera.waivera.core.data.model.PersonDetails
 import com.waivera.waivera.core.data.model.RealtimeStatus
 import com.waivera.waivera.core.data.model.SessionState
 import com.waivera.waivera.core.data.model.SyncStatus
@@ -175,6 +176,19 @@ class FakeConversationRepository(initial: Synced<List<Conversation>>) : Conversa
 
     override fun observeTyping(conversationId: Long): Flow<Set<String>> = typing.map { it[conversationId].orEmpty() }
 
+    override fun observeAllTyping(): Flow<Map<Long, Set<String>>> = typing
+
+    /** What [callLobbyUrl] answers; when [lobbyGate] is set it waits for it first. */
+    var lobbyResult: Result<String> = Result.success("https://web.example.test/lobby/room?state=x")
+    var lobbyGate: CompletableDeferred<Unit>? = null
+    val lobbyCalls = mutableListOf<Long>()
+
+    override suspend fun callLobbyUrl(conversationId: Long): Result<String> {
+        lobbyCalls += conversationId
+        lobbyGate?.await()
+        return lobbyResult
+    }
+
     override fun onComposerChanged(conversationId: Long, isEmpty: Boolean) = Unit
 }
 
@@ -232,4 +246,9 @@ class FakePeopleRepository(initial: Synced<List<Person>>) : PeopleRepository {
         avatarRequests += userId
         return if (userId == PRIYA) byteArrayOf(1, 2, 3) else null
     }
+
+    override suspend fun details(userId: String): Result<PersonDetails> =
+        directory.value.data.firstOrNull { it.id == userId }
+            ?.let { Result.success(PersonDetails(userId = it.id, displayName = it.name)) }
+            ?: Result.failure(WaiveraError.NotFound())
 }

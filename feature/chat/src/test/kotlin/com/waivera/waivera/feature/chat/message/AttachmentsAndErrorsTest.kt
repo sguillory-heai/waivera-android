@@ -53,9 +53,22 @@ class AttachmentsAndErrorsTest {
 
     @Test
     fun failedOutboxRowsInferTheLikeliestCause() {
-        assertEquals(SendErrorKind.Archived, SendErrors.forFailedSend(isOnline = true, canWrite = false, isArchived = true))
-        assertEquals(SendErrorKind.ReadOnly, SendErrors.forFailedSend(isOnline = true, canWrite = false, isArchived = false))
-        assertEquals(SendErrorKind.Offline, SendErrors.forFailedSend(isOnline = false, canWrite = true, isArchived = false))
-        assertEquals(SendErrorKind.Server, SendErrors.forFailedSend(isOnline = true, canWrite = true, isArchived = false))
+        fun guess(online: Boolean, canWrite: Boolean, archived: Boolean) =
+            SendErrors.forFailedSend(error = null, isOnline = online, canWrite = canWrite, isArchived = archived)
+        assertEquals(SendErrorKind.Archived, guess(online = true, canWrite = false, archived = true))
+        assertEquals(SendErrorKind.ReadOnly, guess(online = true, canWrite = false, archived = false))
+        assertEquals(SendErrorKind.Offline, guess(online = false, canWrite = true, archived = false))
+        assertEquals(SendErrorKind.Server, guess(online = true, canWrite = true, archived = false))
+    }
+
+    @Test
+    fun theOutboxReasonWinsOverTheGuess() {
+        val kind = SendErrors.forFailedSend(
+            error = WaiveraError.ChannelArchived(),
+            isOnline = false,
+            canWrite = true,
+            isArchived = false,
+        )
+        assertEquals(SendErrorKind.Archived, kind)
     }
 }

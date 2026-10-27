@@ -1,7 +1,6 @@
 package com.waivera.waivera.feature.chat
 
 import com.waivera.waivera.core.data.model.AttachmentSource
-import com.waivera.waivera.core.data.model.Conversation
 import com.waivera.waivera.core.data.model.MessageThread
 import com.waivera.waivera.core.data.model.Synced
 import com.waivera.waivera.core.data.repository.ConversationRepository
@@ -11,7 +10,6 @@ import com.waivera.waivera.core.demo.DemoData
 import com.waivera.waivera.core.network.error.WaiveraError
 import com.waivera.waivera.feature.chat.message.AttachmentIo
 import com.waivera.waivera.feature.chat.message.ChatClock
-import com.waivera.waivera.feature.chat.message.ConversationCallLobby
 import com.waivera.waivera.feature.chat.message.StagedImage
 import java.io.ByteArrayInputStream
 import java.io.File
@@ -42,20 +40,23 @@ class FakeAttachmentIo(private val unreadable: Set<String> = emptySet()) : Attac
     }
 }
 
-class FakeCallLobby(private val result: Result<String> = Result.success("https://app.example.test/lobby/11")) : ConversationCallLobby {
-    var calls = 0
-
-    override suspend fun lobbyUrl(conversation: Conversation): Result<String> {
-        calls++
-        return result
-    }
-}
-
-/** Records read-through calls; fails while [failing] is set. */
-class RecordingConversations(private val delegate: ConversationRepository) : ConversationRepository by delegate {
+/**
+ * Records read-through calls; fails while [failing] is set. The call lobby answers [lobby], or
+ * the delegate's (the demo fails as an unconfigured build does) when it is null.
+ */
+class RecordingConversations(
+    private val delegate: ConversationRepository,
+    private val lobby: Result<String>? = Result.success("https://app.example.test/lobby/11"),
+) : ConversationRepository by delegate {
     val markReadCalls = mutableListOf<Long>()
     val composerEvents = mutableListOf<Boolean>()
+    val lobbyCalls = mutableListOf<Long>()
     var failing = false
+
+    override suspend fun callLobbyUrl(conversationId: Long): Result<String> {
+        lobbyCalls += conversationId
+        return lobby ?: delegate.callLobbyUrl(conversationId)
+    }
 
     override suspend fun markRead(conversationId: Long, lastVisibleMessageId: Long): Result<Unit> {
         markReadCalls += lastVisibleMessageId

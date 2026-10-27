@@ -11,17 +11,14 @@ import com.waivera.waivera.core.network.dto.MessageType
 import com.waivera.waivera.core.network.error.WaiveraError
 import com.waivera.waivera.core.testing.MainDispatcherRule
 import com.waivera.waivera.feature.chat.FakeAttachmentIo
-import com.waivera.waivera.feature.chat.FakeCallLobby
 import com.waivera.waivera.feature.chat.R
 import com.waivera.waivera.feature.chat.RecordingConversations
 import com.waivera.waivera.feature.chat.message.AttachmentDownloads
 import com.waivera.waivera.feature.chat.message.ChatEffect
 import com.waivera.waivera.feature.chat.message.ChatSheet
-import com.waivera.waivera.feature.chat.message.ConversationCallLobby
 import com.waivera.waivera.feature.chat.message.ReadOnlyReason
 import com.waivera.waivera.feature.chat.message.SendErrorKind
 import com.waivera.waivera.feature.chat.message.TimelineItem
-import com.waivera.waivera.feature.chat.message.UnavailableCallLobby
 import com.waivera.waivera.feature.chat.message.plainText
 import com.waivera.waivera.feature.chat.testChatClock
 import kotlin.test.assertEquals
@@ -47,12 +44,12 @@ class ConversationViewModelTest {
 
     private fun TestScope.subject(
         conversationId: Long = DemoData.DM_PRIYA,
-        lobby: ConversationCallLobby = FakeCallLobby(),
+        lobby: Result<String>? = Result.success("https://app.example.test/lobby/11"),
         prepare: (DemoGraph) -> Unit = {},
     ): Subject {
         val graph = DemoGraph(backgroundScope)
         prepare(graph)
-        val conversations = RecordingConversations(graph.conversations)
+        val conversations = RecordingConversations(graph.conversations, lobby)
         val viewModel = ConversationViewModel(
             conversationId = conversationId,
             conversations = conversations,
@@ -62,7 +59,6 @@ class ConversationViewModelTest {
             session = graph.session,
             realtime = graph.realtimeStatus,
             io = FakeAttachmentIo(),
-            callLobby = lobby,
             downloads = AttachmentDownloads(graph.attachments),
             clock = testChatClock(),
             computeDispatcher = main.testDispatcher,
@@ -305,21 +301,21 @@ class ConversationViewModelTest {
 
     @Test
     fun aLiveCallShowsTheBannerAndOpensTheWebLobby() = runTest {
-        val lobby = FakeCallLobby()
-        val s = subject(conversationId = DemoData.GROUP, lobby = lobby)
+        val s = subject(conversationId = DemoData.GROUP)
         assertTrue(s.viewModel.state.value.call.isLive)
         s.viewModel.effects.test {
             s.viewModel.openCall()
             runCurrent()
             assertEquals(ChatEffect.OpenUrl("https://app.example.test/lobby/11"), awaitItem())
         }
-        assertEquals(1, lobby.calls)
+        assertEquals(listOf(DemoData.GROUP), s.conversations.lobbyCalls)
         assertFalse(s.viewModel.state.value.call.isOpening)
     }
 
     @Test
     fun anUnavailableLobbyExplainsTheFailure() = runTest {
-        val s = subject(conversationId = DemoData.GROUP, lobby = UnavailableCallLobby())
+        // The demo has no web base, like a build without waivera.webBaseUrl.
+        val s = subject(conversationId = DemoData.GROUP, lobby = null)
         s.viewModel.effects.test {
             s.viewModel.openCall()
             runCurrent()

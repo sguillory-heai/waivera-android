@@ -79,7 +79,7 @@ fun ConversationRow(
         start = if (row.isUnread) {
             SwipeAction(
                 label = markReadLabel,
-                icon = R.drawable.feature_chat_list_ic_mark_read,
+                icon = WaiveraIcons.MarkRead,
                 container = colors.accent,
                 content = colors.onAccent,
                 onTrigger = onMarkRead,
@@ -165,7 +165,7 @@ private fun RowBody(row: ChatRowUi, avatar: ImageBitmap?, onJoinCall: () -> Unit
                 )
                 if (row.isReadOnly) {
                     Icon(
-                        painter = painterResource(R.drawable.feature_chat_list_ic_lock),
+                        painter = painterResource(WaiveraIcons.Lock),
                         contentDescription = stringResource(R.string.feature_chat_list_read_only),
                         tint = colors.textSecondary,
                         modifier = Modifier.size(WaiveraSizes.IconSmall),
@@ -214,7 +214,7 @@ private fun PreviewLine(row: ChatRowUi) {
     ) {
         if (row.hasAttachment) {
             Icon(
-                painter = painterResource(R.drawable.feature_chat_list_ic_attachment),
+                painter = painterResource(WaiveraIcons.Attachment),
                 contentDescription = stringResource(R.string.feature_chat_list_attachment),
                 tint = colors.textSecondary,
                 modifier = Modifier.size(WaiveraSizes.IconSmall),
@@ -276,7 +276,7 @@ private fun CallJoin(opening: Boolean, onJoin: () -> Unit) {
             )
         } else {
             Icon(
-                painter = painterResource(R.drawable.feature_chat_list_ic_video),
+                painter = painterResource(WaiveraIcons.Video),
                 contentDescription = null,
                 tint = colors.accent,
                 modifier = Modifier.size(WaiveraSizes.IconSmall),
@@ -298,9 +298,9 @@ private fun LeadingTile(leading: RowLeading, avatar: ImageBitmap?, unread: Boole
         when (leading) {
             is RowLeading.Channel -> IconTile(
                 icon = if (leading.archived) {
-                    R.drawable.feature_chat_list_ic_archive
+                    WaiveraIcons.Archive
                 } else {
-                    R.drawable.feature_chat_list_ic_hash
+                    WaiveraIcons.Hash
                 },
                 description = stringResource(
                     if (leading.archived) {
@@ -312,7 +312,7 @@ private fun LeadingTile(leading: RowLeading, avatar: ImageBitmap?, unread: Boole
                 accent = true,
             )
             RowLeading.Bot -> IconTile(
-                icon = R.drawable.feature_chat_list_ic_bot,
+                icon = WaiveraIcons.Bot,
                 description = stringResource(R.string.feature_chat_list_bot_icon),
                 accent = true,
             )

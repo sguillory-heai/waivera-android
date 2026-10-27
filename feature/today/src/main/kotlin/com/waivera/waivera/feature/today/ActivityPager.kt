@@ -4,7 +4,6 @@ import com.waivera.waivera.core.data.model.ActivityFeed
 import com.waivera.waivera.core.data.model.Synced
 import com.waivera.waivera.core.data.repository.ActivityRepository
 import com.waivera.waivera.feature.today.model.ActivityRules
-import com.waivera.waivera.feature.today.model.TodayAssembler
 import com.waivera.waivera.feature.today.model.TodayLocalState
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -48,9 +47,7 @@ internal class ActivityPager(
         if (synced.lastSyncedAt == null) return
         val state = local.value
         val merged = ActivityRules.merge(synced.data.items)
-        val mayHoldUnread = ActivityRules.olderPagesMayHoldUnread(merged, synced.data.hasMore) {
-            TodayAssembler.isRead(it, state)
-        }
+        val mayHoldUnread = ActivityRules.olderPagesMayHoldUnread(merged, synced.data.hasMore) { it.read }
         when {
             !mayHoldUnread -> local.update { it.copy(autoPagingCapped = false) }
             autoPages >= MAX_AUTO_PAGES -> local.update { it.copy(autoPagingCapped = true) }

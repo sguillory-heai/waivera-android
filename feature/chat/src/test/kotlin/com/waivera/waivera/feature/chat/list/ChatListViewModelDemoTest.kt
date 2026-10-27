@@ -47,7 +47,6 @@ class ChatListViewModelDemoTest {
         session = graph.session,
         realtime = graph.realtimeStatus,
         people = graph.people,
-        callLobby = { Result.success("https://web.example.test/lobby/room_demo_11?state=x") },
         text = EnglishText,
         clock = graph.backend.clock,
     )

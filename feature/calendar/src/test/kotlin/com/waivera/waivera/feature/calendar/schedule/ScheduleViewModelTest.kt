@@ -4,7 +4,6 @@ import com.waivera.waivera.core.data.calendar.CalendarMath
 import com.waivera.waivera.core.data.model.Milestone
 import com.waivera.waivera.core.data.model.RealtimeStatus
 import com.waivera.waivera.core.data.model.ScheduleEvent
-import com.waivera.waivera.core.data.model.SyncStatus
 import com.waivera.waivera.core.data.model.Synced
 import com.waivera.waivera.core.network.dto.MilestoneType
 import com.waivera.waivera.core.network.error.WaiveraError
@@ -15,7 +14,6 @@ import com.waivera.waivera.core.testing.TestSessionRepository
 import com.waivera.waivera.feature.calendar.FakeCalendarRepository
 import com.waivera.waivera.feature.calendar.FakeRealtimeStatusRepository
 import com.waivera.waivera.feature.calendar.data.DeviceZone
-import com.waivera.waivera.feature.calendar.data.ScheduleEventStore
 import com.waivera.waivera.feature.calendar.model.AgendaItem
 import com.waivera.waivera.feature.calendar.model.SchedulePeriods
 import com.waivera.waivera.feature.calendar.model.ScheduleView
@@ -47,7 +45,6 @@ class ScheduleViewModelTest {
     private val calendar = FakeCalendarRepository(clock)
     private val realtime = FakeRealtimeStatusRepository()
     private val session = TestSessionRepository()
-    private val store = ScheduleEventStore()
     private var device: ZoneId = chicago
 
     private val shift = ScheduleEvent(
@@ -58,7 +55,7 @@ class ScheduleViewModelTest {
     )
 
     private fun TestScope.viewModel(): ScheduleViewModel {
-        val vm = ScheduleViewModel(calendar, session, realtime, store, clock, DeviceZone { device })
+        val vm = ScheduleViewModel(calendar, session, realtime, clock, DeviceZone { device })
         backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { vm.uiState.collect {} }
         return vm
     }
@@ -206,7 +203,7 @@ class ScheduleViewModelTest {
 
         val fresh = FakeCalendarRepository(clock)
         fresh.milestoneState.value = Synced(emptyList(), lastSyncedAt = clock.instant().minusSeconds(5 * 60))
-        val vm = ScheduleViewModel(fresh, session, realtime, store, clock, DeviceZone { device })
+        val vm = ScheduleViewModel(fresh, session, realtime, clock, DeviceZone { device })
         backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { vm.uiState.collect {} }
         assertEquals(0, fresh.milestoneRefreshes)
     }
@@ -239,11 +236,4 @@ class ScheduleViewModelTest {
         assertFalse(vm.uiState.value.isRefreshing)
     }
 
-    @Test
-    fun eventsSeenOnTheScheduleAreRememberedForTheEventScreen() = runTest {
-        calendar.events = listOf(shift)
-        viewModel()
-        assertEquals(CalendarMath.monthGrid(YearMonth.of(2026, 11)), store.entry("shift")?.range)
-        assertEquals(SyncStatus.Idle, calendar.feed(CalendarMath.monthGrid(YearMonth.of(2026, 11))).value.status)
-    }
 }

@@ -37,7 +37,6 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.waivera.waivera.core.designsystem.component.BadgeTone
 import com.waivera.waivera.core.designsystem.component.BannerTone
 import com.waivera.waivera.core.designsystem.component.SkeletonListRow
-import com.waivera.waivera.core.designsystem.component.TopBarAccount
 import com.waivera.waivera.core.designsystem.component.TopBarAction
 import com.waivera.waivera.core.designsystem.component.WaiveraBanner
 import com.waivera.waivera.core.designsystem.component.WaiveraButton
@@ -50,6 +49,7 @@ import com.waivera.waivera.core.designsystem.component.WaiveraStatusBadge
 import com.waivera.waivera.core.designsystem.component.WaiveraTopBar
 import com.waivera.waivera.core.designsystem.component.rememberSkeletonAlpha
 import com.waivera.waivera.core.designsystem.component.rememberSkeletonVisible
+import com.waivera.waivera.core.designsystem.component.rememberTopBarAccount
 import com.waivera.waivera.core.designsystem.icon.WaiveraIcons
 import com.waivera.waivera.core.designsystem.preview.WaiveraPreviews
 import com.waivera.waivera.core.designsystem.theme.WaiveraSizes
@@ -130,9 +130,9 @@ fun ScheduleContent(state: ScheduleUiState, actions: ScheduleActions, modifier: 
                     onClick = actions.onRefresh,
                 ),
             ),
-            account = TopBarAccount(
-                name = stringResource(R.string.feature_calendar_account_name),
+            account = rememberTopBarAccount(
                 onClick = actions.onAccountClick,
+                fallbackName = stringResource(R.string.feature_calendar_account_name),
             ),
         )
         PullToRefreshBox(

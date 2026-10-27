@@ -187,7 +187,9 @@ fun MessageActionsContent(
                     accent = model.copied,
                 )
             }
-            if (model.canReply) ActionRow(ChatIcons.Reply, stringResource(R.string.feature_chat_action_reply), onReply)
+            if (model.canReply) {
+                ActionRow(WaiveraIcons.Reply, stringResource(R.string.feature_chat_action_reply), onReply)
+            }
             if (model.canEdit) ActionRow(ChatIcons.Edit, stringResource(R.string.feature_chat_action_edit), onEdit)
             ActionRow(
                 icon = if (model.message.isBookmarked) ChatIcons.BookmarkFilled else WaiveraIcons.Bookmark,
@@ -361,7 +363,7 @@ fun FileActionsContent(
             enabled = !busy,
             fullWidth = true,
             variant = WaiveraButtonVariant.Secondary,
-            leadingIcon = ChatIcons.External,
+            leadingIcon = WaiveraIcons.OpenExternal,
         )
     }
 }

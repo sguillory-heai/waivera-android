@@ -12,6 +12,7 @@ import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import com.waivera.waivera.core.data.image.AvatarModel
 import com.waivera.waivera.core.designsystem.component.WaiveraAvatar
 import com.waivera.waivera.core.designsystem.component.WaiveraButton
 import com.waivera.waivera.core.designsystem.component.WaiveraButtonVariant
@@ -67,7 +68,14 @@ private fun DirectMessageRow(item: NeedsYouItem.DirectMessage, onClick: () -> Un
         supporting = joined(snippet, item.at?.let { pastText(it, formats) }),
         emphasized = true,
         modifier = modifier,
-        leading = { WaiveraAvatar(name = name, size = WaiveraSizes.IconTile, contentDescription = null) },
+        leading = {
+            WaiveraAvatar(
+                name = name,
+                imageModel = AvatarModel.of(item.otherUserId),
+                size = WaiveraSizes.IconTile,
+                contentDescription = null,
+            )
+        },
         trailing = { WaiveraCountBadge(count = item.unreadCount) },
     )
 }
@@ -96,8 +104,9 @@ private fun MentionRow(item: NeedsYouItem.Mention, onClick: () -> Unit, modifier
 @Composable
 private fun TicketRow(item: NeedsYouItem.Ticket, onClick: () -> Unit, modifier: Modifier) {
     val formats = rememberTodayFormats()
-    val title = stringResource(R.string.feature_today_ticket_title)
-    val snippet = snippetText(item.snippet)
+    val title = item.ticketTitle ?: stringResource(R.string.feature_today_ticket_title)
+    val snippet = item.ticketId?.let { stringResource(R.string.feature_today_ticket_number, it) }
+        ?: snippetText(item.snippet)
     val unread = pluralStringResource(R.plurals.feature_today_unread_messages_a11y, item.unreadCount, item.unreadCount)
     TodayRow(
         headline = title,
@@ -201,7 +210,14 @@ private fun NeedsYouRowsPreview() {
                 callbacks,
             )
             NeedsYouRow(
-                NeedsYouItem.Ticket(14, MessageSnippet.Text("Ticket updated"), 1, PastLabel.Yesterday),
+                NeedsYouItem.Ticket(
+                    conversationId = 14,
+                    snippet = MessageSnippet.Text("Ticket updated"),
+                    unreadCount = 1,
+                    at = PastLabel.Yesterday,
+                    ticketId = "4821",
+                    ticketTitle = "Replace the van's back tire",
+                ),
                 callbacks,
             )
         }

@@ -61,6 +61,8 @@ class ConversationPresentationTest {
         assertTrue(p.isBot(withBot, ME))
         val botAuthored = dm(15, last = preview(1, author = "bot:3"))
         assertTrue(p.isBot(botAuthored, ME))
+        val flagged = dm(17, last = preview(1, author = "usr_helpdesk").copy(isBot = true))
+        assertTrue(p.isBot(flagged, ME), "the preview's bot flag (isBot or botId) counts")
         assertTrue(p.isBot(Conversation(16, ConversationKind.BOT), ME))
         assertFalse(p.isBot(channel(41).copy(kind = ConversationKind.BOT), ME))
     }
@@ -193,6 +195,13 @@ class ConversationPresentationTest {
             """{"type":"text","text":" can you confirm?"}]},""" +
             """{"type":"paragraph","content":[{"type":"text","text":"Second"}]}]}}"""
         assertEquals("@Priya Raman can you confirm?", p.preview(preview(1, text = doc), text).text)
+    }
+
+    @Test
+    fun theServerPlainTextWinsOverTheRichBody() {
+        val rich = preview(1, text = """{"type":"doc","content":[]}""").copy(plainText = "Shift swap approved")
+        assertEquals("Shift swap approved", p.preview(rich, text).text)
+        assertEquals("hello", p.preview(preview(1).copy(plainText = " "), text).text, "blank plain text is ignored")
     }
 
     @Test

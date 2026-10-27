@@ -15,10 +15,16 @@ object SendErrors {
     }
 
     /**
-     * For an outbox row that turned FAILED: the outbox does not expose its error yet
-     * (docs/requests/conversation.md), so the banner infers the likeliest cause.
+     * For an outbox row that turned FAILED: the reason the outbox recorded (`Message.sendError`)
+     * when there is one, else the likeliest cause from the connection and the permissions.
      */
-    fun forFailedSend(isOnline: Boolean, canWrite: Boolean?, isArchived: Boolean): SendErrorKind = when {
+    fun forFailedSend(
+        error: WaiveraError?,
+        isOnline: Boolean,
+        canWrite: Boolean?,
+        isArchived: Boolean,
+    ): SendErrorKind = when {
+        error != null -> from(error)
         isArchived -> SendErrorKind.Archived
         canWrite == false -> SendErrorKind.ReadOnly
         !isOnline -> SendErrorKind.Offline

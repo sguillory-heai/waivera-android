@@ -319,7 +319,12 @@ fun ReadOnlyNotice(reason: ReadOnlyReason, isThread: Boolean, modifier: Modifier
                 .background(colors.accentWash, WaiveraShapes.Circle),
             contentAlignment = Alignment.Center,
         ) {
-            Icon(painterResource(ChatIcons.Lock), contentDescription = null, tint = colors.onAccentSoft, modifier = Modifier.size(WaiveraSizes.IconSmall))
+            Icon(
+                painterResource(WaiveraIcons.Lock),
+                contentDescription = null,
+                tint = colors.onAccentSoft,
+                modifier = Modifier.size(WaiveraSizes.IconSmall),
+            )
         }
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(WaiveraSpacing.XxSmall)) {
             Text(text = stringResource(title), style = MaterialTheme.typography.titleSmall, color = colors.onAccentSoft)
@@ -348,7 +353,12 @@ fun CallBanner(onJoin: () -> Unit, modifier: Modifier = Modifier) {
                         .size(ChatDimens.LiveDot)
                         .background(colors.accent, WaiveraShapes.Circle),
                 )
-                Icon(painterResource(ChatIcons.Video), contentDescription = null, tint = colors.accent, modifier = Modifier.size(WaiveraSizes.IconSmall))
+                Icon(
+                    painterResource(WaiveraIcons.Video),
+                    contentDescription = null,
+                    tint = colors.accent,
+                    modifier = Modifier.size(WaiveraSizes.IconSmall),
+                )
                 Text(
                     text = stringResource(R.string.feature_chat_call_in_progress),
                     style = MaterialTheme.typography.labelLarge,

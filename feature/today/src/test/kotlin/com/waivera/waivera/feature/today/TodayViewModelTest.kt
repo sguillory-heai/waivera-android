@@ -116,15 +116,15 @@ class TodayViewModelTest {
     }
 
     @Test
-    fun reconnect_bannerShowsWhileReconnectingAndActivityAndScheduleRefetchAfter() = runTest(main.testDispatcher) {
+    fun reconnect_bannerShowsWhileReconnectingAndTheDataLayerOwnsTheResync() = runTest(main.testDispatcher) {
         val (viewModel, _) = start()
         realtime.mutableStatus.value = RealtimeStatus(ConnectionState.Reconnecting(2, 4_000), isOnline = true)
         assertEquals(ConnectionBannerState.Reconnecting, viewModel.ui.connection)
-        assertEquals(0, activity.refreshes)
         realtime.mutableStatus.value = RealtimeStatus(ConnectionState.Connected, isOnline = true)
         assertEquals(ConnectionBannerState.Connected, viewModel.ui.connection)
-        assertEquals(1, activity.refreshes)
-        assertEquals(1, calendar.refreshedRanges.size)
+        // Core RealtimeSync refetches activity and the open schedule ranges after a reconnect.
+        assertEquals(0, activity.refreshes, "the screen does not refetch on top of the data layer")
+        assertEquals(0, calendar.refreshedRanges.size)
     }
 
     @Test

@@ -14,7 +14,6 @@ import com.waivera.waivera.core.data.repository.ConversationRepository
 import com.waivera.waivera.core.data.repository.RealtimeStatusRepository
 import com.waivera.waivera.core.data.repository.SessionRepository
 import com.waivera.waivera.core.network.error.WaiveraError
-import com.waivera.waivera.core.realtime.ConnectionState
 import com.waivera.waivera.feature.today.model.TodayAssembler
 import com.waivera.waivera.feature.today.model.TodayContext
 import com.waivera.waivera.feature.today.model.TodayLocalState
@@ -92,7 +91,6 @@ class TodayViewModel @Inject constructor(
 
     init {
         refreshStaleSources()
-        refreshAfterReconnects()
         pager.start()
     }
 
@@ -127,26 +125,6 @@ class TodayViewModel @Inject constructor(
         }
     }
 
-    /**
-     * Chat resyncs itself after a reconnect (data layer); activity and schedule have no push
-     * (G-07), so they are refetched here once the hub is back.
-     */
-    private fun refreshAfterReconnects() {
-        viewModelScope.launch {
-            var wasDown = false
-            realtimeStatus.status.collect { status ->
-                when {
-                    !status.isOnline || status.state is ConnectionState.Reconnecting -> wasDown = true
-                    status.isConnected && wasDown -> {
-                        wasDown = false
-                        launch { activity.refresh() }
-                        launch { calendar.refresh(currentRange()) }
-                    }
-                }
-            }
-        }
-    }
-
     private fun refreshAll() {
         if (local.value.isRefreshing) return
         local.update { it.copy(isRefreshing = true) }
@@ -155,17 +133,9 @@ class TodayViewModel @Inject constructor(
             val chats = async { conversations.refresh() }
             val feed = async { activity.refresh() }
             val others = listOf(async { calendar.refresh(range) }, async { calendar.refreshMilestones() })
-            val feedResult = feed.await()
-            val results = listOf(chats.await(), feedResult) + others.awaitAll()
+            val results = listOf(chats.await(), feed.await()) + others.awaitAll()
             pager.reset()
-            local.update {
-                it.copy(
-                    isRefreshing = false,
-                    loadMoreFailed = false,
-                    // A successful refresh replaced the cache with the server's read flags.
-                    failedReadIds = if (feedResult.isSuccess) emptySet() else it.failedReadIds,
-                )
-            }
+            local.update { it.copy(isRefreshing = false, loadMoreFailed = false) }
             results.firstNotNullOfOrNull { it.exceptionOrNull() }?.let {
                 effectChannel.send(TodayEffect.RefreshFailed(WaiveraError.from(it)))
             }
@@ -175,31 +145,20 @@ class TodayViewModel @Inject constructor(
     private fun markRead(activityId: Long) {
         viewModelScope.launch {
             val item = activity.observeActivity().first().data.items.firstOrNull { it.id == activityId }
-            if (item == null || TodayAssembler.isRead(item, local.value)) return@launch
-            // The repository marks the cached row read before calling the API, so the badge drops at once.
-            local.update { it.copy(failedReadIds = it.failedReadIds - activityId) }
-            activity.markRead(activityId).onFailure {
-                local.update { it.copy(failedReadIds = it.failedReadIds + activityId) }
-                effectChannel.send(TodayEffect.MarkReadFailed(activityId))
-            }
+            if (item == null || item.read) return@launch
+            // The repository marks the cached row read before calling the API and rolls it back on failure.
+            activity.markRead(activityId).onFailure { effectChannel.send(TodayEffect.MarkReadFailed(activityId)) }
         }
     }
 
     private fun markAllRead() {
         if (local.value.isMarkingAllRead) return
         viewModelScope.launch {
-            val unread = activity.observeActivity().first().data.items
-                .filterNot { TodayAssembler.isRead(it, local.value) }
-                .mapTo(mutableSetOf()) { it.id }
-            if (unread.isEmpty()) return@launch
-            local.update { it.copy(isMarkingAllRead = true, failedReadIds = emptySet()) }
+            if (activity.observeActivity().first().data.items.all { it.read }) return@launch
+            local.update { it.copy(isMarkingAllRead = true) }
+            // The repository rolls the cached flags back itself when the call fails.
             val result = activity.markAllRead()
-            local.update {
-                it.copy(
-                    isMarkingAllRead = false,
-                    failedReadIds = if (result.isFailure) it.failedReadIds + unread else it.failedReadIds,
-                )
-            }
+            local.update { it.copy(isMarkingAllRead = false) }
             effectChannel.send(if (result.isSuccess) TodayEffect.MarkedAllRead else TodayEffect.MarkAllReadFailed)
         }
     }

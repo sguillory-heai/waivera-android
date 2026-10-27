@@ -53,8 +53,7 @@ import com.waivera.waivera.core.network.error.WaiveraError
 /**
  * Entry point for the profile screen. Owned by `:feature:profile`; routed by `:app`.
  *
- * [onOpenSettings] adds a Settings row at the end; the router does not pass it yet
- * (docs/requests/feature-profile.md), so the row stays hidden until it does.
+ * [onOpenSettings] adds a Settings row at the end; without it the row is hidden.
  */
 @Composable
 fun ProfileScreen(
@@ -260,6 +259,8 @@ private fun DetailsSections(profile: EmployeeProfile?, state: ProfileUiState.Rea
             InfoRow(stringResource(R.string.feature_profile_positions), profile.positions.joinedOrNull())
             InfoRow(stringResource(R.string.feature_profile_office_locations), profile.regions.joinedOrNull())
             InfoRow(stringResource(R.string.feature_profile_agencies), profile.agencies.joinedOrNull())
+            InfoRow(stringResource(R.string.feature_profile_waiver_families), profile.waiverFamilies.joinedOrNull())
+            InfoRow(stringResource(R.string.feature_profile_scid), profile.scId?.takeIf(String::isNotBlank))
             InfoRow(
                 stringResource(R.string.feature_profile_birthday),
                 profile.birthday?.let { ProfileFormat.birthday(it) },

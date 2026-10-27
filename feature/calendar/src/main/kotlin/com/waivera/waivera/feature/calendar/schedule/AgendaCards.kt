@@ -63,7 +63,8 @@ internal fun AgendaCard(
             iconTint = WaiveraTheme.colors.holidayIcon,
             title = item.holiday.title?.takeIf(String::isNotBlank)
                 ?: stringResource(R.string.feature_calendar_holiday_default),
-            subtitle = stringResource(R.string.feature_calendar_holiday_subtitle),
+            subtitle = item.holiday.description?.takeIf(String::isNotBlank)
+                ?: stringResource(R.string.feature_calendar_holiday_subtitle),
             modifier = modifier,
         )
         is AgendaItem.TimeOffCard -> InfoCard(
@@ -182,7 +183,7 @@ private fun EventCard(
                     icon = if (event.online ||
                         event.isSprout
                     ) {
-                        CalendarIcons.Video
+                        WaiveraIcons.Video
                     } else {
                         WaiveraIcons.Schedule
                     },

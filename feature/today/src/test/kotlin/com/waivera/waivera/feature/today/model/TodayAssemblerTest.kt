@@ -11,6 +11,7 @@ import com.waivera.waivera.core.data.model.RealtimeStatus
 import com.waivera.waivera.core.data.model.ScheduleEvent
 import com.waivera.waivera.core.data.model.ScheduleFeed
 import com.waivera.waivera.core.data.model.SyncStatus
+import com.waivera.waivera.core.data.model.TicketUpdate
 import com.waivera.waivera.core.data.model.Synced
 import com.waivera.waivera.core.designsystem.component.ConnectionBannerState
 import com.waivera.waivera.core.network.dto.ChatActivityType
@@ -89,6 +90,25 @@ class TodayAssemblerTest {
         assertEquals(listOf("mention-1", "dm-7", "invite-invite", "ticket-14"), keys)
         val ticket = assertIs<NeedsYouItem.Ticket>(state.needsYou.items.last())
         assertEquals(MessageSnippet.Text("Ticket updated"), ticket.snippet)
+        val direct = assertIs<NeedsYouItem.DirectMessage>(state.needsYou.items[1])
+        assertEquals("usr_other_7", direct.otherUserId, "the avatar loads the other person's image")
+    }
+
+    @Test
+    fun `a ticket card shows the ticket number and title from the last message's payload`() {
+        val bot = conversation(14, kind = ConversationKind.BOT, unread = 1, text = "Ticket updated")
+        val ticket = TicketUpdate("4821", title = "Replace the van's back tire", url = "https://example.test/t")
+        val withTicket = bot.copy(lastMessage = bot.lastMessage?.copy(ticket = ticket))
+        val row = assertIs<NeedsYouItem.Ticket>(
+            assemble(sources(conversations = listOf(withTicket))).needsYou.items.single(),
+        )
+        assertEquals("4821", row.ticketId)
+        assertEquals("Replace the van's back tire", row.ticketTitle)
+
+        val plainState = assemble(sources(conversations = listOf(bot)))
+        val plain = assertIs<NeedsYouItem.Ticket>(plainState.needsYou.items.single())
+        assertNull(plain.ticketId, "without a payload the card keeps the generic eyebrow")
+        assertNull(plain.ticketTitle)
     }
 
     @Test
@@ -261,16 +281,6 @@ class TodayAssemblerTest {
         val cappedContext = context(TodayLocalState(autoPagingCapped = true))
         val capped = assemble(sources(activity = items, hasMore = true), cappedContext)
         assertTrue(capped.activity.unreadIsLowerBound)
-    }
-
-    @Test
-    fun `a failed mark-read shows the row unread again`() {
-        val state = assemble(
-            sources(activity = listOf(activity(1, read = true))),
-            context(TodayLocalState(failedReadIds = setOf(1L))),
-        )
-        assertFalse(state.activity.rows.single().read)
-        assertEquals(1, state.activity.unreadCount)
     }
 
     @Test

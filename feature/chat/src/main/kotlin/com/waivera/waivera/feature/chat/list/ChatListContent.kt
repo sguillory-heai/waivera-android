@@ -24,7 +24,6 @@ import androidx.compose.ui.res.stringResource
 import com.waivera.waivera.core.designsystem.component.BannerTone
 import com.waivera.waivera.core.designsystem.component.ConnectionBanner
 import com.waivera.waivera.core.designsystem.component.ConnectionBannerState
-import com.waivera.waivera.core.designsystem.component.TopBarAccount
 import com.waivera.waivera.core.designsystem.component.TopBarAction
 import com.waivera.waivera.core.designsystem.component.WaiveraBanner
 import com.waivera.waivera.core.designsystem.component.WaiveraEmptyState
@@ -33,6 +32,7 @@ import com.waivera.waivera.core.designsystem.component.WaiveraSegmentedControl
 import com.waivera.waivera.core.designsystem.component.WaiveraSnackbarHost
 import com.waivera.waivera.core.designsystem.component.WaiveraTopBar
 import com.waivera.waivera.core.designsystem.component.rememberSkeletonVisible
+import com.waivera.waivera.core.designsystem.component.rememberTopBarAccount
 import com.waivera.waivera.core.designsystem.icon.WaiveraIcons
 import com.waivera.waivera.core.designsystem.preview.WaiveraPreviews
 import com.waivera.waivera.core.designsystem.theme.WaiveraSpacing
@@ -91,9 +91,9 @@ fun ChatListContent(
                         onClick = actions.onNewChat,
                     ),
                 ),
-                account = TopBarAccount(
-                    name = state.accountName.ifEmpty { stringResource(R.string.feature_chat_list_account) },
+                account = rememberTopBarAccount(
                     onClick = actions.onAccountClick,
+                    fallbackName = state.accountName.ifEmpty { stringResource(R.string.feature_chat_list_account) },
                     painter = accountPainter,
                 ),
             )

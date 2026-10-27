@@ -30,6 +30,7 @@ class SettingsScreenshotTest {
             onOpenNotificationSettings = {},
             onOpenAppearance = {},
             onSignOut = {},
+            onOpenChangePassword = {},
         )
     }
 
