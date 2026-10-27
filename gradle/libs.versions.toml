@@ -15,7 +15,7 @@ detekt = "1.23.8"
 junit = "4.13.2"
 kotlinxSerialization = "1.11.0"
 ktlintGradle = "14.2.0"
-okhttp = "5.5.0"
+okhttp = "5.5.1"
 retrofit = "3.0.0"
 turbine = "1.2.1"
 
