@@ -175,6 +175,24 @@ class ScheduleViewModelTest {
     }
 
     @Test
+    fun jumpToTodayIsOfferedOnlyWhileTodayIsOutOfSight() = runTest {
+        val vm = viewModel()
+        vm.selectView(ScheduleView.WEEK)
+        assertFalse(vm.uiState.value.showsJumpToToday, "today is in this week")
+        vm.selectDate(LocalDate.of(2026, 11, 3))
+        assertFalse(vm.uiState.value.showsJumpToToday, "another day of the same week keeps today in view")
+        vm.step(1)
+        assertTrue(vm.uiState.value.showsJumpToToday)
+        vm.goToToday()
+        assertFalse(vm.uiState.value.showsJumpToToday)
+
+        vm.selectView(ScheduleView.DAY)
+        assertFalse(vm.uiState.value.showsJumpToToday)
+        vm.step(1)
+        assertTrue(vm.uiState.value.showsJumpToToday, "the day view shows one day")
+    }
+
+    @Test
     fun switchingViewsKeepsTheSelectedDate() = runTest {
         val vm = viewModel()
         vm.selectDate(LocalDate.of(2026, 11, 19))

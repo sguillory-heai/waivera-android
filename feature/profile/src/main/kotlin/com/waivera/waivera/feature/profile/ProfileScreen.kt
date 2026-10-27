@@ -13,9 +13,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.windowInsetsBottomHeight
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
@@ -23,7 +24,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -32,7 +32,6 @@ import com.waivera.waivera.core.data.model.EmployeeProfile
 import com.waivera.waivera.core.designsystem.component.BannerTone
 import com.waivera.waivera.core.designsystem.component.ConnectionBanner
 import com.waivera.waivera.core.designsystem.component.ConnectionBannerState
-import com.waivera.waivera.core.designsystem.component.TopBarAction
 import com.waivera.waivera.core.designsystem.component.WaiveraAvatar
 import com.waivera.waivera.core.designsystem.component.WaiveraBanner
 import com.waivera.waivera.core.designsystem.component.WaiveraButton
@@ -78,6 +77,7 @@ fun ProfileScreen(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun ProfileContent(
     state: ProfileUiState,
@@ -89,28 +89,11 @@ internal fun ProfileContent(
     modifier: Modifier = Modifier,
 ) {
     val colors = WaiveraTheme.colors
-    val ready = state as? ProfileUiState.Ready
-    val refreshing = ready?.isRefreshing == true
-    val refreshLabel = stringResource(
-        if (refreshing) R.string.feature_profile_refreshing else R.string.feature_profile_refresh,
-    )
     Column(modifier = modifier.fillMaxSize().background(colors.background)) {
         WaiveraTopBar(
             title = stringResource(R.string.feature_profile_profile_title),
             onBack = onBack,
-            actions = if (ready != null) {
-                listOf(TopBarAction(WaiveraIcons.Refresh, refreshLabel, { if (!refreshing) onRefresh() }))
-            } else {
-                emptyList()
-            },
         )
-        if (refreshing) {
-            LinearProgressIndicator(
-                modifier = Modifier.fillMaxWidth().semantics { contentDescription = refreshLabel },
-                color = colors.accent,
-                trackColor = colors.surfaceMuted,
-            )
-        }
         when (state) {
             ProfileUiState.Unavailable -> WaiveraEmptyState(
                 title = stringResource(R.string.feature_profile_unavailable_title),
@@ -133,7 +116,13 @@ internal fun ProfileContent(
                         modifier = Modifier.padding(top = WaiveraSpacing.Large),
                     )
                 } else {
-                    ProfileBody(state, onRefresh, onOpenPerson, onOpenSettings)
+                    PullToRefreshBox(
+                        isRefreshing = state.isRefreshing,
+                        onRefresh = onRefresh,
+                        modifier = Modifier.fillMaxSize(),
+                    ) {
+                        ProfileBody(state, onRefresh, onOpenPerson, onOpenSettings)
+                    }
                 }
             }
         }
@@ -148,9 +137,11 @@ private fun ProfileBody(
     onOpenSettings: (() -> Unit)?,
 ) {
     val profile = (state.details as? Section.Ready)?.value
+    val refreshLabel = stringResource(R.string.feature_profile_refresh)
     Column(
         modifier = Modifier
             .fillMaxSize()
+            .refreshAction(refreshLabel, onRefresh)
             .verticalScroll(rememberScrollState())
             .padding(top = WaiveraSpacing.MediumSmall),
         verticalArrangement = Arrangement.spacedBy(WaiveraSpacing.MediumSmall),

@@ -26,9 +26,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.CustomAccessibilityAction
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.customActions
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
@@ -121,20 +123,16 @@ fun ScheduleContent(state: ScheduleUiState, actions: ScheduleActions, modifier: 
             .fillMaxSize()
             .background(colors.background),
     ) {
+        val jumpToToday = stringResource(R.string.feature_calendar_go_to_today)
+        val refreshLabel = stringResource(R.string.feature_calendar_refresh)
         WaiveraTopBar(
             title = stringResource(R.string.feature_calendar_schedule_title),
-            actions = listOf(
-                TopBarAction(
-                    icon = WaiveraIcons.Today,
-                    contentDescription = stringResource(R.string.feature_calendar_go_to_today),
-                    onClick = actions.onToday,
-                ),
-                TopBarAction(
-                    icon = WaiveraIcons.Refresh,
-                    contentDescription = stringResource(R.string.feature_calendar_refresh),
-                    onClick = actions.onRefresh,
-                ),
-            ),
+            // Refresh is pull-to-refresh (and a TalkBack action on the list), not a third header icon.
+            actions = if (state.showsJumpToToday) {
+                listOf(TopBarAction(WaiveraIcons.JumpToToday, jumpToToday, actions.onToday))
+            } else {
+                emptyList()
+            },
             account = rememberTopBarAccount(
                 onClick = actions.onAccountClick,
                 fallbackName = "",
@@ -148,7 +146,16 @@ fun ScheduleContent(state: ScheduleUiState, actions: ScheduleActions, modifier: 
                 .fillMaxWidth(),
         ) {
             LazyColumn(
-                modifier = Modifier.fillMaxSize(),
+                modifier = Modifier
+                    .fillMaxSize()
+                    .semantics {
+                        customActions = listOf(
+                            CustomAccessibilityAction(refreshLabel) {
+                                actions.onRefresh()
+                                true
+                            },
+                        )
+                    },
                 contentPadding = PaddingValues(bottom = WaiveraSpacing.Large),
             ) {
                 item(key = "views") { ViewPicker(state, actions) }

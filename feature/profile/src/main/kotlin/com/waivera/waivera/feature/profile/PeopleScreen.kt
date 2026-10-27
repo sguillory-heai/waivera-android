@@ -25,7 +25,6 @@ import com.waivera.waivera.core.designsystem.component.BannerTone
 import com.waivera.waivera.core.designsystem.component.ConnectionBanner
 import com.waivera.waivera.core.designsystem.component.ConnectionBannerState
 import com.waivera.waivera.core.designsystem.component.SkeletonList
-import com.waivera.waivera.core.designsystem.component.TopBarAction
 import com.waivera.waivera.core.designsystem.component.WaiveraAvatar
 import com.waivera.waivera.core.designsystem.component.WaiveraBanner
 import com.waivera.waivera.core.designsystem.component.WaiveraDivider
@@ -68,16 +67,11 @@ internal fun PeopleContent(
     onOpenPerson: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val refreshLabel = stringResource(
-        if (state.isRefreshing) R.string.feature_profile_people_refreshing else R.string.feature_profile_people_refresh,
-    )
+    val refreshLabel = stringResource(R.string.feature_profile_people_refresh)
     Column(modifier = modifier.fillMaxSize().background(WaiveraTheme.colors.background)) {
         WaiveraTopBar(
             title = stringResource(R.string.feature_profile_people_title),
             onBack = onBack,
-            actions = listOf(
-                TopBarAction(WaiveraIcons.Refresh, refreshLabel, { if (!state.isRefreshing) onRefresh() }),
-            ),
         )
         ConnectionBanner(
             state = bannerFor(state.connection, showsLoadError = state.phase == ListPhase.Error),
@@ -101,7 +95,9 @@ internal fun PeopleContent(
         PullToRefreshBox(
             isRefreshing = state.isRefreshing && state.phase != ListPhase.Loading,
             onRefresh = onRefresh,
-            modifier = Modifier.weight(1f),
+            modifier = Modifier
+                .weight(1f)
+                .refreshAction(refreshLabel, onRefresh),
         ) {
             when (state.phase) {
                 ListPhase.Loading -> if (rememberDelayedSkeleton(loading = true)) SkeletonList()

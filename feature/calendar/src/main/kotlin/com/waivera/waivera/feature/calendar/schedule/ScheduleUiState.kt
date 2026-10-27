@@ -29,6 +29,16 @@ data class ScheduleUiState(
     val isOffline: Boolean = false,
 ) {
     val isTodaySelected: Boolean get() = selectedDate == today
+
+    /**
+     * "Jump to today" is offered only when today is out of sight, so it never sits in the header
+     * doing nothing on first open (UI2-07).
+     */
+    val showsJumpToToday: Boolean
+        get() = when (view) {
+            ScheduleView.DAY -> selectedDate != today
+            ScheduleView.WEEK, ScheduleView.MONTH -> cells.none { it.inPeriod && it.isToday }
+        }
 }
 
 /** One grid cell. [inPeriod] is false for month-grid spill days, which still show their dots. */
