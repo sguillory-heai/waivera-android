@@ -11,7 +11,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -40,6 +39,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
 import com.waivera.waivera.core.designsystem.component.WaiveraAvatar
+import com.waivera.waivera.core.designsystem.component.WaiveraBusyIndicator
 import com.waivera.waivera.core.designsystem.component.WaiveraCountBadge
 import com.waivera.waivera.core.designsystem.component.WaiveraPressable
 import com.waivera.waivera.core.designsystem.icon.WaiveraIcons
@@ -298,11 +298,7 @@ private fun CallJoin(opening: Boolean, onJoin: () -> Unit) {
     ) {
         Box(Modifier.size(WaiveraSpacing.Small).background(colors.accent, WaiveraShapes.Circle))
         if (opening) {
-            CircularProgressIndicator(
-                modifier = Modifier.size(WaiveraSizes.IconSmall),
-                color = colors.onAccentSoft,
-                strokeWidth = WaiveraSizes.ProgressStroke,
-            )
+            WaiveraBusyIndicator(color = colors.onAccentSoft, size = WaiveraSizes.IconSmall)
         } else {
             Icon(
                 painter = painterResource(WaiveraIcons.Video),

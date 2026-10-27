@@ -56,6 +56,10 @@ object WaiveraSizes {
     val BadgeMin: Dp = 20.dp
     val ProgressSmall: Dp = 20.dp
     val ProgressStroke: Dp = 2.dp
+
+    /** Busy indicator for a whole block or screen (the Material default size and stroke). */
+    val ProgressLarge: Dp = 40.dp
+    val ProgressStrokeLarge: Dp = 4.dp
     val TopBarMinHeight: Dp = 64.dp
     val ListRowMinHeight: Dp = 56.dp
     val ButtonMinHeight: Dp = 48.dp

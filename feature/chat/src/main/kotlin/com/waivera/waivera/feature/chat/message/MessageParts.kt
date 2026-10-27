@@ -198,9 +198,13 @@ private fun UploadState(state: SendState, progress: Float?) {
             modifier = Modifier.width(ChatDimens.ImageWidth),
             verticalArrangement = Arrangement.spacedBy(WaiveraSpacing.XxSmall),
         ) {
-            if (progress != null) {
+            // Under reduced motion the indeterminate bar would freeze mid-sweep; an empty track
+            // with the "Uploading…" label below says the same without looking stuck.
+            val reduced = WaiveraTheme.motion.reduced
+            val shownProgress = progress ?: if (reduced) 0f else null
+            if (shownProgress != null) {
                 LinearProgressIndicator(
-                    progress = { progress },
+                    progress = { shownProgress },
                     modifier = Modifier.fillMaxWidth(),
                     color = WaiveraTheme.colors.accent,
                     trackColor = WaiveraTheme.colors.surfaceMuted,

@@ -34,6 +34,7 @@ import com.waivera.waivera.core.designsystem.component.WaiveraAvatar
 import com.waivera.waivera.core.designsystem.component.WaiveraBanner
 import com.waivera.waivera.core.designsystem.component.WaiveraBottomActionBar
 import com.waivera.waivera.core.designsystem.component.WaiveraBottomActionLayout
+import com.waivera.waivera.core.designsystem.component.WaiveraBusyIndicator
 import com.waivera.waivera.core.designsystem.component.WaiveraButton
 import com.waivera.waivera.core.designsystem.component.WaiveraButtonVariant
 import com.waivera.waivera.core.designsystem.component.WaiveraCountBadge
@@ -435,6 +436,19 @@ class DesignSystemScreenshotTest {
     @Test
     fun skeleton() = capture("Skeleton", padded = false) {
         SkeletonList(rows = 3)
+    }
+
+    /** Captures run with "Remove animations", so this is the still ring a person sees then (UI3-09). */
+    @Test
+    fun busyIndicators() = capture("BusyIndicators") {
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(WaiveraSpacing.Medium),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            WaiveraBusyIndicator()
+            WaiveraBusyIndicator(size = WaiveraSizes.ProgressLarge, strokeWidth = WaiveraSizes.ProgressStrokeLarge)
+        }
+        WaiveraButton(text = "Sign in", onClick = {}, loadingText = "Connecting to Waivera…", fullWidth = true)
     }
 
     @Test

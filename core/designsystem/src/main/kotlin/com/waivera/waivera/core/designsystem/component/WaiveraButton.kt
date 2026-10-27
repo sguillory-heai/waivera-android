@@ -14,7 +14,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -126,11 +125,7 @@ private fun ButtonProgress(label: String, color: Color) {
         horizontalArrangement = Arrangement.spacedBy(WaiveraSpacing.Small),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        CircularProgressIndicator(
-            modifier = Modifier.size(WaiveraSizes.IconSmall),
-            color = color,
-            strokeWidth = WaiveraSizes.ProgressStroke,
-        )
+        WaiveraBusyIndicator(color = color, size = WaiveraSizes.IconSmall)
         Text(text = label, style = MaterialTheme.typography.labelLarge, color = color, textAlign = TextAlign.Center)
     }
 }

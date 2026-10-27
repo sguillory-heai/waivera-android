@@ -9,9 +9,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -20,6 +18,7 @@ import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import com.waivera.waivera.core.designsystem.component.WaiveraBusyIndicator
 import com.waivera.waivera.core.designsystem.component.WaiveraButton
 import com.waivera.waivera.core.designsystem.component.WaiveraButtonVariant
 import com.waivera.waivera.core.designsystem.component.WaiveraCountBadge
@@ -164,11 +163,7 @@ internal fun ActivityFooter(section: ActivitySection, onRetry: () -> Unit, modif
                     .semantics { contentDescription = loading },
                 contentAlignment = Alignment.Center,
             ) {
-                CircularProgressIndicator(
-                    color = WaiveraTheme.colors.accent,
-                    strokeWidth = WaiveraSizes.ProgressStroke,
-                    modifier = Modifier.size(WaiveraSizes.ProgressSmall),
-                )
+                WaiveraBusyIndicator()
             }
         }
     }

@@ -12,7 +12,6 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButtonDefaults
@@ -39,6 +38,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import com.waivera.waivera.core.designsystem.component.BannerTone
 import com.waivera.waivera.core.designsystem.component.SkeletonBlock
 import com.waivera.waivera.core.designsystem.component.WaiveraBanner
+import com.waivera.waivera.core.designsystem.component.WaiveraBusyIndicator
 import com.waivera.waivera.core.designsystem.component.WaiveraButton
 import com.waivera.waivera.core.designsystem.component.WaiveraButtonVariant
 import com.waivera.waivera.core.designsystem.component.WaiveraDivider
@@ -519,11 +519,7 @@ fun OlderMessagesRow(failed: Boolean, onRetry: () -> Unit, modifier: Modifier = 
 /** A small inline spinner, for the call button while the lobby opens. */
 @Composable
 internal fun InlineSpinner(modifier: Modifier = Modifier) {
-    CircularProgressIndicator(
-        modifier = modifier.size(WaiveraSizes.ProgressSmall),
-        strokeWidth = WaiveraSizes.ProgressStroke,
-        color = WaiveraTheme.colors.accent,
-    )
+    WaiveraBusyIndicator(modifier = modifier)
 }
 
 @WaiveraPreviews

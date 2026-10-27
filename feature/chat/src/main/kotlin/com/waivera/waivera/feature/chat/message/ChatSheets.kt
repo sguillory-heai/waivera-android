@@ -20,7 +20,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -53,6 +52,7 @@ import androidx.compose.ui.window.DialogProperties
 import com.waivera.waivera.core.data.model.Message
 import com.waivera.waivera.core.designsystem.component.LocalSignedInAccount
 import com.waivera.waivera.core.designsystem.component.WaiveraAvatar
+import com.waivera.waivera.core.designsystem.component.WaiveraBusyIndicator
 import com.waivera.waivera.core.designsystem.component.WaiveraButton
 import com.waivera.waivera.core.designsystem.component.WaiveraButtonVariant
 import com.waivera.waivera.core.designsystem.component.WaiveraFilterChip
@@ -360,11 +360,7 @@ fun FileActionsContent(
                 horizontalArrangement = Arrangement.spacedBy(WaiveraSpacing.Small),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                CircularProgressIndicator(
-                    modifier = Modifier.size(WaiveraSizes.ProgressSmall),
-                    strokeWidth = WaiveraSizes.ProgressStroke,
-                    color = WaiveraTheme.colors.accent,
-                )
+                WaiveraBusyIndicator()
                 Text(
                     text = stringResource(R.string.feature_chat_file_preparing),
                     style = MaterialTheme.typography.bodyMedium,
@@ -437,8 +433,10 @@ fun ImagePreviewDialog(message: Message, onClose: () -> Unit) {
                             translationY = offset.y
                         },
                 )
-                ChatImageState.Loading -> CircularProgressIndicator(
+                ChatImageState.Loading -> WaiveraBusyIndicator(
                     color = onScrimColor(),
+                    size = WaiveraSizes.ProgressLarge,
+                    strokeWidth = WaiveraSizes.ProgressStrokeLarge,
                     modifier = Modifier.align(Alignment.Center),
                 )
                 ChatImageState.Unavailable -> Text(
