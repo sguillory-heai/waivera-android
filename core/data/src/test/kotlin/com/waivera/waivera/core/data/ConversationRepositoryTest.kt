@@ -132,6 +132,23 @@ class ConversationRepositoryTest {
         assertEquals(3, repo.observeUnreadTotal().first(), "only the channel badge remains")
     }
 
+    @Test
+    fun aFailedMarkReadRestoresTheBadgeSoRetryCanSendItAgain() = testScope.runTest {
+        serveInbox()
+        repo.refresh().getOrThrow()
+        val before = assertNotNull(repo.observeConversation(7).first())
+        assertTrue(before.unreadCount > 0)
+        graph.server.status("PUT /api/chat/7/read-through", 503)
+        assertIs<WaiveraError.Server>(repo.markRead(7, 9312).exceptionOrNull())
+        val rolledBack = repo.observeConversation(7).first()
+        assertEquals(before.unreadCount, rolledBack?.unreadCount, "the server is still unread, so is the badge")
+        assertEquals(before.lastReadAt, rolledBack?.lastReadAt)
+
+        graph.server.fixture("PUT /api/chat/7/read-through", "rest-chat-read-through.json")
+        repo.markRead(7, 9312).getOrThrow()
+        assertEquals(0, repo.observeConversation(7).first()?.unreadCount)
+    }
+
     private fun lobbyState(url: String): String {
         val state = url.substringAfter("?state=")
         return java.net.URLDecoder.decode(

@@ -144,14 +144,22 @@ class ChatListStateHolder(
         val conversation = conversation(conversationId) ?: return
         val lastMessageId = conversation.lastMessage?.messageId ?: return
         if (conversation.unreadCount <= 0) return
+        markRead(conversationId, lastMessageId)
+    }
+
+    /**
+     * Retry carries what to mark, so it sends again even when the row already looks read (a
+     * failed attempt must never turn Retry into a no-op, AF-08).
+     */
+    private fun markRead(conversationId: Long, throughMessageId: Long) {
         local.update { it.copy(optimisticRead = it.optimisticRead + conversationId) }
         scope.launch {
-            conversations.markRead(conversationId, lastMessageId).onFailure {
+            conversations.markRead(conversationId, throughMessageId).onFailure {
                 local.update { it.copy(optimisticRead = it.optimisticRead - conversationId) }
                 effectChannel.send(
                     ChatListEffect.ShowMessage(
                         R.string.feature_chat_list_mark_read_failed,
-                        ChatListRetry.MarkRead(conversationId),
+                        ChatListRetry.MarkRead(conversationId, throughMessageId),
                     ),
                 )
             }
@@ -184,7 +192,7 @@ class ChatListStateHolder(
     }
 
     fun onRetry(retry: ChatListRetry) = when (retry) {
-        is ChatListRetry.MarkRead -> onMarkRead(retry.conversationId)
+        is ChatListRetry.MarkRead -> markRead(retry.conversationId, retry.throughMessageId)
         is ChatListRetry.JoinCall -> onJoinCall(retry.conversationId)
     }
 

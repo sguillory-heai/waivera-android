@@ -60,14 +60,14 @@ class RealtimeSync @Inject constructor(
                 val isNew = cache.message(message.id) == null
                 ingest.ingest(listOf(message))
                 typing.onMessageFrom(message.conversationId, message.authorId)
-                if (!conversations.onMessage(message)) conversations.hydrate(listOf(message.conversationId))
+                if (!conversations.onMessage(message)) conversations.hydrateFor(message)
                 val root = message.threadRootMessageId
                 if (isNew && message.isThreadReply && root != null) threads.onNewReply(root)
             }
             // List-only update: the timeline cache is not touched so a stale cache cannot hide a gap.
             is HubEvent.ConversationListMessage -> {
                 val message = Mappers.message(event.message)
-                if (!conversations.onMessage(message)) conversations.hydrate(listOf(message.conversationId))
+                if (!conversations.onMessage(message)) conversations.hydrateFor(message)
             }
             is HubEvent.ChatAttention -> Unit
             is HubEvent.ChatActivity -> activity.onActivity(Mappers.activity(event.activity))

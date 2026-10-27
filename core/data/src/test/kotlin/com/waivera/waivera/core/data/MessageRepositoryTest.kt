@@ -342,6 +342,22 @@ class MessageRepositoryTest {
     }
 
     @Test
+    fun anEditReplacesTheStalePlainTextSoThePreviewShowsTheNewWords() = testScope.runTest {
+        graph.server.fixture("GET /api/chat/7/messages/pagination", "rest-chat-get-messages-pagination.json")
+        repo.refreshLatest(7).getOrThrow()
+        graph.cache.updateMessage(9312) { it.copy(plainText = "can you cover Friday?") }
+        graph.server.json(
+            "PUT /api/chat/message/9312",
+            """{"data":{"id":9312,"conversationId":7,"messageContent":"can you cover Saturday?","isEdited":true},""" +
+                """"statusCode":200,"success":true}""",
+        )
+        val edited = repo.edit(9312, "can you cover Saturday?").getOrThrow()
+        assertNull(edited.plainText, "no stale rendering of the old text")
+        assertEquals("can you cover Saturday?", edited.text)
+        assertEquals(com.waivera.waivera.core.data.model.Message.CONTENT_FORMAT_PLAIN, edited.contentFormat)
+    }
+
+    @Test
     fun permanentFailureKeepsItsReasonUntilRetried() = testScope.runTest {
         graph.realtime.connected = false
         graph.server.status("POST /api/chat/send", 403)

@@ -334,13 +334,20 @@ class LiveMessageRepository @Inject constructor(
                 chatApi.editMessage(messageId, EditMessageRequest(text, doc))
             }.requireData(),
         )
+        // The preview prefers plainText, so a stale one would keep showing the old words (AF-10):
+        // take the server's new rendering, or none, and the format that matches the new body.
         val merged = cache.message(messageId)?.let { cached ->
             cached.copy(
                 text = updated.text,
                 doc = updated.doc,
+                plainText = updated.plainText,
+                contentFormat = if (doc != null || updated.doc != null) {
+                    Message.CONTENT_FORMAT_RICH
+                } else {
+                    Message.CONTENT_FORMAT_PLAIN
+                },
                 isEdited = true,
-                updatedAt =
-                updated.updatedAt ?: clock.instant(),
+                updatedAt = updated.updatedAt ?: clock.instant(),
             )
         } ?: updated
         cache.putMessages(listOf(merged))

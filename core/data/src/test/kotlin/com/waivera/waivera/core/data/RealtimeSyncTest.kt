@@ -101,6 +101,32 @@ class RealtimeSyncTest {
     }
 
     @Test
+    fun aNewConversationFromSomeoneElseStartsWithAnUnreadBadge() = testScope.runTest {
+        graph.server.fixture("GET /api/chat/conversation/7", "rest-chat-get-conversation.json")
+        val base = (event("hub-receive-message.json") as HubEvent.MessageReceived).message
+        sync.apply(
+            HubEvent.MessageReceived(
+                base.copy(id = 10_100, conversationId = 7, userId = "usr_priya_raman", author = null),
+            ),
+        )
+        eventually { graph.cache.conversation(7) != null }
+        assertEquals(1, graph.cache.conversation(7)?.unreadCount, "G-14: the hydrate alone would say 0")
+    }
+
+    @Test
+    fun aNewConversationFromMyOwnMessageHasNoBadge() = testScope.runTest {
+        graph.server.fixture("GET /api/chat/conversation/7", "rest-chat-get-conversation.json")
+        val base = (event("hub-receive-message.json") as HubEvent.MessageReceived).message
+        sync.apply(
+            HubEvent.MessageReceived(
+                base.copy(id = 10_101, conversationId = 7, userId = "usr_alex_rivera", author = null),
+            ),
+        )
+        eventually { graph.cache.conversation(7) != null }
+        assertEquals(0, graph.cache.conversation(7)?.unreadCount)
+    }
+
+    @Test
     fun reactionUpdateEditDeleteApplyToCachedMessages() = testScope.runTest {
         graph.server.fixture("GET /api/chat/7/messages/pagination", "rest-chat-get-messages-pagination.json")
         graph.messages.refreshLatest(7).getOrThrow()
