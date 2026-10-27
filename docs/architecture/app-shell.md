@@ -22,7 +22,7 @@ core agent).
 | --- | --- | --- |
 | `Initializing` | `Loading` | `WaiveraLoadingScreen` |
 | `SignedOut` | `SignIn()` | `SignInScreen(configurationMissing = false)` |
-| `ConfigurationMissing` | `SignIn(configurationMissing = true)` | `SignInScreen` offers demo mode |
+| `ConfigurationMissing` | `SignIn(configurationMissing = true)` | `SignInScreen` says the build is not configured (release only; debug builds fall back to demo data) |
 | `BootstrapFailed` | `BootstrapFailed` | Error state with Try again (`SessionRepository.refresh`) |
 | `PasswordChangeRequired` | `PasswordChange` | `PasswordChangeScreen` |
 | `SignedIn`, primer pending | `NotificationPrimer` | `NotificationPrimerScreen` (Android 13+, once) |

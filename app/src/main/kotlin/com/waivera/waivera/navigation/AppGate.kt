@@ -8,7 +8,11 @@ sealed interface AppGate {
     /** Firebase is restoring the user or the backend bootstrap is running. */
     data object Loading : AppGate
 
-    /** [configurationMissing] is true when the build has no Firebase values, so sign-in offers demo mode. */
+    /**
+     * [configurationMissing] is true when the build has no API URL or Firebase values. Only release
+     * builds reach it (debug builds fall back to demo data through `DemoMode`), so sign-in explains
+     * that the build is not configured instead of offering a demo.
+     */
     data class SignIn(val configurationMissing: Boolean = false) : AppGate
 
     /** Signed in with Firebase, but the backend bootstrap failed and nothing is cached. */
