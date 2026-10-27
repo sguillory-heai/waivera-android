@@ -55,8 +55,8 @@ import kotlinx.coroutines.delay
  * One inbox row: leading tile or avatar, title (wraps to two lines at large font scales), time,
  * preview with sender prefix or the typing/call override, and the unread badge. Unread is two
  * signals only, a bold title and the purple count badge (which TalkBack reads as "N unread");
- * no row wash, avatar dot or coloured time on top. Swipe actions, the long-press action sheet and TalkBack custom actions all offer the
- * same actions.
+ * no row wash, avatar dot or coloured time on top. Swipe actions, the long-press action sheet and
+ * TalkBack custom actions all offer the same actions.
  */
 @Composable
 fun ConversationRow(

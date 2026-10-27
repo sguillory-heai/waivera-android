@@ -11,7 +11,10 @@ class ChatListHeaderRulesTest {
 
     @Test
     fun `online and connecting show no banner`() {
-        assertEquals(ConnectionBannerState.Connected, connectionBannerState(rows.copy(connection = ConnectionUi.Online)))
+        assertEquals(
+            ConnectionBannerState.Connected,
+            connectionBannerState(rows.copy(connection = ConnectionUi.Online)),
+        )
         assertEquals(
             ConnectionBannerState.Connected,
             connectionBannerState(rows.copy(connection = ConnectionUi.Connecting)),
