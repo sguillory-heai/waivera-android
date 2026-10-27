@@ -8,6 +8,7 @@ import com.waivera.waivera.core.network.dto.MobilePushResultDto
 import com.waivera.waivera.core.network.dto.MobilePushUnregisterRequest
 import retrofit2.Response
 import retrofit2.http.Body
+import retrofit2.http.Header
 import retrofit2.http.POST
 
 /** `Controllers/VideoController.cs`; the app only hands calls off to the web lobby. */
@@ -28,4 +29,11 @@ interface MobilePushApi {
 
     @POST("api/mobile-push/unregister")
     suspend fun unregister(@Body request: MobilePushUnregisterRequest): Response<MobilePushResultDto>
+
+    /** The same call with an explicit `Bearer` header, for the retry after the session has ended. */
+    @POST("api/mobile-push/unregister")
+    suspend fun unregisterWithToken(
+        @Header("Authorization") authorization: String,
+        @Body request: MobilePushUnregisterRequest,
+    ): Response<MobilePushResultDto>
 }

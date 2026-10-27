@@ -92,6 +92,19 @@ class AuthTokenInterceptorTest {
         assertEquals(1, server.requestCount)
     }
 
+    @Test
+    fun keepsAnExplicitAuthorizationHeaderEvenWhenSignedOut() {
+        server.enqueue(MockResponse.Builder().code(200).build())
+        val client = client { null }
+
+        val request = Request.Builder().url(server.url("/api/mobile-push/unregister"))
+            .header("Authorization", "Bearer captured")
+            .build()
+        client.newCall(request).execute()
+
+        assertEquals("Bearer captured", server.takeRequest().headers["Authorization"])
+    }
+
     private fun client(tokens: AuthTokenProvider) =
         OkHttpClient.Builder().addInterceptor(AuthTokenInterceptor(tokens, server.url("/"))).build()
 }

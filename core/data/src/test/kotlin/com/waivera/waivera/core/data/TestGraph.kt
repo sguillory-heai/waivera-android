@@ -12,6 +12,7 @@ import com.waivera.waivera.core.data.live.LivePushRegistrationRepository
 import com.waivera.waivera.core.data.live.LiveSettingsRepository
 import com.waivera.waivera.core.data.live.LiveThreadRepository
 import com.waivera.waivera.core.data.live.MessageIngest
+import com.waivera.waivera.core.data.live.PushUnregisterScheduler
 import com.waivera.waivera.core.data.live.SyncTracker
 import com.waivera.waivera.core.data.live.TypingTracker
 import com.waivera.waivera.core.data.live.VisibleConversation
@@ -61,6 +62,12 @@ class TestGraph(val scope: CoroutineScope, connected: Boolean = true) : AutoClos
     val visible = VisibleConversation()
     val outboxDir = Files.createTempDirectory("outbox").toFile()
 
+    /** The Firebase ID token the push repository captures; null once Firebase has signed out. */
+    var idToken: String? = "test-token"
+    var unregisterRetriesScheduled = 0
+        private set
+    private val unregisterScheduler = PushUnregisterScheduler { unregisterRetriesScheduled++ }
+
     val cache =
         ChatCache(
             db.conversations,
@@ -78,7 +85,7 @@ class TestGraph(val scope: CoroutineScope, connected: Boolean = true) : AutoClos
     val typing = TypingTracker(realtime, clock, scope)
     val conversations =
         LiveConversationRepository(chatApi, videoApi, server.config, cache, sync, session, typing, visible, clock)
-    val processor = OutboxProcessor(outbox, chatApi, realtime, ingest)
+    val processor = OutboxProcessor(outbox, chatApi, realtime, ingest, session)
     val messages = LiveMessageRepository(
         chatApi, cache, sync, ingest, outbox, processor, scheduler, realtime, session, conversations, typing, clock,
         outboxDir, Dispatchers.IO, scope,
@@ -90,7 +97,9 @@ class TestGraph(val scope: CoroutineScope, connected: Boolean = true) : AutoClos
     val calendar = LiveCalendarRepository(calendarApi, videoApi, cache, sync, session, server.config, clock, scope)
     val profile = LiveProfileRepository(employeeApi, timeOffApi, authApi, cache, sync, session)
     val settings = LiveSettingsRepository(settingsStore)
-    val push = LivePushRegistrationRepository(pushApi, secureStore, session, settings)
+    val push = LivePushRegistrationRepository(
+        pushApi, secureStore, session, settings, { idToken }, unregisterScheduler, clock, Dispatchers.IO,
+    )
     val realtimeSync =
         RealtimeSync(cache, ingest, conversations, messages, threads, bookmarks, activity, calendar, typing, session)
 

@@ -108,4 +108,59 @@ class PushRegistrationTest {
         push.onNewToken("t2")
         assertEquals(1, graph.server.requests.size)
     }
+
+    @Test
+    fun anOfflineUnregisterIsQueuedWithTheCapturedTokenAndRetriedAfterSignOut() = testScope.runTest {
+        graph.server.fixture("POST /api/mobile-push/register", "rest-mobile-push-register.json")
+        push.register("t", NotificationPreferences()).getOrThrow()
+        val deviceId = graph.secureStore.values.getValue(SecureStore.DEVICE_ID)
+        graph.idToken = "captured-token"
+        graph.server.status("POST /api/mobile-push/unregister", 503)
+        assertTrue(push.unregister().isFailure)
+        assertEquals(1, graph.unregisterRetriesScheduled, "a background retry is scheduled")
+
+        // Firebase has signed out by now; the retry carries the token captured before that.
+        graph.idToken = null
+        graph.secureStore.clear(keep = setOf(SecureStore.DEVICE_ID, SecureStore.PENDING_UNREGISTER))
+        graph.server.fixture("POST /api/mobile-push/unregister", "rest-mobile-push-unregister.json")
+        assertFalse(push.retryPendingUnregister(), "done once the server answered")
+        val retried = graph.server.requests.last()
+        assertEquals("Bearer captured-token", retried.headers["Authorization"])
+        assertTrue(deviceId in retried.body?.utf8().orEmpty())
+        assertEquals(null, graph.secureStore.values[SecureStore.PENDING_UNREGISTER])
+    }
+
+    @Test
+    fun aPendingUnregisterStaysQueuedWhileOfflineAndExpiresWithItsToken() = testScope.runTest {
+        graph.secureStore.values[SecureStore.DEVICE_ID] = "device-1"
+        graph.server.status("POST /api/mobile-push/unregister", 503)
+        assertTrue(push.unregister().isFailure)
+        assertTrue(push.retryPendingUnregister(), "still offline: try again later")
+        val requests = graph.server.requests.size
+
+        graph.clock.advanceMillis(56 * 60 * 1_000L)
+        assertFalse(push.retryPendingUnregister())
+        assertEquals(requests, graph.server.requests.size, "an expired token is never sent")
+        assertEquals(null, graph.secureStore.values[SecureStore.PENDING_UNREGISTER])
+    }
+
+    @Test
+    fun aRejectedUnregisterIsNotQueued() = testScope.runTest {
+        graph.secureStore.values[SecureStore.DEVICE_ID] = "device-1"
+        graph.server.status("POST /api/mobile-push/unregister", 403)
+        assertTrue(push.unregister().isFailure)
+        assertEquals(0, graph.unregisterRetriesScheduled)
+        assertEquals(null, graph.secureStore.values[SecureStore.PENDING_UNREGISTER])
+    }
+
+    @Test
+    fun aNewRegistrationCancelsAPendingUnregister() = testScope.runTest {
+        graph.secureStore.values[SecureStore.DEVICE_ID] = "device-1"
+        graph.server.status("POST /api/mobile-push/unregister", 503)
+        assertTrue(push.unregister().isFailure)
+        graph.server.fixture("POST /api/mobile-push/register", "rest-mobile-push-register.json")
+        push.register("t", NotificationPreferences()).getOrThrow()
+        assertEquals(null, graph.secureStore.values[SecureStore.PENDING_UNREGISTER], "it would deactivate the new row")
+        assertFalse(push.retryPendingUnregister())
+    }
 }

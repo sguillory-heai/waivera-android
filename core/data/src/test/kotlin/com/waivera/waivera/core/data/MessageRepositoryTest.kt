@@ -16,6 +16,7 @@ import kotlin.test.assertFalse
 import kotlin.test.assertIs
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
+import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.runCurrent
@@ -251,6 +252,41 @@ class MessageRepositoryTest {
             ),
         )
         assertEquals(SendState.SENDING, graph.outbox.get("in-flight")?.state, "settled by its own response")
+    }
+
+    @Test
+    fun aSendDuringAColdStartWaitsForTheSessionAndQueues() = testScope.runTest {
+        graph.realtime.connected = false
+        graph.server.status("POST /api/chat/send", 503)
+        graph.session.mutableState.value = com.waivera.waivera.core.data.model.SessionState.Initializing
+        val sent = async { repo.send(7, "reply from the shade") }
+        runCurrent()
+        assertFalse(sent.isCompleted, "waits for the bootstrap instead of failing NotSignedIn")
+        graph.session.mutableState.value = com.waivera.waivera.core.data.model.SessionState.SignedIn(
+            com.waivera.waivera.core.data.model.CurrentUser("usr_alex_rivera"),
+        )
+        val clientId = sent.await()
+        assertEquals("usr_alex_rivera", graph.outbox.get(clientId)?.authorId)
+    }
+
+    @Test
+    fun aSendWhileSignedOutStillFails() = testScope.runTest {
+        graph.session.mutableState.value = com.waivera.waivera.core.data.model.SessionState.SignedOut()
+        assertIs<WaiveraError.NotSignedIn>(runCatching { repo.send(7, "nope") }.exceptionOrNull())
+        assertTrue(graph.db.outbox.rows.value.isEmpty())
+    }
+
+    @Test
+    fun cachedThreadRootTellsRepliesFromMainMessages() = testScope.runTest {
+        graph.cache.putMessages(
+            listOf(
+                com.waivera.waivera.core.data.model.Message(id = 9312, conversationId = 7, threadRootMessageId = 9310),
+                com.waivera.waivera.core.data.model.Message(id = 9310, conversationId = 7, threadRootMessageId = 9310),
+            ),
+        )
+        assertEquals(9310L, repo.cachedThreadRoot(9312))
+        assertNull(repo.cachedThreadRoot(9310), "a root is a main-timeline message")
+        assertNull(repo.cachedThreadRoot(1), "not cached")
     }
 
     @Test

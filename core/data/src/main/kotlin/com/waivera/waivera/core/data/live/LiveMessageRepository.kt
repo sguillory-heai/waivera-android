@@ -177,7 +177,11 @@ class LiveMessageRepository @Inject constructor(
             cache.transactions.run {
                 ingest.ingest(page)
                 val latest = meta(conversationId)
-                val updated = if (floor == null) olderPageMeta(latest, page, before) else gapPageMeta(latest, page, floor)
+                val updated = if (floor == null) {
+                    olderPageMeta(latest, page, before)
+                } else {
+                    gapPageMeta(latest, page, floor)
+                }
                 putMeta(conversationId, updated)
                 TimelineGaps.windowFloor(updated.gaps, timelineIds(conversationId)) != null || updated.hasOlder
             }
@@ -189,7 +193,8 @@ class LiveMessageRepository @Inject constructor(
     /** Paging below the oldest cached message. G-06 stop rules: a short page, or an id that did not move back. */
     private fun olderPageMeta(meta: TimelineMeta, page: List<Message>, before: Long?): TimelineMeta {
         val newOldest = page.minOfOrNull { it.id }
-        val hasOlder = page.size >= ChatApi.MESSAGE_PAGE_SIZE && newOldest != null && (before == null || newOldest < before)
+        val movedBack = newOldest != null && (before == null || newOldest < before)
+        val hasOlder = page.size >= ChatApi.MESSAGE_PAGE_SIZE && movedBack
         return meta.copy(hasOlder = hasOlder)
     }
 
@@ -275,7 +280,10 @@ class LiveMessageRepository @Inject constructor(
         attachment: AttachmentSource?,
         parentMessageId: Long?,
     ): String {
-        val me = session.state.value.currentUserId ?: throw WaiveraError.NotSignedIn()
+        // A reply from a notification can arrive while a cold start is still bootstrapping (AF-07).
+        val me = session.state.value.currentUserId
+            ?: session.settledUserId(SESSION_WAIT_MILLIS)
+            ?: throw WaiveraError.NotSignedIn()
         val clientId = UUID.randomUUID().toString()
         val staged = attachment?.let { stage(clientId, it) }
         outbox.put(
@@ -352,6 +360,9 @@ class LiveMessageRepository @Inject constructor(
         cache.message(messageId)?.let { conversations.onMessageChanged(it) }
     }
 
+    override suspend fun cachedThreadRoot(messageId: Long): Long? =
+        cache.message(messageId)?.takeIf { it.isThreadReply }?.threadRootMessageId
+
     /** Hub only (G-01); optimistic with rollback. */
     override suspend fun react(messageId: Long, emoji: String): Result<Unit> = catchingWaivera {
         val me = session.state.value.currentUserId ?: throw WaiveraError.NotSignedIn()
@@ -386,6 +397,9 @@ class LiveMessageRepository @Inject constructor(
     private companion object {
         /** Forward pages of up to 75 messages when joining a context page to the tail (600 messages). */
         const val MAX_FILL_PAGES = 8
+
+        /** Inside the notification receiver's 8 s budget; the outbox sends once signed in. */
+        const val SESSION_WAIT_MILLIS = 5_000L
     }
 
     private fun syncKey(conversationId: Long) = "messages:$conversationId"

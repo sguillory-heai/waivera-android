@@ -2,8 +2,11 @@ package com.waivera.waivera.core.data
 
 import com.waivera.waivera.core.data.auth.AuthUser
 import com.waivera.waivera.core.data.live.LiveSessionRepository
+import com.waivera.waivera.core.data.live.SessionEnder
 import com.waivera.waivera.core.data.live.SignOutCleaner
+import com.waivera.waivera.core.data.model.Message
 import com.waivera.waivera.core.data.model.SessionState
+import com.waivera.waivera.core.data.outbox.OutboxItem
 import com.waivera.waivera.core.data.repository.PushRegistrationRepository
 import com.waivera.waivera.core.data.store.SecureStore
 import com.waivera.waivera.core.network.NetworkConfig
@@ -43,6 +46,7 @@ class SessionRepositoryTest {
     private fun repository(
         gateway: FakeAuthGateway,
         config: NetworkConfig = graph.server.config,
+        dataCleaners: Set<SignOutCleaner> = emptySet(),
     ): LiveSessionRepository {
         val push = object : PushRegistrationRepository {
             override suspend fun register(
@@ -64,9 +68,39 @@ class SessionRepositoryTest {
                 graph.realtime.stop()
             }
         }
-        return LiveSessionRepository(gateway, graph.authApi, graph.secureStore, realtime, {
-            push
-        }, setOf(cleaner), config, testScope.backgroundScope)
+        val ender = SessionEnder(realtime, { push }, setOf(cleaner) + dataCleaners, graph.secureStore) {
+            calls += "revoke-token"
+        }
+        return LiveSessionRepository(
+            gateway, graph.authApi, graph.secureStore, realtime, ender, config, testScope.backgroundScope,
+        )
+    }
+
+    /** The real Room and outbox cleaners, as Hilt contributes them. */
+    private val roomAndOutbox: Set<SignOutCleaner> = setOf(
+        SignOutCleaner { graph.cache.clear() },
+        SignOutCleaner { graph.outbox.clear(graph.outboxDir) },
+    )
+
+    private suspend fun leaveUserData() {
+        graph.cache.putMessages(listOf(Message(id = 9310, conversationId = 7, text = "private")))
+        graph.outbox.put(
+            OutboxItem(
+                clientMessageId = "queued-by-alex",
+                conversationId = 7,
+                authorId = "usr_alex_rivera",
+                text = "queued",
+                createdAt = graph.clock.now,
+            ),
+        )
+    }
+
+    private suspend fun assertUserDataGone() {
+        assertNull(graph.cache.message(9310), "cached messages are wiped")
+        assertTrue(graph.db.outbox.rows.value.isEmpty(), "the outbox is wiped")
+        assertNull(graph.secureStore.values[SecureStore.CACHED_SESSION])
+        assertNull(graph.secureStore.values[SecureStore.FCM_TOKEN], "the FCM token is revoked and forgotten")
+        assertTrue("unregister" in calls && "revoke-token" in calls, "push is unregistered and revoked: $calls")
     }
 
     @Test
@@ -161,7 +195,7 @@ class SessionRepositoryTest {
         repo.signIn("alex.rivera@example.com", "correct-horse").getOrThrow()
         graph.secureStore.values[SecureStore.DEVICE_ID] = "device-1"
         repo.signOut().getOrThrow()
-        assertEquals(listOf("realtime-stop", "unregister", "clear"), calls)
+        assertEquals(listOf("realtime-stop", "unregister", "clear", "revoke-token"), calls)
         assertEquals(1, gateway.signOuts)
         assertIs<SessionState.SignedOut>(repo.state.value)
         assertEquals("device-1", graph.secureStore.values[SecureStore.DEVICE_ID], "the device id survives")
@@ -206,5 +240,126 @@ class SessionRepositoryTest {
         assertIs<WaiveraError.InvalidCredentials>(
             repo.changePassword("correct-horse", "another-one").exceptionOrNull(),
         )
+    }
+
+    @Test
+    fun aRejectedBootstrapRunsTheSameCleanupAsSigningOut() = testScope.runTest {
+        serveLogin()
+        val gateway = FakeAuthGateway()
+        repository(gateway).signIn("alex.rivera@example.com", "correct-horse").getOrThrow()
+        leaveUserData()
+        graph.secureStore.values[SecureStore.FCM_TOKEN] = "fcm-1"
+        calls.clear()
+
+        graph.server.json(
+            "GET /api/Authentication/login",
+            Fixtures.text("rest-error-apiresponse-unauthorized.json"),
+            code = 401,
+        )
+        val restarted = repository(FakeAuthGateway(initialUser = gateway.user.value), dataCleaners = roomAndOutbox)
+        eventually { restarted.state.value is SessionState.SignedOut }
+        runCurrent()
+        assertIs<WaiveraError.SessionExpired>(assertIs<SessionState.SignedOut>(restarted.state.value).reason)
+        assertUserDataGone()
+        assertEquals(1, calls.count { it == "clear" }, "the cleanup runs once: $calls")
+    }
+
+    @Test
+    fun firebaseDroppingTheUserRunsTheSameCleanup() = testScope.runTest {
+        serveLogin()
+        val gateway = FakeAuthGateway()
+        val repo = repository(gateway, dataCleaners = roomAndOutbox)
+        repo.signIn("alex.rivera@example.com", "correct-horse").getOrThrow()
+        leaveUserData()
+        graph.secureStore.values[SecureStore.FCM_TOKEN] = "fcm-1"
+        calls.clear()
+
+        gateway.signOut() // a revoked or disabled account: the auth-state listener reports null
+        runCurrent()
+        assertIs<SessionState.SignedOut>(repo.state.value)
+        assertEquals("realtime-stop", calls.first())
+        assertUserDataGone()
+    }
+
+    @Test
+    fun aSessionThatEndedWhileTheAppWasDeadIsCleanedOnTheNextStart() = testScope.runTest {
+        serveLogin()
+        repository(FakeAuthGateway()).signIn("alex.rivera@example.com", "correct-horse").getOrThrow()
+        leaveUserData()
+        calls.clear()
+
+        val restarted = repository(FakeAuthGateway(initialUser = null), dataCleaners = roomAndOutbox)
+        runCurrent()
+        assertIs<SessionState.SignedOut>(restarted.state.value)
+        assertUserDataGone()
+
+        calls.clear()
+        repository(FakeAuthGateway(initialUser = null), dataCleaners = roomAndOutbox)
+        runCurrent()
+        assertTrue(calls.isEmpty(), "nothing left to clean on the start after that: $calls")
+    }
+
+    @Test
+    fun anotherAccountTakingOverTheDeviceClearsThePreviousAccountsData() = testScope.runTest {
+        serveLogin()
+        repository(FakeAuthGateway()).signIn("alex.rivera@example.com", "correct-horse").getOrThrow()
+        leaveUserData()
+        calls.clear()
+
+        val other = repository(
+            FakeAuthGateway(initialUser = AuthUser("firebase-uid-someone-else", "sam@example.com")),
+            dataCleaners = roomAndOutbox,
+        )
+        eventually { other.state.value is SessionState.SignedIn }
+        assertNull(graph.cache.message(9310), "the previous account's messages are gone")
+        assertTrue(graph.db.outbox.rows.value.isEmpty(), "and so is its outbox")
+    }
+
+    @Test
+    fun anOfflineStartKeepsThePasswordChangeGate() = testScope.runTest {
+        serveLogin("rest-auth-login-requires-password-change.json")
+        val gateway = FakeAuthGateway()
+        repository(gateway).signIn("alex.rivera@example.com", "correct-horse").getOrThrow()
+
+        graph.server.status("GET /api/Authentication/login", 503)
+        val restarted = repository(FakeAuthGateway(initialUser = gateway.user.value))
+        eventually { restarted.state.value !is SessionState.Initializing }
+        assertIs<SessionState.PasswordChangeRequired>(restarted.state.value, "airplane mode is no way around it")
+    }
+
+    @Test
+    fun aSlowColdStartAnswersTheUserIdFromTheCachedSession() = testScope.runTest {
+        serveLogin()
+        val gateway = FakeAuthGateway()
+        repository(gateway).signIn("alex.rivera@example.com", "correct-horse").getOrThrow()
+
+        val release = java.util.concurrent.CountDownLatch(1)
+        graph.server.route("GET /api/Authentication/login") {
+            release.await(5, java.util.concurrent.TimeUnit.SECONDS)
+            com.waivera.waivera.core.testing.FixtureServer.json(Fixtures.text("rest-auth-login.json"))
+        }
+        val restarted = repository(FakeAuthGateway(initialUser = gateway.user.value))
+        runCurrent()
+        assertIs<SessionState.Initializing>(restarted.state.value)
+        assertEquals("usr_alex_rivera", restarted.settledUserId(timeoutMillis = 1_000))
+        release.countDown()
+    }
+
+    @Test
+    fun settledUserIdIsNullWhenSignedOut() = testScope.runTest {
+        val repo = repository(FakeAuthGateway())
+        assertNull(repo.settledUserId(timeoutMillis = 1_000))
+    }
+
+    @Test
+    fun pushesAreAcceptedOnlyForASignedInOrStillStartingSession() = testScope.runTest {
+        val session = com.waivera.waivera.core.testing.TestSessionRepository()
+        assertTrue(session.acceptsPushes(timeoutMillis = 1_000))
+        session.mutableState.value = SessionState.SignedOut()
+        assertTrue(!session.acceptsPushes(timeoutMillis = 1_000), "signed out: the push is dropped")
+        session.mutableState.value = SessionState.BootstrapFailed(WaiveraError.Network())
+        assertTrue(!session.acceptsPushes(timeoutMillis = 1_000))
+        session.mutableState.value = SessionState.Initializing
+        assertTrue(session.acceptsPushes(timeoutMillis = 1_000), "a cold start from the push still shows it")
     }
 }

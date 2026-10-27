@@ -4,6 +4,8 @@ import com.waivera.waivera.core.data.live.Mappers
 import com.waivera.waivera.core.data.live.MessageIngest
 import com.waivera.waivera.core.data.model.SendFailure
 import com.waivera.waivera.core.data.model.SendState
+import com.waivera.waivera.core.data.model.SessionState
+import com.waivera.waivera.core.data.repository.SessionRepository
 import com.waivera.waivera.core.network.api.ChatApi
 import com.waivera.waivera.core.network.dto.SendMessageRequest
 import com.waivera.waivera.core.network.error.WaiveraError
@@ -25,6 +27,9 @@ import okhttp3.MultipartBody
  * attachment; otherwise REST `/api/chat/send`. Both carry the same client id, which the server
  * uses for idempotency, so a retry after an unknown outcome cannot duplicate a message.
  * Transient failures stay queued for the scheduler; permanent ones become FAILED with Retry.
+ *
+ * Items are bound to the account that queued them (AS-03): nothing is sent without a signed-in
+ * user, and an item queued by anyone else is dropped instead of being sent with this user's token.
  */
 @Singleton
 class OutboxProcessor @Inject constructor(
@@ -32,16 +37,26 @@ class OutboxProcessor @Inject constructor(
     private val chatApi: ChatApi,
     private val realtime: RealtimeClient,
     private val ingest: MessageIngest,
+    private val session: SessionRepository,
 ) {
     private val mutex = Mutex()
 
-    /** Processes everything queued. Returns true when something is left for a later retry. */
+    /**
+     * Processes everything queued. Returns true when something is left for a later retry.
+     * Signed out (or still starting), nothing is sent; the next sign-in processes the queue.
+     */
     suspend fun process(): Boolean = mutex.withLock {
+        val me = (session.state.value as? SessionState.SignedIn)?.user?.userId ?: return@withLock false
         // A SENDING row at this point was interrupted (process death); the server dedupes by id.
         store.withState(SendState.SENDING).forEach { store.put(it.copy(state = SendState.QUEUED)) }
         val blocked = mutableSetOf<Long>()
         var retryLater = false
         for (item in store.withState(SendState.QUEUED)) {
+            if (item.authorId != me) {
+                WaiveraLog.w(TAG, "Dropped a queued message from another account")
+                store.remove(item)
+                continue
+            }
             // Keep per-conversation order: nothing overtakes a message waiting for retry.
             val current = store.get(item.clientMessageId)
                 ?.takeIf { it.state == SendState.QUEUED && item.conversationId !in blocked }

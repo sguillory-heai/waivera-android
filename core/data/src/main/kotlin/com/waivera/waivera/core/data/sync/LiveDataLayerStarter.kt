@@ -56,8 +56,11 @@ class LiveDataLayerStarter @Inject constructor(
         scope.launch { realtime.events.collect { sync.apply(it) } }
         scope.launch { realtime.resyncRequests.collect { sync.resync() } }
         scope.launch { foreground.isForeground.collect(realtime::setForeground) }
+        // An unregister left over from an offline sign-out (AF-05); WorkManager also retries it.
+        scope.launch { runCatching { push.retryPendingUnregister() } }
         scope.launch {
             connectivity.isOnline.drop(1).filter { it }.collect {
+                runCatching { push.retryPendingUnregister() }
                 realtime.retryNow()
                 if (runCatching { outbox.process() }.getOrDefault(true)) outboxScheduler.schedule()
                 if ((session.state.value as? SessionState.SignedIn)?.isOffline == true) session.refresh()

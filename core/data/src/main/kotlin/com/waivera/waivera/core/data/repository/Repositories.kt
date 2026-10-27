@@ -24,11 +24,14 @@ import com.waivera.waivera.core.data.model.SessionState
 import com.waivera.waivera.core.data.model.Synced
 import com.waivera.waivera.core.data.model.ThemePreference
 import com.waivera.waivera.core.data.model.TimeOffSummary
+import com.waivera.waivera.core.data.model.currentUserId
 import java.io.File
 import java.time.YearMonth
 import java.time.ZoneId
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.serialization.json.JsonElement
 
 /*
@@ -41,8 +44,28 @@ interface SessionRepository {
 
     suspend fun signIn(email: String, password: String): Result<Unit>
 
-    /** Stops realtime, unregisters push, clears caches and signs out of Firebase, in that order. */
+    /**
+     * Stops realtime, unregisters push, clears caches and signs out of Firebase, in that order.
+     * Any other end of the session (rejected bootstrap, revoked Firebase user) runs the same cleanup.
+     */
     suspend fun signOut(): Result<Unit>
+
+    /**
+     * The backend user id once the session has settled (null when signed out). Waits at most
+     * [timeoutMillis] for a cold start's bootstrap; a live session then answers from its cache.
+     */
+    suspend fun settledUserId(timeoutMillis: Long): String? =
+        withTimeoutOrNull(timeoutMillis) { state.first { it !is SessionState.Initializing } }?.currentUserId
+
+    /**
+     * Whether a push may be shown (AS-02): only for a signed-in session. A cold start from a push
+     * is still bootstrapping ([SessionState.Initializing] only happens with a Firebase user), so
+     * a session that has not settled after [timeoutMillis] counts as signed in.
+     */
+    suspend fun acceptsPushes(timeoutMillis: Long): Boolean {
+        val settled = withTimeoutOrNull(timeoutMillis) { state.first { it !is SessionState.Initializing } }
+        return settled == null || settled.currentUserId != null
+    }
 
     suspend fun sendPasswordReset(email: String): Result<Unit>
 
@@ -133,6 +156,12 @@ interface MessageRepository {
 
     /** Toggles [emoji]: same emoji removes, a different one replaces. Hub only (G-01). */
     suspend fun react(messageId: Long, emoji: String): Result<Unit>
+
+    /**
+     * The thread root of a cached message, or null when it is a main-timeline message or not
+     * cached. Lets push suppression tell a thread reply from a main message (AF-12).
+     */
+    suspend fun cachedThreadRoot(messageId: Long): Long? = null
 }
 
 interface ThreadRepository {

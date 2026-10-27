@@ -18,7 +18,9 @@ import com.waivera.waivera.core.data.live.AttachmentCacheDirectory
 import com.waivera.waivera.core.data.live.ChatCache
 import com.waivera.waivera.core.data.live.LiveAttachmentRepository
 import com.waivera.waivera.core.data.live.LivePeopleRepository
+import com.waivera.waivera.core.data.live.PushUnregisterScheduler
 import com.waivera.waivera.core.data.live.SignOutCleaner
+import com.waivera.waivera.core.data.live.WorkManagerPushUnregisterScheduler
 import com.waivera.waivera.core.data.outbox.OutboxDirectory
 import com.waivera.waivera.core.data.outbox.OutboxScheduler
 import com.waivera.waivera.core.data.outbox.OutboxStore
@@ -68,6 +70,9 @@ abstract class DataInfrastructureModule {
 
     @Binds
     abstract fun outboxScheduler(scheduler: WorkManagerOutboxScheduler): OutboxScheduler
+
+    @Binds
+    abstract fun pushUnregisterScheduler(scheduler: WorkManagerPushUnregisterScheduler): PushUnregisterScheduler
 
     @Multibinds
     abstract fun signOutCleaners(): Set<SignOutCleaner>
