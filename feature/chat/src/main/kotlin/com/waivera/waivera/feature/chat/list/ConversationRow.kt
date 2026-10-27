@@ -48,6 +48,7 @@ import com.waivera.waivera.core.designsystem.theme.WaiveraShapes
 import com.waivera.waivera.core.designsystem.theme.WaiveraSizes
 import com.waivera.waivera.core.designsystem.theme.WaiveraSpacing
 import com.waivera.waivera.core.designsystem.theme.WaiveraTheme
+import com.waivera.waivera.core.designsystem.theme.isLargeFontScale
 import com.waivera.waivera.feature.chat.R
 import kotlinx.coroutines.delay
 
@@ -307,11 +308,15 @@ private fun CallJoin(opening: Boolean, onJoin: () -> Unit) {
                 modifier = Modifier.size(WaiveraSizes.IconSmall),
             )
         }
+        // At large font "· Join" would wrap onto its own line; the pill itself joins, and its
+        // content description still says so (UI3-11).
         Text(
-            text = label,
+            text = if (isLargeFontScale()) stringResource(R.string.feature_chat_call_in_progress) else label,
             style = MaterialTheme.typography.bodySmall,
             fontWeight = FontWeight.Bold,
             color = colors.onAccentSoft,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
         )
     }
 }

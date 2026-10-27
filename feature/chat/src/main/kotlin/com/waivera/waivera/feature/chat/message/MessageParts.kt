@@ -65,6 +65,7 @@ import com.waivera.waivera.core.designsystem.theme.WaiveraShapes
 import com.waivera.waivera.core.designsystem.theme.WaiveraSizes
 import com.waivera.waivera.core.designsystem.theme.WaiveraSpacing
 import com.waivera.waivera.core.designsystem.theme.WaiveraTheme
+import com.waivera.waivera.core.designsystem.theme.isLargeFontScale
 import com.waivera.waivera.feature.chat.R
 import java.time.Instant
 import java.time.ZoneId
@@ -339,19 +340,24 @@ private fun FileAttachment(message: Message, attachment: Attachment, onOpen: () 
                     modifier = Modifier.size(WaiveraSizes.Icon),
                 )
             }
+            // At large font the helper line would wrap into a column of words; the name gets
+            // the room instead, and the tap's label still says what it does (UI3-11).
+            val largeFont = isLargeFontScale()
             Column(Modifier.weight(1f, fill = false)) {
                 Text(
                     text = name,
                     style = MaterialTheme.typography.titleSmall,
                     color = colors.text,
-                    maxLines = 1,
+                    maxLines = if (largeFont) LARGE_FONT_FILE_NAME_LINES else 1,
                     overflow = TextOverflow.Ellipsis,
                 )
-                Text(
-                    text = stringResource(R.string.feature_chat_file_caption),
-                    style = MaterialTheme.typography.labelMedium,
-                    color = colors.textSecondary,
-                )
+                if (!largeFont) {
+                    Text(
+                        text = stringResource(R.string.feature_chat_file_caption),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = colors.textSecondary,
+                    )
+                }
             }
             Icon(
                 painterResource(ChatIcons.Download),
@@ -652,3 +658,5 @@ fun CallLogCard(item: TimelineItem.CallLog, time: RowTime, highlighted: Boolean,
 private const val HALF_TURN = 180f
 
 private const val PERCENT = 100
+
+private const val LARGE_FONT_FILE_NAME_LINES = 2

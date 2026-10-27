@@ -142,7 +142,9 @@ private fun TicketRow(item: NeedsYouItem.Ticket, onClick: () -> Unit, modifier: 
         ),
         onClick = onClick,
         onClickLabel = stringResource(R.string.feature_today_open_conversation),
-        supporting = joined(visibleSnippet, item.at?.let { pastText(it, formats) }),
+        // The age leads: the key is one long word, so at 200% it would push the age past the
+        // ellipsis ("Ticket #WAIV-2527 · 50…"); this way the age always shows (UI3-11).
+        supporting = item.at?.let { joined(pastText(it, formats), visibleSnippet) } ?: visibleSnippet,
         emphasized = true,
         modifier = modifier,
         leading = { TodayIconTile(icon = R.drawable.feature_today_ic_ticket) },

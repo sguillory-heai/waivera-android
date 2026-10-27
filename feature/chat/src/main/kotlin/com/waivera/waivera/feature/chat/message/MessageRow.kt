@@ -15,13 +15,18 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -42,6 +47,7 @@ import com.waivera.waivera.core.designsystem.component.BadgeTone
 import com.waivera.waivera.core.designsystem.component.WaiveraAvatar
 import com.waivera.waivera.core.designsystem.component.WaiveraButton
 import com.waivera.waivera.core.designsystem.component.WaiveraButtonVariant
+import com.waivera.waivera.core.designsystem.component.WaiveraIconButton
 import com.waivera.waivera.core.designsystem.component.WaiveraPressable
 import com.waivera.waivera.core.designsystem.component.WaiveraStatusBadge
 import com.waivera.waivera.core.designsystem.icon.WaiveraIcons
@@ -50,6 +56,7 @@ import com.waivera.waivera.core.designsystem.theme.WaiveraSizes
 import com.waivera.waivera.core.designsystem.theme.WaiveraSpacing
 import com.waivera.waivera.core.designsystem.theme.WaiveraTextStyles
 import com.waivera.waivera.core.designsystem.theme.WaiveraTheme
+import com.waivera.waivera.core.designsystem.theme.isLargeFontScale
 import com.waivera.waivera.feature.chat.R
 import java.time.Instant
 import java.time.ZoneId
@@ -379,6 +386,45 @@ private fun Footer(
     }
 }
 
+/** Large-font failed actions: Retry, then Edit and Discard behind one 48dp "More" button. */
+@Composable
+private fun FailedActionsCompact(message: Message, clientId: String, callbacks: MessageRowCallbacks) {
+    var menuOpen by remember { mutableStateOf(false) }
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        WaiveraButton(
+            text = stringResource(R.string.feature_chat_failed_retry),
+            onClick = { callbacks.onRetry(clientId) },
+            variant = WaiveraButtonVariant.Text,
+        )
+        Box {
+            WaiveraIconButton(
+                icon = WaiveraIcons.More,
+                contentDescription = stringResource(R.string.feature_chat_failed_more),
+                onClick = { menuOpen = true },
+                tint = WaiveraTheme.colors.accent,
+            )
+            DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
+                if (message.attachment == null) {
+                    DropdownMenuItem(
+                        text = { Text(stringResource(R.string.feature_chat_failed_edit)) },
+                        onClick = {
+                            menuOpen = false
+                            callbacks.onEditFailed(message)
+                        },
+                    )
+                }
+                DropdownMenuItem(
+                    text = { Text(stringResource(R.string.feature_chat_failed_discard)) },
+                    onClick = {
+                        menuOpen = false
+                        callbacks.onDiscard(clientId)
+                    },
+                )
+            }
+        }
+    }
+}
+
 /** "9:41 AM", or "Sent · 9:41 AM" under my own run, which is how a send or a retry confirms. */
 @Composable
 private fun runEndLabel(createdAt: Instant, time: RowTime, mine: Boolean): String {
@@ -432,7 +478,10 @@ private fun SavedPill() {
 
 private const val SAVED_POP_START = 0.75f
 
-/** Retry, Edit and Discard wrap as whole buttons at large font, never mid-word. */
+/**
+ * Retry, Edit and Discard, end-aligned. At large font the three would wrap and leave Discard on a
+ * line of its own, so Retry stays a button and Edit and Discard move into a "More" menu (UI3-11).
+ */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun PendingMeta(message: Message, callbacks: MessageRowCallbacks) {
@@ -454,7 +503,9 @@ private fun PendingMeta(message: Message, callbacks: MessageRowCallbacks) {
             color = if (message.sendState == SendState.FAILED) colors.dangerText else colors.textSecondary,
             textAlign = TextAlign.End,
         )
-        if (message.sendState == SendState.FAILED && clientId != null) {
+        if (message.sendState == SendState.FAILED && clientId != null && isLargeFontScale()) {
+            FailedActionsCompact(message = message, clientId = clientId, callbacks = callbacks)
+        } else if (message.sendState == SendState.FAILED && clientId != null) {
             FlowRow(horizontalArrangement = Arrangement.spacedBy(WaiveraSpacing.XxSmall, Alignment.End)) {
                 WaiveraButton(
                     text = stringResource(R.string.feature_chat_failed_retry),

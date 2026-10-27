@@ -12,14 +12,16 @@ import java.util.Locale
 
 /** Locale-aware schedule dates that do not need resources. Clock times are in [ScheduleClock]. */
 object ScheduleText {
+    // Month and day are joined by a no-break space (U+00A0), so a heading that wraps at 200%
+    // moves "November 1" down together instead of leaving the day alone on a line (UI3-11).
     private const val MONTH_YEAR = "MMMM yyyy"
-    private const val WEEKDAY_MONTH_DAY = "EEE, MMMM d"
-    private const val MONTH_DAY = "MMMM d"
+    private const val WEEKDAY_MONTH_DAY = "EEE, MMMM\u00A0d"
+    private const val MONTH_DAY = "MMMM\u00A0d"
     private const val DAY = "d"
     private const val YEAR = "yyyy"
-    private const val FULL_DAY = "EEEE, MMMM d"
-    private const val SHORT_DAY = "EEE, MMM d"
-    private const val SHORT_DAY_YEAR = "EEE, MMM d, yyyy"
+    private const val FULL_DAY = "EEEE, MMMM\u00A0d"
+    private const val SHORT_DAY = "EEE, MMM\u00A0d"
+    private const val SHORT_DAY_YEAR = "EEE, MMM\u00A0d, yyyy"
 
     fun monthYear(date: LocalDate, locale: Locale): String = format(date, MONTH_YEAR, locale)
 
