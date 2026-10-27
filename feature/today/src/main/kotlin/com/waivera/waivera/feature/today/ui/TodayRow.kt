@@ -37,7 +37,8 @@ import com.waivera.waivera.feature.today.R
 /**
  * The shared Today row: optional eyebrow, a headline that wraps (up to [headlineMaxLines]),
  * supporting text, a leading slot and a trailing slot. TalkBack reads it as one element with
- * [description], so compact visuals like "5m" are spoken in full.
+ * [description], so compact visuals like "5m" are spoken in full. Every Today row opens
+ * something, so every row ends in the same chevron by default.
  */
 @Composable
 internal fun TodayRow(
@@ -51,7 +52,7 @@ internal fun TodayRow(
     supporting: String? = null,
     emphasized: Boolean = false,
     headlineMaxLines: Int = HEADLINE_MAX_LINES,
-    showChevron: Boolean = false,
+    showChevron: Boolean = true,
     leading: @Composable () -> Unit,
     trailing: (@Composable () -> Unit)? = null,
 ) {
@@ -181,7 +182,6 @@ private fun TodayRowPreview() {
                 supporting = "Mention · 5m",
                 emphasized = true,
                 leading = { TodayIconTile(icon = R.drawable.feature_today_ic_mention) },
-                trailing = { UnreadDot() },
             )
             TodayRow(
                 headline = "Client home visit",

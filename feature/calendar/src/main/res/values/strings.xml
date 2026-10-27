@@ -3,7 +3,6 @@
     <!-- Schedule tab -->
     <string name="feature_calendar_schedule_title">Schedule</string>
     <string name="feature_calendar_schedule_subtitle">Events, time off, holidays, and team celebrations.</string>
-    <string name="feature_calendar_account_name">Your account</string>
     <string name="feature_calendar_view_day">Day</string>
     <string name="feature_calendar_view_week">Week</string>
     <string name="feature_calendar_view_month">Month</string>

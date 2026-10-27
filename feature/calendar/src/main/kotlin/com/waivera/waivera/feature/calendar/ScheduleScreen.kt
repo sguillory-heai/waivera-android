@@ -132,7 +132,7 @@ fun ScheduleContent(state: ScheduleUiState, actions: ScheduleActions, modifier: 
             ),
             account = rememberTopBarAccount(
                 onClick = actions.onAccountClick,
-                fallbackName = stringResource(R.string.feature_calendar_account_name),
+                fallbackName = "",
             ),
         )
         PullToRefreshBox(

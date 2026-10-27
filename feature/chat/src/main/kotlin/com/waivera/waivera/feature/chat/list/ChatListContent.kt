@@ -96,7 +96,7 @@ fun ChatListContent(
                 ),
                 account = rememberTopBarAccount(
                     onClick = actions.onAccountClick,
-                    fallbackName = state.accountName.ifEmpty { stringResource(R.string.feature_chat_list_account) },
+                    fallbackName = state.accountName,
                     painter = accountPainter,
                 ),
             )

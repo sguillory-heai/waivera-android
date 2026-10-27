@@ -27,9 +27,9 @@ enum class ScreenshotDevice(
     PhoneLarge(id = "large", widthDp = 412, heightDp = 915, density = "xxhdpi"),
     ;
 
-    internal fun qualifiers(darkTheme: Boolean): String {
+    internal fun qualifiers(darkTheme: Boolean, heightOverrideDp: Int? = null): String {
         val night = if (darkTheme) "night" else "notnight"
-        return "w${widthDp}dp-h${heightDp}dp-$night-$density"
+        return "w${widthDp}dp-h${heightOverrideDp ?: heightDp}dp-$night-$density"
     }
 }
 
@@ -65,6 +65,10 @@ object ScreenshotMatrix {
  * Renders [content] inside [WaiveraTheme] for every [variants] cell and writes
  * `<outputDirectory>/<name>_<device>_<theme>_font<percent>.png`.
  *
+ * [heightDp] gives a taller window than the phone, for states that sit below the first screen
+ * (a section near the end of a list): the phone width stays the same, so layout is unchanged and
+ * the state under test is in the image instead of cropped off.
+ *
  * Call from a Robolectric test annotated `@GraphicsMode(GraphicsMode.Mode.NATIVE)` and
  * `@Config(sdk = [ScreenshotSdk.VALUE])`. Motion is reduced so captures are deterministic and
  * haptics are off. Font scale is applied through [LocalDensity] so `sp` text scales exactly as
@@ -74,6 +78,7 @@ object ScreenshotMatrix {
 fun captureScreenshots(
     name: String,
     variants: List<ScreenshotVariant> = ScreenshotMatrix.Default,
+    heightDp: Int? = null,
     content: @Composable () -> Unit,
 ) {
     // Animator scale 0 is the system "Remove animations" setting: Compose then stops infinite
@@ -84,7 +89,7 @@ fun captureScreenshots(
         0f,
     )
     variants.forEach { variant ->
-        RuntimeEnvironment.setQualifiers(variant.device.qualifiers(variant.darkTheme))
+        RuntimeEnvironment.setQualifiers(variant.device.qualifiers(variant.darkTheme, heightDp))
         captureRoboImage(filePath = "${ScreenshotMatrix.outputDirectory}/${name}_${variant.suffix}.png") {
             val density = LocalDensity.current
             CompositionLocalProvider(
@@ -107,6 +112,12 @@ fun captureScreenshots(
             }
         }
     }
+}
+
+/** Window heights for [captureScreenshots] when the state under test is below the first screen. */
+object ScreenshotHeights {
+    /** Fits a full Today or Profile screen at 200% font on the small phone. */
+    const val TALL_DP = 2400
 }
 
 /** The Robolectric SDK screenshots render on. Pinned so images do not change with the compile SDK. */

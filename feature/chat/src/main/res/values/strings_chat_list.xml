@@ -3,7 +3,6 @@
 <resources>
     <string name="feature_chat_list_title">Chats</string>
     <string name="feature_chat_list_new_chat">Start a new chat</string>
-    <string name="feature_chat_list_account">Your account</string>
 
     <string name="feature_chat_list_status_online">Online</string>
     <string name="feature_chat_list_status_connecting">Connecting</string>
