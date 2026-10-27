@@ -59,6 +59,7 @@ import com.waivera.waivera.core.designsystem.component.WaiveraDivider
 import com.waivera.waivera.core.designsystem.component.WaiveraPressable
 import com.waivera.waivera.core.designsystem.component.WaiveraStatusBadge
 import com.waivera.waivera.core.designsystem.icon.WaiveraIcons
+import com.waivera.waivera.core.designsystem.text.withNonBreakingHyphens
 import com.waivera.waivera.core.designsystem.theme.WaiveraShapes
 import com.waivera.waivera.core.designsystem.theme.WaiveraSizes
 import com.waivera.waivera.core.designsystem.theme.WaiveraSpacing
@@ -380,7 +381,12 @@ fun TicketCard(ticket: TicketNotification, onOpen: (String) -> Unit, modifier: M
             color = colors.text,
             modifier = Modifier.semantics { heading() },
         )
-        Text(text = ticket.ticketId, style = MaterialTheme.typography.labelMedium, color = colors.textSecondary)
+        Text(
+            text = ticket.ticketId.withNonBreakingHyphens(),
+            style = MaterialTheme.typography.labelMedium,
+            color = colors.textSecondary,
+            modifier = Modifier.semantics { contentDescription = ticket.ticketId },
+        )
         WaiveraButton(
             text = stringResource(R.string.feature_chat_ticket_open),
             onClick = { onOpen(ticket.url) },

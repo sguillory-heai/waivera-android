@@ -19,6 +19,7 @@ import com.waivera.waivera.core.designsystem.component.WaiveraButtonVariant
 import com.waivera.waivera.core.designsystem.component.WaiveraCountBadge
 import com.waivera.waivera.core.designsystem.icon.WaiveraIcons
 import com.waivera.waivera.core.designsystem.preview.WaiveraPreviews
+import com.waivera.waivera.core.designsystem.text.withNonBreakingHyphens
 import com.waivera.waivera.core.designsystem.theme.WaiveraSizes
 import com.waivera.waivera.core.designsystem.theme.WaiveraSpacing
 import com.waivera.waivera.core.designsystem.theme.WaiveraTheme
@@ -128,6 +129,10 @@ private fun TicketRow(item: NeedsYouItem.Ticket, onClick: () -> Unit, modifier: 
     val title = item.ticketTitle ?: stringResource(R.string.feature_today_ticket_title)
     val snippet = item.ticketId?.let { stringResource(R.string.feature_today_ticket_number, it) }
         ?: snippetText(item.snippet)
+    // The key wraps as one word on screen ("Ticket #WAIV-" / "2527" read as two things).
+    val visibleSnippet = item.ticketId?.let {
+        stringResource(R.string.feature_today_ticket_number, it.withNonBreakingHyphens())
+    } ?: snippet
     val unread = pluralStringResource(R.plurals.feature_today_unread_messages_a11y, item.unreadCount, item.unreadCount)
     TodayRow(
         headline = title,
@@ -137,7 +142,7 @@ private fun TicketRow(item: NeedsYouItem.Ticket, onClick: () -> Unit, modifier: 
         ),
         onClick = onClick,
         onClickLabel = stringResource(R.string.feature_today_open_conversation),
-        supporting = joined(snippet, item.at?.let { pastText(it, formats) }),
+        supporting = joined(visibleSnippet, item.at?.let { pastText(it, formats) }),
         emphasized = true,
         modifier = modifier,
         leading = { TodayIconTile(icon = R.drawable.feature_today_ic_ticket) },
