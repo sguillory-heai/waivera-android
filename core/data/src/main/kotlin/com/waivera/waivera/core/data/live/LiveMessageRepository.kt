@@ -49,9 +49,16 @@ import kotlinx.serialization.json.JsonElement
 /**
  * Per-conversation paging state (G-06: there is no envelope, so has-more is inferred).
  * [hasOlder] is about the oldest cached message; [gaps] are holes inside the cache (AF-03).
+ * [confirmedNewestId] is the newest message a REST page proved joined to the latest. Hub and
+ * outbox echoes also land in the cache, but they say nothing about what was missed while the app
+ * was away, so the newest cached id alone cannot tell whether the next tail page leaves a hole.
  */
 @Serializable
-data class TimelineMeta(val hasOlder: Boolean = true, val gaps: List<TimelineGap> = emptyList())
+data class TimelineMeta(
+    val hasOlder: Boolean = true,
+    val gaps: List<TimelineGap> = emptyList(),
+    val confirmedNewestId: Long? = null,
+)
 
 @Singleton
 @Suppress("LongParameterList", "TooManyFunctions")
@@ -136,7 +143,7 @@ class LiveMessageRepository @Inject constructor(
         }.map(Mappers::message)
         cache.transactions.run {
             val meta = meta(conversationId)
-            val newestCached = cache.messageDao.newestId(conversationId)
+            val newestCached = confirmedEdge(meta, cache.messageDao.newestId(conversationId))
             val oldestFetched = page.minOfOrNull { it.id }
             val hole = newestCached != null && oldestFetched != null && oldestFetched > newestCached &&
                 page.size >= ChatApi.MESSAGE_PAGE_SIZE
@@ -146,6 +153,7 @@ class LiveMessageRepository @Inject constructor(
             if (dropStale) cache.messageDao.deleteConversation(conversationId)
             ingest.ingest(page)
             val updated = latestPageMeta(meta, newestCached.takeUnless { dropStale }, page)
+                .confirmedUpTo(page.filter { !it.isThreadReply }.maxOfOrNull { it.id })
             if (updated != meta || newestCached == null) putMeta(conversationId, updated)
         }
         page.filter { !it.isThreadReply }.maxByOrNull { it.id }?.let { conversations.onMessage(it) }
@@ -247,7 +255,8 @@ class LiveMessageRepository @Inject constructor(
             if (!reachesStart && below != null) gaps = TimelineGaps.add(gaps, TimelineGap(below, lo))
             // With nothing cached below, the context page holds the oldest cached message.
             val hasOlder = if (below == null) !reachesStart else meta.hasOlder
-            putMeta(conversationId, TimelineMeta(hasOlder = hasOlder, gaps = gaps))
+            val confirmed = if (reachesLatest) hi else meta.confirmedNewestId
+            putMeta(conversationId, TimelineMeta(hasOlder = hasOlder, gaps = gaps, confirmedNewestId = confirmed))
         }
         fillForward(conversationId, hi)
     }
@@ -263,12 +272,24 @@ class LiveMessageRepository @Inject constructor(
             cache.transactions.run {
                 ingest.ingest(page)
                 val meta = meta(conversationId)
-                val top = if (newer.size < ChatApi.MAX_CONTEXT_WINDOW) Long.MAX_VALUE else newer.max()
-                putMeta(conversationId, meta.copy(gaps = TimelineGaps.cover(meta.gaps, edge, top)))
+                val reachesLatest = newer.size < ChatApi.MAX_CONTEXT_WINDOW
+                val top = if (reachesLatest) Long.MAX_VALUE else newer.max()
+                val filled = meta.copy(gaps = TimelineGaps.cover(meta.gaps, edge, top))
+                putMeta(conversationId, if (reachesLatest) filled.confirmedUpTo(newer.maxOrNull() ?: edge) else filled)
             }
             edge = newer.maxOrNull() ?: return
         }
     }
+
+    /**
+     * The newest cached message known to be joined to the cache below it: the REST-confirmed id
+     * when there is one, since anything newer may have come from the hub after a gap (IF-01).
+     */
+    private fun confirmedEdge(meta: TimelineMeta, newestCached: Long?): Long? =
+        newestCached?.let { newest -> meta.confirmedNewestId?.coerceAtMost(newest) ?: newest }
+
+    private fun TimelineMeta.confirmedUpTo(id: Long?): TimelineMeta =
+        if (id == null) this else copy(confirmedNewestId = maxOf(id, confirmedNewestId ?: id))
 
     private suspend fun meta(conversationId: Long): TimelineMeta =
         cache.document(metaKey(conversationId), TimelineMeta.serializer()) ?: TimelineMeta()

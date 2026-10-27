@@ -1,5 +1,6 @@
 package com.waivera.waivera.core.data
 
+import com.waivera.waivera.core.data.live.Mappers
 import com.waivera.waivera.core.data.live.TimelineGap
 import com.waivera.waivera.core.data.live.TimelineGaps
 import com.waivera.waivera.core.data.live.TimelineMeta
@@ -100,6 +101,44 @@ class TimelineGapTest {
         repo.loadAround(7, 110).getOrThrow()
         assertTrue(graph.cache.document("timeline:7", TimelineMeta.serializer())?.gaps.orEmpty().isEmpty())
         assertContiguous(shown(), 80, 120)
+    }
+
+    /** What the hub does with a live message: it lands in the cache without any REST page. */
+    private suspend fun hubDelivers(id: Long) {
+        val live = graph.chatApi.getMessageContext(7, id, 0, 0).body().orEmpty().map(Mappers::message)
+        graph.ingest.ingest(live)
+    }
+
+    @Test
+    fun aLiveMessageAfterALongGapDoesNotHideTheMissedMessages() = testScope.runTest {
+        serve(newest = 50)
+        repo.refreshLatest(7).getOrThrow()
+        // 121 messages arrive while the app is away; the hub delivers the newest one first.
+        serve(newest = 171)
+        hubDelivers(171)
+        repo.refreshLatest(7).getOrThrow()
+        assertContiguous(shown(), 122, 171)
+        assertTrue(repo.loadOlder(7).getOrThrow())
+        assertContiguous(shown(), 72, 171)
+        assertTrue(repo.loadOlder(7).getOrThrow())
+        assertContiguous(shown(), 22, 171)
+    }
+
+    @Test
+    fun aLiveMessageInAClosedConversationDoesNotHideTheHoleBelowTheNewTail() = testScope.runTest {
+        serve(newest = 3_000)
+        repo.loadAround(7, 500).getOrThrow()
+        repo.refreshLatest(7).getOrThrow()
+        // While the conversation is closed 200 messages arrive; only the newest reaches the cache live.
+        serve(newest = 3_200)
+        hubDelivers(3_200)
+        repo.refreshLatest(7).getOrThrow()
+        assertEquals(
+            listOf(TimelineGap(1_130, 2_951), TimelineGap(3_000, 3_151)),
+            graph.cache.document("timeline:7", TimelineMeta.serializer())?.gaps,
+            "the new hole runs from the last confirmed message to the new tail",
+        )
+        assertContiguous(shown(), 3_151, 3_200)
     }
 
     @Test
