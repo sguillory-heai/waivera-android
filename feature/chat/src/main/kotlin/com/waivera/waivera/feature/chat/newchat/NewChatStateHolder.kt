@@ -9,6 +9,7 @@ import com.waivera.waivera.core.data.repository.ConversationRepository
 import com.waivera.waivera.core.data.repository.PeopleRepository
 import com.waivera.waivera.core.data.repository.SessionRepository
 import com.waivera.waivera.core.network.error.WaiveraError
+import com.waivera.waivera.feature.chat.R
 import com.waivera.waivera.feature.chat.list.ConversationPresentation
 import java.time.Clock
 import java.time.Duration
@@ -131,7 +132,7 @@ class NewChatStateHolder(
                     effectChannel.send(NewChatEffect.OpenConversation(id))
                 }
                 .onFailure { error ->
-                    val res = WaiveraError.from(error).messageRes
+                    val res = createErrorRes(WaiveraError.from(error))
                     local.update { it.copy(isCreating = false, errorRes = res) }
                 }
         }
@@ -145,4 +146,13 @@ class NewChatStateHolder(
     companion object {
         val STALE_AFTER: Duration = Duration.ofSeconds(60)
     }
+}
+
+/**
+ * Copy for a failed create. A 409 here is the server racing on the same chat, not someone
+ * editing a record, so the generic "someone else changed this" copy would be wrong.
+ */
+internal fun createErrorRes(error: WaiveraError): Int = when (error) {
+    is WaiveraError.Conflict -> R.string.feature_chat_newchat_create_conflict
+    else -> error.messageRes
 }

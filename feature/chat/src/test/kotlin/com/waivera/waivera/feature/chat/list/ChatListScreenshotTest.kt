@@ -6,12 +6,15 @@ import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import com.waivera.waivera.core.demo.DemoGraph
+import com.waivera.waivera.core.designsystem.component.WaiveraSheetFrame
 import com.waivera.waivera.core.designsystem.theme.WaiveraSpacing
 import com.waivera.waivera.core.designsystem.theme.WaiveraTheme
 import com.waivera.waivera.core.network.error.WaiveraError
 import com.waivera.waivera.core.screenshottesting.ScreenshotSdk
 import com.waivera.waivera.core.screenshottesting.captureScreenshots
+import com.waivera.waivera.feature.chat.R
 import com.waivera.waivera.feature.chat.newchat.NewChatPreviewData
 import com.waivera.waivera.feature.chat.newchat.NewChatSheetContent
 import com.waivera.waivera.feature.chat.newchat.NewChatUiState
@@ -100,6 +103,20 @@ class ChatListScreenshotTest {
         ),
     )
 
+    /** A server failure while online: the error state alone, with the server copy, no offline signal. */
+    @Test
+    fun serverError() = list(
+        "server_error",
+        ChatListUiState(
+            content = ChatListContent.Error(WaiveraError.Server(WaiveraError.HTTP_SERVER_ERROR).messageRes),
+            connection = ConnectionUi.Online,
+        ),
+    )
+
+    /** Start-up: the "Connecting" pill waits out a normal connect, so nothing shows yet. */
+    @Test
+    fun connecting() = list("connecting", sample.copy(connection = ConnectionUi.Connecting))
+
     @Test
     fun reconnecting() = list("reconnecting", sample.copy(connection = ConnectionUi.Reconnecting))
 
@@ -152,8 +169,9 @@ class ChatListScreenshotTest {
         NewChatUiState(isLoading = false, loadErrorRes = WaiveraError.Network().messageRes),
     )
 
+    /** Inside the real sheet frame, so the title and drag handle are part of what is checked. */
     private fun newChat(name: String, state: NewChatUiState) = captureScreenshots("new_chat_$name") {
-        SheetSurface {
+        WaiveraSheetFrame(title = stringResource(R.string.feature_chat_newchat_title)) {
             NewChatSheetContent(
                 state = state,
                 avatars = emptyMap(),

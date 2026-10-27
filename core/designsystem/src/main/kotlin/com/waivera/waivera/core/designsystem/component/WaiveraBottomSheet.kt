@@ -1,5 +1,6 @@
 package com.waivera.waivera.core.designsystem.component
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
@@ -13,6 +14,7 @@ import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
@@ -73,6 +75,29 @@ internal fun WaiveraSheetContent(
             )
         }
         content()
+    }
+}
+
+/**
+ * A sheet drawn inline, without a window: the sheet shape, drag handle, title and body exactly
+ * as [WaiveraBottomSheet] shows them. For previews and screenshot tests of sheet content.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun WaiveraSheetFrame(
+    modifier: Modifier = Modifier,
+    title: String? = null,
+    content: @Composable ColumnScope.() -> Unit,
+) {
+    val colors = WaiveraTheme.colors
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .background(colors.surface, WaiveraShapes.Sheet),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        BottomSheetDefaults.DragHandle(color = colors.borderStrong)
+        WaiveraSheetContent(title = title, content = content)
     }
 }
 

@@ -2,7 +2,6 @@ package com.waivera.waivera.feature.chat.list
 
 import androidx.compose.animation.core.Animatable
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -53,9 +52,10 @@ import com.waivera.waivera.feature.chat.R
 import kotlinx.coroutines.delay
 
 /**
- * One inbox row: leading tile or avatar with an unread dot, title (wraps to two lines at large
- * font scales), time, preview with sender prefix or the typing/call override, and the unread
- * badge. Swipe actions, the long-press action sheet and TalkBack custom actions all offer the
+ * One inbox row: leading tile or avatar, title (wraps to two lines at large font scales), time,
+ * preview with sender prefix or the typing/call override, and the unread badge. Unread is two
+ * signals only, a bold title and the purple count badge (which TalkBack reads as "N unread");
+ * no row wash, avatar dot or coloured time on top. Swipe actions, the long-press action sheet and TalkBack custom actions all offer the
  * same actions.
  */
 @Composable
@@ -100,7 +100,6 @@ fun ConversationRow(
             modifier = Modifier
                 .fillMaxWidth()
                 .background(colors.background)
-                .background(if (row.isUnread) colors.accentWash else colors.background)
                 .semantics {
                     // The unread badge announces the count; these are the swipe actions as buttons.
                     customActions = buildList {
@@ -148,7 +147,7 @@ private fun RowBody(row: ChatRowUi, avatar: ImageBitmap?, onJoinCall: () -> Unit
         horizontalArrangement = Arrangement.spacedBy(WaiveraSpacing.MediumSmall),
         verticalAlignment = Alignment.Top,
     ) {
-        LeadingTile(row.leading, avatar, row.isUnread)
+        LeadingTile(row.leading, avatar)
         Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(WaiveraSpacing.XxSmall)) {
             Row(
                 horizontalArrangement = Arrangement.spacedBy(WaiveraSpacing.ExtraSmall),
@@ -175,7 +174,7 @@ private fun RowBody(row: ChatRowUi, avatar: ImageBitmap?, onJoinCall: () -> Unit
                     Text(
                         text = row.timeLabel,
                         style = MaterialTheme.typography.labelSmall,
-                        color = if (row.isUnread) colors.accent else colors.textSecondary,
+                        color = colors.textSecondary,
                         maxLines = 1,
                     )
                 }
@@ -244,7 +243,10 @@ private fun PreviewLine(row: ChatRowUi) {
     }
 }
 
-/** "Call in progress · Join". Its own tap target, so tapping it never opens the conversation. */
+/**
+ * "Call in progress · Join" as a tonal pill with a 48dp target. Its own tap target, so tapping
+ * it never opens the conversation.
+ */
 @Composable
 private fun CallJoin(opening: Boolean, onJoin: () -> Unit) {
     val colors = WaiveraTheme.colors
@@ -254,6 +256,7 @@ private fun CallJoin(opening: Boolean, onJoin: () -> Unit) {
         modifier = Modifier
             .minimumInteractiveComponentSize()
             .clip(WaiveraShapes.Pill)
+            .background(colors.accentSoft)
             .clickable(
                 enabled = !opening,
                 onClickLabel = stringResource(R.string.feature_chat_list_call_join_action),
@@ -263,7 +266,7 @@ private fun CallJoin(opening: Boolean, onJoin: () -> Unit) {
                 role = Role.Button
                 contentDescription = if (opening) openingLabel else label
             }
-            .padding(vertical = WaiveraSpacing.XxSmall),
+            .padding(horizontal = WaiveraSpacing.MediumSmall, vertical = WaiveraSpacing.ExtraSmall),
         horizontalArrangement = Arrangement.spacedBy(WaiveraSpacing.ExtraSmall + WaiveraSpacing.XxSmall),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -271,14 +274,14 @@ private fun CallJoin(opening: Boolean, onJoin: () -> Unit) {
         if (opening) {
             CircularProgressIndicator(
                 modifier = Modifier.size(WaiveraSizes.IconSmall),
-                color = colors.accent,
+                color = colors.onAccentSoft,
                 strokeWidth = WaiveraSizes.ProgressStroke,
             )
         } else {
             Icon(
                 painter = painterResource(WaiveraIcons.Video),
                 contentDescription = null,
-                tint = colors.accent,
+                tint = colors.onAccentSoft,
                 modifier = Modifier.size(WaiveraSizes.IconSmall),
             )
         }
@@ -286,14 +289,13 @@ private fun CallJoin(opening: Boolean, onJoin: () -> Unit) {
             text = label,
             style = MaterialTheme.typography.bodySmall,
             fontWeight = FontWeight.Bold,
-            color = colors.accent,
+            color = colors.onAccentSoft,
         )
     }
 }
 
 @Composable
-private fun LeadingTile(leading: RowLeading, avatar: ImageBitmap?, unread: Boolean) {
-    val colors = WaiveraTheme.colors
+private fun LeadingTile(leading: RowLeading, avatar: ImageBitmap?) {
     Box {
         when (leading) {
             is RowLeading.Channel -> IconTile(
@@ -331,16 +333,6 @@ private fun LeadingTile(leading: RowLeading, avatar: ImageBitmap?, unread: Boole
                     contentDescription = null,
                 )
             }
-        }
-        if (unread) {
-            Box(
-                modifier = Modifier
-                    .align(Alignment.TopEnd)
-                    .size(WaiveraSizes.PresenceDot)
-                    .border(WaiveraSizes.AvatarRing, colors.background, WaiveraShapes.Circle)
-                    .padding(WaiveraSizes.AvatarRing)
-                    .background(colors.unread, WaiveraShapes.Circle),
-            )
         }
     }
 }

@@ -93,7 +93,9 @@ fun WaiveraButton(
     ) {
         Box(contentAlignment = Alignment.Center) {
             ButtonLabel(text = text, leadingIcon = leadingIcon, modifier = Modifier.alpha(if (loading) 0f else 1f))
-            if (loading) ButtonProgress(label = loadingText, color = style.content)
+            if (loading) {
+                ButtonProgress(label = loadingText, color = if (enabled) style.content else colors.textSecondary)
+            }
         }
     }
 }

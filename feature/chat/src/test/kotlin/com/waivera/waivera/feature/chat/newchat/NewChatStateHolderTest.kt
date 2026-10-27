@@ -4,6 +4,7 @@ import com.waivera.waivera.core.data.model.Person
 import com.waivera.waivera.core.data.model.SyncStatus
 import com.waivera.waivera.core.data.model.Synced
 import com.waivera.waivera.core.network.error.WaiveraError
+import com.waivera.waivera.feature.chat.R
 import com.waivera.waivera.feature.chat.list.AvatarCache
 import com.waivera.waivera.feature.chat.list.FakeConversationRepository
 import com.waivera.waivera.feature.chat.list.FakePeopleRepository
@@ -94,14 +95,24 @@ class NewChatStateHolderTest {
 
     @Test
     fun failureShowsTheTypedErrorAndKeepsTheSelection() = run {
+        conversations.openResult = Result.failure(WaiveraError.Server(WaiveraError.HTTP_SERVER_ERROR))
+        val h = holder()
+        h.onToggle(PRIYA)
+        h.onSubmit()
+        assertEquals(WaiveraError.Server(WaiveraError.HTTP_SERVER_ERROR).messageRes, h.state.value.errorRes)
+        assertEquals(1, h.state.value.selectedCount)
+        h.onToggle(JORDAN)
+        assertEquals(null, h.state.value.errorRes, "changing the selection clears the error")
+    }
+
+    @Test
+    fun conflictOnCreateShowsCreateCopyNotTheEditConflictCopy() = run {
         conversations.openResult = Result.failure(WaiveraError.Conflict())
         val h = holder()
         h.onToggle(PRIYA)
         h.onSubmit()
-        assertEquals(WaiveraError.Conflict().messageRes, h.state.value.errorRes)
+        assertEquals(R.string.feature_chat_newchat_create_conflict, h.state.value.errorRes)
         assertEquals(1, h.state.value.selectedCount)
-        h.onToggle(JORDAN)
-        assertEquals(null, h.state.value.errorRes, "changing the selection clears the error")
     }
 
     @Test

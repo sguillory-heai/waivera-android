@@ -132,7 +132,7 @@ fun ColumnScope.NewChatSheetContent(
             value = state.query,
             onValueChange = onQueryChange,
             label = stringResource(R.string.feature_chat_newchat_search_label),
-            placeholder = stringResource(R.string.feature_chat_newchat_search_label),
+            placeholder = stringResource(R.string.feature_chat_newchat_search_placeholder),
             leadingIcon = {
                 Icon(
                     painter = painterResource(WaiveraIcons.Search),
@@ -196,8 +196,15 @@ fun ColumnScope.NewChatSheetContent(
                 },
             ),
             onClick = onSubmit,
-            enabled = state.canSubmit,
+            // Enabled while busy so the progress label is not dimmed; taps are ignored while loading.
+            enabled = state.canSubmit || state.isCreating,
             loading = state.isCreating,
+            loadingText = stringResource(
+                when (state.action) {
+                    NewChatAction.OpenChat -> R.string.feature_chat_newchat_opening
+                    NewChatAction.CreateGroup -> R.string.feature_chat_newchat_creating
+                },
+            ),
             fullWidth = true,
             modifier = Modifier.padding(bottom = WaiveraSpacing.Small),
         )
