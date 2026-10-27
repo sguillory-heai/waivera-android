@@ -1,9 +1,12 @@
 package com.waivera.waivera.core.network
 
 import com.waivera.waivera.core.network.error.NotSignedInException
+import com.waivera.waivera.core.network.error.TokenUnavailableException
+import com.waivera.waivera.core.network.error.WaiveraError
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
+import kotlin.test.assertIs
 import kotlin.test.assertNull
 import mockwebserver3.MockResponse
 import mockwebserver3.MockWebServer
@@ -54,6 +57,23 @@ class AuthTokenInterceptorTest {
     }
 
     @Test
+    fun onlyA401WithTheRefreshedTokenIsReportedAsARejection() {
+        var rejected = 0
+        val client = OkHttpClient.Builder()
+            .addInterceptor(AuthTokenInterceptor({ if (it) "fresh" else "stale" }, server.url("/")) { rejected++ })
+            .build()
+        server.enqueue(MockResponse.Builder().code(401).build())
+        server.enqueue(MockResponse.Builder().code(200).build())
+        client.newCall(Request.Builder().url(server.url("/api/x")).build()).execute().close()
+        assertEquals(0, rejected, "a refresh that works is not a rejection")
+
+        server.enqueue(MockResponse.Builder().code(401).build())
+        server.enqueue(MockResponse.Builder().code(401).build())
+        client.newCall(Request.Builder().url(server.url("/api/x")).build()).execute().close()
+        assertEquals(1, rejected)
+    }
+
+    @Test
     fun failsLocallyWithoutANetworkRequestWhenSignedOut() {
         val client = client { null }
 
@@ -61,6 +81,24 @@ class AuthTokenInterceptorTest {
             client.newCall(Request.Builder().url(server.url("/api/x")).build()).execute()
         }
         assertEquals(0, server.requestCount)
+    }
+
+    @Test
+    fun aTokenThatCannotBeFetchedIsANetworkFailureNotASignOut() {
+        server.enqueue(MockResponse.Builder().code(401).build())
+        val offline = client { throw TokenUnavailableException() }
+        val first = assertFailsWith<TokenUnavailableException> {
+            offline.newCall(Request.Builder().url(server.url("/api/x")).build()).execute()
+        }
+        assertIs<WaiveraError.Network>(WaiveraError.from(first), "transient, so nothing signs out (IS-02)")
+        assertEquals(0, server.requestCount)
+
+        // The refresh after a 401 failing the same way is not a sign-out either.
+        val refreshFails = client { forceRefresh -> if (forceRefresh) throw TokenUnavailableException() else "stale" }
+        assertFailsWith<TokenUnavailableException> {
+            refreshFails.newCall(Request.Builder().url(server.url("/api/x")).build()).execute()
+        }
+        assertEquals(1, server.requestCount)
     }
 
     @Test
@@ -90,6 +128,19 @@ class AuthTokenInterceptorTest {
 
         assertEquals(401, response.code)
         assertEquals(1, server.requestCount)
+    }
+
+    @Test
+    fun keepsAnExplicitAuthorizationHeaderEvenWhenSignedOut() {
+        server.enqueue(MockResponse.Builder().code(200).build())
+        val client = client { null }
+
+        val request = Request.Builder().url(server.url("/api/mobile-push/unregister"))
+            .header("Authorization", "Bearer captured")
+            .build()
+        client.newCall(request).execute()
+
+        assertEquals("Bearer captured", server.takeRequest().headers["Authorization"])
     }
 
     private fun client(tokens: AuthTokenProvider) =

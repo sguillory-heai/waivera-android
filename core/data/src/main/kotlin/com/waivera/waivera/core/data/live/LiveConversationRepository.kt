@@ -43,6 +43,7 @@ class LiveConversationRepository @Inject constructor(
     private val typing: TypingTracker,
     private val visible: VisibleConversation,
     private val clock: Clock,
+    private val reads: ConversationReadListener,
 ) : ConversationRepository {
     private val myUserId: String? get() = session.state.value.currentUserId
 
@@ -104,6 +105,19 @@ class LiveConversationRepository @Inject constructor(
         }
     }
 
+    /**
+     * A conversation first seen through a hub message. `/conversation/{id}` never fills
+     * `unreadCount` (G-14), so someone else's top-level message counts as at least one unread
+     * unless that conversation is on screen (AF-09).
+     */
+    suspend fun hydrateFor(message: Message) {
+        hydrate(listOf(message.conversationId))
+        if (message.isThreadReply || message.isMine(myUserId)) return
+        cache.updateConversation(message.conversationId) { c ->
+            if (visible.id.value == c.id || c.unreadCount > 0) null else c.copy(unreadCount = 1)
+        }
+    }
+
     private suspend fun upsertKeepingUnread(fresh: Conversation) {
         cache.transactions.run {
             val cached = cache.conversation(fresh.id)
@@ -155,11 +169,27 @@ class LiveConversationRepository @Inject constructor(
         cache.messageDao.deleteConversation(conversationId)
     }
 
+    /** Optimistic; on failure the badge and read position come back so Retry has something to do (AF-08). */
     override suspend fun markRead(conversationId: Long, lastVisibleMessageId: Long): Result<Unit> = catchingWaivera {
         val now = clock.instant()
+        val before = cache.conversation(conversationId)
         cache.updateConversation(conversationId) { it.copy(unreadCount = 0, lastReadAt = now) }
-        apiCall { chatApi.readThrough(conversationId, ChatReadThroughRequest(lastVisibleMessageId)) }
-        Unit
+        try {
+            apiCall { chatApi.readThrough(conversationId, ChatReadThroughRequest(lastVisibleMessageId)) }
+        } catch (error: WaiveraError) {
+            if (before != null) {
+                // Only undo our own change: a read state that arrived meanwhile stays.
+                cache.updateConversation(conversationId) { c ->
+                    if (c.unreadCount == 0 && c.lastReadAt == now) {
+                        c.copy(unreadCount = before.unreadCount, lastReadAt = before.lastReadAt)
+                    } else {
+                        null
+                    }
+                }
+            }
+            throw error
+        }
+        reads.onRead(conversationId)
     }
 
     override fun observeTyping(conversationId: Long): Flow<Set<String>> = typing.observe(conversationId)
@@ -228,15 +258,15 @@ class LiveConversationRepository @Inject constructor(
     suspend fun onReadState(state: ChatReadStateDto) {
         val readAt = state.readAt ?: clock.instant()
         if (state.conversationId == 0L) {
-            cache.transactions.run {
-                cache.putConversations(
-                    cache.conversations().filter {
-                        it.unreadCount > 0
-                    }.map { it.copy(unreadCount = 0, lastReadAt = readAt) },
-                )
+            val cleared = cache.transactions.run {
+                val unread = cache.conversations().filter { it.unreadCount > 0 }
+                cache.putConversations(unread.map { it.copy(unreadCount = 0, lastReadAt = readAt) })
+                unread.map { it.id }
             }
+            cleared.forEach(reads::onRead)
         } else if (state.threadRootMessageId == null) {
             cache.updateConversation(state.conversationId) { it.copy(unreadCount = 0, lastReadAt = readAt) }
+            reads.onRead(state.conversationId)
         }
     }
 

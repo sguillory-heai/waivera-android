@@ -140,6 +140,19 @@ class FeedRepositoriesTest {
     }
 
     @Test
+    fun cachedThreadRootTellsRepliesFromMainMessages() = testScope.runTest {
+        graph.cache.putMessages(
+            listOf(
+                com.waivera.waivera.core.data.model.Message(id = 9312, conversationId = 7, threadRootMessageId = 9310),
+                com.waivera.waivera.core.data.model.Message(id = 9310, conversationId = 7, threadRootMessageId = 9310),
+            ),
+        )
+        assertEquals(9310L, graph.threads.cachedRootOf(9312))
+        assertNull(graph.threads.cachedRootOf(9310), "a root is a main-timeline message")
+        assertNull(graph.threads.cachedRootOf(1), "not cached")
+    }
+
+    @Test
     fun threadErrorIsTyped() = testScope.runTest {
         graph.server.status("GET /api/chat/thread/1", 404)
         assertIs<WaiveraError.NotFound>(graph.threads.refresh(1).exceptionOrNull())
@@ -148,8 +161,8 @@ class FeedRepositoriesTest {
     @Test
     fun directoryLoadsAndAvatarsDecodeWithANegativeCache() = testScope.runTest {
         graph.server.json(
-            "GET /api/chat/initiation-directory",
-            """[{"id":"usr_jordan_lee","displayName":"Jordan Lee"}]""",
+            "GET /api/Authentication/get-username-list",
+            """{"data":[{"userId":"usr_jordan_lee","userName":"Jordan Lee"}],"statusCode":200,"success":true}""",
         )
         graph.people.refresh().getOrThrow()
         assertEquals(listOf("usr_jordan_lee"), graph.people.observeDirectory().first().data.map { it.id })
@@ -172,9 +185,37 @@ class FeedRepositoriesTest {
 
     @Test
     fun emptyDirectoryIsEmpty() = testScope.runTest {
-        graph.server.json("GET /api/chat/initiation-directory", "[]")
+        graph.server.status("GET /api/Authentication/get-username-list", 204)
         graph.people.refresh().getOrThrow()
         assertTrue(graph.people.observeDirectory().first().isEmpty)
+    }
+
+    @Test
+    fun ordinaryStaffGetTheDirectoryFromTheUsernameList() = testScope.runTest {
+        // initiation-directory is SUPER ADMIN only: ordinary staff get 403 there (AF-01).
+        graph.server.status("GET /api/chat/initiation-directory", 403)
+        graph.server.fixture("GET /api/Authentication/get-username-list", "rest-auth-get-username-list.json")
+        graph.people.refresh().getOrThrow()
+        val people = graph.people.observeDirectory().first().data
+        assertEquals(listOf("Alex Rivera", "Jordan Lee", "Priya Raman"), people.map { it.name }.sorted())
+        assertTrue(graph.server.requestsTo("/api/chat/initiation-directory").isEmpty())
+    }
+
+    @Test
+    fun theDirectoryNeverOverwritesARicherCachedPerson() = testScope.runTest {
+        val participant = com.waivera.waivera.core.data.model.Person(
+            id = "usr_priya_raman",
+            firstName = "Priya",
+            lastName = "Raman",
+            email = "priya@example.com",
+            avatarUrl = "https://cdn.example.test/p.png",
+        )
+        graph.cache.putPeople(listOf(participant))
+        graph.server.fixture("GET /api/Authentication/get-username-list", "rest-auth-get-username-list.json")
+        graph.people.refresh().getOrThrow()
+        val people = graph.people.observeDirectory().first().data
+        assertEquals(participant, people.single { it.id == "usr_priya_raman" })
+        assertEquals(3, people.size)
     }
 
     @Test
@@ -229,6 +270,36 @@ class FeedRepositoriesTest {
         val file = attachments.download(9302, "../../etc/passwd").getOrThrow()
         assertEquals(dir, file.parentFile, "file names cannot escape the cache directory")
         assertEquals("PDFDATA", file.readText())
+        dir.deleteRecursively()
+    }
+
+    @Test
+    fun aDownloadStillRunningAtSignOutLeavesNothingInTheCache() = testScope.runTest {
+        val dir = java.nio.file.Files.createTempDirectory("att").toFile()
+        val attachments = com.waivera.waivera.core.data.live.LiveAttachmentRepository(
+            graph.chatApi,
+            graph.server.config,
+            dir,
+            kotlinx.coroutines.Dispatchers.IO,
+        )
+        val arrived = java.util.concurrent.CountDownLatch(1)
+        val release = java.util.concurrent.CountDownLatch(1)
+        graph.server.route("GET /api/chat/message/9303/attachment") {
+            arrived.countDown()
+            release.await(5, java.util.concurrent.TimeUnit.SECONDS)
+            mockwebserver3.MockResponse.Builder().code(200).body("PRIVATE").build()
+        }
+        val download = async(kotlinx.coroutines.Dispatchers.IO) {
+            runCatching { attachments.download(9303, "pay-slip.pdf").getOrThrow() }
+        }
+        kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+            arrived.await(5, java.util.concurrent.TimeUnit.SECONDS)
+        }
+        // IS-08: the sign-out wipe runs while the previous account's file is still arriving.
+        attachments.clear()
+        release.countDown()
+        assertTrue(download.await().isFailure, "the download does not complete for the next account")
+        assertEquals(emptyList(), dir.listFiles().orEmpty().toList(), "nothing was written back")
         dir.deleteRecursively()
     }
 

@@ -1,6 +1,6 @@
 package com.waivera.waivera.feature.chat.message
 
-import java.net.URI
+import com.waivera.waivera.core.network.ExternalLinks
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
@@ -15,13 +15,7 @@ import kotlinx.serialization.json.put
  * schemes are never opened.
  */
 object SafeLinks {
-    fun isAllowed(href: String?): Boolean {
-        val value = href?.trim().orEmpty()
-        if (value.isEmpty()) return false
-        val uri = runCatching { URI(value) }.getOrNull() ?: return false
-        val scheme = uri.scheme?.lowercase() ?: return false
-        return (scheme == "http" || scheme == "https") && !uri.host.isNullOrBlank()
-    }
+    fun isAllowed(href: String?): Boolean = ExternalLinks.isOpenable(href)
 }
 
 /** What the composer sends: the trimmed text plus the matching TipTap document. */

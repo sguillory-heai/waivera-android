@@ -20,6 +20,7 @@ import com.waivera.waivera.core.data.repository.BookmarkRepository
 import com.waivera.waivera.core.data.repository.CalendarRepository
 import com.waivera.waivera.core.data.repository.ConversationRepository
 import com.waivera.waivera.core.data.repository.DataLayerStarter
+import com.waivera.waivera.core.data.repository.DurableMessageSender
 import com.waivera.waivera.core.data.repository.MessageRepository
 import com.waivera.waivera.core.data.repository.PeopleRepository
 import com.waivera.waivera.core.data.repository.ProfileRepository
@@ -55,6 +56,9 @@ interface LiveRepositoriesModule {
 
     @Binds
     fun messages(impl: LiveMessageRepository): MessageRepository
+
+    @Binds
+    fun durableSends(impl: LiveMessageRepository): DurableMessageSender
 
     @Binds
     fun threads(impl: LiveThreadRepository): ThreadRepository

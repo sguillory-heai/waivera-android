@@ -12,15 +12,33 @@ naming:
     constantPattern: '[A-Z][A-Za-z0-9_]*'
 
 complexity:
+  LongMethod:
+    # A screen composable is a layout tree; its length is nesting, not logic. Logic lives in
+    # ViewModels and plain functions, which keep the default limit.
+    ignoreAnnotated: ['Composable']
+  CyclomaticComplexMethod:
+    # Same reason: `if (x != null)` around optional UI parts counts as a branch.
+    ignoreAnnotated: ['Composable']
   LongParameterList:
     # Stateless composables take state plus callbacks plus a Modifier; Hilt constructors list their dependencies.
-    ignoreAnnotated: ['Composable', 'Inject']
+    # `*Actions` and `*Callbacks` holders (one lambda per user action, marked @Immutable or @Stable for
+    # Compose) exist precisely to keep composable signatures short.
+    ignoreAnnotated: ['Composable', 'Inject', 'AssistedInject', 'Immutable', 'Stable']
+    ignoreDataClasses: true
+    # Test fixture builders take one defaulted parameter per field they can vary; as for
+    # TooManyFunctions in the default config, tests are not held to the production limit.
+    excludes: ['**/test/**', '**/androidTest/**']
   TooManyFunctions:
     ignoreAnnotated: ['Preview', 'WaiveraPreviews']
+    # A screen file holds its private composable pieces; counting them pushes files apart for no gain.
+    ignoreAnnotatedFunctions: ['Composable', 'Preview', 'WaiveraPreviews']
     # Interface implementations (notifier, repositories) are sized by their interface.
     ignoreOverridden: true
 
 style:
+  ReturnCount:
+    # Early-return guards (`if (x == null) return`) are the house style; only real exits count.
+    excludeGuardClauses: true
   MagicNumber:
     # Design tokens are the one place literal dp, sp and colour values live.
     excludes: ['**/core/designsystem/**', '**/test/**', '**/androidTest/**']

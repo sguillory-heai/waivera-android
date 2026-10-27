@@ -6,6 +6,22 @@ enum class FileKind { Spreadsheet, Document, Other }
 
 /** Attachment rules from 03 §8, independent of Android so they can be unit tested. */
 object Attachments {
+    private val MIME_BY_EXTENSION = mapOf(
+        "pdf" to "application/pdf",
+        "xlsx" to "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        "xls" to "application/vnd.ms-excel",
+        "docx" to "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        "doc" to "application/msword",
+        "txt" to "text/plain",
+        "csv" to "text/csv",
+        "png" to "image/png",
+        "jpg" to "image/jpeg",
+        "jpeg" to "image/jpeg",
+        "gif" to "image/gif",
+        "webp" to "image/webp",
+        "heic" to "image/heic",
+    )
+
     private val IMAGE_TYPES = setOf("image", "png", "jpg", "jpeg", "gif", "webp", "heic", "heif")
     private const val DEFAULT_MIME = "application/octet-stream"
 
@@ -24,25 +40,11 @@ object Attachments {
             ?: "waivera-attachment-${messageId.coerceAtLeast(0)}.${extensionFor(typeHint(attachment))}"
 
     /** The type if it is a MIME type, else inferred from the file name, else octet-stream. */
-    fun mimeType(attachment: Attachment, messageId: Long): String {
-        attachment.contentType?.takeIf { '/' in it }?.let { return it }
-        attachment.type?.takeIf { '/' in it }?.let { return it }
-        return when (fileName(attachment, messageId).substringAfterLast('.', "").lowercase()) {
-            "pdf" -> "application/pdf"
-            "xlsx" -> "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-            "xls" -> "application/vnd.ms-excel"
-            "docx" -> "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-            "doc" -> "application/msword"
-            "txt" -> "text/plain"
-            "csv" -> "text/csv"
-            "png" -> "image/png"
-            "jpg", "jpeg" -> "image/jpeg"
-            "gif" -> "image/gif"
-            "webp" -> "image/webp"
-            "heic" -> "image/heic"
-            else -> DEFAULT_MIME
-        }
-    }
+    fun mimeType(attachment: Attachment, messageId: Long): String =
+        attachment.contentType?.takeIf { '/' in it }
+            ?: attachment.type?.takeIf { '/' in it }
+            ?: MIME_BY_EXTENSION[fileName(attachment, messageId).substringAfterLast('.', "").lowercase()]
+            ?: DEFAULT_MIME
 
     fun kind(attachment: Attachment, messageId: Long): FileKind {
         val hint = (typeHint(attachment) + " " + fileName(attachment, messageId)).lowercase()

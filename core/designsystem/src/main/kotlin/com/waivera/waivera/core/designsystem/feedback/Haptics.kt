@@ -38,6 +38,9 @@ enum class HapticMoment {
 
     /** A long press that opens a menu. */
     LongPress,
+
+    /** Someone else's message arriving while its conversation or thread is on screen. */
+    Receive,
 }
 
 /** Platform-neutral haptic signal; one per meaning so each moment feels the same everywhere. */
@@ -60,6 +63,7 @@ internal fun HapticMoment.signal(): HapticSignal = when (this) {
     HapticMoment.Error -> HapticSignal.Reject
     HapticMoment.Warning -> HapticSignal.Reject
     HapticMoment.LongPress -> HapticSignal.LongPress
+    HapticMoment.Receive -> HapticSignal.SegmentTick
 }
 
 private fun HapticSignal.feedbackType(): HapticFeedbackType = when (this) {

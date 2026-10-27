@@ -94,10 +94,51 @@ class RealtimeSyncTest {
     }
 
     @Test
+    fun aMainTimelineMessageWhileOnlyAThreadIsOpenStillCountsAsUnread() = testScope.runTest {
+        seedInbox()
+        val before = graph.cache.conversation(7)?.unreadCount ?: 0
+        val base = (event("hub-receive-message.json") as HubEvent.MessageReceived).message
+        // IF-02: the thread is on screen, the main timeline under it is not.
+        graph.visible.set(7, threadRootMessageId = 9_310)
+        sync.apply(
+            HubEvent.MessageReceived(
+                base.copy(id = 10_003, conversationId = 7, userId = "usr_priya_raman", author = null),
+            ),
+        )
+        assertEquals(before + 1, graph.cache.conversation(7)?.unreadCount)
+    }
+
+    @Test
     fun messageForAnUnknownConversationHydratesIt() = testScope.runTest {
         graph.server.fixture("GET /api/chat/conversation/7", "rest-chat-get-conversation.json")
         sync.apply(event("hub-receive-conversation-list-message.json"))
         eventually { graph.cache.conversation(7) != null }
+    }
+
+    @Test
+    fun aNewConversationFromSomeoneElseStartsWithAnUnreadBadge() = testScope.runTest {
+        graph.server.fixture("GET /api/chat/conversation/7", "rest-chat-get-conversation.json")
+        val base = (event("hub-receive-message.json") as HubEvent.MessageReceived).message
+        sync.apply(
+            HubEvent.MessageReceived(
+                base.copy(id = 10_100, conversationId = 7, userId = "usr_priya_raman", author = null),
+            ),
+        )
+        eventually { graph.cache.conversation(7) != null }
+        assertEquals(1, graph.cache.conversation(7)?.unreadCount, "G-14: the hydrate alone would say 0")
+    }
+
+    @Test
+    fun aNewConversationFromMyOwnMessageHasNoBadge() = testScope.runTest {
+        graph.server.fixture("GET /api/chat/conversation/7", "rest-chat-get-conversation.json")
+        val base = (event("hub-receive-message.json") as HubEvent.MessageReceived).message
+        sync.apply(
+            HubEvent.MessageReceived(
+                base.copy(id = 10_101, conversationId = 7, userId = "usr_alex_rivera", author = null),
+            ),
+        )
+        eventually { graph.cache.conversation(7) != null }
+        assertEquals(0, graph.cache.conversation(7)?.unreadCount)
     }
 
     @Test
@@ -126,6 +167,20 @@ class RealtimeSyncTest {
         assertEquals(0, graph.cache.conversation(7)?.unreadCount)
         sync.apply(event("hub-receive-chat-read-state-read-all.json"))
         assertTrue(graph.cache.conversations().all { it.unreadCount == 0 })
+    }
+
+    @Test
+    fun readingAConversationElsewhereClearsItsNotifications() = testScope.runTest {
+        seedInbox()
+        val unread = graph.cache.conversations().filter { it.unreadCount > 0 }.map { it.id }.toSet()
+        // IF-07: the hub reports this user's own reads, from this device or another one.
+        sync.apply(HubEvent.ChatReadState(ChatReadStateDto(conversationId = 7, threadRootMessageId = 9_310)))
+        assertEquals(emptyList(), graph.readsCleared, "a thread read leaves the conversation's alerts")
+        sync.apply(HubEvent.ChatReadState(ChatReadStateDto(conversationId = 7)))
+        assertEquals(listOf(7L), graph.readsCleared)
+        graph.readsCleared.clear()
+        sync.apply(event("hub-receive-chat-read-state-read-all.json"))
+        assertEquals(unread - 7L, graph.readsCleared.toSet(), "read all clears every conversation that was unread")
     }
 
     @Test
@@ -196,6 +251,9 @@ class RealtimeSyncTest {
         status.setVisibleConversation(7)
         assertTrue(status.shouldSuppressNotification(7))
         assertTrue(!status.shouldSuppressNotification(8))
+        // A thread on screen still counts here; the notification layer narrows it to the thread.
+        status.setVisibleConversation(7, threadRootMessageId = 9_310)
+        assertTrue(status.shouldSuppressNotification(7))
         graph.realtime.connected = false
         assertTrue(!status.shouldSuppressNotification(7))
         assertTrue(graph.conversations.observeConversations().first().data.isEmpty())

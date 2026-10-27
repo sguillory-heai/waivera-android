@@ -101,8 +101,8 @@ class AgendaTest {
         val timing = Agenda.timing(event, chicago, day) as EventTiming.Timed
         assertEquals(LocalTime.of(1, 30), timing.start.toLocalTime())
         assertEquals(LocalTime.of(3, 30), timing.end?.toLocalTime())
-        assertEquals("1:30 AM", ScheduleText.clock(timing.start, Locale.US))
-        assertEquals("3:30 AM", ScheduleText.clock(requireNotNull(timing.end), Locale.US))
+        assertEquals("1:30 AM", ScheduleClock.clock(timing.start, Locale.US))
+        assertEquals("3:30 AM", ScheduleClock.clock(requireNotNull(timing.end), Locale.US))
     }
 
     @Test
@@ -112,7 +112,7 @@ class AgendaTest {
             daysOf(event, chicago, LocalDate.of(2026, 10, 31), LocalDate.of(2026, 11, 1), LocalDate.of(2026, 11, 2))
         assertEquals(listOf(LocalDate.of(2026, 11, 1)), days)
         val timing = Agenda.timing(event, chicago, LocalDate.of(2026, 11, 1)) as EventTiming.Timed
-        assertEquals("12:30 AM", ScheduleText.clock(timing.start, Locale.US))
+        assertEquals("12:30 AM", ScheduleClock.clock(timing.start, Locale.US))
     }
 
     @Test
@@ -129,8 +129,8 @@ class AgendaTest {
         }
         val firstStart = (Agenda.timing(first, chicago, day) as EventTiming.Timed).start
         val secondStart = (Agenda.timing(second, chicago, day) as EventTiming.Timed).start
-        assertEquals("1:30 AM CDT", ScheduleText.clock(firstStart, Locale.US))
-        assertEquals("1:30 AM CST", ScheduleText.clock(secondStart, Locale.US))
+        assertEquals("1:30 AM CDT", ScheduleClock.clock(firstStart, Locale.US))
+        assertEquals("1:30 AM CST", ScheduleClock.clock(secondStart, Locale.US))
         // Sorted by instant, so CDT comes first even though the wall clocks match.
         assertEquals(listOf("first", "second"), Agenda.eventsOn(listOf(second, first), chicago, day).map { it.id })
     }
@@ -143,8 +143,8 @@ class AgendaTest {
         val sunday = LocalDate.of(2026, 11, 1)
         assertEquals(listOf(saturday, sunday), daysOf(event, chicago, saturday, sunday, LocalDate.of(2026, 11, 2)))
         val timing = Agenda.timing(event, chicago, saturday) as EventTiming.Timed
-        assertEquals("10:00 PM", ScheduleText.clock(timing.start, Locale.US))
-        assertEquals("6:00 AM", ScheduleText.clock(requireNotNull(timing.end), Locale.US))
+        assertEquals("10:00 PM", ScheduleClock.clock(timing.start, Locale.US))
+        assertEquals("6:00 AM", ScheduleClock.clock(requireNotNull(timing.end), Locale.US))
         assertTrue(timing.endsAfterDay)
     }
 
@@ -161,7 +161,7 @@ class AgendaTest {
             daysOf(event, tokyo, LocalDate.of(2026, 11, 2), LocalDate.of(2026, 11, 3)),
         )
         val timing = Agenda.timing(event, chicago, LocalDate.of(2026, 11, 2)) as EventTiming.Timed
-        assertEquals("10:00 PM", ScheduleText.clock(timing.start, Locale.US))
+        assertEquals("10:00 PM", ScheduleClock.clock(timing.start, Locale.US))
     }
 
     @Test
@@ -173,8 +173,8 @@ class AgendaTest {
         // The same instants are still Saturday 3 Oct in Chicago.
         assertEquals(listOf(LocalDate.of(2026, 10, 3)), daysOf(event, chicago, LocalDate.of(2026, 10, 3), day))
         val timing = Agenda.timing(event, sydney, day) as EventTiming.Timed
-        assertEquals("1:30 AM", ScheduleText.clock(timing.start, Locale.US))
-        assertEquals("3:30 AM", ScheduleText.clock(requireNotNull(timing.end), Locale.US))
+        assertEquals("1:30 AM", ScheduleClock.clock(timing.start, Locale.US))
+        assertEquals("3:30 AM", ScheduleClock.clock(requireNotNull(timing.end), Locale.US))
     }
 
     @Test
@@ -184,8 +184,8 @@ class AgendaTest {
         val second = timed("second", "2026-04-04T16:30:00Z", "2026-04-04T16:45:00Z")
         val day = LocalDate.of(2026, 4, 5)
         assertEquals(listOf("first", "second"), Agenda.eventsOn(listOf(second, first), sydney, day).map { it.id })
-        assertTrue(ScheduleText.isRepeatedWallTime(Instant.parse("2026-04-04T15:30:00Z").atZone(sydney)))
-        assertFalse(ScheduleText.isRepeatedWallTime(Instant.parse("2026-04-04T18:30:00Z").atZone(sydney)))
+        assertTrue(ScheduleClock.isRepeatedWallTime(Instant.parse("2026-04-04T15:30:00Z").atZone(sydney)))
+        assertFalse(ScheduleClock.isRepeatedWallTime(Instant.parse("2026-04-04T18:30:00Z").atZone(sydney)))
     }
 
     @Test

@@ -29,11 +29,12 @@ internal object RichTextPlain {
 
     fun toPlainText(raw: String): String {
         val trimmed = raw.trim()
-        if (trimmed.startsWith("{") && trimmed.contains("\"type\"")) {
-            parseDoc(trimmed)?.let { return it }
+        val fromDoc = if (trimmed.startsWith("{") && trimmed.contains("\"type\"")) parseDoc(trimmed) else null
+        return when {
+            fromDoc != null -> fromDoc
+            trimmed.startsWith("<") && TAG.containsMatchIn(trimmed) -> stripHtml(trimmed)
+            else -> raw
         }
-        if (trimmed.startsWith("<") && TAG.containsMatchIn(trimmed)) return stripHtml(trimmed)
-        return raw
     }
 
     private fun parseDoc(json: String): String? = try {
@@ -46,30 +47,27 @@ internal object RichTextPlain {
     }
 
     /** The document node: `{type: "doc"}` itself, or nested under a wrapper such as `editor`. */
-    @Suppress("ReturnCount")
-    private fun findDoc(element: JsonElement, depth: Int): JsonObject? {
-        if (depth > MAX_DEPTH) return null
-        when (element) {
-            is JsonObject -> {
-                if (element.type() == "doc") return element
-                element.values.forEach { child -> findDoc(child, depth + 1)?.let { return it } }
-            }
-            is JsonArray -> element.forEach { child -> findDoc(child, depth + 1)?.let { return it } }
-            is JsonPrimitive -> {
-                // Some payloads double-encode the document as a JSON string.
-                val content = element.contentOrNull?.trim() ?: return null
-                if (element.isString && content.startsWith("{") && content.contains("\"doc\"")) {
-                    return try {
-                        findDoc(WaiveraJson.parseToJsonElement(content), depth + 1)
-                    } catch (_: SerializationException) {
-                        null
-                    } catch (_: IllegalArgumentException) {
-                        null
-                    }
-                }
-            }
+    private fun findDoc(element: JsonElement, depth: Int): JsonObject? = when {
+        depth > MAX_DEPTH -> null
+        element is JsonObject && element.type() == "doc" -> element
+        element is JsonObject -> element.values.firstNotNullOfOrNull { findDoc(it, depth + 1) }
+        element is JsonArray -> element.firstNotNullOfOrNull { findDoc(it, depth + 1) }
+        element is JsonPrimitive -> encodedDoc(element)?.let { findDoc(it, depth + 1) }
+        else -> null
+    }
+
+    /** Some payloads double-encode the document as a JSON string. */
+    private fun encodedDoc(element: JsonPrimitive): JsonElement? {
+        val content = element.contentOrNull?.trim()
+            ?.takeIf { element.isString && it.startsWith("{") && it.contains("\"doc\"") }
+            ?: return null
+        return try {
+            WaiveraJson.parseToJsonElement(content)
+        } catch (_: SerializationException) {
+            null
+        } catch (_: IllegalArgumentException) {
+            null
         }
-        return null
     }
 
     private fun nodeText(node: JsonElement, depth: Int): String {

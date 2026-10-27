@@ -1,6 +1,6 @@
 package com.waivera.waivera.core.data.model
 
-import java.net.URI
+import com.waivera.waivera.core.network.ExternalLinks
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
@@ -60,13 +60,7 @@ data class TicketUpdate(
         }
 
         /** `http` or `https` with a host; anything else is never opened. */
-        fun isWebUrl(value: String?): Boolean {
-            val trimmed = value?.trim().orEmpty()
-            if (trimmed.isEmpty()) return false
-            val uri = runCatching { URI(trimmed) }.getOrNull() ?: return false
-            val scheme = uri.scheme?.lowercase() ?: return false
-            return (scheme == "http" || scheme == "https") && !uri.host.isNullOrBlank()
-        }
+        fun isWebUrl(value: String?): Boolean = ExternalLinks.isOpenable(value)
 
         private fun JsonObject.rawString(key: String): String? =
             (this[key] as? JsonPrimitive)?.takeIf { it.isString }?.contentOrNull

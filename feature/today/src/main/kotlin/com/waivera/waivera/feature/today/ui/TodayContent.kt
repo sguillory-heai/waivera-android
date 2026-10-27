@@ -129,7 +129,8 @@ private fun TodayList(state: TodayUiState, callbacks: TodayCallbacks, listState:
         }
     }
     LaunchedEffect(nearEnd, activity.hasMore, activity.isLoadingMore, activity.loadMoreFailed) {
-        if (nearEnd && activity.hasMore && !activity.isLoadingMore && !activity.loadMoreFailed) {
+        val canLoadMore = activity.hasMore && !activity.isLoadingMore && !activity.loadMoreFailed
+        if (nearEnd && canLoadMore) {
             callbacks.onAction(TodayAction.LoadMoreActivity)
         }
     }

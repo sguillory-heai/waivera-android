@@ -101,11 +101,6 @@ class OutboxStore @Inject constructor(private val dao: OutboxDao) {
         progress.update { it - clientMessageId }
     }
 
-    private fun decode(rows: List<OutboxEntity>, uploads: Map<String, Float>): List<OutboxItem> =
-        rows.mapNotNull { row ->
-            decode(row)?.let { item -> uploads[item.clientMessageId]?.let { item.copy(uploadProgress = it) } ?: item }
-        }
-
     suspend fun get(clientMessageId: String): OutboxItem? = dao.get(clientMessageId)?.let(::decode)
 
     suspend fun withState(state: SendState): List<OutboxItem> = dao.withState(state.name).mapNotNull(::decode)
@@ -138,10 +133,16 @@ class OutboxStore @Inject constructor(private val dao: OutboxDao) {
         dao.clear()
         directory.listFiles()?.forEach(File::delete)
     }
-
-    private fun decode(row: OutboxEntity): OutboxItem? =
-        runCatching { WaiveraJson.decodeFromString(OutboxItem.serializer(), row.json) }.getOrNull()
 }
+
+/** A stored row as an item; null for a row written by an older, incompatible version. */
+private fun decode(row: OutboxEntity): OutboxItem? =
+    runCatching { WaiveraJson.decodeFromString(OutboxItem.serializer(), row.json) }.getOrNull()
+
+private fun decode(rows: List<OutboxEntity>, uploads: Map<String, Float>): List<OutboxItem> =
+    rows.mapNotNull { row ->
+        decode(row)?.let { item -> uploads[item.clientMessageId]?.let { item.copy(uploadProgress = it) } ?: item }
+    }
 
 /** Schedules durable outbox processing (WorkManager in the app, a counter in tests). */
 fun interface OutboxScheduler {

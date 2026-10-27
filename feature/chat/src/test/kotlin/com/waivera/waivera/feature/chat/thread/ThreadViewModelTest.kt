@@ -1,6 +1,7 @@
 package com.waivera.waivera.feature.chat.thread
 
 import app.cash.turbine.test
+import com.waivera.waivera.core.data.model.Message
 import com.waivera.waivera.core.data.model.SyncStatus
 import com.waivera.waivera.core.data.repository.MessageRepository
 import com.waivera.waivera.core.demo.DemoData
@@ -230,6 +231,30 @@ class ThreadViewModelTest {
     // endregion
 
     // region Read-through and highlight
+
+    @Test
+    fun aReplyFromSomeoneElseArrivingOnScreenGivesTheReceiveCueOnlyWhileResumed() = runTest {
+        val s = subject()
+        fun reply(text: String) = Message(
+            id = s.graph.backend.nextMessageId(),
+            conversationId = DemoData.DM_PRIYA,
+            authorId = DemoData.PRIYA,
+            text = text,
+            createdAt = s.graph.backend.now(),
+            parentMessageId = DemoData.THREAD_ROOT,
+            threadRootMessageId = DemoData.THREAD_ROOT,
+        )
+        s.viewModel.effects.test {
+            s.graph.backend.append(reply("Before you looked"))
+            runCurrent()
+            expectNoEvents()
+            s.viewModel.onResumed()
+            runCurrent()
+            s.graph.backend.append(reply("Got it, thanks"))
+            runCurrent()
+            assertEquals(ChatEffect.Haptic(HapticMoment.Receive), awaitItem())
+        }
+    }
 
     @Test
     fun readThroughCarriesTheRootAndRetriesAfterFailure() = runTest {

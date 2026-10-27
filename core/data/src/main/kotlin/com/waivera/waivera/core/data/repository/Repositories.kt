@@ -24,11 +24,14 @@ import com.waivera.waivera.core.data.model.SessionState
 import com.waivera.waivera.core.data.model.Synced
 import com.waivera.waivera.core.data.model.ThemePreference
 import com.waivera.waivera.core.data.model.TimeOffSummary
+import com.waivera.waivera.core.data.model.currentUserId
 import java.io.File
 import java.time.YearMonth
 import java.time.ZoneId
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.serialization.json.JsonElement
 
 /*
@@ -41,8 +44,28 @@ interface SessionRepository {
 
     suspend fun signIn(email: String, password: String): Result<Unit>
 
-    /** Stops realtime, unregisters push, clears caches and signs out of Firebase, in that order. */
+    /**
+     * Stops realtime, unregisters push, clears caches and signs out of Firebase, in that order.
+     * Any other end of the session (rejected bootstrap, revoked Firebase user) runs the same cleanup.
+     */
     suspend fun signOut(): Result<Unit>
+
+    /**
+     * The backend user id once the session has settled (null when signed out). Waits at most
+     * [timeoutMillis] for a cold start's bootstrap; a live session then answers from its cache.
+     */
+    suspend fun settledUserId(timeoutMillis: Long): String? =
+        withTimeoutOrNull(timeoutMillis) { state.first { it !is SessionState.Initializing } }?.currentUserId
+
+    /**
+     * Whether a push may be shown (AS-02): only for a signed-in session. A cold start from a push
+     * is still bootstrapping ([SessionState.Initializing] only happens with a Firebase user), so
+     * a session that has not settled after [timeoutMillis] counts as signed in.
+     */
+    suspend fun acceptsPushes(timeoutMillis: Long): Boolean {
+        val settled = withTimeoutOrNull(timeoutMillis) { state.first { it !is SessionState.Initializing } }
+        return settled == null || settled.currentUserId != null
+    }
 
     suspend fun sendPasswordReset(email: String): Result<Unit>
 
@@ -95,6 +118,19 @@ interface ConversationRepository {
     fun onComposerChanged(conversationId: Long, isEmpty: Boolean)
 }
 
+/**
+ * Sending for a caller whose process may end right after it returns: an inline reply from a
+ * notification, where the receiver finishes and the system may stop the app (IF-03).
+ */
+fun interface DurableMessageSender {
+    /**
+     * Queues like [MessageRepository.send], then returns only once a durable retry is scheduled
+     * and the first attempt has finished, so the message is never left queued with nothing to
+     * send it.
+     */
+    suspend fun sendDurably(conversationId: Long, text: String, parentMessageId: Long?): String
+}
+
 interface MessageRepository {
     /**
      * Server messages merged with unsent outbox rows, oldest first. Collecting also joins the
@@ -142,6 +178,12 @@ interface ThreadRepository {
     suspend fun refresh(rootMessageId: Long): Result<Unit>
 
     suspend fun markRead(conversationId: Long, rootMessageId: Long, lastVisibleMessageId: Long): Result<Unit>
+
+    /**
+     * The thread root of a cached message, or null when it is a main-timeline message or not
+     * cached. Lets push suppression tell a thread reply from a main message.
+     */
+    suspend fun cachedRootOf(messageId: Long): Long? = null
 }
 
 interface AttachmentRepository {
@@ -276,13 +318,18 @@ interface RealtimeStatusRepository {
     fun retryNow()
 
     /**
-     * The conversation on screen, or null. The app shell is the single owner: it sets this from
-     * navigation state (top route is a conversation or thread and the activity is resumed) and
-     * clears it otherwise. Feature screens never call it.
+     * The conversation on screen, or null, with [threadRootMessageId] set when the screen is one
+     * of its threads rather than its timeline. The app shell is the single owner: it sets this
+     * from navigation state (top route is a conversation or thread and the activity is resumed)
+     * and clears it otherwise. Feature screens never call it.
      */
-    fun setVisibleConversation(conversationId: Long?)
+    fun setVisibleConversation(conversationId: Long?, threadRootMessageId: Long? = null)
 
-    /** Foreground push suppression: only when the hub is connected and that conversation is on screen. */
+    /**
+     * Foreground push suppression: only when the hub is connected and that conversation's
+     * timeline or one of its threads is on screen. The notification layer narrows it to the
+     * exact surface, so a main-timeline message still alerts while only a thread is open.
+     */
     fun shouldSuppressNotification(conversationId: Long): Boolean
 }
 

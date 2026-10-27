@@ -128,19 +128,19 @@ class ConversationPresentationTest {
 
     @Test
     fun nullMessagePreviewsAsNoMessagesYet() {
-        assertEquals(Preview("No messages yet", PreviewKind.Placeholder), p.preview(null, text))
+        assertEquals(Preview("No messages yet", PreviewKind.Placeholder), RowSubtitle.preview(null, text))
     }
 
     @Test
     fun previewIsTheFirstLineWithWhitespaceCollapsed() {
-        val result = p.preview(preview(1, text = "  Shift   swap?\r\nsecond line"), text)
+        val result = RowSubtitle.preview(preview(1, text = "  Shift   swap?\r\nsecond line"), text)
         assertEquals(Preview("Shift swap?", PreviewKind.Text), result)
     }
 
     @Test
     fun imageOnlyMessagePreviewsAsPhoto() {
         val message = preview(1, text = null, attachmentType = "image/jpeg", hasAttachment = true)
-        assertEquals(Preview("Photo", PreviewKind.Attachment), p.preview(message, text))
+        assertEquals(Preview("Photo", PreviewKind.Attachment), RowSubtitle.preview(message, text))
     }
 
     @Test
@@ -152,19 +152,19 @@ class ConversationPresentationTest {
             attachmentType = "application/pdf",
             hasAttachment = true,
         )
-        assertEquals(Preview("roster.pdf", PreviewKind.Attachment), p.preview(message, text))
+        assertEquals(Preview("roster.pdf", PreviewKind.Attachment), RowSubtitle.preview(message, text))
     }
 
     @Test
     fun unnamedFilePreviewsAsFileAttachment() {
         val message = preview(1, text = null, hasAttachment = true)
-        assertEquals("File attachment", p.preview(message, text).text)
+        assertEquals("File attachment", RowSubtitle.preview(message, text).text)
     }
 
     @Test
     fun systemMessageWithoutBodyPreviewsAsConversationUpdate() {
         val message = preview(1, text = null, type = MessageType.SYSTEM)
-        assertEquals(Preview("Conversation update", PreviewKind.System), p.preview(message, text))
+        assertEquals(Preview("Conversation update", PreviewKind.System), RowSubtitle.preview(message, text))
     }
 
     @Test
@@ -174,18 +174,21 @@ class ConversationPresentationTest {
             text = "Video call ended - {[TIMESTAMP- 08/10/2026 02:20:12]}",
             type = MessageType.SYSTEM,
         )
-        assertEquals("Video call ended", p.preview(message, text).text)
+        assertEquals("Video call ended", RowSubtitle.preview(message, text).text)
     }
 
     @Test
     fun unextractableBodyIsBlankSoTheRowHydrates() {
-        assertEquals(PreviewKind.Blank, p.preview(preview(1, text = null), text).kind)
-        assertEquals(PreviewKind.Blank, p.preview(preview(1, text = "   "), text).kind)
+        assertEquals(PreviewKind.Blank, RowSubtitle.preview(preview(1, text = null), text).kind)
+        assertEquals(PreviewKind.Blank, RowSubtitle.preview(preview(1, text = "   "), text).kind)
     }
 
     @Test
     fun deletedMessageHasAPlaceholderInsteadOfABlankRow() {
-        assertEquals(Preview("Message deleted", PreviewKind.Placeholder), p.preview(preview(1, deleted = true), text))
+        assertEquals(
+            Preview("Message deleted", PreviewKind.Placeholder),
+            RowSubtitle.preview(preview(1, deleted = true), text),
+        )
     }
 
     @Test
@@ -194,31 +197,32 @@ class ConversationPresentationTest {
             """{"type":"mention","attrs":{"id":"usr_priya_raman","label":"Priya Raman"}},""" +
             """{"type":"text","text":" can you confirm?"}]},""" +
             """{"type":"paragraph","content":[{"type":"text","text":"Second"}]}]}}"""
-        assertEquals("@Priya Raman can you confirm?", p.preview(preview(1, text = doc), text).text)
+        assertEquals("@Priya Raman can you confirm?", RowSubtitle.preview(preview(1, text = doc), text).text)
     }
 
     @Test
     fun theServerPlainTextWinsOverTheRichBody() {
         val rich = preview(1, text = """{"type":"doc","content":[]}""").copy(plainText = "Shift swap approved")
-        assertEquals("Shift swap approved", p.preview(rich, text).text)
-        assertEquals("hello", p.preview(preview(1).copy(plainText = " "), text).text, "blank plain text is ignored")
+        assertEquals("Shift swap approved", RowSubtitle.preview(rich, text).text)
+        val blankPlain = preview(1).copy(plainText = " ")
+        assertEquals("hello", RowSubtitle.preview(blankPlain, text).text, "blank plain text is ignored")
     }
 
     @Test
     fun simpleHtmlPreviewsAsText() {
         val html = preview(1, text = "<p>Hello &amp; <b>welcome</b></p><p>x</p>")
-        assertEquals("Hello & welcome", p.preview(html, text).text)
+        assertEquals("Hello & welcome", RowSubtitle.preview(html, text).text)
     }
 
     @Test
     fun malformedJsonFallsBackToTheRawText() {
-        assertEquals("{\"type\": oops", p.preview(preview(1, text = "{\"type\": oops"), text).text)
+        assertEquals("{\"type\": oops", RowSubtitle.preview(preview(1, text = "{\"type\": oops"), text).text)
     }
 
     @Test
     fun senderPrefixIsYouForMyMessages() {
         val c = dm(7, last = preview(1, author = ME))
-        assertEquals("You", p.senderPrefix(c, p.preview(c.lastMessage, text), ME, text))
+        assertEquals("You", RowSubtitle.senderPrefix(c, RowSubtitle.preview(c.lastMessage, text), ME, text))
     }
 
     @Test
@@ -229,27 +233,27 @@ class ConversationPresentationTest {
             listOf(me, priya, jordan),
             lastMessage = preview(1, author = JORDAN),
         )
-        assertEquals("Jordan", p.senderPrefix(group, p.preview(group.lastMessage, text), ME, text))
+        assertEquals("Jordan", RowSubtitle.senderPrefix(group, RowSubtitle.preview(group.lastMessage, text), ME, text))
         val ch = channel(41, last = preview(1, author = "usr_unknown", authorName = "Mei Chen"))
-        assertEquals("Mei", p.senderPrefix(ch, p.preview(ch.lastMessage, text), ME, text))
+        assertEquals("Mei", RowSubtitle.senderPrefix(ch, RowSubtitle.preview(ch.lastMessage, text), ME, text))
     }
 
     @Test
     fun noSenderPrefixForTheOtherPersonInADirectChatOrForSystemRows() {
         val c = dm(7)
-        assertNull(p.senderPrefix(c, p.preview(c.lastMessage, text), ME, text))
+        assertNull(RowSubtitle.senderPrefix(c, RowSubtitle.preview(c.lastMessage, text), ME, text))
         val sys = channel(41, last = preview(1, text = "Jordan joined", type = MessageType.CHANNEL_EVENT))
-        assertNull(p.senderPrefix(sys, p.preview(sys.lastMessage, text), ME, text))
+        assertNull(RowSubtitle.senderPrefix(sys, RowSubtitle.preview(sys.lastMessage, text), ME, text))
     }
 
     @Test
     fun typingLabelNamesOneTyperAndSummarisesSeveral() {
         val group = Conversation(11, ConversationKind.GROUP, listOf(me, priya, jordan))
-        assertNull(p.typingLabel(group, emptySet(), ME, text))
-        assertEquals("Priya Raman is typing…", p.typingLabel(group, setOf(PRIYA), ME, text))
-        assertEquals("Someone is typing…", p.typingLabel(group, setOf("usr_stranger"), ME, text))
-        assertEquals("Several people are typing…", p.typingLabel(group, setOf(PRIYA, JORDAN), ME, text))
-        assertNull(p.typingLabel(group, setOf(ME), ME, text))
+        assertNull(RowSubtitle.typingLabel(group, emptySet(), ME, text))
+        assertEquals("Priya Raman is typing…", RowSubtitle.typingLabel(group, setOf(PRIYA), ME, text))
+        assertEquals("Someone is typing…", RowSubtitle.typingLabel(group, setOf("usr_stranger"), ME, text))
+        assertEquals("Several people are typing…", RowSubtitle.typingLabel(group, setOf(PRIYA, JORDAN), ME, text))
+        assertNull(RowSubtitle.typingLabel(group, setOf(ME), ME, text))
     }
 
     @Test
@@ -274,20 +278,20 @@ class ConversationPresentationTest {
         val unreadDm = ChatRowUi(1, "Priya Raman", RowLeading.Group, "Shift swap", PreviewKind.Text, unreadCount = 2)
         val readChannel =
             ChatRowUi(2, "north-team", RowLeading.Channel(false), "roster", PreviewKind.Text, isChannel = true)
-        assertTrue(p.matches(unreadDm, ChatListFilter.Unread, ""))
-        assertFalse(p.matches(readChannel, ChatListFilter.Unread, ""))
-        assertTrue(p.matches(readChannel, ChatListFilter.Channels, "ROSTER"))
-        assertFalse(p.matches(unreadDm, ChatListFilter.Channels, ""))
-        assertTrue(p.matches(unreadDm, ChatListFilter.All, " swap "))
-        assertFalse(p.matches(unreadDm, ChatListFilter.All, "hughes"))
+        assertTrue(ChatListFilters.matches(unreadDm, ChatListFilter.Unread, ""))
+        assertFalse(ChatListFilters.matches(readChannel, ChatListFilter.Unread, ""))
+        assertTrue(ChatListFilters.matches(readChannel, ChatListFilter.Channels, "ROSTER"))
+        assertFalse(ChatListFilters.matches(unreadDm, ChatListFilter.Channels, ""))
+        assertTrue(ChatListFilters.matches(unreadDm, ChatListFilter.All, " swap "))
+        assertFalse(ChatListFilters.matches(unreadDm, ChatListFilter.All, "hughes"))
     }
 
     @Test
     fun emptyReasonFollowsQueryThenFilter() {
-        assertEquals(EmptyReason.NoMatches, p.emptyReason(ChatListFilter.Unread, "x"))
-        assertEquals(EmptyReason.AllCaughtUp, p.emptyReason(ChatListFilter.Unread, ""))
-        assertEquals(EmptyReason.NoChannels, p.emptyReason(ChatListFilter.Channels, " "))
-        assertEquals(EmptyReason.NoConversations, p.emptyReason(ChatListFilter.All, ""))
+        assertEquals(EmptyReason.NoMatches, ChatListFilters.emptyReason(ChatListFilter.Unread, "x"))
+        assertEquals(EmptyReason.AllCaughtUp, ChatListFilters.emptyReason(ChatListFilter.Unread, ""))
+        assertEquals(EmptyReason.NoChannels, ChatListFilters.emptyReason(ChatListFilter.Channels, " "))
+        assertEquals(EmptyReason.NoConversations, ChatListFilters.emptyReason(ChatListFilter.All, ""))
     }
 
     /** The list relies on the repository merge for sparse-row hydration (spec 02 §9, G-05, G-14). */

@@ -13,6 +13,7 @@ import com.google.firebase.auth.FirebaseAuthInvalidUserException
 import com.google.firebase.auth.FirebaseAuthRecentLoginRequiredException
 import com.google.firebase.auth.FirebaseAuthWeakPasswordException
 import com.waivera.waivera.core.data.BuildConfig
+import com.waivera.waivera.core.network.error.TokenUnavailableException
 import com.waivera.waivera.core.network.error.WaiveraError
 import dagger.hilt.android.qualifiers.ApplicationContext
 import java.util.concurrent.ExecutionException
@@ -103,16 +104,21 @@ class FirebaseAuthGateway @Inject constructor(@ApplicationContext private val co
 
     override fun idTokenBlocking(forceRefresh: Boolean): String? {
         val user = auth?.currentUser ?: return null
-        return try {
-            Tasks.await(user.getIdToken(forceRefresh), TOKEN_TIMEOUT_SECONDS, TimeUnit.SECONDS).token
-        } catch (_: ExecutionException) {
-            null
-        } catch (_: TimeoutException) {
-            null
-        } catch (_: InterruptedException) {
+        val failure: Throwable? = try {
+            return Tasks.await(user.getIdToken(forceRefresh), TOKEN_TIMEOUT_SECONDS, TimeUnit.SECONDS).token
+        } catch (failed: ExecutionException) {
+            // Only a user Firebase rejects (disabled, deleted, revoked refresh token) is signed
+            // out, and Firebase drops that user too. Offline, rate limiting and unknown failures
+            // may pass and must not end the session (IS-02).
+            if (failed.cause is FirebaseAuthInvalidUserException) return null
+            failed.cause
+        } catch (timeout: TimeoutException) {
+            timeout
+        } catch (interrupted: InterruptedException) {
             Thread.currentThread().interrupt()
-            null
+            interrupted
         }
+        throw TokenUnavailableException(failure)
     }
 
     private suspend fun <T> mapped(block: suspend () -> T): T = try {

@@ -204,6 +204,9 @@ class ConversationViewModel @AssistedInject constructor(
                 liveArrivals.update { it - arrivals }
             }
         }
+        if (isResumed && ArrivalTracker.hasIncoming(visible, arrivals, me)) {
+            emit(ChatEffect.Haptic(HapticMoment.Receive))
+        }
         val events = sendTracker.update(visible)
         if (events.newFailures > 0) {
             val status = realtime.status.value
@@ -402,7 +405,11 @@ class ConversationViewModel @AssistedInject constructor(
     fun send(draft: String) {
         val current = _state.value
         if (current.canWrite != true) return
-        current.editingMessageId?.let { return submitEdit(it, draft) }
+        val editing = current.editingMessageId
+        if (editing != null) submitEdit(editing, draft) else sendNew(current, draft)
+    }
+
+    private fun sendNew(current: ConversationUiState, draft: String) {
         val outgoing = createOutgoingMessage(draft)
         val image: StagedImage? = current.stagedImage
         if (outgoing == null && image == null) return

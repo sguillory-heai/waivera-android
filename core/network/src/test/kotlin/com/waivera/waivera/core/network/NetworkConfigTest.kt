@@ -23,6 +23,14 @@ class NetworkConfigTest {
         assertFalse(NetworkConfig("http://api.example.com", "").isConfigured)
         assertEquals(listOf("waivera.apiBaseUrl"), NetworkConfig("", "").missingKeys)
         assertNull(NetworkConfig("", "").chatHubUrl)
-        assertTrue(NetworkConfig("http://10.0.2.2:5000", "").isConfigured)
+    }
+
+    @Test
+    fun localCleartextIsAcceptedOnlyWhenTheBuildAllowsIt() {
+        assertFalse(NetworkConfig("http://10.0.2.2:5000", "").isConfigured, "release builds never accept http")
+        assertFalse(NetworkConfig("https://api.example.com", "http://localhost:3000").webBase != null)
+        assertTrue(NetworkConfig("http://10.0.2.2:5000", "", allowLocalCleartext = true).isConfigured)
+        assertTrue(NetworkConfig("http://localhost:5000", "", allowLocalCleartext = true).isConfigured)
+        assertFalse(NetworkConfig("http://api.example.com", "", allowLocalCleartext = true).isConfigured)
     }
 }

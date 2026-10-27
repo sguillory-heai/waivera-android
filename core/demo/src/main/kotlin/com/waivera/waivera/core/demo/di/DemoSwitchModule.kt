@@ -20,6 +20,7 @@ import com.waivera.waivera.core.data.repository.BookmarkRepository
 import com.waivera.waivera.core.data.repository.CalendarRepository
 import com.waivera.waivera.core.data.repository.ConversationRepository
 import com.waivera.waivera.core.data.repository.DataLayerStarter
+import com.waivera.waivera.core.data.repository.DurableMessageSender
 import com.waivera.waivera.core.data.repository.MessageRepository
 import com.waivera.waivera.core.data.repository.PeopleRepository
 import com.waivera.waivera.core.data.repository.ProfileRepository
@@ -93,6 +94,13 @@ object DemoSwitchModule {
         live: Provider<LiveMessageRepository>,
         demo: Provider<DemoMessageRepository>,
     ): MessageRepository = pick(mode, live, demo)
+
+    @Provides
+    fun durableSends(
+        mode: DemoMode,
+        live: Provider<LiveMessageRepository>,
+        demo: Provider<DemoMessageRepository>,
+    ): DurableMessageSender = pick(mode, live, demo)
 
     @Provides
     fun threads(

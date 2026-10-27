@@ -4,6 +4,9 @@ import com.waivera.waivera.core.data.live.Mappers
 import com.waivera.waivera.core.data.live.MessageIngest
 import com.waivera.waivera.core.data.model.SendFailure
 import com.waivera.waivera.core.data.model.SendState
+import com.waivera.waivera.core.data.model.SessionState
+import com.waivera.waivera.core.data.realtime.ConnectivityMonitor
+import com.waivera.waivera.core.data.repository.SessionRepository
 import com.waivera.waivera.core.network.api.ChatApi
 import com.waivera.waivera.core.network.dto.SendMessageRequest
 import com.waivera.waivera.core.network.error.WaiveraError
@@ -25,6 +28,11 @@ import okhttp3.MultipartBody
  * attachment; otherwise REST `/api/chat/send`. Both carry the same client id, which the server
  * uses for idempotency, so a retry after an unknown outcome cannot duplicate a message.
  * Transient failures stay queued for the scheduler; permanent ones become FAILED with Retry.
+ * While the device is offline a send cannot succeed, so those attempts do not spend the retry
+ * budget: messages written offline stay queued until the network is back (IF-04).
+ *
+ * Items are bound to the account that queued them (AS-03): nothing is sent without a signed-in
+ * user, and an item queued by anyone else is dropped instead of being sent with this user's token.
  */
 @Singleton
 class OutboxProcessor @Inject constructor(
@@ -32,16 +40,34 @@ class OutboxProcessor @Inject constructor(
     private val chatApi: ChatApi,
     private val realtime: RealtimeClient,
     private val ingest: MessageIngest,
+    private val session: SessionRepository,
+    private val connectivity: ConnectivityMonitor,
 ) {
     private val mutex = Mutex()
 
-    /** Processes everything queued. Returns true when something is left for a later retry. */
-    suspend fun process(): Boolean = mutex.withLock {
+    /**
+     * Processes everything queued. Returns true when something is left for a later retry.
+     * Signed out (or still starting), nothing is sent; the next sign-in processes the queue.
+     * [resumeFailed] also re-queues messages that failed for a reason that can pass (network,
+     * timeout, server, rate limit), for when the network or the session comes back.
+     */
+    suspend fun process(resumeFailed: Boolean = false): Boolean = mutex.withLock {
+        val me = (session.state.value as? SessionState.SignedIn)?.user?.userId ?: return@withLock false
         // A SENDING row at this point was interrupted (process death); the server dedupes by id.
         store.withState(SendState.SENDING).forEach { store.put(it.copy(state = SendState.QUEUED)) }
+        if (resumeFailed) {
+            store.withState(SendState.FAILED)
+                .filter { it.failure?.isTransient == true }
+                .forEach { store.put(it.copy(state = SendState.QUEUED, attempts = 0, failure = null)) }
+        }
+        val (mine, others) = store.withState(SendState.QUEUED).partition { it.authorId == me }
+        others.forEach { item ->
+            WaiveraLog.w(TAG, "Dropped a queued message from another account")
+            store.remove(item)
+        }
         val blocked = mutableSetOf<Long>()
         var retryLater = false
-        for (item in store.withState(SendState.QUEUED)) {
+        for (item in mine) {
             // Keep per-conversation order: nothing overtakes a message waiting for retry.
             val current = store.get(item.clientMessageId)
                 ?.takeIf { it.state == SendState.QUEUED && item.conversationId !in blocked }
@@ -85,7 +111,8 @@ class OutboxProcessor @Inject constructor(
             throw cancelled
         } catch (error: WaiveraError) {
             val latest = store.get(item.clientMessageId) ?: return Outcome.SENT
-            val attempts = latest.attempts + 1
+            val offline = error.isConnectivity && !connectivity.isOnline.value
+            val attempts = if (offline) latest.attempts else latest.attempts + 1
             if (error.isTransient && attempts < MAX_AUTOMATIC_ATTEMPTS) {
                 store.put(latest.copy(state = SendState.QUEUED, attempts = attempts))
                 Outcome.RETRY
@@ -141,6 +168,9 @@ class OutboxProcessor @Inject constructor(
         store.put(updated.copy(state = SendState.SENDING))
         return updated
     }
+
+    private val WaiveraError.isConnectivity: Boolean
+        get() = this is WaiveraError.Network || this is WaiveraError.Timeout
 
     companion object {
         const val MAX_AUTOMATIC_ATTEMPTS = 5

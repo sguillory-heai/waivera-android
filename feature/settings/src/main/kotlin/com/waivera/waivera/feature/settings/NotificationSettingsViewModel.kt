@@ -31,8 +31,9 @@ internal data class NotificationSettingsUiState(
 
 /**
  * Notification preferences by meaning. These are server preferences: the data layer sends the
- * full set at registration (G-08), registers once when push turns back on and unregisters once
- * when it turns off. Sound and vibration belong to Android's per-channel settings, which the
+ * full set at registration (G-08) and registers again whenever they change. Turning push off
+ * re-registers with `pushEnabled = false` rather than unregistering: the server keeps the device
+ * and stops sending to it. Sound and vibration belong to Android's per-channel settings, which the
  * screen links to, because an app cannot change a channel after creating it.
  */
 @HiltViewModel

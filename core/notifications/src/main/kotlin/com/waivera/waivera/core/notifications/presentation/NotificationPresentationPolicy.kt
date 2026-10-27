@@ -12,7 +12,7 @@ data class PresenceSnapshot(val hubConnected: Boolean, val visibleChat: VisibleC
 sealed interface PresentationDecision {
     data class Show(val channel: WaiveraChannel) : PresentationDecision
 
-    enum class SuppressReason { PushDisabled, ChannelDisabled, ChatOnScreen }
+    enum class SuppressReason { SignedOut, PushDisabled, ChannelDisabled, ChatOnScreen }
 
     data class Suppress(val reason: SuppressReason) : PresentationDecision
 }

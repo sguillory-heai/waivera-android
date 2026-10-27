@@ -7,7 +7,8 @@ import kotlinx.coroutines.flow.Flow
 
 /**
  * Small encrypted key-value store for secrets and identifiers: device id, FCM token, the push
- * registration fingerprint and the cached session. Values never appear in logs.
+ * registration fingerprint, the cached session and a pending push unregister. Values never
+ * appear in logs.
  */
 interface SecureStore {
     suspend fun get(key: String): String?
@@ -22,6 +23,9 @@ interface SecureStore {
         const val FCM_TOKEN = "fcm_token"
         const val PUSH_FINGERPRINT = "push_fingerprint"
         const val CACHED_SESSION = "cached_session"
+
+        /** A push unregister that failed while signed in, retried after sign-out (AF-05). */
+        const val PENDING_UNREGISTER = "pending_unregister"
     }
 }
 

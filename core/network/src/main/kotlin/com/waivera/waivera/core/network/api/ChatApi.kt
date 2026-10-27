@@ -12,7 +12,6 @@ import com.waivera.waivera.core.network.dto.MessageSendResponse
 import com.waivera.waivera.core.network.dto.SendMessageRequest
 import com.waivera.waivera.core.network.dto.UnifiedConversationResponse
 import com.waivera.waivera.core.network.dto.UploadAttachmentResponse
-import com.waivera.waivera.core.network.dto.UserInfoResponse
 import kotlinx.serialization.json.JsonElement
 import okhttp3.MultipartBody
 import okhttp3.ResponseBody
@@ -185,13 +184,9 @@ interface ChatApi {
     @DELETE("api/chat/delete/conversation/{conversationId}")
     suspend fun leaveConversation(@Path("conversationId") conversationId: Long): Response<ApiResponse<String>>
 
-    /** Trusts the path user id (G-16); pass only the signed-in user's id. */
-    @GET("api/chat/user/{userId}/get-myChannels")
-    suspend fun getMyChannels(@Path("userId") userId: String): Response<ApiResponse<List<ConversationResponse>>>
-
-    /** SUPER ADMIN only; not for ordinary staff builds. */
-    @GET("api/chat/initiation-directory")
-    suspend fun getInitiationDirectory(): Response<List<UserInfoResponse>>
+    // Deliberately absent: `GET api/chat/user/{userId}/get-myChannels` trusts the path user id
+    // (G-16, AS-11) and `GET api/chat/initiation-directory` is SUPER ADMIN only (AF-01). The staff
+    // directory is `AuthenticationApi.getUserNameList`.
 
     companion object {
         const val MESSAGE_PAGE_SIZE = 50
@@ -199,5 +194,8 @@ interface ChatApi {
         const val SEARCH_PAGE_SIZE = 20
         const val GLOBAL_SEARCH_PAGE_SIZE = 30
         const val CONTEXT_WINDOW = 30
+
+        /** The server clamps `before`/`after` on the context endpoint to 0..75. */
+        const val MAX_CONTEXT_WINDOW = 75
     }
 }

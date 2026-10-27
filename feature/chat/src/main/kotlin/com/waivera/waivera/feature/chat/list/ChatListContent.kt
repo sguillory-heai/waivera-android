@@ -15,6 +15,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
@@ -43,6 +44,7 @@ import com.waivera.waivera.feature.chat.R
 import kotlinx.coroutines.delay
 
 /** Callbacks from the inbox to its owner, grouped so the content stays previewable. */
+@Immutable
 class ChatListActions(
     val onAccountClick: () -> Unit = {},
     val onNewChat: () -> Unit = {},

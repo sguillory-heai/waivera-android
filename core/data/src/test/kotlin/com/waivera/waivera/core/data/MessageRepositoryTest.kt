@@ -16,10 +16,13 @@ import kotlin.test.assertFalse
 import kotlin.test.assertIs
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
+import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
+
+private const val MAX_ATTEMPTS = com.waivera.waivera.core.data.outbox.OutboxProcessor.MAX_AUTOMATIC_ATTEMPTS
 
 class MessageRepositoryTest {
     private val testScope = TestScope()
@@ -139,6 +142,66 @@ class MessageRepositoryTest {
         assertEquals(1, graph.scheduler.scheduled)
     }
 
+    private fun hubAnswers(failure: WaiveraError?) {
+        graph.realtime.sendResult = { conversationId, text, clientId, _ ->
+            failure?.let { throw it }
+            com.waivera.waivera.core.network.dto.MessageSendResponse(
+                id = 9_600 + text.length.toLong(),
+                conversationId = conversationId,
+                clientMessageId = clientId,
+                messageContent = text,
+            )
+        }
+    }
+
+    @Test
+    fun messagesWrittenOfflineStayQueuedAndGoOutWhenTheNetworkReturns() = testScope.runTest {
+        graph.connectivity.online.value = false
+        hubAnswers(WaiveraError.Network())
+        val ids = listOf("a", "bb", "ccc", "dddd", "eeeee", "ffffff").map { repo.send(7, it) }
+        repeat(MAX_ATTEMPTS + 1) { graph.processor.process() }
+        val queued = ids.mapNotNull { graph.outbox.get(it) }
+        assertEquals(List(ids.size) { SendState.QUEUED }, queued.map { it.state }, "nothing fails while offline")
+        assertEquals(List(ids.size) { 0 }, queued.map { it.attempts })
+
+        graph.connectivity.online.value = true
+        hubAnswers(null)
+        assertFalse(graph.processor.process(), "nothing is left")
+        assertTrue(ids.all { graph.outbox.get(it) == null })
+    }
+
+    @Test
+    fun aSendThatFailedForAPassingReasonResumesButARejectedOneStaysFailed() = testScope.runTest {
+        hubAnswers(WaiveraError.Server(503))
+        val flaky = repo.send(7, "flaky")
+        eventually { graph.outbox.get(flaky)?.attempts == 1 }
+        repeat(MAX_ATTEMPTS) { graph.processor.process() }
+        assertEquals(SendState.FAILED, graph.outbox.get(flaky)?.state, "the online retry budget is spent")
+        hubAnswers(WaiveraError.Validation())
+        val rejected = repo.send(8, "rejected")
+        eventually { graph.outbox.get(rejected)?.state == SendState.FAILED }
+
+        hubAnswers(null)
+        graph.processor.process(resumeFailed = true)
+        assertNull(graph.outbox.get(flaky), "the server error could pass, so it is sent again")
+        assertEquals(SendState.FAILED, graph.outbox.get(rejected)?.state, "a rejected message waits for Retry")
+    }
+
+    @Test
+    fun aNotificationReplyIsSentOrGivenADurableRetryBeforeSendDurablyReturns() = testScope.runTest {
+        hubAnswers(null)
+        val sent = repo.sendDurably(7, "On my way", parentMessageId = null)
+        // Nothing has run in the background yet: the attempt happened inside the call.
+        assertNull(graph.outbox.get(sent), "the reply went out before the receiver could finish")
+        assertEquals(1, graph.scheduler.scheduled, "a durable retry exists in case the process ends")
+
+        graph.connectivity.online.value = false
+        hubAnswers(WaiveraError.Network())
+        val waiting = repo.sendDurably(7, "Running late", parentMessageId = null)
+        assertEquals(SendState.QUEUED, graph.outbox.get(waiting)?.state, "saved, not lost")
+        assertEquals(2, graph.scheduler.scheduled)
+    }
+
     @Test
     fun permanentFailureShowsRetryAndRetrySucceedsWithoutDuplicates() = testScope.runTest {
         graph.realtime.connected = false
@@ -206,6 +269,76 @@ class MessageRepositoryTest {
     }
 
     @Test
+    fun aRepeatedEchoWithAClientIdNeverRemovesAnotherQueuedMessageWithTheSameText() = testScope.runTest {
+        graph.realtime.connected = false
+        graph.server.status("POST /api/chat/send", 503)
+        val first = repo.send(7, "ok")
+        graph.clock.advanceMillis(5_000)
+        val second = repo.send(7, "ok")
+        eventually { graph.db.outbox.rows.value.size == 2 && graph.scheduler.scheduled > 0 }
+        val echo = com.waivera.waivera.core.data.model.Message(
+            id = 9700,
+            conversationId = 7,
+            clientMessageId = first,
+            authorId = "usr_alex_rivera",
+            text = "ok",
+            createdAt = graph.clock.now,
+        )
+        // Send response and hub echo of the same message: the second ingest finds no row by id.
+        graph.ingest.ingest(listOf(echo))
+        graph.ingest.ingest(listOf(echo))
+        assertNull(graph.outbox.get(first))
+        assertEquals(second, graph.outbox.get(second)?.clientMessageId, "the second \"ok\" is still queued")
+    }
+
+    @Test
+    fun theTextFallbackSkipsAMessageThatIsBeingSent() = testScope.runTest {
+        val sending = OutboxItem(
+            clientMessageId = "in-flight",
+            conversationId = 7,
+            authorId = "usr_alex_rivera",
+            text = "on it",
+            state = SendState.SENDING,
+            createdAt = graph.clock.now,
+        )
+        graph.outbox.put(sending)
+        graph.ingest.ingest(
+            listOf(
+                com.waivera.waivera.core.data.model.Message(
+                    id = 9701,
+                    conversationId = 7,
+                    authorId = "usr_alex_rivera",
+                    text = "on it",
+                    createdAt = graph.clock.now.plusSeconds(1),
+                ),
+            ),
+        )
+        assertEquals(SendState.SENDING, graph.outbox.get("in-flight")?.state, "settled by its own response")
+    }
+
+    @Test
+    fun aSendDuringAColdStartWaitsForTheSessionAndQueues() = testScope.runTest {
+        graph.realtime.connected = false
+        graph.server.status("POST /api/chat/send", 503)
+        graph.session.mutableState.value = com.waivera.waivera.core.data.model.SessionState.Initializing
+        val sent = async { repo.send(7, "reply from the shade") }
+        runCurrent()
+        assertFalse(sent.isCompleted, "waits for the bootstrap instead of failing NotSignedIn")
+        graph.session.mutableState.value = com.waivera.waivera.core.data.model.SessionState.SignedIn(
+            com.waivera.waivera.core.data.model.CurrentUser("usr_alex_rivera"),
+        )
+        val clientId = sent.await()
+        assertEquals("usr_alex_rivera", graph.outbox.get(clientId)?.authorId)
+    }
+
+    @Test
+    fun aSendWhileSignedOutStillFails() = testScope.runTest {
+        graph.session.mutableState.value = com.waivera.waivera.core.data.model.SessionState.SignedOut()
+        assertIs<WaiveraError.NotSignedIn>(runCatching { repo.send(7, "nope") }.exceptionOrNull())
+        assertTrue(graph.db.outbox.rows.value.isEmpty())
+    }
+
+    @Test
     fun reactionsAreOptimisticAndRollBackOnFailure() = testScope.runTest {
         graph.server.fixture("GET /api/chat/7/messages/pagination", "rest-chat-get-messages-pagination.json")
         repo.refreshLatest(7).getOrThrow()
@@ -255,6 +388,22 @@ class MessageRepositoryTest {
         graph.server.json("PUT /api/chat/message/$editedId", editFixture)
         val edited = repo.edit(editedId, "fixed").getOrThrow()
         assertTrue(edited.isEdited)
+    }
+
+    @Test
+    fun anEditReplacesTheStalePlainTextSoThePreviewShowsTheNewWords() = testScope.runTest {
+        graph.server.fixture("GET /api/chat/7/messages/pagination", "rest-chat-get-messages-pagination.json")
+        repo.refreshLatest(7).getOrThrow()
+        graph.cache.updateMessage(9312) { it.copy(plainText = "can you cover Friday?") }
+        graph.server.json(
+            "PUT /api/chat/message/9312",
+            """{"data":{"id":9312,"conversationId":7,"messageContent":"can you cover Saturday?","isEdited":true},""" +
+                """"statusCode":200,"success":true}""",
+        )
+        val edited = repo.edit(9312, "can you cover Saturday?").getOrThrow()
+        assertNull(edited.plainText, "no stale rendering of the old text")
+        assertEquals("can you cover Saturday?", edited.text)
+        assertEquals(com.waivera.waivera.core.data.model.Message.CONTENT_FORMAT_PLAIN, edited.contentFormat)
     }
 
     @Test

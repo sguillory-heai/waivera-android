@@ -71,6 +71,14 @@ class AndroidNotifierTest {
     }
 
     @Test
+    fun `reply and mark read need an unlocked device`() {
+        notifier.show(chat(9312, "can you cover Friday?"), WaiveraChannel.Messages, conversation = null)
+        val actions = postedChat(7).actions.orEmpty()
+        assertEquals(2, actions.size)
+        assertTrue(actions.all { it.isAuthenticationRequired }, "no replying as the employee from a locked phone")
+    }
+
+    @Test
     fun `later messages update the same notification`() {
         notifier.show(chat(1, "first"), WaiveraChannel.Messages, null)
         notifier.show(chat(2, "second"), WaiveraChannel.Messages, null)

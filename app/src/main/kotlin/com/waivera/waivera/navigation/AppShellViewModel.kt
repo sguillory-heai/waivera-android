@@ -158,7 +158,7 @@ class AppShellViewModel @Inject constructor(
             realtime.setVisibleConversation(null)
         } else {
             tracker.enter(chat.first, chat.second)
-            realtime.setVisibleConversation(chat.first)
+            realtime.setVisibleConversation(chat.first, chat.second)
         }
     }
 

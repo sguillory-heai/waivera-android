@@ -22,6 +22,9 @@ class FakeHubTransportFactory : HubTransportFactory {
     val results = mutableMapOf<String, (List<Any?>) -> JsonElement>()
     val hubErrors = mutableMapOf<String, String>()
 
+    /** Runs at the end of every successful handshake, before the client sees it succeed. */
+    var onStarted: () -> Unit = {}
+
     /** Every call across all transports, in order. */
     val calls: List<HubCall> get() = created.flatMap { it.calls }
 
@@ -57,6 +60,7 @@ class FakeHubTransport internal constructor(
             throw HubInvocationException("handshake failed")
         }
         started = true
+        factory.onStarted()
     }
 
     override suspend fun stop() {

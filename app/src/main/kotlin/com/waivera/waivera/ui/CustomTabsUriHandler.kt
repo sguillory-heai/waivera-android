@@ -8,24 +8,22 @@ import androidx.browser.customtabs.CustomTabColorSchemeParams
 import androidx.browser.customtabs.CustomTabsIntent
 import androidx.compose.ui.platform.UriHandler
 import androidx.core.net.toUri
+import com.waivera.waivera.core.network.ExternalLinks
 
 /**
  * The app's [UriHandler]: web links (call lobby, ticket and message links) open in a Custom Tab
- * tinted with the app's surface colour, so the person stays in Waivera. Other schemes, and devices
- * without a Custom Tabs browser, fall back to a plain view intent. Like Compose's default handler
- * it throws [IllegalArgumentException] when nothing can open the link, which screens already
- * turn into their "couldn't open" message.
+ * tinted with the app's surface colour, so the person stays in Waivera. Devices without a Custom
+ * Tabs browser fall back to a browsable view intent. Anything [ExternalLinks] does not allow is
+ * refused here too, whatever the caller checked. Like Compose's default handler it throws
+ * [IllegalArgumentException] when the link is refused or nothing can open it, which screens
+ * already turn into their "couldn't open" message.
  *
  * [context] is the activity, so no new task is needed.
  */
 internal class CustomTabsUriHandler(private val context: Context, private val toolbarColor: Int) : UriHandler {
     override fun openUri(uri: String) {
+        require(ExternalLinks.isOpenable(uri)) { "Only web links can be opened" }
         val parsed = uri.trim().toUri()
-        val scheme = parsed.scheme?.lowercase()
-        if (scheme != "http" && scheme != "https") {
-            view(parsed)
-            return
-        }
         val tab = CustomTabsIntent.Builder()
             .setDefaultColorSchemeParams(CustomTabColorSchemeParams.Builder().setToolbarColor(toolbarColor).build())
             .setShowTitle(true)
@@ -39,7 +37,11 @@ internal class CustomTabsUriHandler(private val context: Context, private val to
 
     private fun view(uri: Uri) {
         try {
-            context.startActivity(Intent(Intent.ACTION_VIEW, uri))
+            val intent = Intent(Intent.ACTION_VIEW, uri).apply {
+                addCategory(Intent.CATEGORY_BROWSABLE)
+                selector = null
+            }
+            context.startActivity(intent)
         } catch (error: ActivityNotFoundException) {
             throw IllegalArgumentException("No app can open this link", error)
         }

@@ -90,7 +90,7 @@ sealed interface ChatListEffect {
 }
 
 sealed interface ChatListRetry {
-    data class MarkRead(val conversationId: Long) : ChatListRetry
+    data class MarkRead(val conversationId: Long, val throughMessageId: Long) : ChatListRetry
 
     data class JoinCall(val conversationId: Long) : ChatListRetry
 }

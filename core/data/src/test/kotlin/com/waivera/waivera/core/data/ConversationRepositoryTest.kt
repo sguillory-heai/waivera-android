@@ -130,6 +130,25 @@ class ConversationRepositoryTest {
         repo.markRead(7, 9312).getOrThrow()
         assertEquals(0, repo.observeConversation(7).first()?.unreadCount)
         assertEquals(3, repo.observeUnreadTotal().first(), "only the channel badge remains")
+        assertEquals(listOf(7L), graph.readsCleared, "reading in the app clears the shade too (IF-07)")
+    }
+
+    @Test
+    fun aFailedMarkReadRestoresTheBadgeSoRetryCanSendItAgain() = testScope.runTest {
+        serveInbox()
+        repo.refresh().getOrThrow()
+        val before = assertNotNull(repo.observeConversation(7).first())
+        assertTrue(before.unreadCount > 0)
+        graph.server.status("PUT /api/chat/7/read-through", 503)
+        assertIs<WaiveraError.Server>(repo.markRead(7, 9312).exceptionOrNull())
+        val rolledBack = repo.observeConversation(7).first()
+        assertEquals(before.unreadCount, rolledBack?.unreadCount, "the server is still unread, so is the badge")
+        assertEquals(before.lastReadAt, rolledBack?.lastReadAt)
+        assertEquals(emptyList(), graph.readsCleared, "still unread, so the notification stays")
+
+        graph.server.fixture("PUT /api/chat/7/read-through", "rest-chat-read-through.json")
+        repo.markRead(7, 9312).getOrThrow()
+        assertEquals(0, repo.observeConversation(7).first()?.unreadCount)
     }
 
     private fun lobbyState(url: String): String {
@@ -177,9 +196,10 @@ class ConversationRepositoryTest {
         assertTrue(repo.callLobbyUrl(7).getOrThrow().contains("/lobby/"))
         assertEquals(1, graph.server.requestsTo("/api/chat/conversation/7").size)
 
+        val noWebBase = NetworkConfig(graph.server.baseUrl, "", allowLocalCleartext = true)
         val unconfigured = LiveConversationRepository(
-            graph.chatApi, graph.videoApi, NetworkConfig(graph.server.baseUrl, ""), graph.cache, graph.sync,
-            graph.session, graph.typing, graph.visible, graph.clock,
+            graph.chatApi, graph.videoApi, noWebBase, graph.cache, graph.sync,
+            graph.session, graph.typing, graph.visible, graph.clock, {},
         )
         val error = assertIs<WaiveraError.Configuration>(unconfigured.callLobbyUrl(7).exceptionOrNull())
         assertEquals(listOf("waivera.webBaseUrl"), error.missingKeys)

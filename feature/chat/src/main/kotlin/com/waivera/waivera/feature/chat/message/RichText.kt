@@ -62,19 +62,15 @@ object TipTapParser {
     private const val MAX_DEPTH = 10
     private const val EDITOR_MARKER = "\"editor\""
     private val PREFERRED_KEYS = listOf("doc", "messageDoc", "content", "data", "value")
-    private val lenientJson = Json { isLenient = true }
 
     /** The rich document for [message], or null when it should render as plain text. */
     fun documentFor(message: Message): RichDocument? = extractDoc(message.doc, message.text)?.let(::parse)
 
     /** Finds the first `{type: "doc", content: [...]}` in [doc], else in [text] when it mentions an editor. */
-    fun extractDoc(doc: JsonElement?, text: String?): JsonObject? {
-        find(doc, 0, Collections.newSetFromMap(IdentityHashMap()))?.let { return it }
-        if (text != null && text.contains(EDITOR_MARKER)) {
-            return find(JsonPrimitive(text), 0, Collections.newSetFromMap(IdentityHashMap()))
-        }
-        return null
-    }
+    fun extractDoc(doc: JsonElement?, text: String?): JsonObject? =
+        find(doc, 0, Collections.newSetFromMap(IdentityHashMap()))
+            ?: text?.takeIf { it.contains(EDITOR_MARKER) }
+                ?.let { find(JsonPrimitive(it), 0, Collections.newSetFromMap(IdentityHashMap())) }
 
     @Suppress("ReturnCount", "CyclomaticComplexMethod")
     private fun find(payload: JsonElement?, depth: Int, seen: MutableSet<Any>): JsonObject? {
@@ -93,15 +89,6 @@ object TipTapParser {
                 } ?: payload.values.firstNotNullOfOrNull { find(it, depth + 1, seen) }
             }
         }
-    }
-
-    /** JSON.parse after stripping one layer of surrounding quotes and un-escaping `\"`. */
-    internal fun safeJsonParse(value: String): JsonElement? {
-        var clean = value.trim()
-        if (clean.length >= 2 && clean.startsWith('"') && clean.endsWith('"')) {
-            clean = clean.substring(1, clean.length - 1).replace("\\\"", "\"")
-        }
-        return runCatching { lenientJson.parseToJsonElement(clean) }.getOrNull()
     }
 
     fun parse(doc: JsonObject): RichDocument = RichDocument(blocks(doc.children()))
@@ -190,39 +177,10 @@ object TipTapParser {
         return result to href
     }
 
-    private fun mentionLabel(node: JsonObject): String {
-        val attrs = node.attrs()
-        val label = attrs?.string("label") ?: attrs?.get("id")?.let { (it as? JsonPrimitive)?.contentOrNull }
-        return label ?: "mention"
-    }
-
     /** Plain-text projection used for copy, edit and previews (03 §7), ported exactly. */
     fun plainText(doc: JsonObject): String = nodePlainText(doc).replace(Regex("\n{3,}"), "\n\n").trim()
 
-    private fun nodePlainText(node: JsonObject): String {
-        when (node.string("type")) {
-            "text" -> return node.string("text").orEmpty()
-            "mention" -> {
-                val attrs = node.attrs()
-                val label = attrs?.string("label") ?: attrs?.get("id")?.let { (it as? JsonPrimitive)?.contentOrNull }
-                return if (label == null) "@mention" else "@$label"
-            }
-            "hardBreak" -> return "\n"
-        }
-        val children = node.children().joinToString("") { nodePlainText(it) }
-        return if (node.string("type") in LINE_TYPES) "$children\n" else children
-    }
-
-    private fun JsonObject.children(): List<JsonObject> =
-        (this["content"] as? JsonArray).orEmpty().filterIsInstance<JsonObject>()
-
-    private fun JsonObject.attrs(): JsonObject? = this["attrs"] as? JsonObject
-
-    private fun JsonObject.string(key: String): String? =
-        (this[key] as? JsonPrimitive)?.takeIf { it.isString }?.contentOrNull
-
     private val INLINE_TYPES = setOf("text", "mention", "hardBreak")
-    private val LINE_TYPES = setOf("paragraph", "heading", "blockquote", "listItem", "codeBlock", "tableRow")
     private const val DEFAULT_HEADING = 2
 }
 
@@ -232,3 +190,40 @@ fun Message.plainText(): String {
     val doc = TipTapParser.extractDoc(doc, text)
     return doc?.let(TipTapParser::plainText) ?: text.orEmpty().trim()
 }
+
+private val lenientJson = Json { isLenient = true }
+private val LINE_TYPES = setOf("paragraph", "heading", "blockquote", "listItem", "codeBlock", "tableRow")
+
+/** JSON.parse after stripping one layer of surrounding quotes and un-escaping `\"`. */
+private fun safeJsonParse(value: String): JsonElement? {
+    var clean = value.trim()
+    if (clean.length >= 2 && clean.startsWith('"') && clean.endsWith('"')) {
+        clean = clean.substring(1, clean.length - 1).replace("\\\"", "\"")
+    }
+    return runCatching { lenientJson.parseToJsonElement(clean) }.getOrNull()
+}
+
+/** A mention's label, else its id, else the word "mention". */
+private fun mentionLabel(node: JsonObject): String {
+    val attrs = node.attrs()
+    val label = attrs?.string("label") ?: attrs?.get("id")?.let { (it as? JsonPrimitive)?.contentOrNull }
+    return label ?: "mention"
+}
+
+private fun nodePlainText(node: JsonObject): String = when (node.string("type")) {
+    "text" -> node.string("text").orEmpty()
+    "mention" -> "@" + mentionLabel(node)
+    "hardBreak" -> "\n"
+    else -> {
+        val children = node.children().joinToString("") { nodePlainText(it) }
+        if (node.string("type") in LINE_TYPES) "$children\n" else children
+    }
+}
+
+private fun JsonObject.children(): List<JsonObject> =
+    (this["content"] as? JsonArray).orEmpty().filterIsInstance<JsonObject>()
+
+private fun JsonObject.attrs(): JsonObject? = this["attrs"] as? JsonObject
+
+private fun JsonObject.string(key: String): String? =
+    (this[key] as? JsonPrimitive)?.takeIf { it.isString }?.contentOrNull

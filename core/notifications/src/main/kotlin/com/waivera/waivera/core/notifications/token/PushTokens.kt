@@ -21,6 +21,12 @@ interface PushTokenSink {
 /** Reads the current FCM token. Null when Firebase is not configured (demo mode) or unavailable. */
 interface PushTokenProvider {
     suspend fun currentToken(): String?
+
+    /**
+     * Invalidates the current token on every session end (AS-02), so a server registration
+     * that outlived the session points at a dead token. Best effort; a new token follows later.
+     */
+    suspend fun deleteToken()
 }
 
 @Singleton
@@ -40,6 +46,20 @@ class FirebasePushTokenProvider @Inject constructor(@ApplicationContext private 
             throw cancelled
         } catch (ignored: Exception) {
             null
+        }
+    }
+
+    // Offline or without Play services the token cannot be deleted now; the unregister call and
+    // the server's own retention cover that case, and nothing here is actionable for the person.
+    @Suppress("TooGenericExceptionCaught")
+    override suspend fun deleteToken() {
+        if (FirebaseApp.getApps(context).isEmpty()) return
+        try {
+            FirebaseMessaging.getInstance().deleteToken().await()
+        } catch (cancelled: CancellationException) {
+            throw cancelled
+        } catch (ignored: Exception) {
+            Unit
         }
     }
 }

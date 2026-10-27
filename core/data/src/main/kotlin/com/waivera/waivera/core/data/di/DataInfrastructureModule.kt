@@ -13,15 +13,11 @@ import com.waivera.waivera.core.data.db.OutboxDao
 import com.waivera.waivera.core.data.db.PersonDao
 import com.waivera.waivera.core.data.db.TransactionRunner
 import com.waivera.waivera.core.data.db.WaiveraDatabase
-import com.waivera.waivera.core.data.image.AuthenticatedImageLoader
 import com.waivera.waivera.core.data.live.AttachmentCacheDirectory
-import com.waivera.waivera.core.data.live.ChatCache
-import com.waivera.waivera.core.data.live.LiveAttachmentRepository
-import com.waivera.waivera.core.data.live.LivePeopleRepository
-import com.waivera.waivera.core.data.live.SignOutCleaner
+import com.waivera.waivera.core.data.live.PushUnregisterScheduler
+import com.waivera.waivera.core.data.live.WorkManagerPushUnregisterScheduler
 import com.waivera.waivera.core.data.outbox.OutboxDirectory
 import com.waivera.waivera.core.data.outbox.OutboxScheduler
-import com.waivera.waivera.core.data.outbox.OutboxStore
 import com.waivera.waivera.core.data.outbox.WorkManagerOutboxScheduler
 import com.waivera.waivera.core.data.realtime.AndroidConnectivityMonitor
 import com.waivera.waivera.core.data.realtime.AppForegroundMonitor
@@ -37,8 +33,6 @@ import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
-import dagger.multibindings.IntoSet
-import dagger.multibindings.Multibinds
 import java.io.File
 import java.time.Clock
 import javax.inject.Singleton
@@ -69,20 +63,8 @@ abstract class DataInfrastructureModule {
     @Binds
     abstract fun outboxScheduler(scheduler: WorkManagerOutboxScheduler): OutboxScheduler
 
-    @Multibinds
-    abstract fun signOutCleaners(): Set<SignOutCleaner>
-
     @Binds
-    @IntoSet
-    abstract fun attachmentCleaner(repository: LiveAttachmentRepository): SignOutCleaner
-
-    @Binds
-    @IntoSet
-    abstract fun avatarCleaner(repository: LivePeopleRepository): SignOutCleaner
-
-    @Binds
-    @IntoSet
-    abstract fun imageCleaner(loader: AuthenticatedImageLoader): SignOutCleaner
+    abstract fun pushUnregisterScheduler(scheduler: WorkManagerPushUnregisterScheduler): PushUnregisterScheduler
 
     @Suppress("TooManyFunctions")
     companion object {
@@ -130,14 +112,5 @@ abstract class DataInfrastructureModule {
         @Provides
         @AttachmentCacheDirectory
         fun attachmentDirectory(@ApplicationContext context: Context): File = File(context.cacheDir, "attachments")
-
-        @Provides
-        @IntoSet
-        fun cacheCleaner(cache: ChatCache): SignOutCleaner = SignOutCleaner { cache.clear() }
-
-        @Provides
-        @IntoSet
-        fun outboxCleaner(store: OutboxStore, @OutboxDirectory directory: File): SignOutCleaner =
-            SignOutCleaner { store.clear(directory) }
     }
 }

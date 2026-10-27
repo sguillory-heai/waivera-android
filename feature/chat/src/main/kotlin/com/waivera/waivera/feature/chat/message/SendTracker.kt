@@ -57,12 +57,25 @@ class ArrivalTracker {
         val ambiguous = TimelineBuilder.ambiguousClientIds(messages)
         seen = messages.mapTo(mutableSetOf()) { TimelineBuilder.keyOf(it, ambiguous) }
         newest = messages.mapNotNull { it.createdAt }.maxOrNull() ?: previousNewest
-        if (previous == null) return emptySet()
-        // The first page arriving after an empty cache is history, except for one's own send.
-        if (previous.isEmpty()) return messages.filter { it.isPending }.mapTo(mutableSetOf()) { it.id }
-        return messages.asSequence()
-            .filter { TimelineBuilder.keyOf(it, ambiguous) !in previous }
-            .filter { it.isPending || previousNewest == null || it.createdAt?.isBefore(previousNewest) != true }
-            .mapTo(mutableSetOf()) { it.id }
+        return when {
+            previous == null -> emptySet()
+            // The first page arriving after an empty cache is history, except for one's own send.
+            previous.isEmpty() -> messages.filter { it.isPending }.mapTo(mutableSetOf()) { it.id }
+            else -> messages.asSequence()
+                .filter { TimelineBuilder.keyOf(it, ambiguous) !in previous }
+                .filter { it.isPending || previousNewest == null || it.createdAt?.isBefore(previousNewest) != true }
+                .mapTo(mutableSetOf()) { it.id }
+        }
+    }
+
+    companion object {
+        /**
+         * True when [arrivals] hold a sent message from someone other than [myUserId], which earns
+         * the receive cue. Unknown identity never buzzes, so a cold start cannot misfire.
+         */
+        fun hasIncoming(messages: List<Message>, arrivals: Set<Long>, myUserId: String?): Boolean =
+            myUserId != null &&
+                arrivals.isNotEmpty() &&
+                messages.any { it.id in arrivals && !it.isPending && it.authorId != myUserId }
     }
 }

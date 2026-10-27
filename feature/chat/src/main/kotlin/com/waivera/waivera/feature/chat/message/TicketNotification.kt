@@ -86,16 +86,20 @@ object TicketNotifications {
     fun date(preferred: String?, iso: String?): TicketDate {
         val value = preferred?.takeIf { it.isNotEmpty() && it != "--" } ?: iso?.takeIf(String::isNotEmpty)
             ?: return TicketDate.NotSet
-        US_DATE.matchEntire(value)?.destructured?.let { (month, day, year) ->
-            return runCatching { TicketDate.OnDate(LocalDate.of(year.toInt(), month.toInt(), day.toInt())) }
-                .getOrDefault(TicketDate.Raw(value))
-        }
-        WaiveraTime.parseLocalDate(value)?.takeIf {
-            value.length == ISO_DATE_LENGTH
-        }?.let { return TicketDate.OnDate(it) }
-        return WaiveraTime.parseInstant(value)?.let { TicketDate.OnDate(it.atZone(ZoneOffset.UTC).toLocalDate()) }
-            ?: TicketDate.Raw(value)
+        return usDate(value) ?: isoDate(value) ?: TicketDate.Raw(value)
     }
+
+    /** `MM/DD/YYYY`; an impossible date stays as the raw text. */
+    private fun usDate(value: String): TicketDate? {
+        val (month, day, year) = US_DATE.matchEntire(value)?.destructured ?: return null
+        return runCatching { TicketDate.OnDate(LocalDate.of(year.toInt(), month.toInt(), day.toInt())) }
+            .getOrDefault(TicketDate.Raw(value))
+    }
+
+    /** A bare ISO date, else an instant read as a UTC day. */
+    private fun isoDate(value: String): TicketDate? =
+        WaiveraTime.parseLocalDate(value)?.takeIf { value.length == ISO_DATE_LENGTH }?.let { TicketDate.OnDate(it) }
+            ?: WaiveraTime.parseInstant(value)?.let { TicketDate.OnDate(it.atZone(ZoneOffset.UTC).toLocalDate()) }
 
     private const val ISO_DATE_LENGTH = 10
 }

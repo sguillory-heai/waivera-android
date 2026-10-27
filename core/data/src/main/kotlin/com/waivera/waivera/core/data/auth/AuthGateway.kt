@@ -28,7 +28,11 @@ interface AuthGateway {
 
     suspend fun reauthenticateAndUpdatePassword(currentPassword: String, newPassword: String)
 
-    /** Blocking; called from OkHttp and SignalR threads. Null when signed out. */
+    /**
+     * Blocking; called from OkHttp and SignalR threads. Null when signed out; throws
+     * [com.waivera.waivera.core.network.error.TokenUnavailableException] when the token cannot
+     * be fetched for a reason that can pass.
+     */
     fun idTokenBlocking(forceRefresh: Boolean): String?
 }
 

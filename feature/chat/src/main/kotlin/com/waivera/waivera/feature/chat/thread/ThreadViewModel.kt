@@ -223,6 +223,9 @@ class ThreadViewModel @AssistedInject constructor(
                 liveArrivals.update { it - arrivals }
             }
         }
+        if (isResumed && ArrivalTracker.hasIncoming(replies, arrivals, me)) {
+            emit(ChatEffect.Haptic(HapticMoment.Receive))
+        }
         val events = sendTracker.update(replies)
         if (events.newFailures > 0) {
             val kind = SendErrors.forFailedSend(
@@ -361,7 +364,11 @@ class ThreadViewModel @AssistedInject constructor(
         if (!isValid) return
         val current = _state.value
         if (current.canWrite != true) return
-        current.editingMessageId?.let { return submitEdit(it, draft) }
+        val editing = current.editingMessageId
+        if (editing != null) submitEdit(editing, draft) else sendReply(draft)
+    }
+
+    private fun sendReply(draft: String) {
         val outgoing = createOutgoingMessage(draft) ?: return
         _state.update { it.copy(sendError = null) }
         emit(ChatEffect.SetDraft(""))

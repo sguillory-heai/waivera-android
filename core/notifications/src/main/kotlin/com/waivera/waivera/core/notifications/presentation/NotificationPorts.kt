@@ -36,3 +36,19 @@ data class ConversationNotificationInfo(val title: String?, val isGroup: Boolean
 interface ConversationInfoSource {
     suspend fun find(conversationId: Long): ConversationNotificationInfo?
 }
+
+/**
+ * Whether a push may reach the shade: only while someone is signed in (AS-02). A push that
+ * arrives after sign-out, or for the previous person on a handed-over phone, is dropped.
+ */
+fun interface PushSessionGate {
+    suspend fun allowsNotifications(): Boolean
+}
+
+/**
+ * The thread a cached message belongs to, or null when it is a main-timeline message or not
+ * cached. Chat pushes do not carry the thread yet (AF-12), so suppression asks the local store.
+ */
+fun interface ThreadRootLookup {
+    suspend fun threadRootOf(messageId: Long): Long?
+}

@@ -25,81 +25,87 @@ internal object TodayPreviewStates {
         accountName = "Alex Rivera",
         date = LocalDate.of(2026, 11, 1),
         isInitialLoad = false,
-        needsYou = NeedsYouSection(
-            items = listOf(
-                NeedsYouItem.DirectMessage(
-                    7,
-                    "Priya Raman",
-                    MessageSnippet.Text("Can you cover Thursday?"),
-                    2,
-                    PastLabel.MinutesAgo(4),
-                ),
-                NeedsYouItem.Invitation(
-                    "demo_invite",
-                    "Care plan review",
-                    "Priya Raman",
-                    UpcomingLabel.TomorrowAt(LocalTime.of(9, 0)),
-                ),
-            ),
-            isReady = true,
-        ),
-        nextUp = NextUpSection(
-            items = listOf(
-                NextUpItem(
-                    "demo_allday",
-                    "Daylight saving ends",
-                    UpcomingLabel.AllDayToday,
-                    null,
-                    null,
-                    false,
-                    null,
-                    false,
-                ),
-                NextUpItem(
-                    "demo_visit",
-                    "Client home visit",
-                    UpcomingLabel.InMinutes(30),
-                    LocalTime.of(11, 0),
-                    LocalTime.of(12, 0),
-                    false,
-                    "1200 W Lake St",
-                    false,
-                ),
-            ),
-            isReady = true,
-        ),
+        needsYou = needsYou(),
+        nextUp = nextUp(),
         milestones = listOf(CelebrationItem("usr_jordan_lee", "Jordan Lee", isBirthday = false, anniversaryYears = 5)),
-        activity = ActivitySection(
-            rows = listOf(
-                ActivityRow(
-                    1,
-                    ChatActivityType.REACTION,
-                    ActivitySummary.Reaction("Dana", "🎉"),
-                    PastLabel.MinutesAgo(12),
-                    false,
-                    7,
-                    9,
-                    null,
-                ),
-                ActivityRow(
-                    2,
-                    ChatActivityType.THREAD_REPLY,
-                    ActivitySummary.Server("Jordan replied in a thread"),
-                    PastLabel.Yesterday,
-                    true,
-                    11,
-                    10,
-                    9,
-                ),
-            ),
-            unreadCount = 1,
-            totalCount = 2,
-            isReady = true,
-        ),
+        activity = activity(),
     )
 
     fun caughtUp() = populated().copy(
         needsYou = NeedsYouSection(isReady = true),
         activity = ActivitySection(isReady = true),
+    )
+
+    private fun needsYou() = NeedsYouSection(
+        items = listOf(
+            NeedsYouItem.DirectMessage(
+                7,
+                "Priya Raman",
+                MessageSnippet.Text("Can you cover Thursday?"),
+                2,
+                PastLabel.MinutesAgo(4),
+            ),
+            NeedsYouItem.Invitation(
+                "demo_invite",
+                "Care plan review",
+                "Priya Raman",
+                UpcomingLabel.TomorrowAt(LocalTime.of(9, 0)),
+            ),
+        ),
+        isReady = true,
+    )
+
+    private fun nextUp() = NextUpSection(
+        items = listOf(
+            NextUpItem(
+                "demo_allday",
+                "Daylight saving ends",
+                UpcomingLabel.AllDayToday,
+                null,
+                null,
+                false,
+                null,
+                false,
+            ),
+            NextUpItem(
+                "demo_visit",
+                "Client home visit",
+                UpcomingLabel.InMinutes(30),
+                LocalTime.of(11, 0),
+                LocalTime.of(12, 0),
+                false,
+                "1200 W Lake St",
+                false,
+            ),
+        ),
+        isReady = true,
+    )
+
+    private fun activity() = ActivitySection(
+        rows = listOf(
+            ActivityRow(
+                1,
+                ChatActivityType.REACTION,
+                ActivitySummary.Reaction("Dana", "🎉"),
+                PastLabel.MinutesAgo(12),
+                false,
+                7,
+                9,
+                null,
+            ),
+            ActivityRow(
+                2,
+                ChatActivityType.THREAD_REPLY,
+                ActivitySummary.Server("Jordan replied in a thread"),
+                PastLabel.Yesterday,
+                true,
+                11,
+                10,
+                9,
+            ),
+        ),
+        unreadCount = 1,
+        totalCount = 2,
+        isReady = true,
     )
 }

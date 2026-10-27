@@ -26,8 +26,9 @@ class LiveRealtimeStatusRepository @Inject constructor(
 
     override fun retryNow() = realtime.retryNow()
 
-    override fun setVisibleConversation(conversationId: Long?) = visible.set(conversationId)
+    override fun setVisibleConversation(conversationId: Long?, threadRootMessageId: Long?) =
+        visible.set(conversationId, threadRootMessageId)
 
     override fun shouldSuppressNotification(conversationId: Long): Boolean =
-        realtime.state.value == ConnectionState.Connected && visible.id.value == conversationId
+        realtime.state.value == ConnectionState.Connected && visible.chatId.value == conversationId
 }

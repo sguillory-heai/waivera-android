@@ -4,10 +4,10 @@ import com.waivera.waivera.core.data.auth.AuthGateway
 import com.waivera.waivera.core.data.model.CurrentUser
 import com.waivera.waivera.core.data.model.SessionState
 import com.waivera.waivera.core.data.model.currentUserId
-import com.waivera.waivera.core.data.repository.PushRegistrationRepository
 import com.waivera.waivera.core.data.repository.SessionRepository
 import com.waivera.waivera.core.data.store.SecureStore
 import com.waivera.waivera.core.network.NetworkConfig
+import com.waivera.waivera.core.network.SessionRejections
 import com.waivera.waivera.core.network.WaiveraJson
 import com.waivera.waivera.core.network.api.AuthenticationApi
 import com.waivera.waivera.core.network.di.ApplicationScope
@@ -22,9 +22,9 @@ import com.waivera.waivera.core.network.log.WaiveraLog
 import com.waivera.waivera.core.realtime.RealtimeClient
 import java.security.MessageDigest
 import javax.inject.Inject
-import javax.inject.Provider
 import javax.inject.Singleton
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -33,6 +33,9 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.serialization.Serializable
 
 /**
@@ -40,6 +43,11 @@ import kotlinx.serialization.Serializable
  * bootstrap (`GET /api/Authentication/login`, enveloped per G-02) yields the backend user id,
  * which is the only identity the rest of the app uses. The bootstrap runs once per Firebase uid
  * change, never per token refresh.
+ *
+ * Every way a session ends (sign-out, a rejected bootstrap, Firebase dropping the user, another
+ * account signing in) goes through [endSession], which runs [SessionEnder] once (AF-04, AS-01).
+ * [SecureStore.CACHED_SESSION] doubles as the marker that per-user data may exist, so a session
+ * that ended while the process was dead is cleaned up on the next start.
  */
 @Singleton
 @Suppress("LongParameterList")
@@ -48,16 +56,15 @@ class LiveSessionRepository @Inject constructor(
     private val authApi: AuthenticationApi,
     private val secureStore: SecureStore,
     private val realtime: RealtimeClient,
-    private val push: Provider<PushRegistrationRepository>,
-    private val cleaners: Set<@JvmSuppressWildcards SignOutCleaner>,
+    private val ender: SessionEnder,
     private val networkConfig: NetworkConfig,
+    private val rejections: SessionRejections,
     @ApplicationScope private val scope: CoroutineScope,
 ) : SessionRepository {
     private val _state = MutableStateFlow<SessionState>(SessionState.Initializing)
     override val state: StateFlow<SessionState> = _state.asStateFlow()
 
-    /** Why the next SignedOut happens, set before a forced Firebase sign-out. */
-    private var pendingSignOutReason: WaiveraError? = null
+    private val endLock = Mutex()
 
     @Volatile
     private var pendingConfirm: PendingConfirm? = null
@@ -71,13 +78,34 @@ class LiveSessionRepository @Inject constructor(
                 gateway.user.map { it?.uid }.distinctUntilChanged().collectLatest { uid ->
                     if (pendingConfirm?.uid != uid) pendingConfirm = null
                     if (uid == null) {
-                        _state.value = SessionState.SignedOut(pendingSignOutReason)
-                        pendingSignOutReason = null
+                        endSession(reason = null)
                     } else {
+                        endPreviousAccount(uid)
                         bootstrap(uid)
                     }
                 }
             }
+            scope.launch {
+                rejections.events.collect {
+                    recheckAfterRejection()
+                    // Further rejections meanwhile collapse into one check after the pause.
+                    delay(RECHECK_PAUSE_MILLIS)
+                }
+            }
+        }
+    }
+
+    /**
+     * A 401 survived a refreshed token (IF-05). The bootstrap is asked again; only its own
+     * rejection ends the session. Anything else (offline, 5xx, one endpoint's 401) leaves it.
+     */
+    private suspend fun recheckAfterRejection() {
+        if (_state.value !is SessionState.SignedIn) return
+        val error = catchingWaivera { fetchUser() }.exceptionOrNull()?.let(WaiveraError::from) ?: return
+        if (error.isAuthRejection() && _state.value is SessionState.SignedIn) {
+            WaiveraLog.w(TAG, "Session rejected (${error.httpStatus}); signing out")
+            endSession(reason = error, force = true)
+            gateway.signOut()
         }
     }
 
@@ -90,22 +118,22 @@ class LiveSessionRepository @Inject constructor(
         if (announce) _state.value = SessionState.Initializing
         val result = catchingWaivera { fetchUser() }
         result.onSuccess { (login, user) ->
-            secureStore.put(
-                SecureStore.CACHED_SESSION,
-                WaiveraJson.encodeToString(CachedSession.serializer(), CachedSession(uid, user)),
-            )
+            val cached = CachedSession(uid, user, login.requiresPasswordChange)
+            secureStore.put(SecureStore.CACHED_SESSION, WaiveraJson.encodeToString(CachedSession.serializer(), cached))
             publish(user, login.requiresPasswordChange, offline = false)
         }.onFailure { failure ->
             val error = WaiveraError.from(failure)
             if (error.isAuthRejection()) {
                 WaiveraLog.w(TAG, "Bootstrap rejected (${error.httpStatus}); signing out")
-                pendingSignOutReason = error
+                // Clean up while the Firebase token still works, then let Firebase forget the user.
+                endSession(reason = error, force = true)
                 gateway.signOut()
                 return
             }
             val cached = cachedSession()?.takeIf { it.uid == uid }
             if (cached != null) {
-                publish(cached.user, requiresPasswordChange = false, offline = true)
+                // The password-change gate holds offline too (AF-06).
+                publish(cached.user, cached.requiresPasswordChange, offline = true)
             } else {
                 _state.value = SessionState.BootstrapFailed(error)
             }
@@ -152,13 +180,41 @@ class LiveSessionRepository @Inject constructor(
         }
     }
 
+    /** Unregisters while the Firebase token is still valid, then signs Firebase out. */
     override suspend fun signOut(): Result<Unit> = catchingWaivera {
-        realtime.stop()
-        push.get().unregister().onFailure { WaiveraLog.w(TAG, "Push unregister failed during sign-out", it) }
-        cleaners.forEach { cleaner -> runCatching { cleaner.clear() } }
-        secureStore.clear(keep = setOf(SecureStore.DEVICE_ID, SecureStore.FCM_TOKEN))
+        endSession(reason = null, force = true)
         gateway.signOut()
-        _state.value = SessionState.SignedOut()
+    }
+
+    /**
+     * Ends the session once: [SessionEnder] runs when a session was live or left data behind
+     * (or always, with [force]), then the state becomes [SessionState.SignedOut]. A reason
+     * already published is kept when a later call has none (the Firebase sign-out that follows).
+     */
+    private suspend fun endSession(reason: WaiveraError?, force: Boolean = false) = endLock.withLock {
+        val current = _state.value
+        if (force || current.currentUserId != null || secureStore.get(SecureStore.CACHED_SESSION) != null) {
+            ender.end()
+        }
+        val keepReason = current is SessionState.SignedOut && reason == null
+        _state.value = if (keepReason) current else SessionState.SignedOut(reason)
+    }
+
+    /** Firebase switched straight to another user: the previous account's data goes first. */
+    private suspend fun endPreviousAccount(uid: String) = endLock.withLock {
+        val cached = cachedSession() ?: return@withLock
+        if (cached.uid != uid) ender.end()
+    }
+
+    /**
+     * Waits for the bootstrap to settle; if it is still running after [timeoutMillis], answers
+     * with the cached session of the same Firebase user, so an inline reply can be queued (AF-07).
+     */
+    override suspend fun settledUserId(timeoutMillis: Long): String? {
+        val settled = withTimeoutOrNull(timeoutMillis) { state.first { it !is SessionState.Initializing } }
+        if (settled != null) return settled.currentUserId
+        val uid = gateway.user.value?.uid
+        return cachedSession()?.takeIf { uid != null && it.uid == uid }?.user?.userId
     }
 
     override suspend fun sendPasswordReset(email: String): Result<Unit> = catchingWaivera {
@@ -204,10 +260,18 @@ class LiveSessionRepository @Inject constructor(
         this is WaiveraError.NotSignedIn
 
     @Serializable
-    private data class CachedSession(val uid: String, val user: CurrentUser)
+    private data class CachedSession(
+        val uid: String,
+        val user: CurrentUser,
+        /** Kept so an offline start still holds the password-change gate (AF-06). */
+        val requiresPasswordChange: Boolean = false,
+    )
 
     companion object {
         private const val TAG = "Session"
+
+        /** At most one revocation check a minute, whatever the number of rejected calls. */
+        private const val RECHECK_PAUSE_MILLIS = 60_000L
 
         fun currentUser(
             userId: String,

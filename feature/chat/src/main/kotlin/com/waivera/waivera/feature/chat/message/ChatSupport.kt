@@ -4,6 +4,7 @@ import android.content.Context
 import android.provider.OpenableColumns
 import androidx.core.content.FileProvider
 import androidx.core.net.toUri
+import com.waivera.waivera.core.data.live.SignOutCleaner
 import com.waivera.waivera.core.data.model.AttachmentSource
 import com.waivera.waivera.core.data.repository.AttachmentRepository
 import com.waivera.waivera.core.network.error.WaiveraError
@@ -14,6 +15,7 @@ import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
+import dagger.multibindings.IntoSet
 import java.io.File
 import java.time.Clock
 import java.time.ZoneId
@@ -97,7 +99,7 @@ class AndroidAttachmentIo @Inject constructor(@ApplicationContext private val co
     }
 
     companion object {
-        const val SHARE_DIRECTORY = "feature_chat_share"
+        const val SHARE_DIRECTORY = ShareFolderCleaner.DIRECTORY
         const val AUTHORITY_SUFFIX = ".feature.chat.files"
         private const val DEFAULT_IMAGE_TYPE = "image/jpeg"
         private const val DEFAULT_IMAGE_NAME = "image.jpg"
@@ -156,5 +158,10 @@ internal abstract class ChatFeatureModule {
         @Provides
         @ChatComputeDispatcher
         fun computeDispatcher(): CoroutineDispatcher = Dispatchers.Default
+
+        @Provides
+        @IntoSet
+        fun shareFolderCleaner(@ApplicationContext context: Context): SignOutCleaner =
+            ShareFolderCleaner(context.cacheDir)
     }
 }

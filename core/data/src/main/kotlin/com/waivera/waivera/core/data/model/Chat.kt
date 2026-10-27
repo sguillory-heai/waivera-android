@@ -9,6 +9,7 @@ import com.waivera.waivera.core.network.dto.MessageType
 import com.waivera.waivera.core.network.error.WaiveraError
 import com.waivera.waivera.core.network.time.UtcInstantSerializer
 import java.time.Instant
+import kotlin.reflect.KClass
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
 import kotlinx.serialization.UseSerializers
@@ -142,63 +143,33 @@ enum class SendState { SENT, QUEUED, SENDING, FAILED }
  * Why an outbox send failed for good, stored with the outbox row (an exception cannot be
  * persisted or compared). [toError] gives the [WaiveraError] the UI already knows how to explain.
  */
-enum class SendFailure {
-    NETWORK,
-    TIMEOUT,
-    SERVER,
-    RATE_LIMITED,
-    CHANNEL_ARCHIVED,
-    CHANNEL_READ_ONLY,
-    FORBIDDEN,
-    NOT_FOUND,
-    VALIDATION,
-    ATTACHMENT_EXPIRED,
-    ATTACHMENT_REJECTED,
-    ATTACHMENT_TOO_LARGE,
-    SESSION_EXPIRED,
-    NOT_SIGNED_IN,
-    REALTIME_UNAVAILABLE,
-    OTHER,
+enum class SendFailure(private val type: KClass<out WaiveraError>?, private val error: () -> WaiveraError) {
+    NETWORK(WaiveraError.Network::class, { WaiveraError.Network() }),
+    TIMEOUT(WaiveraError.Timeout::class, { WaiveraError.Timeout() }),
+    SERVER(WaiveraError.Server::class, { WaiveraError.Server(WaiveraError.HTTP_SERVER_ERROR) }),
+    RATE_LIMITED(WaiveraError.RateLimited::class, { WaiveraError.RateLimited() }),
+    CHANNEL_ARCHIVED(WaiveraError.ChannelArchived::class, { WaiveraError.ChannelArchived() }),
+    CHANNEL_READ_ONLY(WaiveraError.ChannelReadOnly::class, { WaiveraError.ChannelReadOnly() }),
+    FORBIDDEN(WaiveraError.Forbidden::class, { WaiveraError.Forbidden() }),
+    NOT_FOUND(WaiveraError.NotFound::class, { WaiveraError.NotFound() }),
+    VALIDATION(WaiveraError.Validation::class, { WaiveraError.Validation() }),
+    ATTACHMENT_EXPIRED(WaiveraError.AttachmentExpired::class, { WaiveraError.AttachmentExpired() }),
+    ATTACHMENT_REJECTED(WaiveraError.AttachmentRejected::class, { WaiveraError.AttachmentRejected() }),
+    ATTACHMENT_TOO_LARGE(WaiveraError.AttachmentTooLarge::class, { WaiveraError.AttachmentTooLarge() }),
+    SESSION_EXPIRED(WaiveraError.SessionExpired::class, { WaiveraError.SessionExpired() }),
+    NOT_SIGNED_IN(WaiveraError.NotSignedIn::class, { WaiveraError.NotSignedIn() }),
+    REALTIME_UNAVAILABLE(WaiveraError.RealtimeUnavailable::class, { WaiveraError.RealtimeUnavailable() }),
+    OTHER(null, { WaiveraError.Unexpected() }),
     ;
 
-    fun toError(): WaiveraError = when (this) {
-        NETWORK -> WaiveraError.Network()
-        TIMEOUT -> WaiveraError.Timeout()
-        SERVER -> WaiveraError.Server(WaiveraError.HTTP_SERVER_ERROR)
-        RATE_LIMITED -> WaiveraError.RateLimited()
-        CHANNEL_ARCHIVED -> WaiveraError.ChannelArchived()
-        CHANNEL_READ_ONLY -> WaiveraError.ChannelReadOnly()
-        FORBIDDEN -> WaiveraError.Forbidden()
-        NOT_FOUND -> WaiveraError.NotFound()
-        VALIDATION -> WaiveraError.Validation()
-        ATTACHMENT_EXPIRED -> WaiveraError.AttachmentExpired()
-        ATTACHMENT_REJECTED -> WaiveraError.AttachmentRejected()
-        ATTACHMENT_TOO_LARGE -> WaiveraError.AttachmentTooLarge()
-        SESSION_EXPIRED -> WaiveraError.SessionExpired()
-        NOT_SIGNED_IN -> WaiveraError.NotSignedIn()
-        REALTIME_UNAVAILABLE -> WaiveraError.RealtimeUnavailable()
-        OTHER -> WaiveraError.Unexpected()
-    }
+    fun toError(): WaiveraError = error()
+
+    /** Whether the same send can succeed later without the person changing anything. */
+    val isTransient: Boolean get() = toError().isTransient
 
     companion object {
-        fun of(error: WaiveraError): SendFailure = when (error) {
-            is WaiveraError.Network -> NETWORK
-            is WaiveraError.Timeout -> TIMEOUT
-            is WaiveraError.Server -> SERVER
-            is WaiveraError.RateLimited -> RATE_LIMITED
-            is WaiveraError.ChannelArchived -> CHANNEL_ARCHIVED
-            is WaiveraError.ChannelReadOnly -> CHANNEL_READ_ONLY
-            is WaiveraError.Forbidden -> FORBIDDEN
-            is WaiveraError.NotFound -> NOT_FOUND
-            is WaiveraError.Validation -> VALIDATION
-            is WaiveraError.AttachmentExpired -> ATTACHMENT_EXPIRED
-            is WaiveraError.AttachmentRejected -> ATTACHMENT_REJECTED
-            is WaiveraError.AttachmentTooLarge -> ATTACHMENT_TOO_LARGE
-            is WaiveraError.SessionExpired -> SESSION_EXPIRED
-            is WaiveraError.NotSignedIn -> NOT_SIGNED_IN
-            is WaiveraError.RealtimeUnavailable -> REALTIME_UNAVAILABLE
-            else -> OTHER
-        }
+        /** The stored kind for [error]; anything without its own kind is [OTHER]. */
+        fun of(error: WaiveraError): SendFailure = entries.firstOrNull { it.type?.isInstance(error) == true } ?: OTHER
     }
 }
 

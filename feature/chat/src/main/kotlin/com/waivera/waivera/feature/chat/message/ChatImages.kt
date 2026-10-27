@@ -65,13 +65,12 @@ class AvatarImages @Inject constructor(private val people: PeopleRepository) {
 
     suspend fun load(userId: String): ImageBitmap? {
         if (userId.isBlank() || userId.startsWith("bot:")) return null
-        cache.get(userId)?.let { return it }
+        return cache.get(userId) ?: decode(userId)?.also { cache.put(userId, it) }
+    }
+
+    private suspend fun decode(userId: String): ImageBitmap? {
         val bytes = people.avatar(userId) ?: return null
-        val bitmap = withContext(Dispatchers.Default) {
-            BitmapFactory.decodeByteArray(bytes, 0, bytes.size)?.asImageBitmap()
-        } ?: return null
-        cache.put(userId, bitmap)
-        return bitmap
+        return withContext(Dispatchers.Default) { BitmapFactory.decodeByteArray(bytes, 0, bytes.size)?.asImageBitmap() }
     }
 
     private companion object {

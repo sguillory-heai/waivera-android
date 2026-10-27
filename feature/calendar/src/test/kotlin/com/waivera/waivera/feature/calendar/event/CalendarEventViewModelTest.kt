@@ -229,6 +229,22 @@ class CalendarEventViewModelTest {
     }
 
     @Test
+    fun leavingWhileTheAnswerIsSavingLetsTheSaveFinish() = runTest {
+        val gate = CompletableDeferred<Unit>()
+        calendar.respondGate = gate
+        val h = open()
+        h.vm.respond(accept = true)
+        advanceTimeBy(window + 1)
+        runCurrent()
+        assertEquals(ResponsePhase.SAVING, h.invitation().phase)
+        h.viewModels.clear()
+        gate.complete(Unit)
+        runCurrent()
+        assertEquals(listOf("invite" to true), calendar.responses, "the answer is sent once")
+        assertEquals(listOf("invite" to true), calendar.savedResponses, "closing the screen did not cancel it")
+    }
+
+    @Test
     fun organizerHasNoAnswerButtons() = runTest {
         val owner = open(invite.copy(ownerUserId = me, myInvitation = MyInvitation.ORGANIZER))
         assertNull(owner.details().invitation)

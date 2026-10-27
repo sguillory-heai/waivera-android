@@ -41,7 +41,7 @@ internal class FakeRealtimeStatus(initial: ConnectionState = ConnectionState.Con
         retries++
     }
 
-    override fun setVisibleConversation(conversationId: Long?) = Unit
+    override fun setVisibleConversation(conversationId: Long?, threadRootMessageId: Long?) = Unit
 
     override fun shouldSuppressNotification(conversationId: Long): Boolean = false
 }

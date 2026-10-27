@@ -14,6 +14,7 @@ import com.waivera.waivera.core.data.outbox.OutboxItem
 import com.waivera.waivera.core.data.outbox.OutboxProcessor
 import com.waivera.waivera.core.data.outbox.OutboxScheduler
 import com.waivera.waivera.core.data.outbox.OutboxStore
+import com.waivera.waivera.core.data.repository.DurableMessageSender
 import com.waivera.waivera.core.data.repository.MessageRepository
 import com.waivera.waivera.core.data.repository.SessionRepository
 import com.waivera.waivera.core.network.api.ChatApi
@@ -37,17 +38,29 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.emitAll
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonElement
 
-/** Per-conversation paging state (G-06: there is no envelope, so has-more is inferred). */
+/**
+ * Per-conversation paging state (G-06: there is no envelope, so has-more is inferred).
+ * [hasOlder] is about the oldest cached message; [gaps] are holes inside the cache (AF-03).
+ * [confirmedNewestId] is the newest message a REST page proved joined to the latest. Hub and
+ * outbox echoes also land in the cache, but they say nothing about what was missed while the app
+ * was away, so the newest cached id alone cannot tell whether the next tail page leaves a hole.
+ */
 @Serializable
-data class TimelineMeta(val hasOlder: Boolean = true)
+data class TimelineMeta(
+    val hasOlder: Boolean = true,
+    val gaps: List<TimelineGap> = emptyList(),
+    val confirmedNewestId: Long? = null,
+)
 
 @Singleton
 @Suppress("LongParameterList", "TooManyFunctions")
@@ -67,7 +80,8 @@ class LiveMessageRepository @Inject constructor(
     @OutboxDirectory private val outboxDirectory: File,
     @IoDispatcher private val io: CoroutineDispatcher,
     @ApplicationScope private val scope: CoroutineScope,
-) : MessageRepository {
+) : MessageRepository,
+    DurableMessageSender {
     private val active = MutableStateFlow<Map<Long, Int>>(emptyMap())
     private val loadingOlder = MutableStateFlow<Set<Long>>(emptySet())
 
@@ -97,9 +111,14 @@ class LiveMessageRepository @Inject constructor(
             meta,
             loadingOlder.map { conversationId in it },
         ) { messages, pending, pageMeta, isLoadingOlder ->
+            val gaps = pageMeta?.gaps.orEmpty()
+            val floor = TimelineGaps.windowFloor(gaps, messages.filter { !it.isThreadReply }.map { it.id })
+            // Only the newest segment is shown, so nobody scrolls across a hole without noticing;
+            // reaching its top pages into the hole (loadOlder) until it joins the next segment.
+            val window = if (floor == null) messages else messages.filter { it.isThreadReply || it.id >= floor }
             MessageTimeline(
-                messages = merge(messages, pending),
-                hasOlder = pageMeta?.hasOlder ?: true,
+                messages = merge(window, pending),
+                hasOlder = floor != null || (pageMeta?.hasOlder ?: true),
                 isLoadingOlder = isLoadingOlder,
             )
         }
@@ -126,47 +145,163 @@ class LiveMessageRepository @Inject constructor(
             chatApi.getMessagesPage(conversationId, ChatApi.MESSAGE_PAGE_SIZE, null)
         }.map(Mappers::message)
         cache.transactions.run {
-            val newestCached = cache.messageDao.newestId(conversationId)
+            val meta = meta(conversationId)
+            val newestCached = confirmedEdge(meta, cache.messageDao.newestId(conversationId))
             val oldestFetched = page.minOfOrNull { it.id }
-            val full = page.size >= ChatApi.MESSAGE_PAGE_SIZE
-            // A full page entirely newer than the cache leaves a hole; drop the stale cache.
-            val gap = newestCached != null && full && oldestFetched != null && oldestFetched > newestCached
-            if (gap) cache.messageDao.deleteConversation(conversationId)
+            val hole = newestCached != null && oldestFetched != null && oldestFetched > newestCached &&
+                page.size >= ChatApi.MESSAGE_PAGE_SIZE
+            // A stale cache with no jump in it is simply dropped. A cache holding a context page
+            // (a jump to an old message) keeps it and records the hole, which paging fills.
+            val dropStale = hole && meta.gaps.isEmpty()
+            if (dropStale) cache.messageDao.deleteConversation(conversationId)
             ingest.ingest(page)
-            if (newestCached == null || gap) {
-                cache.putDocument(metaKey(conversationId), TimelineMeta.serializer(), TimelineMeta(hasOlder = full))
-            }
+            val updated = latestPageMeta(meta, newestCached.takeUnless { dropStale }, page)
+                .confirmedUpTo(page.filter { !it.isThreadReply }.maxOfOrNull { it.id })
+            if (updated != meta || newestCached == null) putMeta(conversationId, updated)
         }
         page.filter { !it.isThreadReply }.maxByOrNull { it.id }?.let { conversations.onMessage(it) }
     }
 
     override suspend fun loadOlder(conversationId: Long): Result<Boolean> = catchingWaivera {
-        val meta = cache.document(metaKey(conversationId), TimelineMeta.serializer())
-        if (meta?.hasOlder == false) return@catchingWaivera false
+        val meta = meta(conversationId)
+        val floor = TimelineGaps.windowFloor(meta.gaps, timelineIds(conversationId))
+        if (floor == null && !meta.hasOlder) return@catchingWaivera false
         loadingOlder.update { it + conversationId }
         try {
-            val oldest = cache.messageDao.getOldestId(conversationId)
+            val before = floor ?: cache.messageDao.getOldestId(conversationId)
             val page = apiCall {
-                chatApi.getMessagesPage(conversationId, ChatApi.MESSAGE_PAGE_SIZE, oldest)
+                chatApi.getMessagesPage(conversationId, ChatApi.MESSAGE_PAGE_SIZE, before)
             }.map(Mappers::message)
-            ingest.ingest(page)
-            val newOldest = page.minOfOrNull { it.id }
-            // G-06 stop rules: a short page, or an oldest id that did not move back.
-            val hasOlder =
-                page.size >= ChatApi.MESSAGE_PAGE_SIZE && newOldest != null && (oldest == null || newOldest < oldest)
-            cache.putDocument(metaKey(conversationId), TimelineMeta.serializer(), TimelineMeta(hasOlder))
-            hasOlder
+            cache.transactions.run {
+                ingest.ingest(page)
+                val latest = meta(conversationId)
+                val updated = if (floor == null) {
+                    olderPageMeta(latest, page, before)
+                } else {
+                    gapPageMeta(latest, page, floor)
+                }
+                putMeta(conversationId, updated)
+                TimelineGaps.windowFloor(updated.gaps, timelineIds(conversationId)) != null || updated.hasOlder
+            }
         } finally {
             loadingOlder.update { it - conversationId }
         }
     }
 
+    /**
+     * Gap bookkeeping after the newest page, which is contiguous up to the latest message.
+     * [newestCached] is null when nothing was cached (or the stale cache was dropped).
+     */
+    private fun latestPageMeta(meta: TimelineMeta, newestCached: Long?, page: List<Message>): TimelineMeta {
+        val oldestFetched = page.minOfOrNull { it.id }
+        val full = page.size >= ChatApi.MESSAGE_PAGE_SIZE
+        return when {
+            newestCached == null -> TimelineMeta(hasOlder = full)
+            oldestFetched == null -> meta
+            !full -> meta.copy(gaps = TimelineGaps.cover(meta.gaps, Long.MIN_VALUE, Long.MAX_VALUE))
+            else -> {
+                val covered = TimelineGaps.cover(meta.gaps, oldestFetched, Long.MAX_VALUE)
+                // A page that overlaps the cache is an empty gap, which add() ignores.
+                meta.copy(gaps = TimelineGaps.add(covered, TimelineGap(newestCached, oldestFetched)))
+            }
+        }
+    }
+
+    /** Paging below the oldest cached message. G-06 stop rules: a short page, or an id that did not move back. */
+    private fun olderPageMeta(meta: TimelineMeta, page: List<Message>, before: Long?): TimelineMeta {
+        val newOldest = page.minOfOrNull { it.id }
+        val movedBack = newOldest != null && (before == null || newOldest < before)
+        val hasOlder = page.size >= ChatApi.MESSAGE_PAGE_SIZE && movedBack
+        return meta.copy(hasOlder = hasOlder)
+    }
+
+    /** Paging into the hole below the shown segment: the page and the cursor message are contiguous. */
+    private fun gapPageMeta(meta: TimelineMeta, page: List<Message>, floor: Long): TimelineMeta {
+        val newOldest = page.minOfOrNull { it.id }
+        return if (page.size < ChatApi.MESSAGE_PAGE_SIZE || newOldest == null || newOldest >= floor) {
+            // Nothing older than the page exists, so every hole below the cursor is closed.
+            TimelineMeta(hasOlder = false, gaps = TimelineGaps.cover(meta.gaps, Long.MIN_VALUE, floor))
+        } else {
+            meta.copy(gaps = TimelineGaps.cover(meta.gaps, newOldest, floor))
+        }
+    }
+
+    /**
+     * Loads the context page around [messageId], records any hole between it and the rest of
+     * the cache, then pages forward from it until it joins the cached tail or reaches the newest
+     * message (bounded; whatever is left is filled by [loadOlder] from the tail).
+     */
     override suspend fun loadAround(conversationId: Long, messageId: Long): Result<Unit> = catchingWaivera {
         val page = apiCall {
             chatApi.getMessageContext(conversationId, messageId, ChatApi.CONTEXT_WINDOW, ChatApi.CONTEXT_WINDOW)
         }.map(Mappers::message)
-        ingest.ingest(page)
+        val ids = page.filter { !it.isThreadReply }.map { it.id }
+        val lo = ids.minOrNull() ?: return@catchingWaivera
+        val hi = ids.max()
+        cache.transactions.run {
+            val cachedIds = timelineIds(conversationId)
+            ingest.ingest(page)
+            val meta = meta(conversationId)
+            val reachesStart = ids.count { it < messageId } < ChatApi.CONTEXT_WINDOW
+            val reachesLatest = ids.count { it > messageId } < ChatApi.CONTEXT_WINDOW
+            var gaps = TimelineGaps.cover(
+                meta.gaps,
+                if (reachesStart) Long.MIN_VALUE else lo,
+                if (reachesLatest) Long.MAX_VALUE else hi,
+            )
+            if (!reachesLatest) {
+                // Nothing cached above yet: the tail is unknown, so the hole is open-ended.
+                val above = cachedIds.filter { it > hi }.minOrNull() ?: Long.MAX_VALUE
+                gaps = TimelineGaps.add(gaps, TimelineGap(hi, above))
+            }
+            val below = cachedIds.filter { it < lo }.maxOrNull()
+            if (!reachesStart && below != null) gaps = TimelineGaps.add(gaps, TimelineGap(below, lo))
+            // With nothing cached below, the context page holds the oldest cached message.
+            val hasOlder = if (below == null) !reachesStart else meta.hasOlder
+            val confirmed = if (reachesLatest) hi else meta.confirmedNewestId
+            putMeta(conversationId, TimelineMeta(hasOlder = hasOlder, gaps = gaps, confirmedNewestId = confirmed))
+        }
+        fillForward(conversationId, hi)
     }
+
+    private suspend fun fillForward(conversationId: Long, from: Long) {
+        var edge = from
+        repeat(MAX_FILL_PAGES) {
+            if (TimelineGaps.gapAbove(meta(conversationId).gaps, edge) == null) return
+            val page = apiCall {
+                chatApi.getMessageContext(conversationId, edge, 0, ChatApi.MAX_CONTEXT_WINDOW)
+            }.map(Mappers::message)
+            val newer = page.filter { !it.isThreadReply && it.id > edge }.map { it.id }
+            cache.transactions.run {
+                ingest.ingest(page)
+                val meta = meta(conversationId)
+                val reachesLatest = newer.size < ChatApi.MAX_CONTEXT_WINDOW
+                val top = if (reachesLatest) Long.MAX_VALUE else newer.max()
+                val filled = meta.copy(gaps = TimelineGaps.cover(meta.gaps, edge, top))
+                putMeta(conversationId, if (reachesLatest) filled.confirmedUpTo(newer.maxOrNull() ?: edge) else filled)
+            }
+            edge = newer.maxOrNull() ?: return
+        }
+    }
+
+    /**
+     * The newest cached message known to be joined to the cache below it: the REST-confirmed id
+     * when there is one, since anything newer may have come from the hub after a gap (IF-01).
+     */
+    private fun confirmedEdge(meta: TimelineMeta, newestCached: Long?): Long? =
+        newestCached?.let { newest -> meta.confirmedNewestId?.coerceAtMost(newest) ?: newest }
+
+    private fun TimelineMeta.confirmedUpTo(id: Long?): TimelineMeta =
+        if (id == null) this else copy(confirmedNewestId = maxOf(id, confirmedNewestId ?: id))
+
+    private suspend fun meta(conversationId: Long): TimelineMeta =
+        cache.document(metaKey(conversationId), TimelineMeta.serializer()) ?: TimelineMeta()
+
+    private suspend fun putMeta(conversationId: Long, meta: TimelineMeta) =
+        cache.putDocument(metaKey(conversationId), TimelineMeta.serializer(), meta)
+
+    private suspend fun timelineIds(conversationId: Long): List<Long> =
+        cache.observeMessages(conversationId).first().filter { !it.isThreadReply }.map { it.id }
 
     override suspend fun send(
         conversationId: Long,
@@ -175,7 +310,31 @@ class LiveMessageRepository @Inject constructor(
         attachment: AttachmentSource?,
         parentMessageId: Long?,
     ): String {
-        val me = session.state.value.currentUserId ?: throw WaiveraError.NotSignedIn()
+        val clientId = enqueue(conversationId, text, doc, attachment, parentMessageId)
+        kick()
+        return clientId
+    }
+
+    override suspend fun sendDurably(conversationId: Long, text: String, parentMessageId: Long?): String {
+        val clientId = enqueue(conversationId, text, doc = null, attachment = null, parentMessageId)
+        // WorkManager first: it outlives this process if the system ends it mid-attempt.
+        scheduler.schedule()
+        // Bounded so the receiver's window is never overrun; the scheduled retry finishes the job.
+        withTimeoutOrNull(FIRST_ATTEMPT_MILLIS) { processor.process() }
+        return clientId
+    }
+
+    private suspend fun enqueue(
+        conversationId: Long,
+        text: String,
+        doc: JsonElement?,
+        attachment: AttachmentSource?,
+        parentMessageId: Long?,
+    ): String {
+        // A reply from a notification can arrive while a cold start is still bootstrapping (AF-07).
+        val me = session.state.value.currentUserId
+            ?: session.settledUserId(SESSION_WAIT_MILLIS)
+            ?: throw WaiveraError.NotSignedIn()
         val clientId = UUID.randomUUID().toString()
         val staged = attachment?.let { stage(clientId, it) }
         outbox.put(
@@ -191,7 +350,6 @@ class LiveMessageRepository @Inject constructor(
             ),
         )
         typing.onMessageSent(conversationId)
-        kick()
         return clientId
     }
 
@@ -226,13 +384,20 @@ class LiveMessageRepository @Inject constructor(
                 chatApi.editMessage(messageId, EditMessageRequest(text, doc))
             }.requireData(),
         )
+        // The preview prefers plainText, so a stale one would keep showing the old words (AF-10):
+        // take the server's new rendering, or none, and the format that matches the new body.
         val merged = cache.message(messageId)?.let { cached ->
             cached.copy(
                 text = updated.text,
                 doc = updated.doc,
+                plainText = updated.plainText,
+                contentFormat = if (doc != null || updated.doc != null) {
+                    Message.CONTENT_FORMAT_RICH
+                } else {
+                    Message.CONTENT_FORMAT_PLAIN
+                },
                 isEdited = true,
-                updatedAt =
-                updated.updatedAt ?: clock.instant(),
+                updatedAt = updated.updatedAt ?: clock.instant(),
             )
         } ?: updated
         cache.putMessages(listOf(merged))
@@ -282,6 +447,17 @@ class LiveMessageRepository @Inject constructor(
     }
 
     private fun metaKey(conversationId: Long) = "timeline:$conversationId"
+
+    private companion object {
+        /** Forward pages of up to 75 messages when joining a context page to the tail (600 messages). */
+        const val MAX_FILL_PAGES = 8
+
+        /** Inside the notification receiver's 8 s budget; the outbox sends once signed in. */
+        const val SESSION_WAIT_MILLIS = 5_000L
+
+        /** With [SESSION_WAIT_MILLIS], still inside the notification receiver's 8 s budget. */
+        const val FIRST_ATTEMPT_MILLIS = 2_500L
+    }
 
     private fun syncKey(conversationId: Long) = "messages:$conversationId"
 }

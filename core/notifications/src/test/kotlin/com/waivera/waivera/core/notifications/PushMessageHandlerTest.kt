@@ -21,6 +21,8 @@ class PushMessageHandlerTest {
     private var preferences = ClientNotificationPreferences()
     private var hubConnected = false
     private val conversations = mutableMapOf<Long, ConversationNotificationInfo>()
+    private var signedIn = true
+    private val threadRoots = mutableMapOf<Long, Long>()
     private val tracker = ActiveConversationTracker(notifier)
     private val handler = PushMessageHandler(
         notifier = notifier,
@@ -32,6 +34,8 @@ class PushMessageHandlerTest {
         },
         hub = { hubConnected },
         tracker = tracker,
+        session = { signedIn },
+        threads = { messageId -> threadRoots[messageId] },
     )
     private val chatData = PushFixtures.load("chat-message.json").data
 
@@ -107,6 +111,44 @@ class PushMessageHandlerTest {
     fun `an unusable payload is ignored`() = runTest {
         assertNull(handler.handle(mapOf("type" to "chat", "conversationId" to "0")))
         assertTrue(notifier.shown.isEmpty())
+    }
+
+    @Test
+    fun `nothing is shown while nobody is signed in`() = runTest {
+        signedIn = false
+        val decision = handler.handle(chatData)
+        val suppressed = assertIs<PresentationDecision.Suppress>(decision)
+        assertEquals(PresentationDecision.SuppressReason.SignedOut, suppressed.reason)
+        assertTrue(notifier.shown.isEmpty())
+    }
+
+    @Test
+    fun `a thread reply is shown while only its main conversation is open`() = runTest {
+        // The payload has no thread id (AF-12); the cache knows message 9312 is a reply.
+        threadRoots[9312] = 9310
+        hubConnected = true
+        tracker.enter(conversationId = 7)
+        handler.handle(chatData)
+        val shown = assertIs<PushMessage.Chat>(notifier.shown.single().first)
+        assertEquals(9310L, shown.threadRootMessageId, "a tap opens the thread")
+    }
+
+    @Test
+    fun `a thread reply is suppressed while that thread is on screen`() = runTest {
+        threadRoots[9312] = 9310
+        hubConnected = true
+        tracker.enter(conversationId = 7, threadRootMessageId = 9310)
+        assertIs<PresentationDecision.Suppress>(handler.handle(chatData))
+        assertTrue(notifier.shown.isEmpty())
+    }
+
+    @Test
+    fun `a main timeline message is shown while only one of its threads is on screen`() = runTest {
+        hubConnected = true
+        tracker.enter(conversationId = 7, threadRootMessageId = 9310)
+        handler.handle(chatData)
+        val shown = assertIs<PushMessage.Chat>(notifier.shown.single().first)
+        assertNull(shown.threadRootMessageId)
     }
 
     @Test

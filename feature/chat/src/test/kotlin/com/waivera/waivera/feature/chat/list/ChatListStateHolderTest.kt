@@ -312,7 +312,21 @@ class ChatListStateHolderTest {
         assertEquals(4, h.state.value.rows.single().unreadCount)
         val message = assertIs<ChatListEffect.ShowMessage>(effects.single())
         assertEquals(R.string.feature_chat_list_mark_read_failed, message.messageRes)
-        assertEquals(ChatListRetry.MarkRead(7), message.retry)
+        assertEquals(ChatListRetry.MarkRead(7, throughMessageId = 700), message.retry)
+    }
+
+    @Test
+    fun retryMarksReadAgainEvenWhenTheRowAlreadyLooksRead() = run {
+        repo.setConversations(listOf(dm(7, unread = 4, last = preview(700))))
+        repo.markReadResult = Result.failure(WaiveraError.Network())
+        val h = holder()
+        val effects = effects(h)
+        h.onMarkRead(7)
+        // The badge was cleared elsewhere meanwhile; Retry must still reach the server.
+        repo.update(7) { it.copy(unreadCount = 0) }
+        repo.markReadResult = Result.success(Unit)
+        h.onRetry(assertIs<ChatListEffect.ShowMessage>(effects.single()).retry ?: error("no retry"))
+        assertEquals(listOf(7L to 700L, 7L to 700L), repo.markReadCalls)
     }
 
     @Test

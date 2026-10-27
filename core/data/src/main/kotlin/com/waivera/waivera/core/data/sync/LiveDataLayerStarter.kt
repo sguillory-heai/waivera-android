@@ -24,6 +24,7 @@ import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 
@@ -56,10 +57,16 @@ class LiveDataLayerStarter @Inject constructor(
         scope.launch { realtime.events.collect { sync.apply(it) } }
         scope.launch { realtime.resyncRequests.collect { sync.resync() } }
         scope.launch { foreground.isForeground.collect(realtime::setForeground) }
+        scope.launch { foreground.isForeground.drop(1).filter { it }.collect { retryPushRegistration() } }
+        // An unregister left over from an offline sign-out (AF-05); WorkManager also retries it.
+        scope.launch { runCatching { push.retryPendingUnregister() } }
         scope.launch {
             connectivity.isOnline.drop(1).filter { it }.collect {
+                runCatching { push.retryPendingUnregister() }
+                retryPushRegistration()
                 realtime.retryNow()
-                if (runCatching { outbox.process() }.getOrDefault(true)) outboxScheduler.schedule()
+                // Messages that failed while the network was flaky go out again on their own (IF-04).
+                if (runCatching { outbox.process(resumeFailed = true) }.getOrDefault(true)) outboxScheduler.schedule()
                 if ((session.state.value as? SessionState.SignedIn)?.isOffline == true) session.refresh()
             }
         }
@@ -67,7 +74,9 @@ class LiveDataLayerStarter @Inject constructor(
             session.state.map { it is SessionState.SignedIn }.distinctUntilChanged().collect { signedIn ->
                 if (signedIn) {
                     // Messages queued before a restart are sent as soon as the session is back.
-                    if (runCatching { outbox.process() }.getOrDefault(true)) outboxScheduler.schedule()
+                    if (runCatching { outbox.process(resumeFailed = true) }.getOrDefault(true)) {
+                        outboxScheduler.schedule()
+                    }
                 } else {
                     typing.clear()
                     syncTracker.reset()
@@ -89,6 +98,16 @@ class LiveDataLayerStarter @Inject constructor(
                 if (prefs != null && token != null) push.register(token, prefs)
             }
         }
+    }
+
+    /**
+     * A registration that failed (offline, 5xx) is tried again on the next foreground and when
+     * the network is back; the stored fingerprint makes this a no-op once the server has it (IF-06).
+     */
+    private suspend fun retryPushRegistration() {
+        if (session.state.value !is SessionState.SignedIn) return
+        val token = push.storedToken() ?: return
+        push.register(token, settings.settings.first().notifications)
     }
 
     private companion object {

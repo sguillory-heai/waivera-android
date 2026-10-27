@@ -71,7 +71,7 @@ object EventRules {
             isOrganizer = isOrganizer(event, myUserId),
             organizer = organizer,
             attendees = attendees(event, myUserId, interaction.optimistic, milestones, today),
-            invitation = invitation(event, myUserId, now, zone, interaction.optimistic, interaction.failure),
+            invitation = invitation(event, myUserId, now, zone, interaction),
             join = join(event, now, interaction.joinBusy, interaction.joinError),
             chat = chat(event, myUserId, interaction.chatBusy),
             isRefreshing = isRefreshing,
@@ -98,12 +98,13 @@ object EventRules {
         myUserId: String?,
         now: Instant,
         zone: ZoneId,
-        optimistic: OptimisticResponse?,
-        failure: ResponseFailure?,
+        interaction: EventInteraction = EventInteraction(),
     ): InvitationUi? {
         if (isOrganizer(event, myUserId)) return null
         val server = event.myInvitation
         if (server !in ANSWERABLE) return null
+        val optimistic = interaction.optimistic
+        val failure = interaction.failure
         val phase = optimistic?.phase ?: ResponsePhase.IDLE
         val shown = optimistic?.let { if (it.accept) MyInvitation.ACCEPTED else MyInvitation.DECLINED } ?: server
         return InvitationUi(
