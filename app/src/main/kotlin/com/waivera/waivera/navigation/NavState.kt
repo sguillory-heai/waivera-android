@@ -78,15 +78,17 @@ data class NavState(
     /**
      * Opens a deep link (push tap or `waivera://` link). The target's tab is selected and given a
      * fresh stack that leads to the target, so back always walks up through the parent screens.
-     * When the target is already on top (for example a second push for the open conversation),
-     * nothing changes, so the screen keeps its scroll position and draft.
+     * When the target is already on top of the visible stack, whichever tab it was opened from
+     * (for example a conversation opened from Today's "Needs you" and then pushed again), nothing
+     * changes: the person stays where they are and the screen keeps its scroll position and draft.
+     * Only a new highlighted message replaces the top entry, in place.
      */
     fun open(target: DeepLinkTarget): NavState {
         val (tab, routes) = DeepLinkRouting.stackFor(target)
         val destination = routes.last()
-        if (selected == tab && top.contentKey == destination.contentKey) {
+        if (top.contentKey == destination.contentKey) {
             val moveHighlight = destination.highlightedMessageId != null && destination != top
-            return if (moveHighlight) withStack(tab, stack(tab).dropLast(1) + destination) else this
+            return if (moveHighlight) withStack(selected, stack(selected).dropLast(1) + destination) else this
         }
         return withStack(tab, routes).copy(selected = tab)
     }
