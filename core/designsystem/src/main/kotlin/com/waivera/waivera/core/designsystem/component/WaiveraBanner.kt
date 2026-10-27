@@ -386,6 +386,10 @@ private fun WaiveraBannerPreview() {
                 onAction = {},
                 actionIcon = WaiveraIcons.OpenExternal,
             )
+            // Inside a block that already has the gutter: as wide as the buttons around it.
+            Column(Modifier.padding(horizontal = WaiveraSpacing.Gutter)) {
+                WaiveraBanner(message = "Couldn't join the meeting.", tone = BannerTone.Error, gutter = false)
+            }
         }
     }
 }
