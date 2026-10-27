@@ -40,7 +40,7 @@ import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
-import com.waivera.waivera.core.designsystem.component.WaiveraBottomActionBar
+import com.waivera.waivera.core.designsystem.component.WaiveraBottomActionLayout
 import com.waivera.waivera.core.designsystem.component.WaiveraIconButton
 import com.waivera.waivera.core.designsystem.component.WaiveraIconTile
 import com.waivera.waivera.core.designsystem.component.WaiveraTextField
@@ -55,8 +55,9 @@ import com.waivera.waivera.core.designsystem.theme.WaiveraTheme
  * without the top side. Content is width-capped so the form stays readable on tablets and in
  * landscape.
  *
- * [bottomBar] pins the screen's primary actions under the scrolling content, in thumb reach and
- * above the keyboard, so they stay on screen at 200% font.
+ * [bottomBar] holds the screen's primary actions in a [WaiveraBottomActionLayout]: at the bottom
+ * of the screen, in thumb reach, when everything fits; after the content when it does not (a
+ * small phone, a banner, 200% font), so nothing is cut under a pinned bar.
  */
 @Composable
 internal fun AuthScaffold(
@@ -72,24 +73,19 @@ internal fun AuthScaffold(
             .windowInsetsPadding(insets),
         contentAlignment = Alignment.TopCenter,
     ) {
-        val scrollState = rememberScrollState()
-        Column(
-            modifier = Modifier
-                .widthIn(max = WaiveraSizes.SheetMaxWidth)
-                .fillMaxSize(),
-        ) {
+        val frame = Modifier
+            .widthIn(max = WaiveraSizes.SheetMaxWidth)
+            .fillMaxSize()
+        if (bottomBar != null) {
+            WaiveraBottomActionLayout(actions = bottomBar, modifier = frame, content = content)
+        } else {
             Column(
-                modifier = Modifier
-                    .weight(1f)
-                    .fillMaxWidth()
-                    .verticalScroll(scrollState)
+                modifier = frame
+                    .verticalScroll(rememberScrollState())
                     .padding(vertical = WaiveraSpacing.Large),
                 verticalArrangement = Arrangement.spacedBy(WaiveraSpacing.Medium),
                 content = content,
             )
-            if (bottomBar != null) {
-                WaiveraBottomActionBar(showDivider = scrollState.canScrollForward, content = bottomBar)
-            }
         }
     }
 }

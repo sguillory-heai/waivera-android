@@ -59,4 +59,7 @@ object WaiveraSizes {
     val SegmentMinHeight: Dp = 48.dp
     val SkeletonLine: Dp = 14.dp
     val SheetMaxWidth: Dp = 640.dp
+
+    /** Height of the fade that shows more content scrolls below a viewport edge. */
+    val FadeEdge: Dp = 24.dp
 }

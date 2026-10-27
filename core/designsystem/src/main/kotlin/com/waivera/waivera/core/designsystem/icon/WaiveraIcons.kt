@@ -10,6 +10,9 @@ import com.waivera.waivera.core.designsystem.R
 object WaiveraIcons {
     @DrawableRes val Add: Int = R.drawable.core_designsystem_ic_add
 
+    /** Announcements and digests (a megaphone). */
+    @DrawableRes val Announcement: Int = R.drawable.core_designsystem_ic_announcement
+
     @DrawableRes val Archive: Int = R.drawable.core_designsystem_ic_archive
 
     @DrawableRes val Attachment: Int = R.drawable.core_designsystem_ic_attachment
@@ -46,6 +49,15 @@ object WaiveraIcons {
 
     @DrawableRes val Info: Int = R.drawable.core_designsystem_ic_info
 
+    /**
+     * Schedule's "Jump to today": a calendar with today's square. Never the house, which is the
+     * Today tab.
+     */
+    @DrawableRes val JumpToToday: Int = R.drawable.core_designsystem_ic_jump_to_today
+
+    /** A place: event locations that open in maps. */
+    @DrawableRes val Location: Int = R.drawable.core_designsystem_ic_location
+
     /** Read-only or secured. */
     @DrawableRes val Lock: Int = R.drawable.core_designsystem_ic_lock
 
@@ -73,6 +85,7 @@ object WaiveraIcons {
 
     @DrawableRes val Settings: Int = R.drawable.core_designsystem_ic_settings
 
+    /** The Today tab only (a house). */
     @DrawableRes val Today: Int = R.drawable.core_designsystem_ic_today
 
     @DrawableRes val Video: Int = R.drawable.core_designsystem_ic_video
