@@ -26,7 +26,7 @@ jobs:
           java-version: 17
 
       # Also validates the Gradle wrapper jar against known checksums.
-      - uses: gradle/actions/setup-gradle@v5
+      - uses: gradle/actions/setup-gradle@v6
 
       - name: Format and static analysis
         run: ./gradlew ktlintCheck detekt
