@@ -1,6 +1,7 @@
 package com.waivera.waivera.ui
 
 import androidx.compose.runtime.Composable
+import com.waivera.waivera.feature.auth.PasswordChangeScreen
 import com.waivera.waivera.feature.calendar.CalendarEventScreen
 import com.waivera.waivera.feature.calendar.ScheduleScreen
 import com.waivera.waivera.feature.chat.ChatListScreen
@@ -18,6 +19,7 @@ import com.waivera.waivera.navigation.AppRoute
 import com.waivera.waivera.navigation.AppearanceRoute
 import com.waivera.waivera.navigation.BookmarksRoute
 import com.waivera.waivera.navigation.CalendarEventRoute
+import com.waivera.waivera.navigation.ChangePasswordRoute
 import com.waivera.waivera.navigation.ChatListRoute
 import com.waivera.waivera.navigation.ConversationRoute
 import com.waivera.waivera.navigation.NotificationSettingsRoute
@@ -43,7 +45,10 @@ class RouteActions(private val shell: ShellActions, val openAccountMenu: () -> U
 
     fun openThread(conversationId: Long): (Long) -> Unit = { root -> shell.push(ThreadRoute(conversationId, root)) }
 
-    /** Bookmarks of thread replies open the thread at the reply (PLAN.md parity fix). */
+    /**
+     * A specific message: thread replies open the thread at the reply (PLAN.md parity fix), others
+     * the conversation scrolled to the message. Used by bookmarks and Today's activity rows.
+     */
     val openMessage: (Long, Long, Long?) -> Unit = { conversationId, messageId, threadRoot ->
         shell.push(
             if (threadRoot != null) {
@@ -66,6 +71,7 @@ fun RouteContent(route: AppRoute, actions: RouteActions) {
             onOpenConversation = actions.openConversation,
             onOpenSchedule = actions.openSchedule,
             onOpenEvent = actions.openEvent,
+            onOpenMessage = actions.openMessage,
         )
         ChatListRoute -> ChatListScreen(
             onAccountClick = actions.openAccountMenu,
@@ -94,7 +100,11 @@ fun RouteContent(route: AppRoute, actions: RouteActions) {
             onOpenConversation = actions.openConversation,
             onOpenPerson = actions.openPerson,
         )
-        ProfileRoute -> ProfileScreen(onBack = actions.back, onOpenPerson = actions.openPerson)
+        ProfileRoute -> ProfileScreen(
+            onBack = actions.back,
+            onOpenPerson = actions.openPerson,
+            onOpenSettings = { actions.push(SettingsRoute) },
+        )
         PeopleRoute -> PeopleScreen(onBack = actions.back, onOpenPerson = actions.openPerson)
         is PersonRoute -> PersonDetailScreen(
             userId = route.userId,
@@ -106,8 +116,11 @@ fun RouteContent(route: AppRoute, actions: RouteActions) {
             onBack = actions.back,
             onOpenNotificationSettings = { actions.push(NotificationSettingsRoute) },
             onOpenAppearance = { actions.push(AppearanceRoute) },
+            onOpenChangePassword = { actions.push(ChangePasswordRoute) },
         )
         NotificationSettingsRoute -> NotificationSettingsScreen(onBack = actions.back)
         AppearanceRoute -> AppearanceScreen(onBack = actions.back)
+        // Voluntary flow: back and success both return to Settings; sign-out is not offered here.
+        ChangePasswordRoute -> PasswordChangeScreen(onSignOut = {}, onBack = actions.back, onChanged = actions.back)
     }
 }

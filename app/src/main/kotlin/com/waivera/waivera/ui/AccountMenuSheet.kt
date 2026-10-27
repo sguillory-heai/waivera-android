@@ -21,6 +21,7 @@ import com.waivera.waivera.navigation.SettingsRoute
 @Composable
 fun AccountMenuSheet(
     accountName: String,
+    accountImage: Any?,
     onSelect: (AppRoute) -> Unit,
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
@@ -31,7 +32,7 @@ fun AccountMenuSheet(
             supporting = stringResource(R.string.shell_account_view_profile),
             onClick = { onSelect(ProfileRoute) },
             showChevron = true,
-            leading = { WaiveraAvatar(name = accountName) },
+            leading = { WaiveraAvatar(name = accountName, imageModel = accountImage, contentDescription = null) },
         )
         MenuRow(R.string.shell_menu_people, WaiveraIcons.People) { onSelect(PeopleRoute) }
         MenuRow(R.string.shell_menu_bookmarks, WaiveraIcons.Bookmark) { onSelect(BookmarksRoute) }

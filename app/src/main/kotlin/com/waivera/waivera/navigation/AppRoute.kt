@@ -57,6 +57,10 @@ data object SettingsRoute : AppRoute
 @Serializable
 data object NotificationSettingsRoute : AppRoute
 
+/** The voluntary password change, opened from Settings → Security. */
+@Serializable
+data object ChangePasswordRoute : AppRoute
+
 @Serializable
 data object AppearanceRoute : AppRoute
 

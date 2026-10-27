@@ -9,5 +9,4 @@
     <string name="shell_menu_people">People</string>
     <string name="shell_menu_bookmarks">Bookmarks</string>
     <string name="shell_menu_settings">Settings</string>
-    <string name="shell_bootstrap_failed">We couldn\'t load your account. Check your connection and try again.</string>
 </resources>

@@ -42,6 +42,8 @@ dependencies {
     implementation(projects.feature.today)
 
     implementation(libs.androidx.activity.compose)
+    // Custom Tabs for web links, provided to every screen as LocalUriHandler.
+    implementation(libs.androidx.browser)
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.hilt.navigation.compose)
     implementation(libs.androidx.lifecycle.runtime.compose)

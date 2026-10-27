@@ -8,7 +8,7 @@ core agent).
 
 | Module | Owns |
 | --- | --- |
-| `:app` | `MainActivity`, `AppShellViewModel`, routes, `NavState`, the auth gate, the account menu, Firebase start-up, the Coil image loader, `DataLayerStarter.start()`, the release-only `ReleaseDataModule`, adapters from `:core:notifications` ports to `:core:data` |
+| `:app` | `MainActivity`, `AppShellViewModel`, routes, `NavState`, the auth gate, the account menu, Firebase start-up, the Coil image loader, the Custom Tabs `UriHandler`, `DataLayerStarter.start()`, the release-only `ReleaseDataModule`, adapters from `:core:notifications` ports to `:core:data` |
 | `:core:designsystem` | Tokens, `WaiveraTheme`, `WaiveraMotion`, `Haptics`, every shared component |
 | `:core:notifications` | FCM service, channels, payload parsing, `DeepLinkTarget` and `waivera://` URIs, chat notifications, Reply and Mark read, the permission primer state, the debug push receiver |
 | `:core:screenshot-testing` | `captureScreenshots` and the device/theme/font matrix |
@@ -23,13 +23,20 @@ core agent).
 | `Initializing` | `Loading` | `WaiveraLoadingScreen` |
 | `SignedOut` | `SignIn()` | `SignInScreen(configurationMissing = false)` |
 | `ConfigurationMissing` | `SignIn(configurationMissing = true)` | `SignInScreen` says the build is not configured (release only; debug builds fall back to demo data) |
-| `BootstrapFailed` | `BootstrapFailed` | Error state with Try again (`SessionRepository.refresh`) |
-| `PasswordChangeRequired` | `PasswordChange` | `PasswordChangeScreen` |
+| `BootstrapFailed` | `BootstrapFailed` | `BootstrapFailedScreen(onSignOut)`: the mapped reason, Try again (`SessionRepository.refresh`) and Sign out |
+| `PasswordChangeRequired` | `PasswordChange` | `PasswordChangeScreen(onSignOut)` |
+| `SignedIn`, `requiresOnboarding` | `OnboardingRequired` | `OnboardingRequiredScreen(onSignOut)` (01 §5 rule 5) |
 | `SignedIn`, primer pending | `NotificationPrimer` | `NotificationPrimerScreen` (Android 13+, once) |
 | `SignedIn` | `Main` | Tabs |
 
-Deep links that arrive before `Main` wait and open when the tabs appear. Signing out discards a
-waiting link and every back stack, and cancels all notifications.
+While the sign-in screen is up, the `Initializing` state of the sign-in bootstrap does not swap
+it for the loader: `ShellState.onGate` keeps `SignIn`, so the button shows "Connecting to
+Waivera…" until the next gate (01 §8). Deep links that arrive before `Main` wait and open when
+the tabs appear. Signing out discards a waiting link and every back stack, and cancels all
+notifications.
+
+`MainActivity` holds the first frame (the system splash stays up) until the stored settings are
+read, capped at one second, so a Dark preference never flashes light (08 §7).
 
 ## Tabs and back
 
@@ -42,8 +49,15 @@ to `NavDisplay` is Today's stack, plus the selected tab's stack when it is not T
 - selecting the current tab again pops it to its root.
 
 The bottom bar shows only on the three tab roots. Account-menu screens (Profile, People,
-Bookmarks, Settings) push onto the current tab. Opening a conversation, person or event from
-any screen pushes onto the current tab, so back returns to where the person was.
+Bookmarks) push onto the current tab; Settings from the account menu pushes Profile under it
+(`NavState.pushOver`), so back from Settings lands on the profile (08 §6). Opening a
+conversation, person or event from any screen pushes onto the current tab, so back returns to
+where the person was.
+
+The shell provides two composition locals to every screen: `LocalSignedInAccount` (name and
+avatar model, read by `rememberTopBarAccount` in each tab's top bar) and `LocalUriHandler` as a
+Custom Tabs handler, so `uriHandler.openUri` keeps web links in the app. It throws
+`IllegalArgumentException` when nothing can open a link, as Compose's default handler does.
 
 Navigation survives process death through `SavedStateHandle` (the `NavState` as JSON and a
 waiting deep link as its `waivera://` URI).
@@ -54,26 +68,25 @@ All routes are `@Serializable` and implement `AppRoute : NavKey`. Arguments are 
 
 | Route | Arguments | Entry composable | Module |
 | --- | --- | --- | --- |
-| `TodayRoute` | none | `TodayScreen(onAccountClick, onOpenConversation, onOpenSchedule, onOpenEvent, modifier)` | `:feature:today` |
+| `TodayRoute` | none | `TodayScreen(onAccountClick, onOpenConversation, onOpenSchedule, onOpenEvent, modifier, onOpenMessage(conversationId, messageId, threadRootMessageId))` | `:feature:today` |
 | `ChatListRoute` | none | `ChatListScreen(onAccountClick, onOpenConversation, onOpenPerson, modifier)` | `:feature:chat` |
 | `ConversationRoute` | `conversationId: Long`, `messageId: Long?` | `ConversationScreen(conversationId, highlightMessageId, onBack, onOpenThread, onOpenPerson, onOpenEvent, modifier)` | `:feature:chat` |
 | `ThreadRoute` | `conversationId: Long`, `rootMessageId: Long`, `messageId: Long?` | `ThreadScreen(conversationId, rootMessageId, highlightMessageId, onBack, onOpenPerson, modifier)` | `:feature:chat` |
 | `ScheduleRoute` | none | `ScheduleScreen(onAccountClick, onOpenEvent, modifier)` | `:feature:calendar` |
 | `CalendarEventRoute` | `eventId: String` | `CalendarEventScreen(eventId, onBack, onOpenConversation, onOpenPerson, modifier)` | `:feature:calendar` |
-| `ProfileRoute` | none | `ProfileScreen(onBack, onOpenPerson, modifier)` | `:feature:profile` |
+| `ProfileRoute` | none | `ProfileScreen(onBack, onOpenPerson, modifier, onOpenSettings)` | `:feature:profile` |
 | `PeopleRoute` | none | `PeopleScreen(onBack, onOpenPerson, modifier)` | `:feature:profile` |
 | `PersonRoute` | `userId: String` (backend id) | `PersonDetailScreen(userId, onBack, onOpenConversation, modifier)` | `:feature:profile` |
 | `BookmarksRoute` | none | `BookmarksScreen(onBack, onOpenMessage(conversationId, messageId, threadRootMessageId), modifier)` | `:feature:profile` |
-| `SettingsRoute` | none | `SettingsScreen(onBack, onOpenNotificationSettings, onOpenAppearance, modifier)` | `:feature:settings` |
+| `SettingsRoute` | none | `SettingsScreen(onBack, onOpenNotificationSettings, onOpenAppearance, modifier, onOpenChangePassword)` | `:feature:settings` |
 | `NotificationSettingsRoute` | none | `NotificationSettingsScreen(onBack, modifier)` | `:feature:settings` |
 | `AppearanceRoute` | none | `AppearanceScreen(onBack, modifier)` | `:feature:settings` |
+| `ChangePasswordRoute` | none | `PasswordChangeScreen(onSignOut = {}, modifier, onBack, onChanged = onBack)` (voluntary change) | `:feature:auth` |
 
 Gate screens (not routes): `SignInScreen(configurationMissing, modifier)`,
-`PasswordChangeScreen(onSignOut, modifier, onBack = null, onChanged = {})` and
-`NotificationPrimerScreen(onFinished(granted), modifier)`, all in `:feature:auth`. The module also
-offers `BootstrapFailedScreen(onSignOut, modifier)` and `OnboardingRequiredScreen(onSignOut, modifier)`
-for gates the shell does not route yet, and `PasswordChangeScreen` with `onBack` set is the
-voluntary change from Settings; see `docs/requests/feature-auth.md`.
+`BootstrapFailedScreen(onSignOut, modifier)`, `PasswordChangeScreen(onSignOut, modifier, onBack =
+null, onChanged = {})`, `OnboardingRequiredScreen(onSignOut, modifier)` and
+`NotificationPrimerScreen(onFinished(granted), modifier)`, all in `:feature:auth`.
 
 Rules for feature agents:
 
@@ -83,7 +96,8 @@ Rules for feature agents:
   ViewModel store and saved state, keyed by tab, position and route (`ShellEntry.key`).
   The key ignores `messageId`, so a push that only moves the highlight keeps scroll and draft.
 - Sign-out lives in Settings and calls `SessionRepository.signOut()`; the gate reacts.
-- A bookmark of a thread reply opens `ThreadRoute` at the reply.
+- A bookmark or Today activity row for a thread reply opens `ThreadRoute` at the reply; other
+  messages open `ConversationRoute` scrolled to the message (`RouteActions.openMessage`).
 
 ## Deep links
 

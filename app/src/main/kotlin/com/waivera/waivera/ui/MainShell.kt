@@ -18,6 +18,7 @@ import androidx.navigation3.runtime.NavEntry
 import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
 import androidx.navigation3.ui.NavDisplay
 import com.waivera.waivera.R
+import com.waivera.waivera.core.data.image.AvatarModel
 import com.waivera.waivera.core.designsystem.component.NavigationBarItemModel
 import com.waivera.waivera.core.designsystem.component.WaiveraNavigationBar
 import com.waivera.waivera.core.designsystem.icon.WaiveraIcons
@@ -76,9 +77,10 @@ fun MainShell(state: ShellUiState, actions: ShellActions, modifier: Modifier = M
     if (accountMenuOpen) {
         AccountMenuSheet(
             accountName = state.accountName,
+            accountImage = AvatarModel.of(state.accountUserId),
             onSelect = { route ->
                 accountMenuOpen = false
-                actions.push(route)
+                actions.openFromAccountMenu(route)
             },
             onDismiss = { accountMenuOpen = false },
         )

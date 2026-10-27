@@ -117,4 +117,18 @@ class NavStateTest {
         val restored = json.decodeFromString(NavState.serializer(), json.encodeToString(NavState.serializer(), state))
         assertEquals(state, restored)
     }
+
+    @Test
+    fun settingsFromTheAccountMenuSitsOverProfile() {
+        val chat = NavState().select(TopLevelTab.Chat).push(ConversationRoute(42))
+        val settings = chat.pushOver(ProfileRoute, SettingsRoute)
+        assertEquals(
+            listOf(ChatListRoute, ConversationRoute(42), ProfileRoute, SettingsRoute),
+            settings.stack(TopLevelTab.Chat),
+        )
+        assertEquals(ProfileRoute, settings.back().top)
+        assertSame(settings, settings.pushOver(ProfileRoute, SettingsRoute))
+        val fromProfile = NavState().push(ProfileRoute).pushOver(ProfileRoute, SettingsRoute)
+        assertEquals(listOf(TodayRoute, ProfileRoute, SettingsRoute), fromProfile.stack(TopLevelTab.Today))
+    }
 }

@@ -20,6 +20,9 @@ sealed interface AppGate {
 
     data object PasswordChange : AppGate
 
+    /** Signed in, but the account's signup is not finished (01 §5 rule 5). */
+    data object OnboardingRequired : AppGate
+
     data object NotificationPrimer : AppGate
 
     /** The tabs. */
@@ -27,12 +30,17 @@ sealed interface AppGate {
 
     /** True for gates that only a signed-in user can reach. */
     val isSignedIn: Boolean
-        get() = this == Main || this == PasswordChange || this == NotificationPrimer || this == BootstrapFailed
+        get() = this == Main ||
+            this == PasswordChange ||
+            this == OnboardingRequired ||
+            this == NotificationPrimer ||
+            this == BootstrapFailed
 
     companion object {
         /**
-         * The gate for [session]. The primer shows once, after sign-in and any required password
-         * change, and only when [primerPending] (Android 13+, not granted, not shown before).
+         * The gate for [session]. The primer shows once, after sign-in, any required password
+         * change and onboarding, and only when [primerPending] (Android 13+, not granted, not
+         * shown before).
          */
         fun from(session: SessionState, primerPending: Boolean): AppGate = when (session) {
             SessionState.Initializing -> Loading
@@ -40,7 +48,11 @@ sealed interface AppGate {
             is SessionState.ConfigurationMissing -> SignIn(configurationMissing = true)
             is SessionState.BootstrapFailed -> BootstrapFailed
             is SessionState.PasswordChangeRequired -> PasswordChange
-            is SessionState.SignedIn -> if (primerPending) NotificationPrimer else Main
+            is SessionState.SignedIn -> when {
+                session.user.requiresOnboarding -> OnboardingRequired
+                primerPending -> NotificationPrimer
+                else -> Main
+            }
         }
     }
 }
@@ -58,6 +70,9 @@ data class ShellState(
     fun onGate(next: AppGate): ShellState {
         if (next == gate) return this
         return when {
+            // Signing in runs the bootstrap through Initializing; the sign-in screen keeps its
+            // "Connecting to Waivera…" button instead of swapping to the full-screen loader (01 §8).
+            gate is AppGate.SignIn && next == AppGate.Loading -> this
             next == AppGate.Main && pendingDeepLink != null ->
                 copy(gate = next, nav = nav.open(pendingDeepLink), pendingDeepLink = null)
             gate.isSignedIn && next is AppGate.SignIn -> ShellState(gate = next)

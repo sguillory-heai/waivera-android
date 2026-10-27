@@ -21,6 +21,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
@@ -29,12 +30,18 @@ import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.Json
 import javax.inject.Inject
 
-/** Everything the root composable needs, as one immutable value. */
+/**
+ * Everything the root composable needs, as one immutable value. [settingsLoaded] is false only
+ * for the placeholder before the stored settings are read, so the activity can hold the first
+ * frame until the saved theme is known (08 §7).
+ */
 data class ShellUiState(
     val shell: ShellState = ShellState(),
     val settings: AppSettings = AppSettings(),
     val accountName: String = "",
+    val accountUserId: String? = null,
     val unreadTotal: Int = 0,
+    val settingsLoaded: Boolean = false,
 )
 
 /**
@@ -62,10 +69,17 @@ class AppShellViewModel @Inject constructor(
     val uiState: StateFlow<ShellUiState> = combine(
         shell,
         settings.settings,
-        session.state.map { it.currentUser?.let { user -> user.displayName ?: user.firstName } ?: "" },
+        session.state.map { it.currentUser }.distinctUntilChanged(),
         conversations.observeUnreadTotal(),
-    ) { shellState, appSettings, name, unread ->
-        ShellUiState(shell = shellState, settings = appSettings, accountName = name, unreadTotal = unread)
+    ) { shellState, appSettings, user, unread ->
+        ShellUiState(
+            shell = shellState,
+            settings = appSettings,
+            accountName = user?.let { it.displayName ?: it.firstName }.orEmpty(),
+            accountUserId = user?.userId,
+            unreadTotal = unread,
+            settingsLoaded = true,
+        )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS), ShellUiState(shell = shell.value))
 
     init {
@@ -93,6 +107,11 @@ class AppShellViewModel @Inject constructor(
 
     fun push(route: AppRoute) = shell.update { state -> state.onNav { it.push(route) } }
 
+    /** Account menu choices; Settings goes over Profile so back from it lands on the profile (08 §6). */
+    fun openFromAccountMenu(route: AppRoute) = shell.update { state ->
+        state.onNav { if (route == SettingsRoute) it.pushOver(ProfileRoute, route) else it.push(route) }
+    }
+
     fun back() = shell.update { state -> state.onNav(NavState::back) }
 
     fun onPrimerFinished(granted: Boolean) {
@@ -106,10 +125,6 @@ class AppShellViewModel @Inject constructor(
         resumed = isResumed
         if (isResumed) permission.refresh()
         reportVisibleChat(shell.value)
-    }
-
-    fun retryBootstrap() {
-        viewModelScope.launch { session.refresh() }
     }
 
     fun signOut() {

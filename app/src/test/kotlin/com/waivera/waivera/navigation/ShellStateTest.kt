@@ -5,6 +5,7 @@ import com.waivera.waivera.core.data.model.SessionState
 import com.waivera.waivera.core.notifications.deeplink.DeepLinkTarget
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class ShellStateTest {
@@ -69,5 +70,26 @@ class ShellStateTest {
         assertEquals(42L to null, ConversationRoute(42, 3).visibleChat)
         assertEquals(42L to 7L, ThreadRoute(42, 7).visibleChat)
         assertNull(ChatListRoute.visibleChat)
+    }
+
+    @Test
+    fun unfinishedSignupGetsTheOnboardingGateBeforeThePrimer() {
+        val pending = SessionState.SignedIn(user.copy(requiresOnboarding = true))
+        assertEquals(AppGate.OnboardingRequired, AppGate.from(pending, primerPending = true))
+        assertEquals(AppGate.OnboardingRequired, AppGate.from(pending, primerPending = false))
+        assertTrue(AppGate.OnboardingRequired.isSignedIn)
+
+        val waiting = ShellState().onGate(AppGate.OnboardingRequired).onDeepLink(DeepLinkTarget.Conversation(42))
+        assertEquals(DeepLinkTarget.Conversation(42), waiting.pendingDeepLink)
+        assertNull("signing out from the gate drops the link", waiting.onGate(AppGate.SignIn()).pendingDeepLink)
+    }
+
+    @Test
+    fun signInScreenStaysUpWhileTheBootstrapRuns() {
+        val signingIn = ShellState().onGate(AppGate.SignIn()).onGate(AppGate.Loading)
+        assertEquals(AppGate.SignIn(), signingIn.gate)
+        assertEquals(AppGate.Main, signingIn.onGate(AppGate.Main).gate)
+        val main = ShellState().onGate(AppGate.Main)
+        assertEquals("only from sign-in", AppGate.Loading, main.onGate(AppGate.Loading).gate)
     }
 }
