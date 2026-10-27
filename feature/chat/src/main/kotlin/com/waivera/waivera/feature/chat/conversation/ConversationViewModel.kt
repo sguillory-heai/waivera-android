@@ -115,6 +115,7 @@ class ConversationViewModel @AssistedInject constructor(
     /** Every cached message, thread replies included, for highlight lookups. */
     @Volatile private var allMessages: List<Message> = emptyList()
     private var conversation: Conversation? = null
+    private var typingIds: List<String> = emptyList()
 
     private var olderJob: Job? = null
     private var highlightJob: Job? = null
@@ -148,7 +149,10 @@ class ConversationViewModel @AssistedInject constructor(
         }
         viewModelScope.launch {
             combine(conversations.observeTyping(conversationId), myUserId) { typing, me -> typing - setOfNotNull(me) }
-                .collect { typing -> _state.update { s -> s.copy(typingNames = typing.sorted().map { s.names[it].orEmpty() }) } }
+                .collect { typing ->
+                    typingIds = typing.sorted()
+                    _state.update { it.copy(typingNames = typingNames(it.names)) }
+                }
         }
         viewModelScope.launch { interactions.sheet.collect { sheet -> _state.update { it.copy(sheet = sheet) } } }
 
@@ -233,6 +237,7 @@ class ConversationViewModel @AssistedInject constructor(
             it.copy(
                 title = value?.title(me)?.takeIf(String::isNotBlank),
                 names = names,
+                typingNames = typingNames(names),
                 canWrite = value?.let { c -> c.canWrite && c.kind != ConversationKind.BOT },
                 readOnlyReason = value?.let(::readOnlyReason),
                 call = it.call.copy(
@@ -243,6 +248,8 @@ class ConversationViewModel @AssistedInject constructor(
             )
         }
     }
+
+    private fun typingNames(names: Map<String, String>): List<String> = typingIds.map { names[it].orEmpty() }
 
     // region Lifecycle
 
