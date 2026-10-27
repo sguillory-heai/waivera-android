@@ -1,0 +1,118 @@
+package com.waivera.waivera.feature.calendar.screenshot
+
+import com.waivera.waivera.core.data.model.ScheduleFeed
+import com.waivera.waivera.core.data.model.SyncStatus
+import com.waivera.waivera.core.data.model.Synced
+import com.waivera.waivera.core.demo.DemoData
+import com.waivera.waivera.core.network.error.WaiveraError
+import com.waivera.waivera.core.screenshottesting.ScreenshotSdk
+import com.waivera.waivera.core.screenshottesting.captureScreenshots
+import com.waivera.waivera.feature.calendar.ScheduleActions
+import com.waivera.waivera.feature.calendar.ScheduleContent
+import com.waivera.waivera.feature.calendar.model.MilestoneIndex
+import com.waivera.waivera.feature.calendar.model.SchedulePeriods
+import com.waivera.waivera.feature.calendar.model.ScheduleView
+import com.waivera.waivera.feature.calendar.schedule.SchedulePeriod
+import com.waivera.waivera.feature.calendar.schedule.ScheduleStateBuilder
+import com.waivera.waivera.feature.calendar.schedule.ScheduleUiState
+import java.time.LocalDate
+import java.time.ZoneId
+import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
+import org.robolectric.annotation.GraphicsMode
+
+/**
+ * The schedule tab on the demo data: Sunday 1 November 2026 in Chicago, the fall-back day, so
+ * the overnight shift, the repeated hour and today's anniversary are all in frame.
+ */
+@RunWith(RobolectricTestRunner::class)
+@GraphicsMode(GraphicsMode.Mode.NATIVE)
+@Config(sdk = [ScreenshotSdk.VALUE])
+class ScheduleScreenshotTest {
+    private val zone = DemoData.ZONE
+    private val today: LocalDate = DemoData.NOW.atZone(zone).toLocalDate()
+    private val milestones = MilestoneIndex(DemoData.milestones())
+
+    private fun feed(view: ScheduleView, date: LocalDate) = ScheduleFeed(
+        range = SchedulePeriods.rangeFor(view, date),
+        zoneId = zone.id,
+        events = DemoData.events(),
+        timeOff = DemoData.timeOff(),
+        holidays = DemoData.holidays(),
+    )
+
+    @Suppress("LongParameterList")
+    private fun state(
+        view: ScheduleView = ScheduleView.MONTH,
+        date: LocalDate = today,
+        synced: Synced<ScheduleFeed>? = Synced(feed(view, date), lastSyncedAt = DemoData.NOW),
+        milestonesError: WaiveraError? = null,
+        savedZoneId: String? = zone.id,
+        deviceZone: ZoneId = zone,
+        isOffline: Boolean = false,
+    ): ScheduleUiState = ScheduleStateBuilder.build(
+        period = SchedulePeriod(view, date, today, zone),
+        feed = synced,
+        milestones = milestones,
+        milestonesError = milestonesError,
+        savedZoneId = savedZoneId,
+        deviceZone = deviceZone,
+        isOffline = isOffline,
+        isRefreshing = false,
+    )
+
+    private fun capture(name: String, state: ScheduleUiState) =
+        captureScreenshots(name) { ScheduleContent(state = state, actions = ScheduleActions()) }
+
+    @Test
+    fun month() = capture("schedule_month", state())
+
+    @Test
+    fun week() = capture("schedule_week", state(view = ScheduleView.WEEK))
+
+    @Test
+    fun day() = capture("schedule_day", state(view = ScheduleView.DAY))
+
+    @Test
+    fun loading() = capture("schedule_loading", state(synced = null))
+
+    @Test
+    fun empty() {
+        val date = LocalDate.of(2026, 11, 18)
+        val range = SchedulePeriods.rangeFor(ScheduleView.DAY, date)
+        capture(
+            "schedule_empty",
+            state(ScheduleView.DAY, date, Synced(ScheduleFeed(range, zone.id), lastSyncedAt = DemoData.NOW)),
+        )
+    }
+
+    @Test
+    fun error() {
+        val range = SchedulePeriods.rangeFor(ScheduleView.MONTH, today)
+        val failed = Synced(ScheduleFeed(range, zone.id), SyncStatus.Failed(WaiveraError.Network()))
+        capture("schedule_error", state(synced = failed))
+    }
+
+    @Test
+    fun offlineWithStaleData() {
+        val stale = Synced(
+            feed(ScheduleView.WEEK, today),
+            SyncStatus.Failed(WaiveraError.Network()),
+            lastSyncedAt = DemoData.NOW.minusSeconds(STALE_SECONDS),
+        )
+        capture(
+            "schedule_offline",
+            state(view = ScheduleView.WEEK, synced = stale, milestonesError = WaiveraError.Network(), isOffline = true),
+        )
+    }
+
+    @Test
+    fun zoneFallback() =
+        capture("schedule_zoneFallback", state(savedZoneId = null, deviceZone = ZoneId.of("Asia/Tokyo")))
+
+    private companion object {
+        const val STALE_SECONDS = 3_600L
+    }
+}
