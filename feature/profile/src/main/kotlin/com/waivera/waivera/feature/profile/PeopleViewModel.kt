@@ -80,8 +80,6 @@ internal class PeopleViewModel @Inject constructor(
     private val refreshError = MutableStateFlow<WaiveraError?>(null)
     private var refreshJob: Job? = null
 
-    val avatarLoader = AvatarLoader(people::avatar)
-
     private val celebrations = combine(calendar.observeMilestones(), calendar.zone) { milestones, zone ->
         Celebration.index(milestones.data, LocalDate.now(clock.withZone(zone)))
     }

@@ -30,6 +30,8 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.test.core.app.ActivityScenario
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.platform.app.InstrumentationRegistry
+import coil3.SingletonImageLoader
+import coil3.annotation.DelicateCoilApi
 import com.github.takahirom.roborazzi.ExperimentalRoborazziApi
 import com.github.takahirom.roborazzi.captureScreenRoboImage
 import com.waivera.waivera.MainActivity
@@ -52,6 +54,7 @@ import dagger.hilt.android.testing.HiltTestApplication
 import java.time.Duration
 import java.util.Locale
 import java.util.TimeZone
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
@@ -122,6 +125,20 @@ abstract class NavTourHarness {
         hilt.inject()
         // WaiveraApplication does this at start-up; HiltTestApplication does not.
         world.channels().install()
+        installImmediateImageLoader()
+    }
+
+    /**
+     * The app's image loader (avatars through the demo people repository), run on the main
+     * thread so a photo is decoded within the frames [settle] advances. Off the main thread a
+     * capture could land before the photo and show initials (UI3-06).
+     */
+    @OptIn(DelicateCoilApi::class)
+    private fun installImmediateImageLoader() {
+        val loader = world.imageLoader().imageLoader.newBuilder()
+            .coroutineContext(Dispatchers.Main.immediate)
+            .build()
+        SingletonImageLoader.setUnsafe(loader)
     }
 
     @After

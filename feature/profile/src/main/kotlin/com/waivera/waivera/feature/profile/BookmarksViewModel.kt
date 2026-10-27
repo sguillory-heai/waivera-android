@@ -49,6 +49,8 @@ internal data class BookmarkRow(
     /** Where a thread reply opens: the thread root, never the direct parent (Expo bug 11 §21). */
     val threadRootId: Long?,
     val author: String,
+    /** The author's user id, for their photo through the shared avatar loader (UI3-05). */
+    val authorId: String? = null,
     val createdAt: Instant?,
     val preview: BookmarkPreview,
     /** [createdAt] in the inbox's words, set by the ViewModel from its clock and the saved zone. */
@@ -127,6 +129,7 @@ internal object BookmarkRules {
         conversationId = message.conversationId,
         threadRootId = threadRoot(message),
         author = message.author?.name.orEmpty(),
+        authorId = message.authorId ?: message.author?.id,
         createdAt = message.createdAt,
         preview = preview(message),
     )

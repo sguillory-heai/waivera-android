@@ -259,7 +259,7 @@ private fun BookmarkCard(row: BookmarkRow, onOpen: () -> Unit, onRemove: () -> U
             verticalAlignment = Alignment.Top,
         ) {
             // Every row here is saved, so the row leads with who wrote it, like other message lists.
-            WaiveraAvatar(name = author, contentDescription = null)
+            WaiveraAvatar(name = author, imageModel = AvatarModel.of(row.authorId), contentDescription = null)
             Column(
                 modifier = Modifier.weight(1f),
                 verticalArrangement = Arrangement.spacedBy(WaiveraSpacing.ExtraSmall),

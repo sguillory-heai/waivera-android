@@ -1,21 +1,15 @@
 package com.waivera.waivera.feature.calendar.ui
 
-import android.graphics.BitmapFactory
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.produceState
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.ImageBitmap
-import androidx.compose.ui.graphics.asImageBitmap
-import androidx.compose.ui.graphics.painter.BitmapPainter
-import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.Dp
+import com.waivera.waivera.core.data.image.AvatarModel
 import com.waivera.waivera.core.designsystem.component.MilestoneBadge
 import com.waivera.waivera.core.designsystem.component.MilestoneKind
 import com.waivera.waivera.core.designsystem.component.WaiveraMilestoneAvatar
@@ -26,19 +20,14 @@ import com.waivera.waivera.core.designsystem.theme.WaiveraTheme
 import com.waivera.waivera.feature.calendar.R
 import com.waivera.waivera.feature.calendar.model.Celebration
 import com.waivera.waivera.feature.calendar.model.CelebrationType
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
-
-/** Loads avatar bytes for a backend user id; null when there is no picture. */
-fun interface AvatarLoader {
-    suspend fun load(userId: String): ByteArray?
-}
 
 /**
  * The design-system milestone avatar (07 §4) for a [Celebration]. The whole avatar is announced
  * as the celebration sentence, or as the person's name when there is none.
  *
  * Pass `celebration = null` for non-employee attendees: nothing is computed or drawn for them.
+ * [userId] loads the person's photo through the app's one Coil avatar loader (memory cache,
+ * negative cache, no flash back to initials), the same as chat and Today (UI3-05).
  */
 @Composable
 fun MilestoneAvatar(
@@ -46,7 +35,7 @@ fun MilestoneAvatar(
     celebration: Celebration?,
     size: Dp,
     modifier: Modifier = Modifier,
-    painter: Painter? = null,
+    userId: String? = null,
 ) {
     val fallbackName = stringResource(R.string.feature_calendar_celebration_name_fallback)
     val label = celebration?.let { CelebrationText.accessible(it, fallbackName).resolve() }
@@ -56,7 +45,7 @@ fun MilestoneAvatar(
         badge = celebration?.let { MilestoneBadge(it.type.milestoneKind(), it.years) },
         size = size,
         modifier = modifier,
-        painter = painter,
+        imageModel = AvatarModel.of(userId),
         contentDescription = label,
     )
 }
@@ -65,22 +54,6 @@ private fun CelebrationType.milestoneKind(): MilestoneKind = when (this) {
     CelebrationType.BIRTHDAY -> MilestoneKind.Birthday
     CelebrationType.WORK_ANNIVERSARY -> MilestoneKind.WorkAnniversary
     CelebrationType.MULTIPLE -> MilestoneKind.Multiple
-}
-
-/**
- * Decodes the avatar for [userId] off the main thread. Keeps showing the initials fallback
- * until bytes arrive; a missing or broken image simply stays on the fallback.
- */
-@Composable
-fun rememberAvatarPainter(userId: String?, loader: AvatarLoader?): Painter? {
-    val bitmap by produceState<ImageBitmap?>(initialValue = null, userId, loader) {
-        if (userId.isNullOrBlank() || loader == null) return@produceState
-        val bytes = loader.load(userId) ?: return@produceState
-        value = withContext(Dispatchers.Default) {
-            BitmapFactory.decodeByteArray(bytes, 0, bytes.size)?.asImageBitmap()
-        }
-    }
-    return remember(bitmap) { bitmap?.let(::BitmapPainter) }
 }
 
 @WaiveraPreviews

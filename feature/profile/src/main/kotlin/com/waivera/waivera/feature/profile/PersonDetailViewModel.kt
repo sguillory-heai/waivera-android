@@ -64,8 +64,6 @@ internal class PersonDetailViewModel @AssistedInject constructor(
     private val openingChat = MutableStateFlow(false)
     private val effects = Channel<PersonDetailEffect>(Channel.BUFFERED)
 
-    val avatarLoader = AvatarLoader(people::avatar)
-
     /** One-off navigation and error events, collected once by the screen. */
     val effect: Flow<PersonDetailEffect> = effects.receiveAsFlow()
 

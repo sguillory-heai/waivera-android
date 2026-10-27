@@ -17,7 +17,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -31,6 +30,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.waivera.waivera.core.data.image.AvatarModel
 import com.waivera.waivera.core.designsystem.component.ConnectionBanner
 import com.waivera.waivera.core.designsystem.component.ConnectionBannerState
 import com.waivera.waivera.core.designsystem.component.WaiveraAvatar
@@ -78,17 +78,15 @@ fun PersonDetailScreen(
             }
         }
     }
-    CompositionLocalProvider(LocalAvatarLoader provides viewModel.avatarLoader) {
-        PersonDetailContent(
-            state = state,
-            snackbar = snackbar,
-            onBack = onBack,
-            onMessage = viewModel::message,
-            onRetry = viewModel::load,
-            onRetryConnection = viewModel::retryConnection,
-            modifier = modifier,
-        )
-    }
+    PersonDetailContent(
+        state = state,
+        snackbar = snackbar,
+        onBack = onBack,
+        onMessage = viewModel::message,
+        onRetry = viewModel::load,
+        onRetryConnection = viewModel::retryConnection,
+        modifier = modifier,
+    )
 }
 
 @Composable
@@ -155,7 +153,7 @@ private fun PersonHero(state: PersonDetailUiState) {
     ) {
         WaiveraAvatar(
             name = state.name,
-            painter = rememberAvatarPainter(state.userId),
+            imageModel = AvatarModel.of(state.userId),
             size = WaiveraSizes.AvatarHero,
             milestone = state.celebration?.milestoneKind,
             contentDescription = null,

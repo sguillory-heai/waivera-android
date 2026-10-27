@@ -84,7 +84,12 @@ private fun MilestoneCard(item: AgendaItem.MilestoneCard, modifier: Modifier = M
     val fallbackName = stringResource(R.string.feature_calendar_celebration_name_fallback)
     val name = item.occurrence.milestone.displayName?.takeIf(String::isNotBlank) ?: fallbackName
     CardSurface(modifier = modifier.semantics(mergeDescendants = true) { }) {
-        MilestoneAvatar(name = name, celebration = item.celebration, size = CalendarSizes.MilestoneCardAvatar)
+        MilestoneAvatar(
+            name = name,
+            celebration = item.celebration,
+            size = CalendarSizes.MilestoneCardAvatar,
+            userId = item.occurrence.milestone.userId,
+        )
         Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(WaiveraSpacing.XxSmall)) {
             Text(
                 text = CelebrationText.full(item.celebration, fallbackName).resolve(),

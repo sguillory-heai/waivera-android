@@ -58,14 +58,12 @@ import com.waivera.waivera.core.designsystem.theme.WaiveraTextStyles
 import com.waivera.waivera.core.designsystem.theme.WaiveraTheme
 import com.waivera.waivera.feature.calendar.R
 import com.waivera.waivera.feature.calendar.model.WebLinks
-import com.waivera.waivera.feature.calendar.ui.AvatarLoader
 import com.waivera.waivera.feature.calendar.ui.CalendarIcons
 import com.waivera.waivera.feature.calendar.ui.CalendarSizes
 import com.waivera.waivera.feature.calendar.ui.MilestoneAvatar
 import com.waivera.waivera.feature.calendar.ui.eventTimeLines
 import com.waivera.waivera.feature.calendar.ui.inviteStatusText
 import com.waivera.waivera.feature.calendar.ui.joinOpensText
-import com.waivera.waivera.feature.calendar.ui.rememberAvatarPainter
 import com.waivera.waivera.feature.calendar.ui.zoneNoticeText
 
 /** Everything the event screen can ask for. */
@@ -94,7 +92,6 @@ internal fun EventBody(
     details: EventDetails,
     actions: EventActions,
     modifier: Modifier = Modifier,
-    avatarLoader: AvatarLoader? = null,
     listState: LazyListState = rememberLazyListState(),
 ) {
     val event = details.event
@@ -179,7 +176,7 @@ internal fun EventBody(
         }
         details.organizer?.let { organizer ->
             item(key = "organizer") {
-                OrganizerBlock(organizer, details.isOrganizer, actions, avatarLoader, sectionModifier)
+                OrganizerBlock(organizer, details.isOrganizer, actions, sectionModifier)
             }
         }
         event.description?.takeIf(String::isNotBlank)?.let { description ->
@@ -214,7 +211,7 @@ internal fun EventBody(
             }
         } else {
             items(details.attendees, key = { "attendee:${it.id}" }) { attendee ->
-                AttendeeItem(attendee, actions, avatarLoader)
+                AttendeeItem(attendee, actions)
             }
         }
     }
@@ -459,12 +456,10 @@ private fun OrganizerBlock(
     organizer: PersonRow,
     isMine: Boolean,
     actions: EventActions,
-    avatarLoader: AvatarLoader?,
     modifier: Modifier = Modifier,
 ) {
     val colors = WaiveraTheme.colors
     val name = organizer.name?.takeIf(String::isNotBlank) ?: stringResource(R.string.feature_calendar_event_guest)
-    val painter = rememberAvatarPainter(organizer.userId, avatarLoader)
     val content: @Composable () -> Unit = {
         Row(
             modifier = Modifier
@@ -474,7 +469,7 @@ private fun OrganizerBlock(
             horizontalArrangement = Arrangement.spacedBy(WaiveraSpacing.MediumSmall),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            MilestoneAvatar(name, organizer.celebration, CalendarSizes.OrganizerAvatar, painter = painter)
+            MilestoneAvatar(name, organizer.celebration, CalendarSizes.OrganizerAvatar, userId = organizer.userId)
             Column(verticalArrangement = Arrangement.spacedBy(WaiveraSpacing.XxSmall)) {
                 Text(
                     text = stringResource(R.string.feature_calendar_event_organized_by).uppercase(),
@@ -555,11 +550,10 @@ private fun AttendeesHeader(count: Int) {
 }
 
 @Composable
-private fun AttendeeItem(attendee: AttendeeRow, actions: EventActions, avatarLoader: AvatarLoader?) {
+private fun AttendeeItem(attendee: AttendeeRow, actions: EventActions) {
     val guest = stringResource(R.string.feature_calendar_event_guest)
     val baseName = attendee.name ?: attendee.email ?: guest
     val name = if (attendee.isMe) stringResource(R.string.feature_calendar_event_you, baseName) else baseName
-    val painter = rememberAvatarPainter(attendee.userId, avatarLoader)
     val userId = attendee.userId
     WaiveraListRow(
         headline = name,
@@ -567,7 +561,7 @@ private fun AttendeeItem(attendee: AttendeeRow, actions: EventActions, avatarLoa
         onClick = userId?.let { { actions.onOpenPerson(it) } },
         onClickLabel = userId?.let { stringResource(R.string.feature_calendar_open_profile) },
         leading = {
-            MilestoneAvatar(baseName, attendee.celebration, CalendarSizes.AttendeeAvatar, painter = painter)
+            MilestoneAvatar(baseName, attendee.celebration, CalendarSizes.AttendeeAvatar, userId = attendee.userId)
         },
     )
 }

@@ -260,4 +260,6 @@ interface TourWorld {
     fun pushHandler(): PushMessageHandler
 
     fun channels(): NotificationChannelInstaller
+
+    fun imageLoader(): AuthenticatedImageLoader
 }

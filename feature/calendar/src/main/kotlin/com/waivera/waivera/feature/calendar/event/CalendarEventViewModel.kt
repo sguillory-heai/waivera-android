@@ -9,7 +9,6 @@ import com.waivera.waivera.core.data.model.currentUser
 import com.waivera.waivera.core.data.model.currentUserId
 import com.waivera.waivera.core.data.repository.CalendarRepository
 import com.waivera.waivera.core.data.repository.ConversationRepository
-import com.waivera.waivera.core.data.repository.PeopleRepository
 import com.waivera.waivera.core.data.repository.SessionRepository
 import com.waivera.waivera.core.network.di.ApplicationScope
 import com.waivera.waivera.core.network.error.WaiveraError
@@ -51,7 +50,6 @@ class CalendarEventViewModel @AssistedInject constructor(
     @Assisted private val eventId: String,
     private val calendar: CalendarRepository,
     private val conversations: ConversationRepository,
-    private val people: PeopleRepository,
     private val session: SessionRepository,
     private val clock: Clock,
     private val deviceZone: DeviceZone,
@@ -213,8 +211,6 @@ class CalendarEventViewModel @AssistedInject constructor(
             chatBusy.value = false
         }
     }
-
-    suspend fun avatar(userId: String): ByteArray? = people.avatar(userId)
 
     override fun onCleared() {
         // An answer still inside its undo window is the person's decision: send it anyway.

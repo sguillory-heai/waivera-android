@@ -21,7 +21,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -31,6 +30,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.semantics
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.waivera.waivera.core.data.image.AvatarModel
 import com.waivera.waivera.core.data.model.CurrentUser
 import com.waivera.waivera.core.data.model.EmployeeProfile
 import com.waivera.waivera.core.designsystem.component.BannerTone
@@ -68,17 +68,15 @@ fun ProfileScreen(
 ) {
     val viewModel: ProfileViewModel = hiltViewModel()
     val state by viewModel.uiState.collectAsStateWithLifecycle()
-    CompositionLocalProvider(LocalAvatarLoader provides viewModel.avatarLoader) {
-        ProfileContent(
-            state = state,
-            onBack = onBack,
-            onRefresh = viewModel::refresh,
-            onRetryConnection = viewModel::retryConnection,
-            onOpenPerson = onOpenPerson,
-            onOpenSettings = onOpenSettings,
-            modifier = modifier,
-        )
-    }
+    ProfileContent(
+        state = state,
+        onBack = onBack,
+        onRefresh = viewModel::refresh,
+        onRetryConnection = viewModel::retryConnection,
+        onOpenPerson = onOpenPerson,
+        onOpenSettings = onOpenSettings,
+        modifier = modifier,
+    )
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -194,7 +192,7 @@ private fun IdentityCard(user: CurrentUser, profile: EmployeeProfile?, celebrati
     val avatar: @Composable () -> Unit = {
         WaiveraAvatar(
             name = name,
-            painter = rememberAvatarPainter(user.userId),
+            imageModel = AvatarModel.of(user.userId),
             size = WaiveraSizes.AvatarLarge,
             milestone = celebration?.milestoneKind,
             contentDescription = null,
@@ -306,7 +304,7 @@ private fun DetailsSections(profile: EmployeeProfile?, state: ProfileUiState.Rea
                         leading = {
                             WaiveraAvatar(
                                 name = manager.name,
-                                painter = rememberAvatarPainter(manager.id),
+                                imageModel = AvatarModel.of(manager.id),
                                 size = WaiveraSizes.AvatarSmall,
                                 contentDescription = null,
                             )

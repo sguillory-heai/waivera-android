@@ -34,7 +34,6 @@ class ProfileViewModelTest {
             profiles = profiles,
             organizations = organizations,
             calendar = graph.calendar,
-            people = graph.people,
             realtime = realtime,
             clock = TestClock,
         )
@@ -100,7 +99,7 @@ class ProfileViewModelTest {
     fun profileErrorShowsOneErrorAndRetryReissuesAllFour() = runTest {
         val cold = FakeProfileRepository(profile = null).apply { refreshError = WaiveraError.Server(500) }
         val graph = DemoGraph(backgroundScope)
-        val vm = ProfileViewModel(graph.session, cold, organizations, graph.calendar, graph.people, realtime, TestClock)
+        val vm = ProfileViewModel(graph.session, cold, organizations, graph.calendar, realtime, TestClock)
         backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { vm.uiState.collect {} }
 
         assertIs<Section.Failed>(vm.ready().details)

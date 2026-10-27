@@ -63,6 +63,12 @@ class BookmarkRulesTest {
     }
 
     @Test
+    fun aRowCarriesItsAuthorsIdForTheirPhoto() {
+        assertEquals("u1", BookmarkRules.row(message(id = 100)).authorId)
+        assertEquals("u9", BookmarkRules.row(message(id = 101).copy(authorId = "u9")).authorId)
+    }
+
+    @Test
     fun aRootMessageOpensTheConversation() {
         assertNull(BookmarkRules.threadRoot(message(id = 100)))
         assertNull(BookmarkRules.threadRoot(message(id = 100, root = 100)))

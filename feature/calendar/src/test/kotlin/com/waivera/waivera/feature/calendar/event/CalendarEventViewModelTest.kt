@@ -12,7 +12,6 @@ import com.waivera.waivera.core.testing.TestClock
 import com.waivera.waivera.core.testing.TestSessionRepository
 import com.waivera.waivera.feature.calendar.FakeCalendarRepository
 import com.waivera.waivera.feature.calendar.FakeConversationRepository
-import com.waivera.waivera.feature.calendar.FakePeopleRepository
 import com.waivera.waivera.feature.calendar.data.DeviceZone
 import java.time.Instant
 import java.time.ZoneId
@@ -71,7 +70,6 @@ class CalendarEventViewModelTest {
             eventId = id,
             calendar = calendar,
             conversations = conversations,
-            people = FakePeopleRepository(),
             session = session,
             clock = clock,
             deviceZone = DeviceZone { ZoneId.of("America/Chicago") },

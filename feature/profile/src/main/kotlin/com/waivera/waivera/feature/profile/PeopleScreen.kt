@@ -14,13 +14,13 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.waivera.waivera.core.data.image.AvatarModel
 import com.waivera.waivera.core.designsystem.component.BannerTone
 import com.waivera.waivera.core.designsystem.component.ConnectionBanner
 import com.waivera.waivera.core.designsystem.component.ConnectionBannerState
@@ -43,17 +43,15 @@ import com.waivera.waivera.core.designsystem.theme.WaiveraTheme
 fun PeopleScreen(onBack: () -> Unit, onOpenPerson: (userId: String) -> Unit, modifier: Modifier = Modifier) {
     val viewModel: PeopleViewModel = hiltViewModel()
     val state by viewModel.uiState.collectAsStateWithLifecycle()
-    CompositionLocalProvider(LocalAvatarLoader provides viewModel.avatarLoader) {
-        PeopleContent(
-            state = state,
-            onBack = onBack,
-            onQueryChange = viewModel::onQueryChange,
-            onRefresh = viewModel::refresh,
-            onRetryConnection = viewModel::retryConnection,
-            onOpenPerson = onOpenPerson,
-            modifier = modifier,
-        )
-    }
+    PeopleContent(
+        state = state,
+        onBack = onBack,
+        onQueryChange = viewModel::onQueryChange,
+        onRefresh = viewModel::refresh,
+        onRetryConnection = viewModel::retryConnection,
+        onOpenPerson = onOpenPerson,
+        modifier = modifier,
+    )
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -183,7 +181,7 @@ private fun PersonListRow(row: PersonRow, onClick: () -> Unit) {
         leading = {
             WaiveraAvatar(
                 name = row.name,
-                painter = rememberAvatarPainter(row.userId),
+                imageModel = AvatarModel.of(row.userId),
                 size = WaiveraSizes.AvatarMedium,
                 milestone = row.celebration?.milestoneKind,
                 contentDescription = null,

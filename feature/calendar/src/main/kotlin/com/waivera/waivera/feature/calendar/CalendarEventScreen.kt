@@ -43,7 +43,6 @@ import com.waivera.waivera.feature.calendar.event.EventBodySkeleton
 import com.waivera.waivera.feature.calendar.event.EventEffect
 import com.waivera.waivera.feature.calendar.event.EventPreviewData
 import com.waivera.waivera.feature.calendar.event.EventUiState
-import com.waivera.waivera.feature.calendar.ui.AvatarLoader
 import java.net.URLEncoder
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
@@ -142,7 +141,6 @@ fun CalendarEventScreen(
                 }
             },
         ),
-        avatarLoader = remember(viewModel) { AvatarLoader { viewModel.avatar(it) } },
         snackbarHost = snackbarHost,
         modifier = modifier,
     )
@@ -154,7 +152,6 @@ fun EventContent(
     state: EventUiState,
     actions: EventActions,
     modifier: Modifier = Modifier,
-    avatarLoader: AvatarLoader? = null,
     snackbarHost: SnackbarHostState = remember { SnackbarHostState() },
     listState: LazyListState = rememberLazyListState(),
 ) {
@@ -199,7 +196,6 @@ fun EventContent(
                 is EventUiState.Loaded -> EventBody(
                     details = state.details,
                     actions = actions,
-                    avatarLoader = avatarLoader,
                     listState = listState,
                 )
             }

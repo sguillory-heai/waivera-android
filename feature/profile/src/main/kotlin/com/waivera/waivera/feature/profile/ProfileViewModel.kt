@@ -10,7 +10,6 @@ import com.waivera.waivera.core.data.model.Synced
 import com.waivera.waivera.core.data.model.TimeOffSummary
 import com.waivera.waivera.core.data.model.currentUser
 import com.waivera.waivera.core.data.repository.CalendarRepository
-import com.waivera.waivera.core.data.repository.PeopleRepository
 import com.waivera.waivera.core.data.repository.ProfileRepository
 import com.waivera.waivera.core.data.repository.RealtimeStatusRepository
 import com.waivera.waivera.core.data.repository.SessionRepository
@@ -81,7 +80,6 @@ internal class ProfileViewModel @Inject constructor(
     private val profiles: ProfileRepository,
     private val organizations: OrganizationSource,
     private val calendar: CalendarRepository,
-    private val people: PeopleRepository,
     private val realtime: RealtimeStatusRepository,
     private val clock: Clock,
 ) : ViewModel() {
@@ -91,8 +89,6 @@ internal class ProfileViewModel @Inject constructor(
     private val detailsError = MutableStateFlow<WaiveraError?>(null)
     private val refreshing = MutableStateFlow(false)
     private var refreshJob: Job? = null
-
-    val avatarLoader = AvatarLoader(people::avatar)
 
     private val user = session.state.map { it.currentUser }.distinctUntilChanged()
 
