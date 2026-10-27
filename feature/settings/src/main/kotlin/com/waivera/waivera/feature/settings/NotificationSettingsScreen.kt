@@ -100,7 +100,13 @@ internal fun NotificationSettingsContent(
             if (!state.categoriesEnabled) {
                 // Says why the switches below are off instead of leaving them silently disabled.
                 Text(
-                    text = stringResource(R.string.feature_settings_categories_push_off),
+                    text = stringResource(
+                        if (state.systemAllowed) {
+                            R.string.feature_settings_categories_push_off
+                        } else {
+                            R.string.feature_settings_categories_system_off
+                        },
+                    ),
                     style = MaterialTheme.typography.bodySmall,
                     color = WaiveraTheme.colors.textSecondary,
                     modifier = Modifier.padding(

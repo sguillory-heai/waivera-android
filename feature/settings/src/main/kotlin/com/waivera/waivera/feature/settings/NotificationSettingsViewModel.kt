@@ -23,8 +23,11 @@ internal data class NotificationSettingsUiState(
     val blockedChannels: Set<String> = emptySet(),
     val loaded: Boolean = false,
 ) {
-    /** Category and preview switches are dimmed, not changed, while push is off (spec 08 §8). */
-    val categoriesEnabled: Boolean get() = preferences.enabled
+    /**
+     * Category and preview switches are dimmed, not changed, while push is off (spec 08 §8) or
+     * Android blocks the app (UI2-24): a switch reading On must never promise a notification.
+     */
+    val categoriesEnabled: Boolean get() = preferences.enabled && systemAllowed
 
     fun isChecked(category: NotificationCategory): Boolean = preferences.categories[category] != false
 }

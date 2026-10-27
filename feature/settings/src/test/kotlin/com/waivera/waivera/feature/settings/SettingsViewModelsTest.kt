@@ -211,6 +211,12 @@ class NotificationSettingsViewModelTest {
 
         assertFalse(vm.uiState.value.systemAllowed)
         assertEquals(setOf("digest"), vm.uiState.value.blockedChannels)
+        assertFalse(vm.uiState.value.categoriesEnabled, "switches can't promise what Android blocks")
+        assertTrue(vm.uiState.value.preferences.enabled, "the saved choice is kept for when Android allows it")
+
+        system.allowed = true
+        vm.refreshSystemState()
+        assertTrue(vm.uiState.value.categoriesEnabled)
     }
 
     @Test

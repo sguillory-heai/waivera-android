@@ -36,6 +36,7 @@
     <string name="feature_settings_push_subtitle">Get notified when Waivera isn\'t open.</string>
     <string name="feature_settings_categories_section">Notify me about</string>
     <string name="feature_settings_categories_push_off">Turn on push notifications to choose what you get.</string>
+    <string name="feature_settings_categories_system_off">Turn notifications on in Android settings to use these.</string>
     <string name="feature_settings_category_messages">Direct messages and mentions</string>
     <string name="feature_settings_category_messages_detail">Messages sent to you and times someone mentions you.</string>
     <string name="feature_settings_category_group_activity">Group chat activity</string>
