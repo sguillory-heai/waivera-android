@@ -101,5 +101,12 @@ class CalendarEventScreenshotTest {
     fun notFound() = capture("calendarEvent_notFound", EventUiState.NotFound)
 
     @Test
-    fun error() = capture("calendarEvent_error", EventUiState.Error(WaiveraError.Network()))
+    fun error() = capture("calendarEvent_error", EventUiState.Error(WaiveraError.Server(SERVER_ERROR)))
+
+    @Test
+    fun errorOffline() = capture("calendarEvent_errorOffline", EventUiState.Error(WaiveraError.Network()))
+
+    private companion object {
+        const val SERVER_ERROR = 503
+    }
 }

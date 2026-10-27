@@ -39,6 +39,12 @@ class ScheduleTextTest {
     }
 
     @Test
+    fun narrowWeekdaysAreOneLetter() {
+        assertEquals(listOf("S", "M", "T", "W", "T", "F", "S"), ScheduleText.weekdayHeaders(Locale.US, narrow = true))
+        assertEquals("T", ScheduleText.weekdayNarrow(LocalDate.of(2026, 10, 27), Locale.US))
+    }
+
+    @Test
     fun periodPiecesFormatInEnglish() {
         val date = LocalDate.of(2026, 10, 27)
         assertEquals("October 2026", ScheduleText.monthYear(date, Locale.US))

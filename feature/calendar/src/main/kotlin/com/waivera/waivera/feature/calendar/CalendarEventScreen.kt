@@ -170,6 +170,7 @@ fun EventContent(
                     modifier = Modifier.padding(WaiveraSpacing.Gutter),
                 )
                 is EventUiState.Error -> WaiveraErrorState(
+                    title = stringResource(R.string.feature_calendar_event_error_title),
                     message = stringResource(state.error.messageRes),
                     onRetry = actions.onRetry,
                     modifier = Modifier.padding(WaiveraSpacing.Gutter),

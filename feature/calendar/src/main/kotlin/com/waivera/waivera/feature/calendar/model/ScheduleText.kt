@@ -62,9 +62,17 @@ object ScheduleText {
         format(date, if (date.year == currentYear) SHORT_DAY else SHORT_DAY_YEAR, locale)
 
     /** Weekday headers for a Sunday-first grid ("Sun" … "Sat"). */
-    fun weekdayHeaders(locale: Locale): List<String> = sundayFirst().map { it.getDisplayName(TextStyle.SHORT, locale) }
+    /** Sunday-first weekday headers; [narrow] gives "S M T W" for large font, where "Mon" no longer fits. */
+    fun weekdayHeaders(locale: Locale, narrow: Boolean = false): List<String> =
+        sundayFirst().map { it.getDisplayName(weekdayStyle(narrow), locale) }
 
     fun weekdayShort(date: LocalDate, locale: Locale): String = date.dayOfWeek.getDisplayName(TextStyle.SHORT, locale)
+
+    /** "M" for Monday. Visual only: the cell's spoken label always carries the full day. */
+    fun weekdayNarrow(date: LocalDate, locale: Locale): String =
+        date.dayOfWeek.getDisplayName(TextStyle.NARROW, locale)
+
+    private fun weekdayStyle(narrow: Boolean): TextStyle = if (narrow) TextStyle.NARROW else TextStyle.SHORT
 
     /** "Central Time" for America/Chicago. */
     fun zoneName(zone: ZoneId, locale: Locale): String = zone.getDisplayName(TextStyle.FULL, locale)

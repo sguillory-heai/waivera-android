@@ -22,6 +22,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
@@ -30,6 +32,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Dp
 import com.waivera.waivera.core.designsystem.theme.WaiveraShapes
 import com.waivera.waivera.core.designsystem.theme.WaiveraSpacing
 import com.waivera.waivera.core.designsystem.theme.WaiveraTextStyles
@@ -37,6 +40,7 @@ import com.waivera.waivera.core.designsystem.theme.WaiveraTheme
 import com.waivera.waivera.feature.calendar.R
 import com.waivera.waivera.feature.calendar.model.ScheduleText
 import com.waivera.waivera.feature.calendar.model.ScheduleView
+import com.waivera.waivera.feature.calendar.ui.CalendarShapes
 import com.waivera.waivera.feature.calendar.ui.CalendarSizes
 import com.waivera.waivera.feature.calendar.ui.currentLocale
 import java.time.LocalDate
@@ -57,7 +61,8 @@ internal fun ScheduleGrid(
 ) {
     if (view == ScheduleView.DAY || cells.isEmpty()) return
     val locale = currentLocale()
-    val headers = remember(locale) { ScheduleText.weekdayHeaders(locale) }
+    val narrow = usesCompactCalendar(LocalDensity.current.fontScale)
+    val headers = remember(locale, narrow) { ScheduleText.weekdayHeaders(locale, narrow) }
     val gridLabel = stringResource(R.string.feature_calendar_grid_label)
     Column(
         modifier = modifier
@@ -74,6 +79,8 @@ internal fun ScheduleGrid(
                         style = WaiveraTextStyles.Eyebrow,
                         color = WaiveraTheme.colors.textSecondary,
                         textAlign = TextAlign.Center,
+                        maxLines = 1,
+                        softWrap = false,
                         modifier = Modifier
                             .weight(1f)
                             .padding(vertical = WaiveraSpacing.ExtraSmall),
@@ -112,6 +119,7 @@ private fun DayCell(cell: GridCell, showWeekday: Boolean, onClick: () -> Unit, m
         else -> colors.text
     }
     val label = cellLabel(cell)
+    val narrow = usesCompactCalendar(LocalDensity.current.fontScale)
     Box(
         modifier = modifier
             .padding(WaiveraSpacing.XxSmall)
@@ -131,9 +139,15 @@ private fun DayCell(cell: GridCell, showWeekday: Boolean, onClick: () -> Unit, m
         ) {
             if (showWeekday) {
                 Text(
-                    text = ScheduleText.weekdayShort(cell.date, locale),
+                    text = if (narrow) {
+                        ScheduleText.weekdayNarrow(cell.date, locale)
+                    } else {
+                        ScheduleText.weekdayShort(cell.date, locale)
+                    },
                     style = WaiveraTextStyles.Eyebrow,
                     color = if (cell.isSelected) colors.onAccentSoft else colors.textSecondary,
+                    maxLines = 1,
+                    softWrap = false,
                 )
             }
             Text(
@@ -141,26 +155,37 @@ private fun DayCell(cell: GridCell, showWeekday: Boolean, onClick: () -> Unit, m
                 style = if (showWeekday) MaterialTheme.typography.titleLarge else MaterialTheme.typography.titleSmall,
                 fontWeight = if (cell.isToday || cell.isSelected) FontWeight.Black else FontWeight.SemiBold,
                 color = numberColor,
+                maxLines = 1,
+                softWrap = false,
             )
             Row(
                 horizontalArrangement = Arrangement.spacedBy(CalendarSizes.DotGap),
-                modifier = Modifier.heightIn(min = CalendarSizes.Dot),
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.heightIn(min = CalendarSizes.MilestoneDot),
             ) {
-                if (cell.marker.events > 0) Dot(colors.accent)
-                if (cell.marker.milestones > 0) Dot(colors.milestoneDot)
+                if (cell.marker.events > 0) Dot(colors.accent, WaiveraShapes.Circle, CalendarSizes.Dot)
+                if (cell.marker.milestones > 0) {
+                    Dot(colors.milestoneDot, CalendarShapes.Diamond, CalendarSizes.MilestoneDot)
+                }
             }
         }
     }
 }
 
+/** Events are circles and celebrations diamonds, so the two read apart without colour. */
 @Composable
-private fun Dot(color: Color) {
+private fun Dot(color: Color, shape: Shape, size: Dp) {
     Box(
         modifier = Modifier
-            .size(CalendarSizes.Dot)
-            .background(color, WaiveraShapes.Circle),
+            .size(size)
+            .background(color, shape),
     )
 }
+
+/** At 150% font and above the week strip uses one-letter weekdays and Month defaults to Week. */
+internal fun usesCompactCalendar(fontScale: Float): Boolean = fontScale >= COMPACT_CALENDAR_FONT_SCALE
+
+internal const val COMPACT_CALENDAR_FONT_SCALE = 1.5f
 
 /** "Sunday, November 1, today, 2 events, 1 celebration". Selection is announced by the selectable. */
 @Composable
