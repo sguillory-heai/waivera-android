@@ -33,6 +33,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.waivera.waivera.core.data.image.AvatarModel
 import com.waivera.waivera.core.designsystem.component.BannerTone
 import com.waivera.waivera.core.designsystem.component.ConnectionBanner
 import com.waivera.waivera.core.designsystem.component.SkeletonList
@@ -321,14 +322,21 @@ private fun BookmarksScreenPreview() {
                 rows = BookmarkRules.dated(
                     listOf(
                         BookmarkRow(
-                            1,
-                            7,
-                            null,
-                            "Priya Raman",
-                            now.minusSeconds(3_600),
-                            BookmarkPreview.Text("Shift notes are in the log."),
+                            messageId = 1,
+                            conversationId = 7,
+                            threadRootId = null,
+                            author = "Priya Raman",
+                            createdAt = now.minusSeconds(3_600),
+                            preview = BookmarkPreview.Text("Shift notes are in the log."),
                         ),
-                        BookmarkRow(2, 7, 9330, "Jordan Lee", now.minusSeconds(86_400), BookmarkPreview.Photo),
+                        BookmarkRow(
+                            messageId = 2,
+                            conversationId = 7,
+                            threadRootId = 9330,
+                            author = "Jordan Lee",
+                            createdAt = now.minusSeconds(86_400),
+                            preview = BookmarkPreview.Photo,
+                        ),
                     ),
                     now,
                     WaiveraTime.FallbackZone,

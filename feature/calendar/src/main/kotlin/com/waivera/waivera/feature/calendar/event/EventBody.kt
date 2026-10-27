@@ -176,7 +176,7 @@ internal fun EventBody(
         }
         details.organizer?.let { organizer ->
             item(key = "organizer") {
-                OrganizerBlock(organizer, details.isOrganizer, actions, sectionModifier = sectionModifier)
+                OrganizerBlock(organizer, details.isOrganizer, actions, modifier = sectionModifier)
             }
         }
         event.description?.takeIf(String::isNotBlank)?.let { description ->
@@ -460,14 +460,14 @@ private fun responseText(response: MyInvitation): String = when (response) {
  * card it replaces looked like a tonal button (UI3-15).
  */
 @Composable
-private fun OrganizerBlock(organizer: PersonRow, isMine: Boolean, actions: EventActions, sectionModifier: Modifier) {
+private fun OrganizerBlock(organizer: PersonRow, isMine: Boolean, actions: EventActions, modifier: Modifier) {
     val colors = WaiveraTheme.colors
     if (isMine) {
         Text(
             text = stringResource(R.string.feature_calendar_event_you_organize),
             style = MaterialTheme.typography.bodyMedium,
             color = colors.textSecondary,
-            modifier = sectionModifier,
+            modifier = modifier,
         )
         return
     }

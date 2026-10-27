@@ -98,7 +98,8 @@ fun WaiveraBanner(
                 vertical = WaiveraSpacing.ExtraSmall,
             ),
     ) {
-        val stacked = action != null && !collapsible &&
+        val stacked = action != null &&
+            !collapsible &&
             rememberBannerActionStacks(action.label, constraints.maxWidth)
         val trailingInline = (action != null && !stacked) || onDismiss != null
         Column(
