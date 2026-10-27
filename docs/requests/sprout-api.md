@@ -108,6 +108,93 @@ From `conversation.md` §4.
   the conversation or messages.
 - **Client today.** No receipts. The Expo reference never shows them either (spec 05 §6).
 
+## From the Android critic reviews
+
+Items 8 to 13 come from the Android security review (its SA-01 to SA-06), items 14 and 15 from
+the functional review. The first three are access-control holes on the server. The app already
+sends only the signed-in user's own id, but the endpoints can be called by any HTTP client, so
+only the server can close them.
+
+## 8. Contact and time zone update writes any user's record (high)
+
+- **Evidence.** `Controllers/Authentication.cs:226-247` and
+  `Services/Auth/AuthenticationService.cs:1134-1158`: `PUT /api/Authentication/{userId}/UpdateContactAndTimezone`
+  looks up `u.Id == userId` and saves. The caller's `uid` is only written to `ModifiedBy`.
+- **Ask.** Use the user resolved from the token for self-service and ignore the path id, or
+  return 403 unless `userId` is the caller or an admin in the same organization.
+- **Client today.** `LiveProfileRepository` sends only its own id.
+
+## 9. `get-myChannels` trusts the path user id (high)
+
+- **Evidence.** `Controllers/Chat/ChatController.cs:552-564` and `Services/Chat/ChatService.cs:801+`
+  filter on the path `userId` and return each channel's last message text. `ChatOperationAccessFilter`
+  only checks that the caller may use chat. (gaps.md G-16 rates it low; it leaks message content.)
+- **Ask.** Derive the user from `HttpContext.Items["uid"]` and drop the path parameter, or 403
+  when it is not the caller.
+- **Client today.** The Android client no longer declares this endpoint (nor `initiation-directory`);
+  the staff directory comes from `get-username-list`.
+
+## 10. User details are not scoped to the caller's organization (medium)
+
+- **Evidence.** `GetUserDetailsByUserID/{userId}` (`Controllers/Authentication.cs:284-301`,
+  `AuthenticationService.cs:583+`) returns email, phone, roles, organization, regions, teams and
+  waiver families for any id. `GET /api/users/{id}` (`Controllers/IdentityController.cs:80-92`)
+  ignores `uid`, and the controller's `[Authorize]` is commented out.
+- **Ask.** Allow the lookup only within the caller's organization (or for platform admins) and
+  restore `[Authorize]` on `IdentityController`.
+- **Client today.** The person screen shows whatever `GetUserDetailsByUserID` returns, including
+  for an id that arrives in a `waivera://people/{id}` link.
+
+## 11. Error responses echo exception text (low)
+
+- **Evidence.** For example `Authentication.cs:222`, `:245`, `:299` and `ChatController.cs:562`
+  return `ex.Message`, sometimes with EF or SQL detail.
+- **Ask.** Log server-side and return a generic message with an error code.
+- **Client today.** Never shows server text (`WaiveraError` copy only).
+
+## 12. Hub tokens in the query string (low)
+
+- **Evidence.** `Middleware/FirebaseTokenValidatorMiddleware.cs:51-59` and
+  `Middleware/FirebaseAuthenticationHandler.cs:42-50` accept `?access_token=` on `/api/chatHub`
+  and `/api/videoHub`.
+- **Ask.** Redact `access_token` in request and ingress logs. If a wire capture shows the SignalR
+  Java client puts the token in the WebSocket upgrade URL, consider short-lived hub tickets.
+- **Client today.** The middleware reads the `Authorization` header first; the client relies on
+  the SignalR library for the upgrade.
+
+## 13. Push registrations outlive a sign-out that never reached the server (low)
+
+- **Evidence.** `Services/MobilePushRegistrationService.cs:41-97`: register is keyed by token,
+  unregister by `(userId from token, deviceId)`, and nothing expires a registration.
+- **Ask.** Deactivate a user's registrations when the account is disabled or suspended, and skip
+  registrations whose `LastRegisteredAt` is older than a retention window at send time.
+- **Client today.** Sign-out unregisters first. If that fails it keeps the device id and the
+  still-valid ID token, retries in the background (on next start, when the network returns, and
+  through WorkManager) for up to 55 minutes, and deletes the FCM token so the old registration
+  can no longer be delivered to. Pushes that still arrive while signed out are dropped on device.
+  The retry needs `unregister` to keep accepting a valid ID token after the Firebase sign-out,
+  which it does today.
+
+## 14. Thread root in push data
+
+From the functional review (AF-12) and spec 09.
+
+- **Evidence.** The chat push data carries `conversationId` and `messageId` but no thread root,
+  so a client cannot tell a thread reply from a main-timeline message without its cache.
+- **Ask.** Add `threadRootMessageId` (and `parentMessageId`) to the push data for replies.
+- **Client today.** The foreground suppression rule looks the message up in the cache: a cached
+  reply is suppressed only while its thread is on screen. An uncached reply is still treated as
+  a main-timeline message.
+
+## 15. Unread count on the single-conversation endpoint
+
+From the functional review (AF-09) and gap G-14.
+
+- **Evidence.** `/api/chat/conversation/{id}` never fills `unreadCount`.
+- **Ask.** Fill `unreadCount` (and `lastReadAt`) for the caller, as `/my-conversations` does.
+- **Client today.** A conversation first seen through a hub message from someone else starts at
+  one unread; the next list refresh corrects the number.
+
 ## Checked and not a gap
 
 `MeetingHandoff` `relatedChatConversationId`:
