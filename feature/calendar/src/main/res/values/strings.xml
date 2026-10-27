@@ -1,9 +1,121 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <!-- Schedule tab -->
     <string name="feature_calendar_schedule_title">Schedule</string>
-    <string name="feature_calendar_schedule_placeholder">Your shifts, events and milestones will appear here.</string>
+    <string name="feature_calendar_schedule_subtitle">Events, time off, holidays, and team celebrations.</string>
     <string name="feature_calendar_account_name">Your account</string>
+    <string name="feature_calendar_view_day">Day</string>
+    <string name="feature_calendar_view_week">Week</string>
+    <string name="feature_calendar_view_month">Month</string>
+    <string name="feature_calendar_previous_period">Previous period</string>
+    <string name="feature_calendar_next_period">Next period</string>
+    <string name="feature_calendar_today">Today</string>
+    <string name="feature_calendar_go_to_today">Go to today</string>
+    <string name="feature_calendar_refresh">Refresh schedule</string>
+    <string name="feature_calendar_period_week_in_month">%1$s–%2$s, %3$s</string>
+    <string name="feature_calendar_period_week_across_months">%1$s – %2$s</string>
+    <string name="feature_calendar_zone_notice">Times shown in %1$s</string>
+    <string name="feature_calendar_zone_notice_fallback">Your profile has no time zone, so times are shown in %1$s.</string>
+    <string name="feature_calendar_loading">Loading your calendar…</string>
+    <string name="feature_calendar_error_title">Calendar could not load</string>
+    <string name="feature_calendar_empty_title">Nothing scheduled</string>
+    <string name="feature_calendar_empty_message">This day is clear.</string>
+    <string name="feature_calendar_feed_refresh_failed">Couldn\'t refresh your schedule. Showing what was saved.</string>
+    <string name="feature_calendar_milestones_failed">Team celebrations couldn\'t load.</string>
+    <string name="feature_calendar_offline">You\'re offline. Showing your saved schedule.</string>
+    <string name="feature_calendar_retry">Retry</string>
+    <string name="feature_calendar_grid_label">Calendar</string>
+    <string name="feature_calendar_cell_today">today</string>
+    <string name="feature_calendar_cell_other_month">outside this month</string>
+    <plurals name="feature_calendar_cell_events">
+        <item quantity="one">%d event</item>
+        <item quantity="other">%d events</item>
+    </plurals>
+    <plurals name="feature_calendar_cell_celebrations">
+        <item quantity="one">%d celebration</item>
+        <item quantity="other">%d celebrations</item>
+    </plurals>
+
+    <!-- Agenda -->
+    <string name="feature_calendar_untitled_event">Untitled event</string>
+    <string name="feature_calendar_holiday_default">Holiday</string>
+    <string name="feature_calendar_holiday_subtitle">Company holiday</string>
+    <string name="feature_calendar_time_off_default">Time off</string>
+    <string name="feature_calendar_time_range">%1$s – %2$s</string>
+    <string name="feature_calendar_with_detail">%1$s · %2$s</string>
+    <string name="feature_calendar_all_day">All day</string>
+    <string name="feature_calendar_until">Until %1$s</string>
+    <string name="feature_calendar_day_time">%1$s %2$s</string>
+    <string name="feature_calendar_day_time_long">%1$s, %2$s</string>
+    <string name="feature_calendar_open_event">Open event</string>
+    <string name="feature_calendar_owner">Organized by %1$s</string>
+    <string name="feature_calendar_milestone_birthday">Birthday</string>
+    <plurals name="feature_calendar_milestone_anniversary">
+        <item quantity="one">%d-year work anniversary</item>
+        <item quantity="other">%d-year work anniversary</item>
+    </plurals>
+
+    <!-- Celebrations (07 §4) -->
+    <string name="feature_calendar_celebration_name_fallback">This employee</string>
+    <string name="feature_calendar_celebration_compact_multiple">Birthday + %1$d-yr anniversary</string>
+    <string name="feature_calendar_celebration_compact_birthday">Birthday today</string>
+    <string name="feature_calendar_celebration_compact_anniversary">%1$d-year anniversary</string>
+    <string name="feature_calendar_celebration_full_multiple">It\'s %1$s\'s birthday and %2$d-year work anniversary!</string>
+    <string name="feature_calendar_celebration_full_birthday">It\'s %1$s\'s birthday today!</string>
+    <string name="feature_calendar_celebration_full_anniversary">Celebrating %1$s\'s %2$d-year work anniversary!</string>
+    <string name="feature_calendar_celebration_a11y_multiple">%1$s is celebrating a birthday and %2$d-year work anniversary today.</string>
+    <string name="feature_calendar_celebration_a11y_birthday">%1$s is celebrating a birthday today.</string>
+    <string name="feature_calendar_celebration_a11y_anniversary">%1$s is celebrating a %2$d-year work anniversary today.</string>
+
+    <!-- Event screen -->
     <string name="feature_calendar_calendar_event_title">Event</string>
-    <string name="feature_calendar_calendar_event_placeholder">Event details will appear here.</string>
-    <string name="feature_calendar_calendar_event_reference">Reference %1$s</string>
+    <string name="feature_calendar_event_organized_by">Organized by</string>
+    <string name="feature_calendar_event_you_organize">You\'re the organizer</string>
+    <string name="feature_calendar_event_online">Online meeting</string>
+    <string name="feature_calendar_event_location">Location</string>
+    <string name="feature_calendar_event_details">Details</string>
+    <string name="feature_calendar_event_linked_task">Linked task</string>
+    <string name="feature_calendar_event_attendees">Attendees</string>
+    <plurals name="feature_calendar_event_attendee_count">
+        <item quantity="one">%d person</item>
+        <item quantity="other">%d people</item>
+    </plurals>
+    <string name="feature_calendar_event_no_attendees">No one else is invited.</string>
+    <string name="feature_calendar_event_you">%1$s (you)</string>
+    <string name="feature_calendar_event_guest">Guest</string>
+    <string name="feature_calendar_status_invited">Awaiting response</string>
+    <string name="feature_calendar_status_accepted">Accepted</string>
+    <string name="feature_calendar_status_declined">Declined</string>
+    <string name="feature_calendar_status_tentative">Maybe</string>
+    <string name="feature_calendar_status_cancelled">Cancelled</string>
+    <string name="feature_calendar_open_profile">Open profile</string>
+
+    <string name="feature_calendar_response_heading">Your response</string>
+    <string name="feature_calendar_response_pending">You haven\'t responded yet.</string>
+    <string name="feature_calendar_response_accepted">You\'re going.</string>
+    <string name="feature_calendar_response_declined">You declined.</string>
+    <string name="feature_calendar_response_tentative">You said maybe.</string>
+    <string name="feature_calendar_response_saving">Saving your response…</string>
+    <string name="feature_calendar_response_started">This event has started, so the invitation can no longer be answered.</string>
+    <string name="feature_calendar_accept">Accept</string>
+    <string name="feature_calendar_decline">Decline</string>
+    <string name="feature_calendar_response_failed_title">Response not saved</string>
+    <string name="feature_calendar_undo_accepted">You accepted the invitation</string>
+    <string name="feature_calendar_undo_declined">You declined the invitation</string>
+
+    <string name="feature_calendar_join">Join meeting</string>
+    <string name="feature_calendar_join_opens">Join opens at %1$s</string>
+    <string name="feature_calendar_join_ended">This meeting has ended.</string>
+    <string name="feature_calendar_join_no_time">This meeting has no set time, so it can\'t be joined from here.</string>
+    <string name="feature_calendar_join_failed_title">Unable to join meeting</string>
+    <string name="feature_calendar_join_no_link">This meeting does not include a join link.</string>
+    <string name="feature_calendar_join_open_failed">The web meeting experience could not be opened.</string>
+
+    <string name="feature_calendar_chat_meeting">Open meeting chat</string>
+    <string name="feature_calendar_chat_organizer">Message organizer</string>
+    <string name="feature_calendar_chat_failed">Couldn\'t open the chat.</string>
+
+    <string name="feature_calendar_event_not_found_title">Event not found</string>
+    <string name="feature_calendar_event_not_found_message">This event isn\'t on your schedule anymore, or it\'s outside the dates that can be looked up.</string>
+    <string name="feature_calendar_event_refresh_failed">Couldn\'t refresh this event. Showing what was saved.</string>
 </resources>

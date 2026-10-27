@@ -1,0 +1,66 @@
+package com.waivera.waivera.feature.calendar.ui
+
+import android.content.Context
+import androidx.annotation.StringRes
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.Immutable
+import androidx.compose.ui.res.stringResource
+import com.waivera.waivera.feature.calendar.R
+import com.waivera.waivera.feature.calendar.model.Celebration
+import com.waivera.waivera.feature.calendar.model.CelebrationType
+
+/** A string resource plus its arguments, so label choice is testable without composition. */
+@Immutable
+data class TextSpec(@StringRes val id: Int, val args: List<Any> = emptyList()) {
+    fun resolve(context: Context): String = context.getString(id, *args.toTypedArray())
+}
+
+@Composable
+fun TextSpec.resolve(): String = stringResource(id, *args.toTypedArray())
+
+/**
+ * Celebration copy from 07 §4. [fallbackName] is "This employee", resolved by the caller, used
+ * when the milestone has no display name.
+ */
+object CelebrationText {
+    fun compact(celebration: Celebration): TextSpec = when (celebration.type) {
+        CelebrationType.MULTIPLE ->
+            TextSpec(R.string.feature_calendar_celebration_compact_multiple, listOf(celebration.yearsOrZero))
+        CelebrationType.BIRTHDAY -> TextSpec(R.string.feature_calendar_celebration_compact_birthday)
+        CelebrationType.WORK_ANNIVERSARY ->
+            TextSpec(R.string.feature_calendar_celebration_compact_anniversary, listOf(celebration.yearsOrZero))
+    }
+
+    fun full(celebration: Celebration, fallbackName: String): TextSpec {
+        val name = celebration.displayName?.takeIf(String::isNotBlank) ?: fallbackName
+        return when (celebration.type) {
+            CelebrationType.MULTIPLE -> TextSpec(
+                R.string.feature_calendar_celebration_full_multiple,
+                listOf(name, celebration.yearsOrZero),
+            )
+            CelebrationType.BIRTHDAY -> TextSpec(R.string.feature_calendar_celebration_full_birthday, listOf(name))
+            CelebrationType.WORK_ANNIVERSARY -> TextSpec(
+                R.string.feature_calendar_celebration_full_anniversary,
+                listOf(name, celebration.yearsOrZero),
+            )
+        }
+    }
+
+    /** The avatar's TalkBack label: the full celebration sentence. */
+    fun accessible(celebration: Celebration, fallbackName: String): TextSpec {
+        val name = celebration.displayName?.takeIf(String::isNotBlank) ?: fallbackName
+        return when (celebration.type) {
+            CelebrationType.MULTIPLE -> TextSpec(
+                R.string.feature_calendar_celebration_a11y_multiple,
+                listOf(name, celebration.yearsOrZero),
+            )
+            CelebrationType.BIRTHDAY -> TextSpec(R.string.feature_calendar_celebration_a11y_birthday, listOf(name))
+            CelebrationType.WORK_ANNIVERSARY -> TextSpec(
+                R.string.feature_calendar_celebration_a11y_anniversary,
+                listOf(name, celebration.yearsOrZero),
+            )
+        }
+    }
+
+    private val Celebration.yearsOrZero: Int get() = years ?: 0
+}
