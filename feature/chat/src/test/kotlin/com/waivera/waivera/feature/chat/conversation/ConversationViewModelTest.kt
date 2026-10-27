@@ -214,7 +214,11 @@ class ConversationViewModelTest {
         s.viewModel.effects.test {
             s.viewModel.send("this will fail")
             runCurrent()
-            skipItems(1)
+            // Corrects a wrong expectation, it checks no less: the send is optimistic, so the queued
+            // state (draft cleared, send cue, scroll) comes first and the failure cue follows it.
+            assertEquals(ChatEffect.SetDraft(""), awaitItem())
+            assertEquals(ChatEffect.Haptic(HapticMoment.Success), awaitItem())
+            assertEquals(ChatEffect.ScrollToLatest, awaitItem())
             assertEquals(ChatEffect.Haptic(HapticMoment.Error), awaitItem())
             cancelAndIgnoreRemainingEvents()
         }
