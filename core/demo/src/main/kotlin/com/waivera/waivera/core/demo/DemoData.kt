@@ -64,6 +64,7 @@ object DemoData {
     const val GROUP = 11L
     const val BOT = 14L
     const val CHANNEL = 41L
+    private const val CHANNEL_EVENT_MESSAGE = 9360L
     const val THREAD_ROOT = 9330L
     const val CALL_RECORD = 2210L
     const val FAILED_CLIENT_ID = "demo-failed-0001"
@@ -145,6 +146,9 @@ object DemoData {
             "rest-chat-get-messages-pagination-system-message.json",
             "rest-chat-get-thread.json",
         ).flatMap(::page)
+            // The captured "joined the channel" event is filed under the DM in the contract fixture;
+            // left there it becomes the DM's latest message and the DM reads as a bot chat.
+            .map { if (it.id == CHANNEL_EVENT_MESSAGE) it.copy(conversationId = CHANNEL) else it }
         val scripted = listOf(
             Message(
                 id = 9500,
@@ -310,10 +314,9 @@ object DemoData {
         }
     }
 
-    fun holidays(): List<Holiday> =
-        listOf(
-            Holiday(9, "Thanksgiving", LocalDate.of(2026, 11, 26), LocalDate.of(2026, 11, 26), "Office closed"),
-        )
+    fun holidays(): List<Holiday> = listOf(
+        Holiday(9, "Thanksgiving", LocalDate.of(2026, 11, 26), LocalDate.of(2026, 11, 26), "Office closed"),
+    )
 
     fun milestones(): List<Milestone> {
         val fixture = DemoFixtures.decode(
