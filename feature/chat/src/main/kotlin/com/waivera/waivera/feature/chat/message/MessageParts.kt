@@ -36,11 +36,14 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.onClick
+import androidx.compose.ui.semantics.onLongClick
+import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -125,17 +128,34 @@ private fun ReactionPill(reaction: ReactionSummary, onToggle: ((String) -> Unit)
     if (onToggle == null) {
         Box(Modifier.clearAndSetSemantics { contentDescription = label }) { content() }
     } else {
+        val toggleLabel = stringResource(R.string.feature_chat_reaction_toggle)
+        val detailsLabel = stringResource(R.string.feature_chat_reaction_details)
+        val toggle = { onToggle(reaction.emoji) }
+        val details = onDetails?.let { { it(reaction.emoji) } }
         WaiveraPressable(
-            onClick = { onToggle(reaction.emoji) },
-            onClickLabel = stringResource(R.string.feature_chat_reaction_toggle),
-            onLongClick = onDetails?.let { { it(reaction.emoji) } },
-            onLongClickLabel = stringResource(R.string.feature_chat_reaction_details),
+            onClick = toggle,
+            onClickLabel = toggleLabel,
+            onLongClick = details,
+            onLongClickLabel = detailsLabel,
             shape = WaiveraShapes.Pill,
+            // The pill is one spoken label ("thumbs up, 3, you reacted"), so its children are
+            // cleared. Clearing also drops the clickable's own actions (this modifier comes
+            // first), so tap and long press are set again here for TalkBack.
             modifier = Modifier
                 .minimumInteractiveComponentSize()
                 .clearAndSetSemantics {
                     contentDescription = label
-                    stateDescription = label
+                    role = Role.Button
+                    onClick(label = toggleLabel) {
+                        toggle()
+                        true
+                    }
+                    if (details != null) {
+                        onLongClick(label = detailsLabel) {
+                            details()
+                            true
+                        }
+                    }
                 },
         ) { Box(Modifier.align(Alignment.Center)) { content() } }
     }
