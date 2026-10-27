@@ -25,6 +25,8 @@ import java.net.URLEncoder
  * waivera://settings/notifications
  * ```
  */
+// One codec for every route; splitting it would scatter the URI grammar across files.
+@Suppress("TooManyFunctions")
 object DeepLinkUris {
     const val SCHEME = "waivera"
     private const val QUERY_MESSAGE_ID = "messageId"
@@ -48,17 +50,13 @@ object DeepLinkUris {
     }
 
     fun parse(uri: String?): DeepLinkTarget? {
-        if (uri.isNullOrBlank() || uri.length > MAX_URI_LENGTH) return null
-        val parsed = try {
-            URI(uri)
-        } catch (ignored: URISyntaxException) {
-            return null
-        }
-        if (!SCHEME.equals(parsed.scheme, ignoreCase = true)) return null
-        val host = parsed.host?.lowercase() ?: return null
+        val parsed = uri?.takeIf { it.isNotBlank() && it.length <= MAX_URI_LENGTH }
+            ?.let(::uriOrNull)
+            ?.takeIf { SCHEME.equals(it.scheme, ignoreCase = true) }
+            ?: return null
         val segments = parsed.rawPath.orEmpty().split('/').filter(String::isNotEmpty).map(::decode)
         val messageId = queryParameter(parsed.rawQuery, QUERY_MESSAGE_ID)?.let(::positiveId)
-        return when (host) {
+        return when (parsed.host?.lowercase()) {
             "today" -> DeepLinkTarget.Today.takeIf { segments.isEmpty() }
             "chats" -> parseChats(segments, messageId)
             "schedule" -> DeepLinkTarget.Schedule.takeIf { segments.isEmpty() }
@@ -69,6 +67,12 @@ object DeepLinkUris {
             "settings" -> parseSettings(segments)
             else -> null
         }
+    }
+
+    private fun uriOrNull(raw: String): URI? = try {
+        URI(raw)
+    } catch (ignored: URISyntaxException) {
+        null
     }
 
     /** A positive decimal id, as the API sends ids in push data and as the app writes them in URIs. */

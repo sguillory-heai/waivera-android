@@ -8,11 +8,11 @@ import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
 import androidx.core.content.edit
 import dagger.hilt.android.qualifiers.ApplicationContext
+import javax.inject.Inject
+import javax.inject.Singleton
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import javax.inject.Inject
-import javax.inject.Singleton
 
 /** System notification permission as Settings → Notifications presents it. */
 enum class NotificationPermissionStatus {
@@ -43,14 +43,13 @@ object PermissionPrimerRules {
         notificationsEnabled: Boolean,
         permissionGranted: Boolean,
         primerCompleted: Boolean,
-    ): NotificationPermissionStatus =
-        when {
-            notificationsEnabled && (sdkInt < RUNTIME_PERMISSION_SDK || permissionGranted) ->
-                NotificationPermissionStatus.Granted
-            sdkInt >= RUNTIME_PERMISSION_SDK && !permissionGranted && !primerCompleted ->
-                NotificationPermissionStatus.NotRequested
-            else -> NotificationPermissionStatus.Denied
-        }
+    ): NotificationPermissionStatus = when {
+        notificationsEnabled && (sdkInt < RUNTIME_PERMISSION_SDK || permissionGranted) ->
+            NotificationPermissionStatus.Granted
+        sdkInt >= RUNTIME_PERMISSION_SDK && !permissionGranted && !primerCompleted ->
+            NotificationPermissionStatus.NotRequested
+        else -> NotificationPermissionStatus.Denied
+    }
 }
 
 /**

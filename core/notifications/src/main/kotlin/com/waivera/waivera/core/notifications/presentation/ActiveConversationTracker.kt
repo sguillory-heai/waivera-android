@@ -1,11 +1,11 @@
 package com.waivera.waivera.core.notifications.presentation
 
+import javax.inject.Inject
+import javax.inject.Singleton
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
-import javax.inject.Inject
-import javax.inject.Singleton
 
 /** The conversation (or thread) currently on screen and resumed. */
 data class VisibleChat(val conversationId: Long, val threadRootMessageId: Long? = null)

@@ -237,10 +237,11 @@ private fun messagingStyle(
     conversation: ConversationNotificationInfo?,
 ): NotificationCompat.MessagingStyle {
     val me = Person.Builder().setName(context.getString(R.string.core_notifications_you)).setKey("self").build()
-    return NotificationCompat.MessagingStyle(me).apply {
-        if (conversation?.isGroup == true) {
-            conversationTitle = conversation.title
-            isGroupConversation = true
-        }
+    // MessagingStyle declares its own apply(builder), which shadows the scope function.
+    val style = NotificationCompat.MessagingStyle(me)
+    if (conversation?.isGroup == true) {
+        style.setConversationTitle(conversation.title)
+        style.setGroupConversation(true)
     }
+    return style
 }

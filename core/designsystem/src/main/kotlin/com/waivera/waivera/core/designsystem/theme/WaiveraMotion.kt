@@ -120,8 +120,7 @@ class WaiveraMotionScheme internal constructor(val reduced: Boolean) {
         val Reduced = WaiveraMotionScheme(reduced = true)
 
         /** Android has no separate reduce-motion switch: "Remove animations" sets the animator scale to 0. */
-        fun forAnimatorScale(animatorScale: Float): WaiveraMotionScheme =
-            if (animatorScale <= 0f) Reduced else Standard
+        fun forAnimatorScale(animatorScale: Float): WaiveraMotionScheme = if (animatorScale <= 0f) Reduced else Standard
     }
 }
 

@@ -73,9 +73,9 @@ internal val LightWaiveraColors = WaiveraColors(
     onAccent = WaiveraPalette.White,
     accentSoft = WaiveraPalette.AccentSoftLight,
     onAccentSoft = WaiveraPalette.PurpleDeep,
-    accentWash = WaiveraPalette.Purple.copy(alpha = WaiveraPalette.WashAlpha),
-    accentBorder = WaiveraPalette.Purple.copy(alpha = WaiveraPalette.BorderAlpha),
-    accentBorderStrong = WaiveraPalette.Purple.copy(alpha = WaiveraPalette.BorderStrongAlpha),
+    accentWash = WaiveraPalette.Purple.copy(alpha = WaiveraPalette.WASH_ALPHA),
+    accentBorder = WaiveraPalette.Purple.copy(alpha = WaiveraPalette.BORDER_ALPHA),
+    accentBorderStrong = WaiveraPalette.Purple.copy(alpha = WaiveraPalette.BORDER_STRONG_ALPHA),
     inverseAccent = WaiveraPalette.PurpleDarkAccent,
     unread = WaiveraPalette.Purple,
     danger = WaiveraPalette.DangerLight,
@@ -103,7 +103,7 @@ internal val LightWaiveraColors = WaiveraColors(
     presenceOnline = WaiveraPalette.SuccessLight,
     presenceAway = WaiveraPalette.WarningLight,
     presenceOffline = WaiveraPalette.TextSecondaryLight,
-    scrim = WaiveraPalette.Black.copy(alpha = WaiveraPalette.ScrimAlpha),
+    scrim = WaiveraPalette.Black.copy(alpha = WaiveraPalette.SCRIM_ALPHA),
 )
 
 internal val DarkWaiveraColors = WaiveraColors(
@@ -119,9 +119,9 @@ internal val DarkWaiveraColors = WaiveraColors(
     onAccent = WaiveraPalette.OnAccentDark,
     accentSoft = WaiveraPalette.AccentSoftDark,
     onAccentSoft = WaiveraPalette.OnAccentSoftDark,
-    accentWash = WaiveraPalette.PurpleDarkAccent.copy(alpha = WaiveraPalette.WashAlpha),
-    accentBorder = WaiveraPalette.PurpleDarkAccent.copy(alpha = WaiveraPalette.BorderAlpha),
-    accentBorderStrong = WaiveraPalette.PurpleDarkAccent.copy(alpha = WaiveraPalette.BorderStrongAlpha),
+    accentWash = WaiveraPalette.PurpleDarkAccent.copy(alpha = WaiveraPalette.WASH_ALPHA),
+    accentBorder = WaiveraPalette.PurpleDarkAccent.copy(alpha = WaiveraPalette.BORDER_ALPHA),
+    accentBorderStrong = WaiveraPalette.PurpleDarkAccent.copy(alpha = WaiveraPalette.BORDER_STRONG_ALPHA),
     inverseAccent = WaiveraPalette.Purple,
     unread = WaiveraPalette.PurpleDarkAccent,
     danger = WaiveraPalette.DangerDark,
@@ -149,7 +149,7 @@ internal val DarkWaiveraColors = WaiveraColors(
     presenceOnline = WaiveraPalette.SuccessDark,
     presenceAway = WaiveraPalette.WarningDark,
     presenceOffline = WaiveraPalette.TextSecondaryDark,
-    scrim = WaiveraPalette.Black.copy(alpha = WaiveraPalette.ScrimAlpha),
+    scrim = WaiveraPalette.Black.copy(alpha = WaiveraPalette.SCRIM_ALPHA),
 )
 
 /** Resolves the colour set for a theme. Exposed for screenshot tests and the app's window colours. */

@@ -27,8 +27,10 @@ class PushMessageHandler @Inject constructor(
 ) {
     /** @return what was decided, for tests and debug tooling; null when the payload was unusable. */
     suspend fun handle(
-        data: Map<String,
-        String>,
+        data: Map<
+            String,
+            String,
+            >,
         notificationTitle: String? = null,
         notificationBody: String? = null,
     ): PresentationDecision? {

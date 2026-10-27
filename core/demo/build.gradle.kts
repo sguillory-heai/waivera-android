@@ -20,6 +20,7 @@ android {
 
 dependencies {
     api(projects.core.data)
+    implementation(libs.androidx.core.ktx)
 
     testImplementation(projects.core.testing)
 }

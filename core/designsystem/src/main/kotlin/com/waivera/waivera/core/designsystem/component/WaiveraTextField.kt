@@ -122,11 +122,13 @@ private fun WaiveraTextFieldPreview() {
                 label = "Password",
                 errorText = "That password didn't work. Try again.",
                 visualTransformation = PasswordVisualTransformation(),
-                trailingIcon = { WaiveraIconButton(
-                    icon = WaiveraIcons.Search,
-                    contentDescription = "Show password",
-                    onClick = {},
-                ) },
+                trailingIcon = {
+                    WaiveraIconButton(
+                        icon = WaiveraIcons.Search,
+                        contentDescription = "Show password",
+                        onClick = {},
+                    )
+                },
             )
         }
     }

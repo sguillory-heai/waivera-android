@@ -92,6 +92,8 @@ fun rememberTopBarAccount(onClick: () -> Unit, fallbackName: String, painter: Pa
  * screens using it must not pad for the status bar again. Titles wrap to two lines at large
  * font scales instead of clipping.
  */
+// One layout with optional back, subtitle, actions and account slots; splitting hides the shared row.
+@Suppress("LongMethod")
 @Composable
 fun WaiveraTopBar(
     title: String,

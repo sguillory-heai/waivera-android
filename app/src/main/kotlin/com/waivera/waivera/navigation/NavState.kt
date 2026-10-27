@@ -46,10 +46,10 @@ data class NavState(
     }
 
     /** Pushes [route] on the selected tab, ignoring a push of the route already on top. */
-    fun push(route: AppRoute): NavState {
-        if (route == top) return this
-        if (route.isTabRoot) return select(TopLevelTab.entries.first { it.root == route })
-        return withStack(selected, stack(selected) + route)
+    fun push(route: AppRoute): NavState = when {
+        route == top -> this
+        route.isTabRoot -> select(TopLevelTab.entries.first { it.root == route })
+        else -> withStack(selected, stack(selected) + route)
     }
 
     /**

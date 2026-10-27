@@ -10,6 +10,10 @@ import com.waivera.waivera.core.notifications.channel.WaiveraChannel
 import com.waivera.waivera.core.notifications.payload.PushMessage
 import com.waivera.waivera.core.notifications.presentation.AndroidNotifier
 import com.waivera.waivera.core.notifications.presentation.ConversationNotificationInfo
+import kotlin.test.assertEquals
+import kotlin.test.assertNotNull
+import kotlin.test.assertNull
+import kotlin.test.assertTrue
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -17,10 +21,6 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
 import org.robolectric.Shadows.shadowOf
 import org.robolectric.annotation.Config
-import kotlin.test.assertEquals
-import kotlin.test.assertNotNull
-import kotlin.test.assertNull
-import kotlin.test.assertTrue
 
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35])
@@ -37,9 +37,11 @@ class AndroidNotifierTest {
         body = body,
     )
 
-    private fun posted(
-        tag: String,
-    ): Notification? = manager.activeNotifications.firstOrNull { it.tag == tag }?.notification
+    private fun posted(tag: String): Notification? =
+        manager.activeNotifications.firstOrNull { it.tag == tag }?.notification
+
+    private fun postedChat(conversationId: Long): Notification =
+        assertNotNull(posted(AndroidNotifier.chatTag(conversationId)))
 
     @Before
     fun setUp() {
@@ -85,7 +87,7 @@ class AndroidNotifierTest {
         notifier.show(chat(1, "first"), WaiveraChannel.Messages, null)
         notifier.show(chat(1, "first"), WaiveraChannel.Messages, null)
         val style = assertNotNull(
-            NotificationCompat.MessagingStyle.extractMessagingStyleFromNotification(posted(AndroidNotifier.chatTag(7))),
+            NotificationCompat.MessagingStyle.extractMessagingStyleFromNotification(postedChat(7)),
         )
         assertEquals(1, style.messages.size)
     }
@@ -94,7 +96,7 @@ class AndroidNotifierTest {
     fun `messages are capped`() {
         (1L..12L).forEach { notifier.show(chat(it, "message $it"), WaiveraChannel.Messages, null) }
         val style = assertNotNull(
-            NotificationCompat.MessagingStyle.extractMessagingStyleFromNotification(posted(AndroidNotifier.chatTag(7))),
+            NotificationCompat.MessagingStyle.extractMessagingStyleFromNotification(postedChat(7)),
         )
         assertEquals(AndroidNotifier.MAX_MESSAGES, style.messages.size)
         assertEquals("message 12", style.messages.last().text.toString())
@@ -133,7 +135,7 @@ class AndroidNotifierTest {
         notifier.show(chat(1, "can you cover Friday?"), WaiveraChannel.Messages, null)
         notifier.showReplySent(conversationId = 7, threadRootMessageId = null, text = "Yes")
         val style = assertNotNull(
-            NotificationCompat.MessagingStyle.extractMessagingStyleFromNotification(posted(AndroidNotifier.chatTag(7))),
+            NotificationCompat.MessagingStyle.extractMessagingStyleFromNotification(postedChat(7)),
         )
         assertEquals(listOf("can you cover Friday?", "Yes"), style.messages.map { it.text.toString() })
         assertNull(style.messages.last().person, "a null person is the device user")

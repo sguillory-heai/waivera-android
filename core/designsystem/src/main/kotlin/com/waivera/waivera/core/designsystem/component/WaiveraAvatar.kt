@@ -53,6 +53,8 @@ enum class MilestoneKind { Birthday, WorkAnniversary, NewHire, Multiple }
  *   shows until it loads and stays when there is no picture.
  * @param contentDescription null when the avatar sits next to the person's name and is decorative.
  */
+// Image, initials fallback, presence and milestone badges are layered in one Box.
+@Suppress("LongMethod")
 @Composable
 fun WaiveraAvatar(
     name: String,
