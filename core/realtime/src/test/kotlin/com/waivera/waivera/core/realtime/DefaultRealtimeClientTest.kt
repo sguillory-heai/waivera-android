@@ -107,6 +107,26 @@ class DefaultRealtimeClientTest {
     }
 
     @Test
+    fun aConversationAttendedWhileTheHandshakeFinishesIsJoinedExactlyOnce() = runTest {
+        val client = client()
+        val leases = mutableListOf<AutoCloseable>()
+        factory.onStarted = { leases += client.attendConversation(7) }
+        client.start("usr_alex_rivera")
+        client.setForeground(true)
+        advanceTimeBy(1)
+        runCurrent()
+        // A second lease while connected must not join again.
+        leases += client.attendConversation(7)
+        runCurrent()
+        assertEquals(ConnectionState.Connected, client.state.value)
+        assertEquals(
+            listOf<List<Any?>>(listOf(7L)),
+            factory.latest.calls.filter { it.method == Methods.JOIN_CONVERSATION }.map { it.arguments },
+        )
+        leases.forEach { it.close() }
+    }
+
+    @Test
     fun resumeFromBackgroundCountsAsReconnect() = runTest {
         val client = connected()
         client.resyncRequests.test {

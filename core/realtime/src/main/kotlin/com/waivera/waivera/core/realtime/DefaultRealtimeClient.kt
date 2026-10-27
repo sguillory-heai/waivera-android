@@ -200,11 +200,13 @@ class DefaultRealtimeClient @Inject constructor(
     }
 
     private suspend fun onConnected(live: Live) {
+        // Connected is published under the same lock as the snapshot: a lease opened right after
+        // sees Connected and joins itself, one opened before is in the snapshot, never neither.
         val toJoin = lock.withLock {
             if (current !== live) return
+            _state.value = ConnectionState.Connected
             attended.keys.toList()
         }
-        _state.value = ConnectionState.Connected
         toJoin.forEach { id -> join(live, id) }
         epoch.value += 1
     }
