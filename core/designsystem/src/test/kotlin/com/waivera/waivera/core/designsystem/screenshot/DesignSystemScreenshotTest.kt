@@ -143,11 +143,14 @@ class DesignSystemScreenshotTest {
         WaiveraSwitchRow(title = "Mentions", checked = true, onCheckedChange = {}, enabled = false)
     }
 
+    @OptIn(ExperimentalLayoutApi::class)
     @Test
     fun avatars() = capture("Avatars") {
-        Row(
+        // Wraps instead of clipping the last avatar at the frame edge on small phones and large font (UI2-31).
+        FlowRow(
             horizontalArrangement = Arrangement.spacedBy(WaiveraSpacing.MediumSmall),
-            verticalAlignment = Alignment.CenterVertically,
+            verticalArrangement = Arrangement.spacedBy(WaiveraSpacing.MediumSmall),
+            itemVerticalAlignment = Alignment.CenterVertically,
         ) {
             WaiveraAvatar(name = "Alex Rivera", presence = PresenceStatus.Online)
             WaiveraAvatar(name = "Priya Raman", milestone = MilestoneKind.Birthday, rounded = false)
@@ -159,12 +162,15 @@ class DesignSystemScreenshotTest {
     }
 
     /** The photo path: crop, presence and milestone rings over a real image, beside an initials fallback. */
+    @OptIn(ExperimentalLayoutApi::class)
     @Test
     fun avatarsWithPhoto() = capture("AvatarsPhoto") {
         val photo = remember { photoPainter() }
-        Row(
+        // Wraps instead of clipping the last avatar at the frame edge on small phones and large font (UI2-31).
+        FlowRow(
             horizontalArrangement = Arrangement.spacedBy(WaiveraSpacing.MediumSmall),
-            verticalAlignment = Alignment.CenterVertically,
+            verticalArrangement = Arrangement.spacedBy(WaiveraSpacing.MediumSmall),
+            itemVerticalAlignment = Alignment.CenterVertically,
         ) {
             WaiveraAvatar(name = "Priya Raman", painter = photo, presence = PresenceStatus.Online)
             WaiveraAvatar(name = "Priya Raman", painter = photo, milestone = MilestoneKind.Birthday)

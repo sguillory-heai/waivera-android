@@ -3,6 +3,7 @@ package com.waivera.waivera.feature.calendar.event
 import androidx.annotation.DrawableRes
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -31,6 +32,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
@@ -78,6 +80,8 @@ class EventActions(
     val onDismissJoinError: () -> Unit = {},
     val onOpenChat: () -> Unit = {},
     val onOpenPerson: (String) -> Unit = {},
+    /** An in-person address: opens it in the maps app. */
+    val onOpenLocation: (String) -> Unit = {},
 )
 
 /**
@@ -127,17 +131,26 @@ internal fun EventBody(
         item(key = "time") { TimeBlock(details, sectionModifier) }
         locationText(details)?.let { location ->
             item(key = "location") {
+                val online = event.online || event.isSprout
+                // An address opens in maps; the row is the whole 48dp target, so the click wraps the padding.
+                val openMaps = Modifier
+                    .clickable(
+                        onClickLabel = stringResource(R.string.feature_calendar_location_open),
+                        role = Role.Button,
+                    ) { actions.onOpenLocation(location) }
+                    .heightIn(min = WaiveraSizes.ButtonMinHeight)
                 DetailRow(
-                    icon = if (event.online || event.isSprout) WaiveraIcons.Video else CalendarIcons.Place,
+                    icon = if (online) WaiveraIcons.Video else CalendarIcons.Place,
                     iconLabel = stringResource(
-                        if (event.online || event.isSprout) {
+                        if (online) {
                             R.string.feature_calendar_event_online
                         } else {
                             R.string.feature_calendar_event_location
                         },
                     ),
                     primary = location,
-                    modifier = sectionModifier,
+                    modifier = if (online) sectionModifier else openMaps.then(sectionModifier),
+                    trailingIcon = WaiveraIcons.OpenExternal.takeUnless { online },
                 )
             }
         }
@@ -236,6 +249,7 @@ private fun DetailRow(
     modifier: Modifier = Modifier,
     secondary: String? = null,
     tertiary: String? = null,
+    @DrawableRes trailingIcon: Int? = null,
 ) {
     val colors = WaiveraTheme.colors
     Row(
@@ -251,7 +265,10 @@ private fun DetailRow(
             tint = colors.accent,
             modifier = Modifier.size(WaiveraSizes.Icon),
         )
-        Column(verticalArrangement = Arrangement.spacedBy(WaiveraSpacing.XxSmall)) {
+        Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(WaiveraSpacing.XxSmall),
+        ) {
             Text(text = primary, style = MaterialTheme.typography.titleSmall, color = colors.text)
             secondary?.let {
                 Text(text = it, style = MaterialTheme.typography.bodySmall, color = colors.textSecondary)
@@ -259,6 +276,14 @@ private fun DetailRow(
             tertiary?.let {
                 Text(text = it, style = MaterialTheme.typography.labelMedium, color = colors.textSecondary)
             }
+        }
+        trailingIcon?.let {
+            Icon(
+                painter = painterResource(it),
+                contentDescription = null,
+                tint = colors.textSecondary,
+                modifier = Modifier.size(WaiveraSizes.Icon),
+            )
         }
     }
 }

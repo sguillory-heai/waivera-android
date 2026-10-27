@@ -69,6 +69,9 @@ object DemoData {
     const val CALL_RECORD = 2210L
     const val FAILED_CLIENT_ID = "demo-failed-0001"
 
+    /** The 1:1 meets in the DM with Priya, the only other attendee; other events use the team group. */
+    fun meetingChatFor(calendarEventId: String): Long = if (calendarEventId == "demo_supervision") DM_PRIYA else GROUP
+
     fun currentUser(): CurrentUser {
         val details = DemoFixtures.decode(
             "rest-auth-get-user-details.json",
@@ -259,13 +262,12 @@ object DemoData {
                 ownerName = "Alex Rivera",
                 myInvitation = MyInvitation.ORGANIZER,
             ),
+            // A calendar-wide note, so nobody organises it and no one is invited (UI2-31).
             ScheduleEvent(
                 id = "demo_allday_today",
                 title = "Daylight saving ends",
                 allDayStart = LocalDate.of(2026, 11, 1),
                 allDayEndExclusive = LocalDate.of(2026, 11, 2),
-                ownerUserId = PRIYA,
-                ownerName = "Priya Raman",
             ),
             ScheduleEvent(
                 id = "demo_visit", title = "Client home visit", location = "1200 W Lake St",

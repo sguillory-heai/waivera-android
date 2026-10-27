@@ -135,7 +135,7 @@ Clock moved to 19:45Z, which is 13:45 CST in Chicago on the fall-back day, so th
 | 7 | Back | Today | — |
 
 Also: before the window the event says "Join opens today at 1:30 PM" (a later day says "tomorrow", the weekday, or the date) (`path_06_schedule_07_join_not_yet`);
-the meeting chat (or Message organizer) pushes a conversation over the event on the Schedule
+the meeting chat (or Message organizer) pushes a conversation (the 1:1 opens the DM with Priya, its only other attendee) over the event on the Schedule
 tab, and back returns to the event (`path_06_schedule_08_meeting_chat`).
 
 ## 7. Account menu, Profile, People, Bookmarks, Settings (`Path07AccountTest`)

@@ -44,6 +44,7 @@ import com.waivera.waivera.feature.calendar.event.EventEffect
 import com.waivera.waivera.feature.calendar.event.EventPreviewData
 import com.waivera.waivera.feature.calendar.event.EventUiState
 import com.waivera.waivera.feature.calendar.ui.AvatarLoader
+import java.net.URLEncoder
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
@@ -73,6 +74,7 @@ fun CalendarEventScreen(
     val declinedMessage = stringResource(R.string.feature_calendar_undo_declined)
     val undoLabel = stringResource(DesignR.string.core_designsystem_undo)
     val chatFailed = stringResource(R.string.feature_calendar_chat_failed)
+    val mapsFailed = stringResource(R.string.feature_calendar_location_no_maps)
 
     LifecycleResumeEffect(viewModel) {
         viewModel.tick()
@@ -132,6 +134,13 @@ fun CalendarEventScreen(
             onDismissJoinError = viewModel::dismissJoinError,
             onOpenChat = viewModel::openChat,
             onOpenPerson = onOpenPerson,
+            onOpenLocation = { address ->
+                try {
+                    uriHandler.openUri(mapsUri(address))
+                } catch (_: IllegalArgumentException) {
+                    scope.launch { snackbarHost.showSnackbar(mapsFailed) }
+                }
+            },
         ),
         avatarLoader = remember(viewModel) { AvatarLoader { viewModel.avatar(it) } },
         snackbarHost = snackbarHost,
@@ -203,6 +212,10 @@ fun EventContent(
         }
     }
 }
+
+/** A `geo:` search for the address, so the person's maps app finds it (UI2-31). */
+private fun mapsUri(address: String): String =
+    "geo:0,0?q=" + URLEncoder.encode(address, Charsets.UTF_8.name()).replace("+", "%20")
 
 private const val CLOCK_TICK_MILLIS = 30_000L
 

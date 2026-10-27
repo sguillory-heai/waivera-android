@@ -78,7 +78,8 @@ class DemoConversationRepository @Inject constructor(private val backend: DemoBa
         return Result.success(id)
     }
 
-    override suspend fun conversationForEvent(calendarEventId: String): Result<Long> = Result.success(DemoData.GROUP)
+    override suspend fun conversationForEvent(calendarEventId: String): Result<Long> =
+        Result.success(DemoData.meetingChatFor(calendarEventId))
 
     override suspend fun leave(conversationId: Long): Result<Unit> {
         backend.conversations.update { it - conversationId }

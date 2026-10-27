@@ -71,6 +71,8 @@
     <string name="feature_calendar_event_you_organize">You\'re the organizer</string>
     <string name="feature_calendar_event_online">Online meeting</string>
     <string name="feature_calendar_event_location">Location</string>
+    <string name="feature_calendar_location_open">Open in maps</string>
+    <string name="feature_calendar_location_no_maps">No maps app can open this address.</string>
     <string name="feature_calendar_event_details">Details</string>
     <string name="feature_calendar_event_linked_task">Linked task</string>
     <string name="feature_calendar_event_attendees">Attendees</string>
