@@ -42,7 +42,7 @@ Feature modules depend on `core:*`, never on each other. Cross-feature navigatio
 ./gradlew connectedDebugAndroidTest               # instrumented, needs emulator
 ./gradlew ktlintCheck detekt lintDebug
 # Simulate a push on the emulator (debug builds expose a test receiver)
-adb shell am broadcast -a com.waivera.waivera.DEBUG_PUSH --es payload "$(cat core/testing/push/chat-message.json)"
+adb shell am broadcast -a com.waivera.waivera.DEBUG_PUSH -p com.waivera.waivera --es payload "$(cat docs/push-test-payloads/chat-message.json)"
 ```
 
 Run the narrowest module task first, then the full checks before pushing.
