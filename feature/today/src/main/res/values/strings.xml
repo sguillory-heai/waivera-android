@@ -1,6 +1,144 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="feature_today_today_title">Today</string>
-    <string name="feature_today_today_placeholder">Your shifts, messages and updates for today will appear here.</string>
     <string name="feature_today_account_name">Your account</string>
+    <string name="feature_today_loading">Loading today</string>
+    <string name="feature_today_error_title">Today couldn\'t load</string>
+
+    <!-- Staleness: shown only when the data on screen is out of date. -->
+    <string name="feature_today_stale_minutes">Updated %1$d min ago</string>
+    <string name="feature_today_stale_at">Updated at %1$s</string>
+    <string name="feature_today_stale_yesterday">Updated yesterday</string>
+    <string name="feature_today_stale_on">Updated %1$s</string>
+
+    <!-- Section headers -->
+    <string name="feature_today_section_needs_you">Needs you</string>
+    <string name="feature_today_section_next_up">Next up</string>
+    <string name="feature_today_section_celebrations">Celebrations</string>
+    <string name="feature_today_section_activity">Activity</string>
+    <string name="feature_today_see_schedule">See schedule</string>
+    <string name="feature_today_see_schedule_a11y">Open the full schedule</string>
+
+    <!-- Needs you -->
+    <plurals name="feature_today_needs_you_show_more">
+        <item quantity="one">Show %d more</item>
+        <item quantity="other">Show %d more</item>
+    </plurals>
+    <string name="feature_today_needs_you_show_less">Show less</string>
+    <string name="feature_today_needs_you_failed">Messages couldn\'t load.</string>
+    <string name="feature_today_dm_fallback_name">Direct message</string>
+    <string name="feature_today_dm_a11y">%1$s, %2$s, %3$s</string>
+    <string name="feature_today_kind_mention">Mention</string>
+    <string name="feature_today_kind_reply">Thread reply</string>
+    <string name="feature_today_kind_reaction">Reaction</string>
+    <string name="feature_today_kind_update">Update</string>
+    <string name="feature_today_ticket_title">Ticket update</string>
+    <string name="feature_today_invitation_label">Invitation</string>
+    <string name="feature_today_invitation_untitled">Untitled event</string>
+    <string name="feature_today_invitation_from">From %1$s</string>
+    <string name="feature_today_invitation_accept">Accept</string>
+    <string name="feature_today_invitation_decline">Decline</string>
+    <string name="feature_today_invitation_accept_a11y">Accept invitation to %1$s</string>
+    <string name="feature_today_invitation_decline_a11y">Decline invitation to %1$s</string>
+    <string name="feature_today_open_conversation">Open conversation</string>
+    <string name="feature_today_open_message">Open message</string>
+    <string name="feature_today_open_event">Open event</string>
+    <string name="feature_today_open_schedule">Open schedule</string>
+    <string name="feature_today_separator">%1$s · %2$s</string>
+
+    <!-- Message snippets -->
+    <string name="feature_today_snippet_photo">Photo</string>
+    <string name="feature_today_snippet_file">File attachment</string>
+    <string name="feature_today_snippet_deleted">Message deleted</string>
+    <string name="feature_today_snippet_none">New message</string>
+
+    <!-- Upcoming times, in the employee's saved time zone -->
+    <string name="feature_today_upcoming_now">Now</string>
+    <string name="feature_today_upcoming_now_until">Now · until %1$s</string>
+    <string name="feature_today_upcoming_starting_now">Starting now</string>
+    <plurals name="feature_today_upcoming_in_minutes">
+        <item quantity="one">in %d min</item>
+        <item quantity="other">in %d min</item>
+    </plurals>
+    <plurals name="feature_today_upcoming_in_hours">
+        <item quantity="one">in %d hr</item>
+        <item quantity="other">in %d hr</item>
+    </plurals>
+    <string name="feature_today_upcoming_in_hours_minutes">in %1$d hr %2$d min</string>
+    <string name="feature_today_upcoming_today_at">Today · %1$s</string>
+    <string name="feature_today_upcoming_tomorrow_at">Tomorrow · %1$s</string>
+    <string name="feature_today_upcoming_day_at">%1$s · %2$s</string>
+    <string name="feature_today_all_day_today">All day today</string>
+    <string name="feature_today_all_day_tomorrow">Tomorrow · All day</string>
+    <string name="feature_today_all_day_on">%1$s · All day</string>
+    <string name="feature_today_time_range">%1$s – %2$s</string>
+    <string name="feature_today_time_range_next_day">%1$s – %2$s next day</string>
+    <string name="feature_today_online">Online</string>
+
+    <!-- Past times -->
+    <string name="feature_today_past_now">Now</string>
+    <string name="feature_today_past_minutes">%1$dm</string>
+    <plurals name="feature_today_past_minutes_a11y">
+        <item quantity="one">%d minute ago</item>
+        <item quantity="other">%d minutes ago</item>
+    </plurals>
+    <string name="feature_today_past_yesterday">Yesterday</string>
+
+    <!-- Next up -->
+    <string name="feature_today_next_up_empty">Nothing else on your schedule for the next two weeks.</string>
+    <string name="feature_today_next_up_failed">Your schedule couldn\'t load.</string>
+    <string name="feature_today_happening_now_a11y">Happening now</string>
+
+    <!-- Celebrations -->
+    <string name="feature_today_celebration_name_fallback">This employee</string>
+    <string name="feature_today_celebration_birthday">It\'s %1$s\'s birthday today!</string>
+    <string name="feature_today_celebration_anniversary">Celebrating %1$s\'s %2$d-year work anniversary!</string>
+    <string name="feature_today_celebration_both">It\'s %1$s\'s birthday and %2$d-year work anniversary!</string>
+    <string name="feature_today_milestones_failed">Celebrations couldn\'t load.</string>
+
+    <!-- All caught up: the one celebrated empty state -->
+    <string name="feature_today_all_caught_up_title">You\'re all caught up</string>
+    <string name="feature_today_all_caught_up_message">New messages, mentions and invitations will show up here.</string>
+
+    <!-- Activity -->
+    <string name="feature_today_filter_all">All</string>
+    <string name="feature_today_filter_mentions">Mentions</string>
+    <string name="feature_today_filter_replies">Replies</string>
+    <string name="feature_today_filter_reactions">Reactions</string>
+    <string name="feature_today_filter_unread">Unread</string>
+    <string name="feature_today_mark_all_read">Mark all read</string>
+    <string name="feature_today_unread_lower_bound">%1$d+</string>
+    <plurals name="feature_today_unread_a11y">
+        <item quantity="one">%d unread update</item>
+        <item quantity="other">%d unread updates</item>
+    </plurals>
+    <plurals name="feature_today_unread_lower_bound_a11y">
+        <item quantity="one">%d or more unread updates</item>
+        <item quantity="other">%d or more unread updates</item>
+    </plurals>
+    <plurals name="feature_today_unread_messages_a11y">
+        <item quantity="one">%d unread message</item>
+        <item quantity="other">%d unread messages</item>
+    </plurals>
+    <string name="feature_today_activity_unread_prefix">Unread. %1$s</string>
+    <string name="feature_today_activity_someone">Someone</string>
+    <string name="feature_today_activity_reacted">%1$s reacted to one of your messages.</string>
+    <string name="feature_today_activity_reacted_with">%1$s reacted %2$s to one of your messages.</string>
+    <string name="feature_today_activity_fallback">New chat activity</string>
+    <string name="feature_today_activity_empty_title">No activity yet</string>
+    <string name="feature_today_activity_empty_message">New mentions, reactions, and thread replies will appear here.</string>
+    <string name="feature_today_activity_filtered_title">No activity matches</string>
+    <string name="feature_today_activity_filtered_message">Try another filter.</string>
+    <string name="feature_today_activity_failed">Activity couldn\'t load.</string>
+    <string name="feature_today_activity_more_failed">More activity couldn\'t load.</string>
+    <string name="feature_today_activity_loading_more">Loading more activity</string>
+
+    <!-- Snackbars -->
+    <string name="feature_today_refresh_failed">Couldn\'t refresh. Showing saved updates.</string>
+    <string name="feature_today_mark_read_failed">Couldn\'t mark that as read.</string>
+    <string name="feature_today_mark_all_failed">Couldn\'t mark everything as read.</string>
+    <string name="feature_today_invitation_accepted">Invitation accepted</string>
+    <string name="feature_today_invitation_declined">Invitation declined</string>
+    <string name="feature_today_invitation_failed">Your response wasn\'t saved.</string>
+    <string name="feature_today_retry">Retry</string>
 </resources>
