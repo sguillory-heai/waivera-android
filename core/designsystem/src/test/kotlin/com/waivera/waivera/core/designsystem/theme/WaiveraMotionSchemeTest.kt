@@ -1,12 +1,10 @@
 package com.waivera.waivera.core.designsystem.theme
 
 import androidx.compose.animation.EnterTransition
-import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.core.SnapSpec
 import androidx.compose.animation.core.SpringSpec
 import androidx.compose.animation.core.TweenSpec
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.scaleOut
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -64,9 +62,12 @@ class WaiveraMotionSchemeTest {
                 val label = "reduced=${motion.reduced} fromRight=$fromRight"
                 assertFalse("Fade(" in transform.targetContentEnter.toString(), "incoming screen is opaque: $label")
                 assertFalse("Fade(" in transform.initialContentExit.toString(), "leaving screen is opaque: $label")
-                assertTrue("Scale(" in transform.initialContentExit.toString(), "leaving screen shrinks: $label")
                 assertTrue(transform.targetContentZIndex < 0f, "leaving screen draws on top: $label")
             }
+        }
+        listOf(true, false).forEach { fromRight ->
+            val standard = WaiveraMotionScheme.Standard.predictiveBackTransition(swipeFromRight = fromRight)
+            assertTrue("Scale(" in standard.initialContentExit.toString(), "leaving screen shrinks: $fromRight")
         }
     }
 
@@ -77,13 +78,7 @@ class WaiveraMotionSchemeTest {
         assertTrue("Slide(" in standard.targetContentEnter.toString(), "the screen underneath has parallax")
         val reduced = WaiveraMotionScheme.Reduced.predictiveBackTransition(swipeFromRight = false)
         assertEquals(EnterTransition.None, reduced.targetContentEnter, "nothing moves underneath")
-        assertEquals(
-            scaleOut(
-                tween(WaiveraMotionScheme.REDUCED_FADE_MILLIS, easing = LinearEasing),
-                targetScale = WaiveraMotionScheme.REDUCED_BACK_SCALE,
-            ),
-            reduced.initialContentExit,
-            "only a small shrink when animations are off",
-        )
+        // UI3-10: no shrink either, so no unframed sliver of the screen underneath shows.
+        assertEquals(ExitTransition.None, reduced.initialContentExit, "the leaving screen holds until commit")
     }
 }

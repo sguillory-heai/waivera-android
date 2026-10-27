@@ -6,6 +6,7 @@ import android.os.Looper
 import android.provider.Settings
 import androidx.compose.animation.ContentTransform
 import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.core.FiniteAnimationSpec
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.snap
@@ -105,13 +106,14 @@ class WaiveraMotionScheme internal constructor(val reduced: Boolean) {
      * The predictive back preview (M3 "back preview"). Nothing fades, so two screens' text never
      * overlaps mid-gesture: the leaving screen stays opaque on top, shrinks to [BACK_PREVIEW_SCALE]
      * and follows the finger away from [swipeFromRight]'s edge, while the screen underneath shows
-     * around it with a slight parallax. Reduced motion keeps only a small shrink, then swaps on commit.
+     * around it with a slight parallax. Reduced motion holds the leaving screen still and full
+     * size, then swaps on commit: a shrink without a frame exposed a cut sliver of the screen
+     * underneath at the bottom edge, which read as a rendering glitch (UI3-10).
      */
     fun predictiveBackTransition(swipeFromRight: Boolean): ContentTransform {
         val direction = if (swipeFromRight) -1 else 1
         val transform = if (reduced) {
-            EnterTransition.None togetherWith
-                scaleOut(tween(REDUCED_FADE_MILLIS, easing = LinearEasing), targetScale = REDUCED_BACK_SCALE)
+            EnterTransition.None togetherWith ExitTransition.None
         } else {
             slideInHorizontally(navigate<IntOffset>()) { -direction * it / BACK_PARALLAX_DIVISOR } togetherWith
                 scaleOut(navigate(), targetScale = BACK_PREVIEW_SCALE, transformOrigin = TransformOrigin.Center) +
@@ -140,7 +142,6 @@ class WaiveraMotionScheme internal constructor(val reduced: Boolean) {
         internal const val CELEBRATE_STIFFNESS = 200f
         private const val SLIDE_DIVISOR = 4
         const val BACK_PREVIEW_SCALE = 0.9f
-        const val REDUCED_BACK_SCALE = 0.97f
 
         /** Half the scale gap, so the shrunken screen's far side stays on the display edge. */
         private const val BACK_SHIFT_DIVISOR = 20
