@@ -6,13 +6,21 @@ import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 /**
  * Environment settings from Gradle properties (`waivera.apiBaseUrl`, `waivera.webBaseUrl`)
  * compiled into BuildConfig. Nothing here is ever hard-coded per environment.
+ *
+ * Only https bases are accepted. [allowLocalCleartext] (debug builds and tests) also accepts http
+ * to the emulator host or localhost, matching the debug-only network security config; a release
+ * build configured with an http base stays unconfigured instead of sending tokens in clear.
  */
-data class NetworkConfig(val apiBaseUrl: String, val webBaseUrl: String) {
+data class NetworkConfig(
+    val apiBaseUrl: String,
+    val webBaseUrl: String,
+    val allowLocalCleartext: Boolean = false,
+) {
     /** The API base with exactly one trailing slash, or null when unset or invalid. */
-    val apiBase: HttpUrl? = normalize(apiBaseUrl)
+    val apiBase: HttpUrl? = normalize(apiBaseUrl, allowLocalCleartext)
 
     /** The web app base (for the video lobby handoff), or null when unset or invalid. */
-    val webBase: HttpUrl? = normalize(webBaseUrl)
+    val webBase: HttpUrl? = normalize(webBaseUrl, allowLocalCleartext)
 
     val isConfigured: Boolean get() = apiBase != null
 
@@ -32,13 +40,13 @@ data class NetworkConfig(val apiBaseUrl: String, val webBaseUrl: String) {
         const val CHAT_HUB_PATH = "api/chatHub"
         private val UNCONFIGURED_BASE: HttpUrl = HttpUrl.Builder().scheme("https").host("unconfigured.invalid").build()
 
-        private fun normalize(raw: String): HttpUrl? {
+        private val LOCAL_HOSTS = setOf("10.0.2.2", "localhost")
+
+        private fun normalize(raw: String, allowLocalCleartext: Boolean): HttpUrl? {
             val trimmed = raw.trim().trimEnd('/')
             if (trimmed.isEmpty()) return null
             return "$trimmed/".toHttpUrlOrNull()?.takeIf {
-                it.scheme == "https" ||
-                    it.host == "10.0.2.2" ||
-                    it.host == "localhost"
+                it.scheme == "https" || (allowLocalCleartext && it.host in LOCAL_HOSTS)
             }
         }
     }

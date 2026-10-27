@@ -43,6 +43,7 @@ class FixtureServer : AutoCloseable {
     val config: NetworkConfig get() = NetworkConfig(
         apiBaseUrl = baseUrl.trimEnd('/'),
         webBaseUrl = "https://app.example.test",
+        allowLocalCleartext = true,
     )
 
     fun route(key: String, handler: (RecordedRequest) -> MockResponse) {

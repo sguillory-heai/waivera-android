@@ -46,6 +46,7 @@ object NetworkModule {
     fun networkConfig(): NetworkConfig = NetworkConfig(
         apiBaseUrl = BuildConfig.API_BASE_URL,
         webBaseUrl = BuildConfig.WEB_BASE_URL,
+        allowLocalCleartext = BuildConfig.DEBUG,
     )
 
     @Provides

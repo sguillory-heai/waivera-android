@@ -194,8 +194,9 @@ class ConversationRepositoryTest {
         assertTrue(repo.callLobbyUrl(7).getOrThrow().contains("/lobby/"))
         assertEquals(1, graph.server.requestsTo("/api/chat/conversation/7").size)
 
+        val noWebBase = NetworkConfig(graph.server.baseUrl, "", allowLocalCleartext = true)
         val unconfigured = LiveConversationRepository(
-            graph.chatApi, graph.videoApi, NetworkConfig(graph.server.baseUrl, ""), graph.cache, graph.sync,
+            graph.chatApi, graph.videoApi, noWebBase, graph.cache, graph.sync,
             graph.session, graph.typing, graph.visible, graph.clock,
         )
         val error = assertIs<WaiveraError.Configuration>(unconfigured.callLobbyUrl(7).exceptionOrNull())
