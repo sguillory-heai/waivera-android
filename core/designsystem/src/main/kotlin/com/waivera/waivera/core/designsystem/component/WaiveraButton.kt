@@ -43,9 +43,11 @@ import com.waivera.waivera.core.designsystem.theme.WaiveraTheme
 
 /**
  * [Tonal] is the quiet filled style (accent-soft fill) for an action that matters but should not
- * shout, such as joining a call from a banner or a chosen option in a pair.
+ * shout, such as joining a call from a banner or a chosen option in a pair. [DestructiveOutline]
+ * is a destructive action that a confirmation sheet already guards (Sign out), so the button
+ * itself stays light.
  */
-enum class WaiveraButtonVariant { Primary, Secondary, Tonal, Destructive, Text }
+enum class WaiveraButtonVariant { Primary, Secondary, Tonal, Destructive, DestructiveOutline, Text }
 
 /**
  * The app's button.
@@ -141,6 +143,7 @@ private fun buttonBorder(variant: WaiveraButtonVariant, enabled: Boolean, colors
     variant == WaiveraButtonVariant.Text -> null
     !enabled -> BorderStroke(WaiveraSpacing.Hairline, colors.border)
     variant == WaiveraButtonVariant.Secondary -> BorderStroke(WaiveraSpacing.Hairline, colors.borderStrong)
+    variant == WaiveraButtonVariant.DestructiveOutline -> BorderStroke(WaiveraSpacing.Hairline, colors.danger)
     else -> null
 }
 
@@ -151,6 +154,7 @@ private fun WaiveraButtonVariant.styleFrom(colors: WaiveraColors): ButtonStyle =
     WaiveraButtonVariant.Secondary -> ButtonStyle(colors.surface, colors.text, colors.surface)
     WaiveraButtonVariant.Tonal -> ButtonStyle(colors.accentSoft, colors.onAccentSoft, colors.surfaceMuted)
     WaiveraButtonVariant.Destructive -> ButtonStyle(colors.dangerFill, colors.onDangerFill, colors.surfaceMuted)
+    WaiveraButtonVariant.DestructiveOutline -> ButtonStyle(colors.surface, colors.dangerText, colors.surfaceMuted)
     WaiveraButtonVariant.Text -> ButtonStyle(Color.Transparent, colors.accent, Color.Transparent)
 }
 
@@ -168,6 +172,7 @@ private fun WaiveraButtonPreview() {
             WaiveraButton(text = "Cancel", onClick = {}, variant = WaiveraButtonVariant.Secondary)
             WaiveraButton(text = "Join on web", onClick = {}, variant = WaiveraButtonVariant.Tonal)
             WaiveraButton(text = "Delete message", onClick = {}, variant = WaiveraButtonVariant.Destructive)
+            WaiveraButton(text = "Sign out", onClick = {}, variant = WaiveraButtonVariant.DestructiveOutline)
             WaiveraButton(text = "Not now", onClick = {}, variant = WaiveraButtonVariant.Text)
             WaiveraButton(text = "New chat", onClick = {}, leadingIcon = WaiveraIcons.Add, enabled = false)
         }

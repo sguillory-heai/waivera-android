@@ -84,6 +84,12 @@ class DesignSystemScreenshotTest {
             variant = WaiveraButtonVariant.Destructive,
             fullWidth = true,
         )
+        WaiveraButton(
+            text = "Sign out",
+            onClick = {},
+            variant = WaiveraButtonVariant.DestructiveOutline,
+            fullWidth = true,
+        )
         WaiveraButton(text = "Not now", onClick = {}, variant = WaiveraButtonVariant.Text)
         WaiveraButton(text = "New chat", onClick = {}, leadingIcon = WaiveraIcons.Add, enabled = false)
     }
@@ -280,6 +286,7 @@ class DesignSystemScreenshotTest {
             confirmInProgress = true,
             onConfirm = {},
             onDismiss = {},
+            confirmInProgressLabel = "Signing out…",
         )
     }
 
