@@ -134,7 +134,7 @@ Clock moved to 19:45Z, which is 13:45 CST in Chicago on the fall-back day, so th
 | 6 | Back | Today ▸ Schedule | `path_06_schedule_06_back_to_schedule` |
 | 7 | Back | Today | — |
 
-Also: before the window the event says "Join opens at …" (`path_06_schedule_07_join_not_yet`);
+Also: before the window the event says "Join opens today at 1:30 PM" (a later day says "tomorrow", the weekday, or the date) (`path_06_schedule_07_join_not_yet`);
 the meeting chat (or Message organizer) pushes a conversation over the event on the Schedule
 tab, and back returns to the event (`path_06_schedule_08_meeting_chat`).
 

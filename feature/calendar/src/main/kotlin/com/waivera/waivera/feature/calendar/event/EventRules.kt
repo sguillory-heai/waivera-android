@@ -13,6 +13,7 @@ import java.time.Duration
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
+import java.time.temporal.ChronoUnit
 
 /** A local answer that the server does not know about yet (or has just confirmed). */
 data class OptimisticResponse(val accept: Boolean, val phase: ResponsePhase)
@@ -72,7 +73,8 @@ object EventRules {
             organizer = organizer,
             attendees = attendees(event, myUserId, interaction.optimistic, milestones, today),
             invitation = invitation(event, myUserId, now, zone, interaction),
-            join = join(event, now, interaction.joinBusy, interaction.joinError),
+            join = join(event, now, interaction.joinBusy, interaction.joinError)
+                ?.let { it.copy(opensInDays = it.opensAt?.let { at -> daysUntil(at, today, zone) }) },
             chat = chat(event, myUserId, interaction.chatBusy),
             isRefreshing = isRefreshing,
             refreshError = refreshError,
@@ -129,6 +131,10 @@ object EventRules {
         }
         return JoinUi(state, start?.minus(JOIN_LEAD), isBusy, error)
     }
+
+    /** Calendar days from [today] to [instant]'s date in [zone]; DST-safe because it counts dates, not hours. */
+    fun daysUntil(instant: Instant, today: LocalDate, zone: ZoneId): Long =
+        ChronoUnit.DAYS.between(today, instant.atZone(zone).toLocalDate())
 
     fun chat(event: ScheduleEvent, myUserId: String?, isBusy: Boolean): ChatAction? = when {
         event.isSprout -> ChatAction(ChatActionKind.MEETING_CHAT, isBusy)

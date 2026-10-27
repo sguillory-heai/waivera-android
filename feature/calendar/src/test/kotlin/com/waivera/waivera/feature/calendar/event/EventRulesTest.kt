@@ -152,6 +152,25 @@ class EventRulesTest {
     }
 
     @Test
+    fun joinOpensCountsCalendarDaysInTheSavedZoneAcrossTheFallBack() {
+        // Join opens Monday 2 Nov 08:30 CST; the clocks fell back in Chicago early on Sunday 1 Nov.
+        fun daysAway(now: String) = EventRules.details(
+            event = event(online = true),
+            zone = chicago,
+            milestones = MilestoneIndex.Empty,
+            now = Instant.parse(now),
+            myUserId = me,
+            savedZoneId = "America/Chicago",
+            deviceZone = chicago,
+        ).join?.opensInDays
+        assertEquals(2L, daysAway("2026-11-01T04:30:00Z"), "Sat 23:30 CDT")
+        assertEquals(1L, daysAway("2026-11-01T05:30:00Z"), "Sun 00:30 CDT, the DST day")
+        assertEquals(1L, daysAway("2026-11-02T05:59:00Z"), "Sun 23:59 CST, a 25-hour day")
+        assertEquals(0L, daysAway("2026-11-02T06:00:00Z"), "Mon 00:00 CST")
+        assertEquals(7L, EventRules.daysUntil(start, LocalDate.of(2026, 10, 26), chicago))
+    }
+
+    @Test
     fun inPersonEventsWithoutALinkHaveNoJoinButton() {
         assertNull(EventRules.join(event(location = "1200 W Lake St"), before, false, null))
         assertNotNull(EventRules.join(event(meetingDetails = "https://meet.example.test/x"), before, false, null))

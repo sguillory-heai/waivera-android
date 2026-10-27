@@ -15,7 +15,9 @@ import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -58,9 +60,9 @@ import com.waivera.waivera.feature.calendar.ui.AvatarLoader
 import com.waivera.waivera.feature.calendar.ui.CalendarIcons
 import com.waivera.waivera.feature.calendar.ui.CalendarSizes
 import com.waivera.waivera.feature.calendar.ui.MilestoneAvatar
-import com.waivera.waivera.feature.calendar.ui.clock
 import com.waivera.waivera.feature.calendar.ui.eventTimeLines
 import com.waivera.waivera.feature.calendar.ui.inviteStatusText
+import com.waivera.waivera.feature.calendar.ui.joinOpensText
 import com.waivera.waivera.feature.calendar.ui.rememberAvatarPainter
 import com.waivera.waivera.feature.calendar.ui.zoneNoticeText
 
@@ -89,12 +91,14 @@ internal fun EventBody(
     actions: EventActions,
     modifier: Modifier = Modifier,
     avatarLoader: AvatarLoader? = null,
+    listState: LazyListState = rememberLazyListState(),
 ) {
     val event = details.event
     val navBar = WindowInsets.navigationBars.asPaddingValues()
     val sectionModifier = Modifier.padding(horizontal = WaiveraSpacing.Gutter, vertical = WaiveraSpacing.Small)
     LazyColumn(
         modifier = modifier.fillMaxWidth(),
+        state = listState,
         contentPadding = PaddingValues(
             top = WaiveraSpacing.Small,
             bottom = navBar.calculateBottomPadding() + WaiveraSpacing.Large,
@@ -113,7 +117,7 @@ internal fun EventBody(
             item(key = "refreshError") {
                 WaiveraBanner(
                     message = stringResource(R.string.feature_calendar_event_refresh_failed),
-                    tone = BannerTone.Error,
+                    tone = BannerTone.Warning,
                     actionLabel = stringResource(R.string.feature_calendar_retry),
                     onAction = actions.onRetry,
                     modifier = sectionModifier,
@@ -261,7 +265,7 @@ private fun DetailRow(
 
 /**
  * Join is a filled button only while the window is open. Before that it is an outlined, disabled
- * button under "Join opens at …"; after the meeting, or with no set time, only the reason shows.
+ * button under "Join opens Mon at …"; after the meeting, or with no set time, only the reason shows.
  */
 @Composable
 private fun JoinBlock(join: JoinUi, details: EventDetails, actions: EventActions, modifier: Modifier = Modifier) {
@@ -269,7 +273,7 @@ private fun JoinBlock(join: JoinUi, details: EventDetails, actions: EventActions
         val helper = when (join.state) {
             JoinState.OPEN -> null
             JoinState.TOO_EARLY -> join.opensAt?.let {
-                stringResource(R.string.feature_calendar_join_opens, clock(it.atZone(details.zone)))
+                joinOpensText(it.atZone(details.zone), join.opensInDays, details.currentYear)
             }
             JoinState.ENDED -> stringResource(R.string.feature_calendar_join_ended)
             JoinState.NO_TIME -> stringResource(R.string.feature_calendar_join_no_time)
@@ -381,8 +385,9 @@ private fun ResponseChoices(saving: Boolean, accepted: Boolean, declined: Boolea
             modifier = Modifier.selectableGroup(),
             verticalArrangement = Arrangement.spacedBy(WaiveraSpacing.Small),
         ) {
-            accept(Modifier.fillMaxWidth())
+            // Same order as the side-by-side pair, so the choices never swap places with font size.
             decline(Modifier.fillMaxWidth())
+            accept(Modifier.fillMaxWidth())
         }
     } else {
         Row(

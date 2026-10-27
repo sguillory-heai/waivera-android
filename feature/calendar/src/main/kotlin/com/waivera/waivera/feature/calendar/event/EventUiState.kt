@@ -88,7 +88,14 @@ enum class ResponsePhase {
 }
 
 @Immutable
-data class JoinUi(val state: JoinState, val opensAt: Instant?, val isBusy: Boolean, val error: JoinError?)
+data class JoinUi(
+    val state: JoinState,
+    val opensAt: Instant?,
+    val isBusy: Boolean,
+    val error: JoinError?,
+    /** Calendar days from today to [opensAt] in the employee's zone, so the copy can say "today" or "Mon". */
+    val opensInDays: Long? = null,
+)
 
 enum class JoinState { OPEN, TOO_EARLY, ENDED, NO_TIME }
 

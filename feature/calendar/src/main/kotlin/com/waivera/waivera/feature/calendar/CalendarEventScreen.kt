@@ -7,11 +7,14 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.LazyListState
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarResult
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -144,14 +147,23 @@ fun EventContent(
     modifier: Modifier = Modifier,
     avatarLoader: AvatarLoader? = null,
     snackbarHost: SnackbarHostState = remember { SnackbarHostState() },
+    listState: LazyListState = rememberLazyListState(),
 ) {
+    // The title moves into the top bar once its own row has scrolled under it (UI2-20).
+    val titleScrolledAway by remember { derivedStateOf { listState.firstVisibleItemIndex > 0 } }
+    val eventTitle = (state as? EventUiState.Loaded)?.details?.event?.title?.takeIf(String::isNotBlank)
+        ?: stringResource(R.string.feature_calendar_untitled_event)
     Column(
         modifier = modifier
             .fillMaxSize()
             .background(WaiveraTheme.colors.background),
     ) {
         WaiveraTopBar(
-            title = stringResource(R.string.feature_calendar_calendar_event_title),
+            title = if (state is EventUiState.Loaded && titleScrolledAway) {
+                eventTitle
+            } else {
+                stringResource(R.string.feature_calendar_calendar_event_title)
+            },
             onBack = actions.onBack,
         )
         Box(
@@ -179,6 +191,7 @@ fun EventContent(
                     details = state.details,
                     actions = actions,
                     avatarLoader = avatarLoader,
+                    listState = listState,
                 )
             }
             WaiveraSnackbarHost(

@@ -73,7 +73,7 @@ class Path06ScheduleTest : NavTourHarness() {
         click("Day")
         click(hasClickLabel("Open event") and textOrDescription(SUPERVISION, substring = true))
         expectStack(TodayRoute, ScheduleRoute, CalendarEventRoute(SUPERVISION_ID))
-        expectScreen("Join opens at", substring = true)
+        expectScreen("Join opens today at 1:30", substring = true)
         shot("path_06_schedule_07_join_not_yet")
     }
 

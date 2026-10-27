@@ -1,5 +1,6 @@
 package com.waivera.waivera.feature.calendar.screenshot
 
+import androidx.compose.foundation.lazy.rememberLazyListState
 import com.waivera.waivera.core.data.model.ScheduleEvent
 import com.waivera.waivera.core.demo.DemoData
 import com.waivera.waivera.core.network.error.WaiveraError
@@ -68,6 +69,16 @@ class CalendarEventScreenshotTest {
         "calendarEvent_responseFailed",
         loaded("demo_invite", interaction = EventInteraction(failure = ResponseFailure(false, WaiveraError.Network()))),
     )
+
+    /** Scrolled past the title row: the event's name takes over the top bar (UI2-20). */
+    @Test
+    fun scrolledTitleInTopBar() = captureScreenshots("calendarEvent_scrolled") {
+        EventContent(
+            state = loaded("demo_invite"),
+            actions = EventActions(),
+            listState = rememberLazyListState(initialFirstVisibleItemIndex = 2),
+        )
+    }
 
     @Test
     fun organizer() = capture("calendarEvent_organizer", loaded("demo_visit"))

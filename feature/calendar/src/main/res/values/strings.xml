@@ -105,6 +105,9 @@
 
     <string name="feature_calendar_join">Join meeting</string>
     <string name="feature_calendar_join_opens">Join opens at %1$s</string>
+    <string name="feature_calendar_join_opens_today">Join opens today at %1$s</string>
+    <string name="feature_calendar_join_opens_tomorrow">Join opens tomorrow at %1$s</string>
+    <string name="feature_calendar_join_opens_on">Join opens %1$s at %2$s</string>
     <string name="feature_calendar_join_ended">This meeting has ended.</string>
     <string name="feature_calendar_join_no_time">This meeting has no set time, so it can\'t be joined from here.</string>
     <string name="feature_calendar_join_failed_title">Unable to join meeting</string>

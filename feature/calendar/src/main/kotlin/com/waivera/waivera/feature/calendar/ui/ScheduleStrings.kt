@@ -158,6 +158,32 @@ internal fun inviteStatusText(status: InviteStatus): String? = when (status) {
 @Composable
 internal fun clock(time: ZonedDateTime, locale: Locale = currentLocale()): String = ScheduleClock.clock(time, locale)
 
+/**
+ * "Join opens today at 8:30 AM", "tomorrow at …", "Mon at …" within the week, else the short date
+ * (UI2-20): a bare clock time reads as today even when the meeting is days away.
+ */
+@Composable
+internal fun joinOpensText(opensAt: ZonedDateTime, daysAway: Long?, currentYear: Int): String {
+    val locale = currentLocale()
+    val time = ScheduleClock.clock(opensAt, locale)
+    val date = opensAt.toLocalDate()
+    return when {
+        daysAway == null -> stringResource(R.string.feature_calendar_join_opens, time)
+        daysAway <= 0L -> stringResource(R.string.feature_calendar_join_opens_today, time)
+        daysAway == 1L -> stringResource(R.string.feature_calendar_join_opens_tomorrow, time)
+        else -> {
+            val day = if (daysAway < DAYS_IN_WEEK) {
+                ScheduleText.weekdayShort(date, locale)
+            } else {
+                ScheduleText.shortDay(date, currentYear, locale)
+            }
+            stringResource(R.string.feature_calendar_join_opens_on, day, time)
+        }
+    }
+}
+
+private const val DAYS_IN_WEEK = 7L
+
 @Composable
 private fun dayAndClock(time: ZonedDateTime, locale: Locale): String = stringResource(
     R.string.feature_calendar_day_time,
