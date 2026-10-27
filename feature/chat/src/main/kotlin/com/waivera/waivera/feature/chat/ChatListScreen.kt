@@ -2,19 +2,20 @@ package com.waivera.waivera.feature.chat
 
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.stringResource
-import com.waivera.waivera.core.designsystem.component.TopBarAccount
-import com.waivera.waivera.core.designsystem.component.WaiveraPlaceholderScreen
-import com.waivera.waivera.core.designsystem.icon.WaiveraIcons
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.waivera.waivera.core.designsystem.preview.WaiveraPreviews
 import com.waivera.waivera.core.designsystem.theme.WaiveraTheme
+import com.waivera.waivera.feature.chat.list.ChatListActions
+import com.waivera.waivera.feature.chat.list.ChatListContent
+import com.waivera.waivera.feature.chat.list.ChatListPreviewData
+import com.waivera.waivera.feature.chat.list.ChatListRoute
+import com.waivera.waivera.feature.chat.list.ChatListViewModel
+import com.waivera.waivera.feature.chat.newchat.NewChatViewModel
 
 /**
- * Entry point for the chat screen. Owned by `:feature:chat`; routed by `:app`.
- *
- * Every navigation lambda is part of the routed contract, even before the screen body uses it.
+ * Entry point for the chat list (inbox). Owned by `:feature:chat`; routed by `:app`.
+ * The signature is the routed contract in `docs/architecture/app-shell.md`.
  */
-@Suppress("UnusedParameter")
 @Composable
 fun ChatListScreen(
     onAccountClick: () -> Unit,
@@ -22,14 +23,14 @@ fun ChatListScreen(
     onOpenPerson: (userId: String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    WaiveraPlaceholderScreen(
-        title = stringResource(R.string.feature_chat_chat_list_title),
-        message = stringResource(R.string.feature_chat_chat_list_placeholder),
-        icon = WaiveraIcons.Chat,
-        account = TopBarAccount(
-            name = stringResource(R.string.feature_chat_account_name),
-            onClick = onAccountClick,
-        ),
+    val viewModel: ChatListViewModel = hiltViewModel()
+    val newChatViewModel: NewChatViewModel = hiltViewModel()
+    ChatListRoute(
+        viewModel = viewModel,
+        newChatViewModel = newChatViewModel,
+        onAccountClick = onAccountClick,
+        onOpenConversation = onOpenConversation,
+        onOpenPerson = onOpenPerson,
         modifier = modifier,
     )
 }
@@ -38,10 +39,10 @@ fun ChatListScreen(
 @Composable
 private fun ChatListScreenPreview() {
     WaiveraTheme {
-        ChatListScreen(
-            onAccountClick = {},
-            onOpenConversation = { _ -> },
-            onOpenPerson = { _ -> },
+        ChatListContent(
+            state = ChatListPreviewData.state,
+            avatars = emptyMap(),
+            actions = ChatListActions(),
         )
     }
 }
