@@ -356,7 +356,10 @@ class DesignSystemScreenshotTest {
         )
     }
 
-    /** The compact form every titled banner takes above 130% font, forced here at every scale. */
+    /**
+     * The compact form every titled banner takes above 130% font, forced here at every scale. At
+     * 200% each is one row: the title ellipsizes and the action is an icon button (UI3-08).
+     */
     @Test
     fun bannersCompact() = capture("BannersCompact", padded = false) {
         WaiveraBanner(
@@ -365,6 +368,16 @@ class DesignSystemScreenshotTest {
             tone = BannerTone.Offline,
             actionLabel = "Retry now",
             onAction = {},
+            actionIcon = WaiveraIcons.Refresh,
+            compact = true,
+        )
+        WaiveraBanner(
+            title = "1 message not sent",
+            message = "It's further up the conversation.",
+            tone = BannerTone.Error,
+            actionLabel = "Show",
+            onAction = {},
+            onDismiss = {},
             compact = true,
         )
         WaiveraBanner(

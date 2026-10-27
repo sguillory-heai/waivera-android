@@ -372,6 +372,7 @@ private fun InvitationBlock(invitation: InvitationUi, actions: EventActions, mod
                 tone = BannerTone.Error,
                 actionLabel = stringResource(R.string.feature_calendar_retry),
                 onAction = actions.onRetryResponse,
+                actionIcon = WaiveraIcons.Refresh,
             )
         }
     }

@@ -221,6 +221,7 @@ private fun ScheduleBanners(state: ScheduleUiState, actions: ScheduleActions) {
                 tone = BannerTone.Error,
                 actionLabel = retry,
                 onAction = actions.onRetry,
+                actionIcon = WaiveraIcons.Refresh,
                 modifier = bannerModifier,
             )
             state.isOffline -> WaiveraBanner(

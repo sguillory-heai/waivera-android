@@ -84,6 +84,7 @@ internal fun NotificationSettingsContent(
                     tone = BannerTone.Warning,
                     actionLabel = stringResource(R.string.feature_settings_open_system_settings),
                     onAction = onOpenSystemSettings,
+                    actionIcon = WaiveraIcons.OpenExternal,
                     modifier = Modifier.padding(top = WaiveraSpacing.Small),
                 )
             }
