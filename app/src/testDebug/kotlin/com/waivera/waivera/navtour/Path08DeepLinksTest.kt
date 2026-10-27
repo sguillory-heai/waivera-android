@@ -188,6 +188,9 @@ class Path08DeepLinksTest : NavTourHarness() {
             ThreadRoute(DemoData.DM_PRIYA, root),
         )
         expectTop(ThreadRoute(DemoData.DM_PRIYA, root, messageId = reply))
+        // The reply the notification was about is in the thread it opened (UI2-08).
+        expectScreen(checkNotNull(fixture.data["body"]))
+        expectGone("No replies yet")
         shot("path_08_push_02_thread_reply")
 
         systemBack()

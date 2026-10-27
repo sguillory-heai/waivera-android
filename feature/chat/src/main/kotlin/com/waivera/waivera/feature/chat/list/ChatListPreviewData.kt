@@ -15,7 +15,7 @@ internal object ChatListPreviewData {
         ),
         ChatRowUi(
             id = 11,
-            title = "Priya Raman & 1 other",
+            title = "Priya Raman, Jordan Lee",
             leading = RowLeading.Group,
             preview = "",
             previewKind = PreviewKind.Text,

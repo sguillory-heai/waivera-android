@@ -1,15 +1,18 @@
 package com.waivera.waivera.core.designsystem.screenshot
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.unit.dp
 import com.waivera.waivera.core.designsystem.component.BadgeTone
 import com.waivera.waivera.core.designsystem.component.BannerTone
 import com.waivera.waivera.core.designsystem.component.ConfirmationContent
@@ -26,6 +29,7 @@ import com.waivera.waivera.core.designsystem.component.TopBarAction
 import com.waivera.waivera.core.designsystem.component.WaiveraAvatar
 import com.waivera.waivera.core.designsystem.component.WaiveraBanner
 import com.waivera.waivera.core.designsystem.component.WaiveraBottomActionBar
+import com.waivera.waivera.core.designsystem.component.WaiveraBottomActionLayout
 import com.waivera.waivera.core.designsystem.component.WaiveraButton
 import com.waivera.waivera.core.designsystem.component.WaiveraButtonVariant
 import com.waivera.waivera.core.designsystem.component.WaiveraCountBadge
@@ -319,6 +323,63 @@ class DesignSystemScreenshotTest {
         )
     }
 
+    /** The compact form every titled banner takes above 130% font, forced here at every scale. */
+    @Test
+    fun bannersCompact() = capture("BannersCompact", padded = false) {
+        WaiveraBanner(
+            title = "You're offline",
+            message = "Showing your saved details.",
+            tone = BannerTone.Offline,
+            actionLabel = "Retry now",
+            onAction = {},
+            compact = true,
+        )
+        WaiveraBanner(
+            title = "Couldn't refresh",
+            message = "Showing saved conversations. Pull down to try again.",
+            tone = BannerTone.Warning,
+            onDismiss = {},
+            compact = true,
+        )
+    }
+
+    @Test
+    fun bottomActionLayoutFits() = capture("BottomActionLayoutFits", padded = false) {
+        BottomActionLayoutSample(fields = 1)
+    }
+
+    /** Too tall for the small phone: the actions follow the content and the fade marks the edge. */
+    @Test
+    fun bottomActionLayoutOverflows() = capture("BottomActionLayoutOverflows", padded = false) {
+        BottomActionLayoutSample(fields = 6)
+    }
+
+    @Composable
+    private fun BottomActionLayoutSample(fields: Int) {
+        Box(Modifier.height(BOTTOM_LAYOUT_SAMPLE_HEIGHT)) {
+            WaiveraBottomActionLayout(
+                actions = {
+                    WaiveraButton(text = "Sign in", onClick = {}, fullWidth = true)
+                    WaiveraButton(
+                        text = "Forgot password?",
+                        onClick = {},
+                        variant = WaiveraButtonVariant.Text,
+                        fullWidth = true,
+                    )
+                },
+            ) {
+                repeat(fields) { index ->
+                    WaiveraTextField(
+                        value = "",
+                        onValueChange = {},
+                        label = "Field ${index + 1}",
+                        modifier = Modifier.padding(horizontal = WaiveraSpacing.Gutter),
+                    )
+                }
+            }
+        }
+    }
+
     @Test
     fun bottomActionBar() = capture("BottomActionBar", padded = false) {
         WaiveraBottomActionBar {
@@ -375,6 +436,10 @@ class DesignSystemScreenshotTest {
         WaiveraSyncIndicator(state = SyncState.Pending, onRetry = {})
         WaiveraSyncIndicator(state = SyncState.Failed, onRetry = {})
         WaiveraSyncIndicator(state = SyncState.Synced, onRetry = {})
+    }
+
+    private companion object {
+        val BOTTOM_LAYOUT_SAMPLE_HEIGHT = 560.dp
     }
 
     private fun capture(name: String, padded: Boolean = true, content: @Composable () -> Unit) {

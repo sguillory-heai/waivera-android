@@ -9,8 +9,10 @@ import com.waivera.waivera.core.demo.DemoGraph
 import com.waivera.waivera.core.designsystem.component.ConnectionBannerState
 import com.waivera.waivera.core.designsystem.feedback.HapticMoment
 import com.waivera.waivera.core.network.error.WaiveraError
+import com.waivera.waivera.core.testing.EnglishConversationTitles
 import com.waivera.waivera.core.testing.MainDispatcherRule
 import com.waivera.waivera.feature.chat.FakeAttachmentIo
+import com.waivera.waivera.feature.chat.R
 import com.waivera.waivera.feature.chat.RecordingConversations
 import com.waivera.waivera.feature.chat.RecordingThreads
 import com.waivera.waivera.feature.chat.ThrowingSends
@@ -64,6 +66,7 @@ class ThreadViewModelTest {
             downloads = AttachmentDownloads(graph.attachments),
             clock = testChatClock(),
             computeDispatcher = main.testDispatcher,
+            titles = EnglishConversationTitles,
         )
         runCurrent()
         return Subject(viewModel, graph, threads)
@@ -297,11 +300,15 @@ class ThreadViewModelTest {
     }
 
     @Test
-    fun aTargetOutsideTheThreadRendersNormally() = runTest {
+    fun aTargetOutsideTheThreadKeepsTheThreadAndSaysSo() = runTest {
         val s = subject()
-        s.viewModel.highlight(9310)
-        runCurrent()
-        advanceTimeBy(HIGHLIGHT_MILLIS * 2)
+        s.viewModel.effects.test {
+            s.viewModel.highlight(9310)
+            runCurrent()
+            advanceTimeBy(HIGHLIGHT_MILLIS * 2)
+            val note = assertIs<ChatEffect.Snackbar>(expectMostRecentItem())
+            assertEquals(R.string.feature_chat_reply_missing, note.message)
+        }
         assertNull(s.viewModel.state.value.highlightKey)
         assertEquals(ThreadContent.Ready, s.viewModel.state.value.content)
     }

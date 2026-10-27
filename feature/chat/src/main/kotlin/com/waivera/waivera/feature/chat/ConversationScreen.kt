@@ -39,6 +39,7 @@ import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -52,6 +53,7 @@ import com.waivera.waivera.core.designsystem.component.ConnectionBanner
 import com.waivera.waivera.core.designsystem.component.ConnectionBannerState
 import com.waivera.waivera.core.designsystem.component.TopBarAction
 import com.waivera.waivera.core.designsystem.component.WaiveraBanner
+import com.waivera.waivera.core.designsystem.component.WaiveraDivider
 import com.waivera.waivera.core.designsystem.component.WaiveraEmptyState
 import com.waivera.waivera.core.designsystem.component.WaiveraErrorState
 import com.waivera.waivera.core.designsystem.component.WaiveraSnackbarHost
@@ -80,11 +82,13 @@ import com.waivera.waivera.feature.chat.message.MessageRowCallbacks
 import com.waivera.waivera.feature.chat.message.OlderMessagesRow
 import com.waivera.waivera.feature.chat.message.ReadOnlyNotice
 import com.waivera.waivera.feature.chat.message.RowTime
-import com.waivera.waivera.feature.chat.message.SendErrorBanner
+import com.waivera.waivera.feature.chat.message.SendErrorSignal
+import com.waivera.waivera.feature.chat.message.SendErrorUi
 import com.waivera.waivera.feature.chat.message.TimelineContext
 import com.waivera.waivera.feature.chat.message.TimelineItemView
 import com.waivera.waivera.feature.chat.message.TypingSlot
 import com.waivera.waivera.feature.chat.message.rememberChatImageEnvironment
+import com.waivera.waivera.feature.chat.message.rememberSendErrorUi
 import com.waivera.waivera.feature.chat.message.typingLabel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -268,6 +272,12 @@ fun ConversationScreenContent(
 ) {
     val colors = WaiveraTheme.colors
     val title = state.title ?: stringResource(R.string.feature_chat_conversation_fallback_title)
+    val failedIndices = remember(state.items) {
+        state.items.asReversed().mapIndexedNotNull { index, item -> index.takeIf { SendErrorUi.isFailedRow(item) } }
+    }
+    val sendErrorUi = rememberSendErrorUi(state.sendError, failedIndices, listState)
+    val scope = rememberCoroutineScope()
+    val onShowFailed: (Int) -> Unit = { index -> scope.launch { listState.animateScrollToItem(index) } }
     Box(
         modifier = modifier
             .fillMaxSize()
@@ -276,7 +286,8 @@ fun ConversationScreenContent(
         Column(Modifier.fillMaxSize()) {
             WaiveraTopBar(
                 title = title,
-                subtitle = state.connection.subtitle?.let { stringResource(it) },
+                // The connection banner is the one connection signal; the header names the group.
+                subtitle = state.memberCount?.let { pluralStringResource(R.plurals.feature_chat_members, it, it) },
                 onBack = actions.onBack,
                 actions = callActions(state.call, actions.onOpenCall),
             )
@@ -298,7 +309,8 @@ fun ConversationScreenContent(
                     onRetry = actions.onRetryConnection,
                     offlineMessage = stringResource(R.string.feature_chat_messages_offline_saved),
                 )
-                if (state.isStale && connectionBanner == ConnectionBannerState.Connected) {
+                val stale = state.isStale && connectionBanner == ConnectionBannerState.Connected
+                if (stale) {
                     WaiveraBanner(
                         message = stringResource(R.string.feature_chat_messages_stale),
                         tone = BannerTone.Warning,
@@ -306,6 +318,8 @@ fun ConversationScreenContent(
                         onAction = actions.onRetryLoad,
                     )
                 }
+                // An edge under the banners, so messages scrolling up to them never read as an overlap.
+                if (stale || connectionBanner != ConnectionBannerState.Connected) WaiveraDivider()
                 Box(
                     modifier = Modifier
                         .weight(1f)
@@ -313,7 +327,9 @@ fun ConversationScreenContent(
                 ) {
                     MessageArea(state, time, actions, listState, onJumpToLatest, skeletonDelayMillis)
                 }
-                if (state.content.offersComposer()) ComposerArea(state, draft, onDraftChange, actions)
+                if (state.content.offersComposer()) {
+                    ComposerArea(state, draft, onDraftChange, actions, SendErrorState(sendErrorUi, onShowFailed))
+                }
             }
         }
         WaiveraSnackbarHost(
@@ -401,8 +417,15 @@ private fun MessageList(
     val motion = WaiveraTheme.motion
     val density = LocalDensity.current
     val newestFirst = remember(state.items) { state.items.asReversed() }
-    val context = remember(time, state.names, state.title, state.visibleTimestamps, state.highlightKey) {
-        TimelineContext(time, state.names, state.title, state.visibleTimestamps, state.highlightKey)
+    val context = remember(
+        time,
+        state.names,
+        state.title,
+        state.visibleTimestamps,
+        state.highlightKey,
+        state.isDirect,
+    ) {
+        TimelineContext(time, state.names, state.title, state.visibleTimestamps, state.highlightKey, state.isDirect)
     }
     val jumpThresholdPx = with(density) { ChatDimens.JumpToLatestThreshold.roundToPx() }
     val stickThresholdPx = with(density) { ChatDimens.StickToBottomThreshold.roundToPx() }
@@ -476,6 +499,10 @@ private fun MessageList(
 
 private const val OLDER_KEY = "older"
 
+/** The screen's one send-failure signal and how "Show" scrolls to the failed row. */
+@Immutable
+internal class SendErrorState(val ui: SendErrorUi, val onShow: (index: Int) -> Unit)
+
 /**
  * Nothing to reply to when the conversation does not exist or failed to load, so the composer
  * is not offered there (UI review UI-18). While loading it stays, disabled, so the layout does not jump.
@@ -497,6 +524,7 @@ private fun ComposerArea(
     draft: String,
     onDraftChange: (String) -> Unit,
     actions: ConversationActions,
+    sendError: SendErrorState,
 ) {
     val unknown = stringResource(R.string.feature_chat_unknown_author)
     val typingNames = remember(state.typingNames, unknown) { state.typingNames.map { it.ifBlank { unknown } } }
@@ -511,9 +539,12 @@ private fun ComposerArea(
         when {
             reason != null -> ReadOnlyNotice(reason = reason, isThread = false)
             else -> {
-                state.sendError?.let { kind ->
-                    SendErrorBanner(kind = kind, isReply = false, onDismiss = actions.onDismissSendError)
-                }
+                SendErrorSignal(
+                    ui = sendError.ui,
+                    isReply = false,
+                    onShow = sendError.onShow,
+                    onDismiss = actions.onDismissSendError,
+                )
                 Composer(
                     draft = draft,
                     onDraftChange = onDraftChange,

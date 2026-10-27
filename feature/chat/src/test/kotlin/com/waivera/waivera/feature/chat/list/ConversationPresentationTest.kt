@@ -82,9 +82,9 @@ class ConversationPresentationTest {
     }
 
     @Test
-    fun groupOfThreeUsesSingularOther() {
+    fun groupOfThreeNamesBothOthersInFull() {
         val c = Conversation(11, ConversationKind.GROUP, listOf(me, priya, jordan))
-        assertEquals("Priya Raman & 1 other", p.title(c, ME, text))
+        assertEquals("Priya Raman, Jordan Lee", p.title(c, ME, text))
     }
 
     @Test

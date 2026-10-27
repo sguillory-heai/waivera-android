@@ -6,6 +6,7 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
@@ -20,7 +21,11 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -28,6 +33,9 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.rememberTextMeasurer
@@ -35,11 +43,13 @@ import androidx.compose.ui.unit.dp
 import com.waivera.waivera.core.designsystem.R
 import com.waivera.waivera.core.designsystem.icon.WaiveraIcons
 import com.waivera.waivera.core.designsystem.preview.WaiveraPreviews
+import com.waivera.waivera.core.designsystem.theme.LARGE_FONT_SCALE
 import com.waivera.waivera.core.designsystem.theme.WaiveraColors
 import com.waivera.waivera.core.designsystem.theme.WaiveraShapes
 import com.waivera.waivera.core.designsystem.theme.WaiveraSizes
 import com.waivera.waivera.core.designsystem.theme.WaiveraSpacing
 import com.waivera.waivera.core.designsystem.theme.WaiveraTheme
+import com.waivera.waivera.core.designsystem.theme.isLargeFontScale
 
 enum class BannerTone { Info, Warning, Error, Offline }
 
@@ -47,9 +57,14 @@ enum class BannerTone { Info, Warning, Error, Offline }
  * Inline banner: leading icon, optional title, message, optional action and dismiss.
  * Announced politely when it appears. Never covers content.
  *
- * The action sits beside the text only when it is short; at large font scales, or when the
- * action label would take more than about a third of the width, it moves to its own row under
- * the text so the message keeps the full width.
+ * The action sits beside the text only when it is short; when the action label would take more
+ * than about a third of the width, it moves to its own row under the text so the message keeps
+ * the full width.
+ *
+ * Above [LARGE_FONT_SCALE] a banner with a [title] goes compact: title and action on one row,
+ * and the message folds away behind a tap on the title (TalkBack still reads the message, and
+ * the tap is announced as "Show details"). At 200% a full banner would otherwise take a third of
+ * a small phone. Pass [compact] to force either form.
  */
 @Composable
 fun WaiveraBanner(
@@ -60,15 +75,18 @@ fun WaiveraBanner(
     actionLabel: String? = null,
     onAction: (() -> Unit)? = null,
     onDismiss: (() -> Unit)? = null,
+    compact: Boolean = title != null && isLargeFontScale(),
 ) {
     val style = tone.style(WaiveraTheme.colors)
     val action = if (actionLabel != null && onAction != null) BannerActionModel(actionLabel, onAction) else null
+    val collapsible = compact && title != null
+    var expanded by rememberSaveable(message) { mutableStateOf(false) }
     BoxWithConstraints(
         modifier = modifier
             .fillMaxWidth()
             .padding(horizontal = WaiveraSpacing.Gutter, vertical = WaiveraSpacing.ExtraSmall),
     ) {
-        val stacked = action != null && rememberBannerActionStacks(action.label, constraints.maxWidth)
+        val stacked = action != null && rememberBannerActionStacks(action.label, constraints.maxWidth, collapsible)
         val trailingInline = (action != null && !stacked) || onDismiss != null
         Column(
             modifier = Modifier
@@ -92,16 +110,21 @@ fun WaiveraBanner(
                     tint = style.content,
                     modifier = Modifier.size(WaiveraSizes.Icon),
                 )
-                BannerText(title = title, message = message, color = style.content, modifier = Modifier.weight(1f))
-                if (action != null && !stacked) BannerAction(action, style.content)
-                if (onDismiss != null) {
-                    WaiveraIconButton(
-                        icon = WaiveraIcons.Close,
-                        contentDescription = stringResource(R.string.core_designsystem_dismiss),
-                        onClick = onDismiss,
-                        tint = style.content,
+                val textModifier = Modifier.weight(1f)
+                if (collapsible) {
+                    CompactBannerText(
+                        title = title.orEmpty(),
+                        message = message,
+                        expanded = expanded,
+                        onToggle = { expanded = !expanded },
+                        color = style.content,
+                        modifier = textModifier,
                     )
+                } else {
+                    BannerText(title = title, message = message, color = style.content, modifier = textModifier)
                 }
+                if (action != null && !stacked) BannerAction(action, style.content)
+                if (onDismiss != null) BannerDismiss(onDismiss, style.content)
             }
             if (action != null && stacked) {
                 BannerAction(
@@ -112,6 +135,65 @@ fun WaiveraBanner(
                         .padding(start = WaiveraSizes.Icon + WaiveraSpacing.MediumSmall),
                 )
             }
+        }
+    }
+}
+
+@Composable
+private fun BannerDismiss(onDismiss: () -> Unit, color: Color) {
+    WaiveraIconButton(
+        icon = WaiveraIcons.Close,
+        contentDescription = stringResource(R.string.core_designsystem_dismiss),
+        onClick = onDismiss,
+        tint = color,
+    )
+}
+
+/**
+ * The compact banner's text: the title, with the message under it only when [expanded]. One
+ * TalkBack stop that always reads both, so folding the message away hides nothing.
+ */
+@Composable
+private fun CompactBannerText(
+    title: String,
+    message: String,
+    expanded: Boolean,
+    onToggle: () -> Unit,
+    color: Color,
+    modifier: Modifier = Modifier,
+) {
+    val toggleLabel = if (expanded) {
+        stringResource(R.string.core_designsystem_banner_hide_details)
+    } else {
+        stringResource(R.string.core_designsystem_banner_show_details)
+    }
+    val motion = WaiveraTheme.motion
+    Column(
+        modifier = modifier
+            .heightIn(min = WaiveraSpacing.MinTouchTarget)
+            .clickable(onClickLabel = toggleLabel, role = Role.Button, onClick = onToggle)
+            .semantics { contentDescription = "$title. $message" }
+            .padding(vertical = WaiveraSpacing.Small),
+        verticalArrangement = Arrangement.spacedBy(WaiveraSpacing.XxSmall, Alignment.CenterVertically),
+    ) {
+        // The column's description already reads title and message; the texts stay silent.
+        Text(
+            text = title,
+            style = MaterialTheme.typography.titleSmall,
+            color = color,
+            modifier = Modifier.clearAndSetSemantics {},
+        )
+        AnimatedVisibility(
+            visible = expanded,
+            enter = expandVertically(motion.layout()) + fadeIn(motion.state()),
+            exit = shrinkVertically(motion.layout()) + fadeOut(motion.state()),
+        ) {
+            Text(
+                text = message,
+                style = MaterialTheme.typography.bodySmall,
+                color = color,
+                modifier = Modifier.clearAndSetSemantics {},
+            )
         }
     }
 }
@@ -139,9 +221,12 @@ private fun BannerAction(action: BannerActionModel, color: Color, modifier: Modi
     }
 }
 
-/** Measures the action label once per label, style and density, then applies [bannerActionStacks]. */
+/**
+ * Measures the action label once per label, style and density, then applies [bannerActionStacks].
+ * A [compact] banner has the row to itself, so only the width rule applies there.
+ */
 @Composable
-private fun rememberBannerActionStacks(label: String, availableWidthPx: Int): Boolean {
+private fun rememberBannerActionStacks(label: String, availableWidthPx: Int, compact: Boolean): Boolean {
     val measurer = rememberTextMeasurer()
     val style = MaterialTheme.typography.labelLarge
     val density = LocalDensity.current
@@ -149,7 +234,8 @@ private fun rememberBannerActionStacks(label: String, availableWidthPx: Int): Bo
         measurer.measure(text = label, style = style).size.width
     }
     val buttonPaddingPx = with(density) { (WaiveraSpacing.MediumSmall * 2).roundToPx() }
-    return bannerActionStacks(density.fontScale, labelWidthPx + buttonPaddingPx, availableWidthPx)
+    val fontScale = if (compact) 1f else density.fontScale
+    return bannerActionStacks(fontScale, labelWidthPx + buttonPaddingPx, availableWidthPx)
 }
 
 /**
@@ -160,7 +246,7 @@ internal fun bannerActionStacks(fontScale: Float, actionWidthPx: Int, availableW
     fontScale > BANNER_STACK_FONT_SCALE ||
         actionWidthPx > availableWidthPx * BANNER_INLINE_ACTION_MAX_FRACTION
 
-internal const val BANNER_STACK_FONT_SCALE = 1.3f
+internal const val BANNER_STACK_FONT_SCALE = LARGE_FONT_SCALE
 internal const val BANNER_INLINE_ACTION_MAX_FRACTION = 0.35f
 
 /** Hub connection state as the banner shows it. [Connected] shows nothing. */

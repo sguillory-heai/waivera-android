@@ -8,9 +8,6 @@
     <string name="feature_chat_conversation_not_found">This conversation isn\'t available anymore.</string>
     <string name="feature_chat_messages_offline_saved">Showing saved messages. New ones arrive when you\'re back online.</string>
     <string name="feature_chat_thread_invalid">This thread could not be opened.</string>
-    <string name="feature_chat_subtitle_reconnecting">Reconnecting…</string>
-    <string name="feature_chat_subtitle_connecting">Connecting…</string>
-    <string name="feature_chat_subtitle_offline">Offline</string>
     <string name="feature_chat_call_start">Start video call on web</string>
     <string name="feature_chat_call_join">Join video call on web</string>
     <string name="feature_chat_call_in_progress">Call in progress</string>
@@ -40,6 +37,7 @@
     <string name="feature_chat_automated">AUTOMATED</string>
     <string name="feature_chat_saved">Saved</string>
     <string name="feature_chat_sending">Sending…</string>
+    <string name="feature_chat_sent_at">Sent · %1$s</string>
     <string name="feature_chat_queued">Waiting for connection…</string>
     <string name="feature_chat_failed">Failed</string>
     <string name="feature_chat_failed_retry">Retry</string>
@@ -132,7 +130,21 @@
     <string name="feature_chat_typing_many">Several people are typing…</string>
 
     <!-- Send error banner, noun "message" -->
+    <plurals name="feature_chat_members">
+        <item quantity="one">%d member</item>
+        <item quantity="other">%d members</item>
+    </plurals>
     <string name="feature_chat_not_sent">Not sent</string>
+    <plurals name="feature_chat_messages_not_sent">
+        <item quantity="one">%d message not sent</item>
+        <item quantity="other">%d messages not sent</item>
+    </plurals>
+    <plurals name="feature_chat_replies_not_sent">
+        <item quantity="one">%d reply not sent</item>
+        <item quantity="other">%d replies not sent</item>
+    </plurals>
+    <string name="feature_chat_not_sent_offscreen">Retry, edit or discard it where it sits in the conversation.</string>
+    <string name="feature_chat_not_sent_show">Show</string>
     <string name="feature_chat_dismiss_send_error">Dismiss send error</string>
     <string name="feature_chat_send_error_archived">This conversation is archived, so your message could not be sent.</string>
     <string name="feature_chat_send_error_read_only">You do not currently have permission to send this message.</string>
@@ -190,6 +202,9 @@
 
     <!-- Thread -->
     <string name="feature_chat_thread_screen_title">Thread</string>
+    <string name="feature_chat_thread_in">In %1$s</string>
+    <string name="feature_chat_reply_missing">That reply isn\'t available anymore.</string>
+    <string name="feature_chat_message_missing">That message isn\'t available anymore.</string>
     <plurals name="feature_chat_thread_reply_count_header">
         <item quantity="one">%d reply</item>
         <item quantity="other">%d replies</item>

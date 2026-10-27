@@ -18,6 +18,7 @@ import com.waivera.waivera.core.network.dto.ChatActivityType
 import com.waivera.waivera.core.network.dto.MilestoneType
 import com.waivera.waivera.core.network.error.WaiveraError
 import com.waivera.waivera.core.realtime.ConnectionState
+import com.waivera.waivera.core.testing.EnglishConversationTitles
 import com.waivera.waivera.feature.today.ME
 import com.waivera.waivera.feature.today.TEST_NOW
 import com.waivera.waivera.feature.today.TEST_ZONE
@@ -58,7 +59,7 @@ class TodayAssemblerTest {
         local: TodayLocalState = TodayLocalState(),
         now: Instant = TEST_NOW,
         realtime: RealtimeStatus = RealtimeStatus(ConnectionState.Connected, isOnline = true),
-    ) = TodayContext("Alex Rivera", ME, TEST_ZONE, now, realtime, local)
+    ) = TodayContext("Alex Rivera", ME, TEST_ZONE, now, realtime, local, EnglishConversationTitles)
 
     private fun assemble(sources: TodaySources = sources(), context: TodayContext = context()) =
         TodayAssembler.assemble(sources, context)

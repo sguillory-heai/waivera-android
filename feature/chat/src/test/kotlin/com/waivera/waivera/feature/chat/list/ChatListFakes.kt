@@ -3,6 +3,7 @@ package com.waivera.waivera.feature.chat.list
 import com.waivera.waivera.core.data.model.ChannelInfo
 import com.waivera.waivera.core.data.model.Conversation
 import com.waivera.waivera.core.data.model.ConversationKind
+import com.waivera.waivera.core.data.model.ConversationTitleText
 import com.waivera.waivera.core.data.model.CurrentUser
 import com.waivera.waivera.core.data.model.MessagePreview
 import com.waivera.waivera.core.data.model.Person
@@ -18,6 +19,7 @@ import com.waivera.waivera.core.data.repository.SessionRepository
 import com.waivera.waivera.core.network.dto.MessageType
 import com.waivera.waivera.core.network.error.WaiveraError
 import com.waivera.waivera.core.realtime.ConnectionState
+import com.waivera.waivera.core.testing.EnglishConversationTitles
 import java.time.Instant
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.flow.Flow
@@ -42,23 +44,17 @@ val me = Person(ME, "Alex", "Rivera", "Alex Rivera", "alex.rivera@example.com")
 val priya = Person(PRIYA, "Priya", "Raman", "Priya Raman", "priya.raman@example.com")
 val jordan = Person(JORDAN, "Jordan", "Lee", "Jordan Lee", "jordan.lee@example.com")
 
-object EnglishText : ChatListText {
+object EnglishText : ChatListText, ConversationTitleText by EnglishConversationTitles {
     override val noMessages = "No messages yet"
     override val photo = "Photo"
     override val fileAttachment = "File attachment"
     override val conversationUpdate = "Conversation update"
     override val deletedMessage = "Message deleted"
-    override val channelFallback = "Channel"
-    override val conversationFallback = "Conversation"
-    override val botTitle = "Waivera"
-    override val unknownPerson = "Unknown"
     override val you = "You"
     override val someone = "Someone"
     override val severalTyping = "Several people are typing…"
     override val now = "Now"
     override val yesterday = "Yesterday"
-
-    override fun groupTitle(first: String, others: Int) = "$first & $others ${if (others == 1) "other" else "others"}"
 
     override fun typing(name: String) = "$name is typing…"
 

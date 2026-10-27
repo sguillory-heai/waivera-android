@@ -1,11 +1,17 @@
 package com.waivera.waivera.feature.chat.screenshot
 
+import androidx.compose.foundation.lazy.LazyListState
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.runtime.Composable
+import com.waivera.waivera.core.data.model.Conversation
+import com.waivera.waivera.core.data.model.ConversationTitles
 import com.waivera.waivera.core.data.model.Message
+import com.waivera.waivera.core.data.model.SendState
 import com.waivera.waivera.core.demo.DemoData
 import com.waivera.waivera.core.designsystem.component.ConnectionBannerState
 import com.waivera.waivera.core.screenshottesting.ScreenshotSdk
 import com.waivera.waivera.core.screenshottesting.captureScreenshots
+import com.waivera.waivera.core.testing.EnglishConversationTitles
 import com.waivera.waivera.feature.chat.ConversationActions
 import com.waivera.waivera.feature.chat.ConversationScreenContent
 import com.waivera.waivera.feature.chat.R
@@ -23,6 +29,7 @@ import com.waivera.waivera.feature.chat.message.Reactions
 import com.waivera.waivera.feature.chat.message.ReadOnlyReason
 import com.waivera.waivera.feature.chat.message.RowTime
 import com.waivera.waivera.feature.chat.message.SendErrorKind
+import com.waivera.waivera.feature.chat.message.SendErrorUi
 import com.waivera.waivera.feature.chat.message.StagedImage
 import com.waivera.waivera.feature.chat.message.TimelineBuilder
 import com.waivera.waivera.feature.chat.message.TimelineItem
@@ -54,8 +61,13 @@ class ConversationScreenshotTest {
         botConversation = bot,
     )
 
+    private fun titleOf(c: Conversation): String = ConversationTitles.format(c, DemoData.ME, EnglishConversationTitles)
+
     private fun state(conversationId: Long = DemoData.DM_PRIYA) = ConversationUiState(
-        title = conversations[conversationId]?.title(DemoData.ME),
+        title = conversations[conversationId]?.let(::titleOf),
+        memberCount = conversations[conversationId]?.takeIf { ConversationTitles.isGroup(it, DemoData.ME) }
+            ?.participants?.size,
+        isDirect = conversationId == DemoData.DM_PRIYA,
         content = ConversationContent.Messages,
         items = timeline(conversationId),
         names = names,
@@ -65,13 +77,18 @@ class ConversationScreenshotTest {
     )
 
     @Composable
-    private fun ConversationView(state: ConversationUiState, draft: String = "") {
+    private fun ConversationView(
+        state: ConversationUiState,
+        draft: String = "",
+        listState: LazyListState = rememberLazyListState(),
+    ) {
         ConversationScreenContent(
             state = state,
             draft = draft,
             onDraftChange = {},
             time = time,
             actions = ConversationActions.None,
+            listState = listState,
             skeletonDelayMillis = 0,
         )
     }
@@ -135,6 +152,45 @@ class ConversationScreenshotTest {
         ConversationView(state().copy(items = items))
     }
 
+    /**
+     * Three incoming messages in a row from Priya, then one of mine: in a DM there is no author
+     * line, the avatar sits on the last bubble of her run only, and each run ends with its time.
+     */
+    @Test
+    fun groupedIncoming() = captureScreenshots("conversation_grouped_incoming") {
+        val priya = messages.first { it.conversationId == DemoData.DM_PRIYA && it.authorId == DemoData.PRIYA }
+        val mine = messages.first { it.conversationId == DemoData.DM_PRIYA && it.authorId == DemoData.ME }
+        val run = listOf("Are you around Friday?", "The morning shift is short one person.", "No worries if not.")
+            .mapIndexed { index, text ->
+                priya.copy(
+                    id = INCOMING_RUN_FIRST_ID + index,
+                    clientMessageId = null,
+                    text = text,
+                    doc = null,
+                    attachment = null,
+                    plainText = text,
+                    contentFormat = Message.CONTENT_FORMAT_PLAIN,
+                    reactions = emptyList(),
+                    threadReplyCount = 0,
+                    createdAt = DemoData.NOW.minusSeconds((INCOMING_RUN_SIZE - index) * SECONDS_PER_MINUTE),
+                )
+            }
+        val reply = mine.copy(
+            id = INCOMING_RUN_FIRST_ID + INCOMING_RUN_SIZE,
+            clientMessageId = null,
+            text = "I can do the morning.",
+            doc = null,
+            attachment = null,
+            plainText = null,
+            contentFormat = Message.CONTENT_FORMAT_PLAIN,
+            sendState = SendState.SENT,
+            sendFailure = null,
+            createdAt = DemoData.NOW,
+        )
+        val items = TimelineBuilder.build(run + reply, DemoData.ME, DemoData.ZONE, botConversation = false)
+        ConversationView(state().copy(items = items))
+    }
+
     @Test
     fun invalid() = captureScreenshots("conversation_invalid") {
         ConversationView(ConversationUiState(content = ConversationContent.Invalid))
@@ -144,10 +200,7 @@ class ConversationScreenshotTest {
     fun reconnectingWithStaleRows() = captureScreenshots("conversation_reconnecting") {
         ConversationView(
             state().copy(
-                connection = ConnectionUi(
-                    ConnectionBannerState.Reconnecting,
-                    R.string.feature_chat_subtitle_reconnecting,
-                ),
+                connection = ConnectionUi(ConnectionBannerState.Reconnecting),
                 isStale = true,
             ),
         )
@@ -157,14 +210,34 @@ class ConversationScreenshotTest {
     fun offline() = captureScreenshots("conversation_offline") {
         ConversationView(
             state().copy(
-                connection = ConnectionUi(ConnectionBannerState.Offline, R.string.feature_chat_subtitle_offline),
+                connection = ConnectionUi(ConnectionBannerState.Offline),
             ),
         )
     }
 
+    /** The failed row is on screen: its inline "Failed · Retry" is the only signal, the composer is empty. */
     @Test
     fun sendFailed() = captureScreenshots("conversation_send_failed") {
-        ConversationView(state().copy(sendError = SendErrorKind.Offline), draft = "Sending the updated schedule now")
+        ConversationView(state().copy(sendError = SendErrorKind.Offline))
+    }
+
+    /** Scrolled up past the failed row: one compact "1 message not sent · Show" banner. */
+    @Test
+    fun sendFailedOffscreen() = captureScreenshots("conversation_send_failed_offscreen") {
+        ConversationView(
+            state().copy(sendError = SendErrorKind.Offline),
+            listState = rememberLazyListState(firstVisibleItemIndex = SCROLLED_UP_INDEX),
+        )
+    }
+
+    /** Refused before it reached the outbox: no row to point at, so the full banner keeps the draft. */
+    @Test
+    fun sendRefused() = captureScreenshots("conversation_send_refused") {
+        val sent = state()
+        ConversationView(
+            sent.copy(sendError = SendErrorKind.ReadOnly, items = sent.items.filterNot(SendErrorUi::isFailedRow)),
+            draft = "Sending the updated schedule now",
+        )
     }
 
     @Test
@@ -272,7 +345,7 @@ class ConversationScreenshotTest {
         ThreadView(
             threadState().copy(
                 sendError = SendErrorKind.Offline,
-                connection = ConnectionUi(ConnectionBannerState.Offline, R.string.feature_chat_subtitle_offline),
+                connection = ConnectionUi(ConnectionBannerState.Offline),
             ),
             draft = "Saturday works",
         )
@@ -289,7 +362,7 @@ class ConversationScreenshotTest {
             replies = TimelineBuilder.build(replies, DemoData.ME, DemoData.ZONE, false),
             replyCount = replies.size,
             names = names,
-            conversationTitle = conversations[DemoData.DM_PRIYA]?.title(DemoData.ME),
+            conversationTitle = conversations[DemoData.DM_PRIYA]?.let(::titleOf),
             canWrite = true,
             myUserId = DemoData.ME,
         )
@@ -311,6 +384,11 @@ class ConversationScreenshotTest {
 
     private companion object {
         const val RICH_MESSAGE = 9350L
+
+        /** Far enough up the DM that the newest (failed) row is off screen on every phone. */
+        const val SCROLLED_UP_INDEX = 6
+        const val INCOMING_RUN_FIRST_ID = 99_001L
+        const val INCOMING_RUN_SIZE = 3
     }
 }
 

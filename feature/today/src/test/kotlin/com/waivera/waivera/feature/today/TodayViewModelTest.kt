@@ -12,6 +12,7 @@ import com.waivera.waivera.core.designsystem.component.ConnectionBannerState
 import com.waivera.waivera.core.network.dto.ChatActivityType
 import com.waivera.waivera.core.network.error.WaiveraError
 import com.waivera.waivera.core.realtime.ConnectionState
+import com.waivera.waivera.core.testing.EnglishConversationTitles
 import com.waivera.waivera.core.testing.MainDispatcherRule
 import com.waivera.waivera.core.testing.TestSessionRepository
 import com.waivera.waivera.feature.today.model.ActivityFilter
@@ -45,7 +46,8 @@ class TodayViewModelTest {
     private val now = TestNowSource()
 
     private fun TestScope.start(): Pair<TodayViewModel, MutableList<TodayEffect>> {
-        val viewModel = TodayViewModel(session, conversations, activity, calendar, realtime, now)
+        val viewModel =
+            TodayViewModel(session, conversations, activity, calendar, realtime, now, EnglishConversationTitles)
         val effects = mutableListOf<TodayEffect>()
         backgroundScope.launch { viewModel.state.collect {} }
         backgroundScope.launch { viewModel.effects.toList(effects) }

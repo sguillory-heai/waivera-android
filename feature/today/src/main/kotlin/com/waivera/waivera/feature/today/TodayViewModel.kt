@@ -2,6 +2,7 @@ package com.waivera.waivera.feature.today
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.waivera.waivera.core.data.model.ConversationTitleText
 import com.waivera.waivera.core.data.model.DateRange
 import com.waivera.waivera.core.data.model.ScheduleFeed
 import com.waivera.waivera.core.data.model.SessionState
@@ -56,6 +57,7 @@ class TodayViewModel @Inject constructor(
     private val calendar: CalendarRepository,
     private val realtimeStatus: RealtimeStatusRepository,
     private val nowSource: NowSource,
+    private val titles: ConversationTitleText,
 ) : ViewModel() {
     private val local = MutableStateFlow(TodayLocalState())
     private val pager = ActivityPager(viewModelScope, activity, local)
@@ -84,7 +86,7 @@ class TodayViewModel @Inject constructor(
             calendar.observeMilestones(),
         ) { chats, feed, events, milestones -> TodaySources(chats, feed, events, milestones) },
         combine(session.state, zone, ticks, realtimeStatus.status, local) { s, z, now, realtime, l ->
-            TodayContext(accountName(s), s.currentUserId, z, now, realtime, l)
+            TodayContext(accountName(s), s.currentUserId, z, now, realtime, l, titles)
         },
     ) { sources, context -> TodayAssembler.assemble(sources, context) }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS), TodayUiState())

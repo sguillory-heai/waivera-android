@@ -4,6 +4,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.waivera.waivera.core.data.model.Conversation
 import com.waivera.waivera.core.data.model.ConversationKind
+import com.waivera.waivera.core.data.model.ConversationTitleText
+import com.waivera.waivera.core.data.model.ConversationTitles
 import com.waivera.waivera.core.data.model.Message
 import com.waivera.waivera.core.data.model.MessageTimeline
 import com.waivera.waivera.core.data.model.SendState
@@ -83,6 +85,7 @@ class ConversationViewModel @AssistedInject constructor(
     downloads: AttachmentDownloads,
     private val clock: ChatClock,
     @ChatComputeDispatcher private val computeDispatcher: CoroutineDispatcher,
+    private val titles: ConversationTitleText,
 ) : ViewModel() {
     @AssistedFactory
     interface Factory {
@@ -256,7 +259,9 @@ class ConversationViewModel @AssistedInject constructor(
         }
         _state.update {
             it.copy(
-                title = value?.title(me)?.takeIf(String::isNotBlank),
+                title = value?.let { c -> ConversationTitles.format(c, me, titles) },
+                memberCount = value?.takeIf { c -> ConversationTitles.isGroup(c, me) }?.participants?.size,
+                isDirect = value?.let { c -> isDirect(c, me) } == true,
                 names = names,
                 typingNames = typingNames(names),
                 canWrite = value?.let { c -> c.canWrite && c.kind != ConversationKind.BOT },
@@ -355,7 +360,13 @@ class ConversationViewModel @AssistedInject constructor(
             key = awaitKey(messageId)
             pages++
         }
-        if (key == null) return
+        if (key == null) {
+            // The person was sent here for that message: say it is gone instead of nothing (UI2-08).
+            if (_state.value.content == ConversationContent.Messages) {
+                emit(ChatEffect.Snackbar(R.string.feature_chat_message_missing))
+            }
+            return
+        }
         delay(HIGHLIGHT_SCROLL_DELAY_MILLIS)
         emit(ChatEffect.ScrollTo(key))
         _state.update { it.copy(highlightKey = key) }
@@ -368,7 +379,7 @@ class ConversationViewModel @AssistedInject constructor(
             is TimelineItem.MessageRow -> item.message.id == messageId
             is TimelineItem.SystemRow -> item.message.id == messageId
             is TimelineItem.CallLog -> item.messages.any { it.id == messageId }
-            is TimelineItem.DaySeparator -> false
+            is TimelineItem.DaySeparator, is TimelineItem.TimeSeparator -> false
         }
     }?.key
 
@@ -578,6 +589,11 @@ class ConversationViewModel @AssistedInject constructor(
         const val MAX_HIGHLIGHT_PAGES = 8
 
         fun isValid(conversationId: Long): Boolean = conversationId > 0
+
+        /** One other person, not a channel or a bot: rows can drop the author line (UI2-13). */
+        fun isDirect(conversation: Conversation, me: String?): Boolean = !ConversationTitles.isChannel(conversation) &&
+            !ConversationTitles.isBot(conversation, me) &&
+            ConversationTitles.others(conversation, me).size == 1
 
         fun readOnlyReason(conversation: Conversation): ReadOnlyReason? = when {
             conversation.kind == ConversationKind.BOT -> ReadOnlyReason.Automated

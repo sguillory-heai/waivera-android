@@ -99,6 +99,7 @@ fun MessageRowView(
     highlighted: Boolean,
     callbacks: MessageRowCallbacks,
     modifier: Modifier = Modifier,
+    showAuthorLine: Boolean = true,
 ) {
     val colors = WaiveraTheme.colors
     val arrival = rememberArrivalProgress(row.isLiveArrival)
@@ -136,7 +137,7 @@ fun MessageRowView(
                 modifier = Modifier.fillMaxWidth(if (row.isBot) 1f else ChatDimens.BUBBLE_MAX_WIDTH_FRACTION),
                 horizontalAlignment = if (row.isMine) Alignment.End else Alignment.Start,
             ) {
-                if (!row.isMine && !row.groupedWithPrevious) AuthorLine(authorName, row.isBot)
+                if (row.startsIncomingRun() && (showAuthorLine || row.isBot)) AuthorLine(authorName, row.isBot)
                 Bubble(row, authorName, time, callbacks, arrival)
                 Footer(row, time, timestampVisible, callbacks)
             }
@@ -145,6 +146,9 @@ fun MessageRowView(
 }
 
 private const val ARRIVAL_MIN_ALPHA = 0.35f
+
+/** The first bubble of someone else's run: where the author line goes. */
+private fun TimelineItem.MessageRow.startsIncomingRun(): Boolean = !isMine && !groupedWithPrevious
 
 /** 0 → 1 for a live arrival on the layout token; 1 at once for history or with motion reduced. */
 @Composable
@@ -330,6 +334,11 @@ private fun rowDescription(row: TimelineItem.MessageRow, authorName: String, tim
     return listOfNotNull(base, clock).joinToString(", ")
 }
 
+/**
+ * Under the bubble. The last bubble of a run always shows its clock ("9:41 AM", "Sent · 9:41 AM"
+ * on my own), so a glance tells when something was said and that a retried send went out
+ * (UI review UI2-04). Bubbles inside a run show their time on tap only, as a relative time.
+ */
 @Composable
 private fun Footer(
     row: TimelineItem.MessageRow,
@@ -342,30 +351,36 @@ private fun Footer(
         PendingMeta(message, callbacks)
         return
     }
-    val showTime = timestampVisible && message.createdAt != null
-    if (!showTime && !message.isBookmarked) return
+    val createdAt = message.createdAt
+    val endOfRun = !row.groupedWithNext && !message.isDeleted
+    val label = when {
+        createdAt == null -> null
+        endOfRun -> runEndLabel(createdAt, time, mine = row.isMine)
+        timestampVisible -> relativeTimeText(ChatTime.relative(createdAt, time.now, time.zone))
+        else -> null
+    }?.let { if (message.isEdited) stringResource(R.string.feature_chat_timestamp_edited, it) else it }
+    if (label == null && !message.isBookmarked) return
     Row(
         modifier = Modifier.padding(top = WaiveraSpacing.ExtraSmall),
         horizontalArrangement = Arrangement.spacedBy(WaiveraSpacing.Small),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        if (showTime) {
-            val relative = relativeTimeText(ChatTime.relative(message.createdAt ?: time.now, time.now, time.zone))
+        if (label != null) {
             Text(
-                text = if (message.isEdited) {
-                    stringResource(
-                        R.string.feature_chat_timestamp_edited,
-                        relative,
-                    )
-                } else {
-                    relative
-                },
+                text = label,
                 style = MaterialTheme.typography.labelMedium,
                 color = WaiveraTheme.colors.textSecondary,
             )
         }
         if (message.isBookmarked) SavedPill()
     }
+}
+
+/** "9:41 AM", or "Sent · 9:41 AM" under my own run, which is how a send or a retry confirms. */
+@Composable
+private fun runEndLabel(createdAt: Instant, time: RowTime, mine: Boolean): String {
+    val clock = remember(createdAt, time.zone) { ChatTime.clock(createdAt, time.zone) }
+    return if (mine) stringResource(R.string.feature_chat_sent_at, clock) else clock
 }
 
 @Composable

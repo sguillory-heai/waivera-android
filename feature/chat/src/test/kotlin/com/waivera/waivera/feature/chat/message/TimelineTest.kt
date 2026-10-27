@@ -197,6 +197,34 @@ class TimelineTest {
     }
 
     @Test
+    fun anHourPauseInsideADayGetsATimeLine() {
+        val items = TimelineBuilder.build(
+            listOf(
+                message(1),
+                message(2, at = base.plusSeconds(59 * 60)),
+                message(3, at = base.plusSeconds(2 * 3600)),
+            ),
+            "usr_a",
+            chicago,
+            false,
+        )
+        val times = items.filterIsInstance<TimelineItem.TimeSeparator>()
+        assertEquals(listOf(base.plusSeconds(2 * 3600)), times.map { it.at }, "59 minutes is not a pause")
+        assertEquals("message-3", items[items.indexOf(times.single()) + 1].key)
+    }
+
+    @Test
+    fun theFallBackHourIsAPauseEvenThoughTheWallClockRepeats() {
+        // 1 November 2026 in Chicago: 01:30 CDT (06:30Z), then 01:30 CST (07:30Z) an hour later.
+        val first = message(1, at = Instant.parse("2026-11-01T06:30:00Z"))
+        val second = message(2, at = Instant.parse("2026-11-01T07:30:00Z"))
+        val items = TimelineBuilder.build(listOf(first, second), "usr_a", chicago, false)
+        assertEquals(1, items.count { it is TimelineItem.DaySeparator }, "one local day")
+        val pause = items.filterIsInstance<TimelineItem.TimeSeparator>().single()
+        assertEquals(Instant.parse("2026-11-01T07:30:00Z"), pause.at)
+    }
+
+    @Test
     fun daySeparatorsCanBeTurnedOff() {
         val items = TimelineBuilder.build(listOf(message(1)), "usr_a", chicago, false, daySeparators = false)
         assertTrue(items.none { it is TimelineItem.DaySeparator })

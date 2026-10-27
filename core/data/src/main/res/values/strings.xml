@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Conversation titles, shared by the inbox, conversation headers, Today and notifications. -->
+    <string name="core_data_title_channel">Channel</string>
+    <string name="core_data_title_conversation">Conversation</string>
+    <string name="core_data_title_bot">Waivera</string>
+    <string name="core_data_title_unknown_person">Unknown</string>
+    <string name="core_data_title_pair">%1$s, %2$s</string>
+    <plurals name="core_data_title_group">
+        <item quantity="one">%1$s &amp; %2$d other</item>
+        <item quantity="other">%1$s &amp; %2$d others</item>
+    </plurals>
+</resources>

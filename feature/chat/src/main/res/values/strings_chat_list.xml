@@ -38,14 +38,6 @@
     <string name="feature_chat_list_preview_deleted">Message deleted</string>
     <string name="feature_chat_list_preview_sender">%1$s:</string>
     <string name="feature_chat_list_sender_you">You</string>
-    <string name="feature_chat_list_title_channel">Channel</string>
-    <string name="feature_chat_list_title_conversation">Conversation</string>
-    <string name="feature_chat_list_title_bot">Waivera</string>
-    <string name="feature_chat_list_unknown_person">Unknown</string>
-    <plurals name="feature_chat_list_title_group">
-        <item quantity="one">%1$s &amp; %2$d other</item>
-        <item quantity="other">%1$s &amp; %2$d others</item>
-    </plurals>
     <string name="feature_chat_list_typing_one">%1$s is typing…</string>
     <string name="feature_chat_list_typing_someone">Someone</string>
     <string name="feature_chat_list_typing_several">Several people are typing…</string>

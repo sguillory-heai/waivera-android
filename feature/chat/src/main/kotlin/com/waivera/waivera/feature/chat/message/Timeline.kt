@@ -4,6 +4,7 @@ import androidx.compose.runtime.Immutable
 import com.waivera.waivera.core.data.model.Message
 import com.waivera.waivera.core.data.model.Reaction
 import java.time.Duration
+import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
 
@@ -13,6 +14,12 @@ sealed interface TimelineItem {
     val key: String
 
     data class DaySeparator(override val key: String, val day: LocalDate) : TimelineItem
+
+    /**
+     * A quiet clock line inside a day, before a message that comes [TimelineBuilder.TIME_GAP] or
+     * more after the one before it, so a reader can tell "this morning" from "just now" at a glance.
+     */
+    data class TimeSeparator(override val key: String, val at: Instant) : TimelineItem
 
     data class MessageRow(
         override val key: String,
@@ -92,6 +99,9 @@ object MessageGrouping {
 val MessageOrder: Comparator<Message> = compareBy<Message>({ it.isPending }, { it.createdAt }, { it.id })
 
 object TimelineBuilder {
+    /** A pause this long inside one day gets a [TimelineItem.TimeSeparator]. */
+    val TIME_GAP: Duration = Duration.ofHours(1)
+
     /**
      * Builds rows oldest first. Call log messages collapse into one card placed where the newest of
      * them sits; a day separator precedes the first row of each local day.
@@ -124,6 +134,10 @@ object TimelineBuilder {
             if (daySeparators && day != null && day != lastDay) {
                 items += TimelineItem.DaySeparator("day-$day", day)
                 lastDay = day
+            } else if (daySeparators) {
+                gapAfter(sorted.getOrNull(index - 1), message)?.let { at ->
+                    items += TimelineItem.TimeSeparator("time-${message.id}", at)
+                }
             }
             items += when {
                 callId != null -> {
@@ -144,6 +158,16 @@ object TimelineBuilder {
         }
         // A LazyColumn key must be unique; this is the last guard if the rules above ever miss.
         return items.distinctBy { it.key }
+    }
+
+    /**
+     * [current]'s time when it comes [TIME_GAP] or more after [previous] (callers only ask within
+     * a day: a new day gets the day line instead); null when either time is unknown.
+     */
+    private fun gapAfter(previous: Message?, current: Message): Instant? {
+        val before = previous?.createdAt?.takeIf { it.toEpochMilli() > 0 } ?: return null
+        val at = current.createdAt?.takeIf { it.toEpochMilli() > 0 } ?: return null
+        return at.takeIf { Duration.between(before, at) >= TIME_GAP }
     }
 
     @Suppress("LongParameterList")

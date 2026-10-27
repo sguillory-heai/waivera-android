@@ -30,8 +30,12 @@ data class CallUi(val available: Boolean = false, val isLive: Boolean = false, v
 
 @Immutable
 data class ConversationUiState(
-    /** Null until the conversation loads, or when the server sent no usable name. */
+    /** Null until the conversation loads; from the shared title rule, so it matches the inbox row. */
     val title: String? = null,
+    /** Everyone in a group chat, me included, for the "3 members" header line; null outside groups. */
+    val memberCount: Int? = null,
+    /** A one-to-one chat: the header already names the other person, so rows skip the author line. */
+    val isDirect: Boolean = false,
     val connection: ConnectionUi = ConnectionUi.Connected,
     val content: ConversationContent = ConversationContent.Loading,
     /** Oldest first; the screen reverses it for the bottom-anchored list. */

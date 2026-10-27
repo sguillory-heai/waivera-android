@@ -2,6 +2,8 @@ package com.waivera.waivera.notifications
 
 import com.waivera.waivera.core.data.live.PushTokenRevoker
 import com.waivera.waivera.core.data.model.ConversationKind
+import com.waivera.waivera.core.data.model.ConversationTitleText
+import com.waivera.waivera.core.data.model.ConversationTitles
 import com.waivera.waivera.core.data.model.NotificationCategory
 import com.waivera.waivera.core.data.model.NotificationPreferences
 import com.waivera.waivera.core.data.model.currentUserId
@@ -66,11 +68,12 @@ internal fun NotificationPreferences.toClient(): ClientNotificationPreferences =
 class CachedConversationInfo @Inject constructor(
     private val conversations: ConversationRepository,
     private val session: SessionRepository,
+    private val titles: ConversationTitleText,
 ) : ConversationInfoSource {
     override suspend fun find(conversationId: Long): ConversationNotificationInfo? {
         val conversation = conversations.observeConversation(conversationId).first() ?: return null
         return ConversationNotificationInfo(
-            title = conversation.title(session.state.value.currentUserId).ifBlank { null },
+            title = ConversationTitles.format(conversation, session.state.value.currentUserId, titles),
             isGroup = conversation.kind != ConversationKind.DIRECT,
         )
     }

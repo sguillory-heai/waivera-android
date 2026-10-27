@@ -110,12 +110,8 @@ data class Conversation(
     val activityAt: Instant?
         get() = lastMessage?.createdAt ?: ongoingCall?.startedAt ?: activeMeeting?.startAt
 
-    /** Everyone except [myUserId]; for DM titles and avatars. */
+    /** Everyone except [myUserId]; for DM avatars. Titles come from [ConversationTitles]. */
     fun others(myUserId: String?): List<Person> = participants.filter { it.id != myUserId }
-
-    /** Channel name, else the other participants' names; empty when the server sent neither. */
-    fun title(myUserId: String?): String =
-        channel?.name?.takeIf(String::isNotBlank) ?: others(myUserId).joinToString(", ") { it.name }
 }
 
 @Serializable

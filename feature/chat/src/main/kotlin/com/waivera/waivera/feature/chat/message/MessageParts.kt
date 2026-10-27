@@ -26,6 +26,7 @@ import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -63,6 +64,8 @@ import com.waivera.waivera.core.designsystem.theme.WaiveraSizes
 import com.waivera.waivera.core.designsystem.theme.WaiveraSpacing
 import com.waivera.waivera.core.designsystem.theme.WaiveraTheme
 import com.waivera.waivera.feature.chat.R
+import java.time.Instant
+import java.time.ZoneId
 import kotlin.math.roundToInt
 
 // Reactions ---------------------------------------------------------------------------------
@@ -497,6 +500,21 @@ fun DaySeparatorView(label: DayLabel, modifier: Modifier = Modifier) {
         Text(text = text, style = MaterialTheme.typography.labelMedium, color = WaiveraTheme.colors.textSecondary)
         WaiveraDivider(Modifier.weight(1f))
     }
+}
+
+/** The clock line after an hour's pause inside a day ([TimelineItem.TimeSeparator]). */
+@Composable
+fun TimeSeparatorView(at: Instant, zone: ZoneId, modifier: Modifier = Modifier) {
+    val text = remember(at, zone) { ChatTime.clock(at, zone) }
+    Text(
+        text = text,
+        style = MaterialTheme.typography.labelMedium,
+        color = WaiveraTheme.colors.textSecondary,
+        textAlign = TextAlign.Center,
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = WaiveraSpacing.Gutter, vertical = WaiveraSpacing.Small),
+    )
 }
 
 @Composable

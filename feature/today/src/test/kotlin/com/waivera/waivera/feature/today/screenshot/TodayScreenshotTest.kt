@@ -15,6 +15,7 @@ import com.waivera.waivera.core.realtime.ConnectionState
 import com.waivera.waivera.core.screenshottesting.ScreenshotHeights
 import com.waivera.waivera.core.screenshottesting.ScreenshotSdk
 import com.waivera.waivera.core.screenshottesting.captureScreenshots
+import com.waivera.waivera.core.testing.EnglishConversationTitles
 import com.waivera.waivera.feature.today.activity
 import com.waivera.waivera.feature.today.conversation
 import com.waivera.waivera.feature.today.model.TodayAssembler
@@ -69,7 +70,7 @@ class TodayScreenshotTest {
         realtime: RealtimeStatus = connected,
     ): TodayUiState = TodayAssembler.assemble(
         sources,
-        TodayContext("Alex Rivera", DemoData.ME, DemoData.ZONE, now, realtime, local),
+        TodayContext("Alex Rivera", DemoData.ME, DemoData.ZONE, now, realtime, local, EnglishConversationTitles),
     )
 
     private fun capture(name: String, heightDp: Int? = null, content: @Composable () -> Unit) =

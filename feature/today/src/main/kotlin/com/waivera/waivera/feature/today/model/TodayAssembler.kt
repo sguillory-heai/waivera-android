@@ -4,6 +4,8 @@ import com.waivera.waivera.core.data.model.ActivityFeed
 import com.waivera.waivera.core.data.model.ActivityItem
 import com.waivera.waivera.core.data.model.Conversation
 import com.waivera.waivera.core.data.model.ConversationKind
+import com.waivera.waivera.core.data.model.ConversationTitleText
+import com.waivera.waivera.core.data.model.ConversationTitles
 import com.waivera.waivera.core.data.model.MessagePreview
 import com.waivera.waivera.core.data.model.Milestone
 import com.waivera.waivera.core.data.model.RealtimeStatus
@@ -48,6 +50,8 @@ data class TodayContext(
     val now: Instant,
     val realtime: RealtimeStatus?,
     val local: TodayLocalState,
+    /** The shared conversation-title copy, so a Today row names a chat the way the inbox does. */
+    val titles: ConversationTitleText,
 )
 
 /** Builds [TodayUiState] from the cache. Pure, so every rule is unit tested without Android. */
@@ -115,7 +119,7 @@ object TodayAssembler {
         val dmRows = directs.map { c ->
             c.lastMessage?.createdAt to NeedsYouItem.DirectMessage(
                 conversationId = c.id,
-                name = c.title(context.myUserId).takeIf(String::isNotBlank),
+                name = ConversationTitles.format(c, context.myUserId, context.titles),
                 snippet = snippet(c.lastMessage),
                 unreadCount = c.unreadCount,
                 at = c.lastMessage?.createdAt?.let { TimeLabels.past(it, context.now, context.zone) },

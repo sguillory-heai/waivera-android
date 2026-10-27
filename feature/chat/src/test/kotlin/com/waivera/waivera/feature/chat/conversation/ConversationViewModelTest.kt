@@ -10,6 +10,7 @@ import com.waivera.waivera.core.designsystem.component.ConnectionBannerState
 import com.waivera.waivera.core.designsystem.feedback.HapticMoment
 import com.waivera.waivera.core.network.dto.MessageType
 import com.waivera.waivera.core.network.error.WaiveraError
+import com.waivera.waivera.core.testing.EnglishConversationTitles
 import com.waivera.waivera.core.testing.MainDispatcherRule
 import com.waivera.waivera.feature.chat.FakeAttachmentIo
 import com.waivera.waivera.feature.chat.R
@@ -67,6 +68,7 @@ class ConversationViewModelTest {
             downloads = AttachmentDownloads(graph.attachments),
             clock = testChatClock(),
             computeDispatcher = main.testDispatcher,
+            titles = EnglishConversationTitles,
         )
         runCurrent()
         return Subject(viewModel, graph, conversations)
@@ -104,17 +106,27 @@ class ConversationViewModelTest {
     }
 
     @Test
+    fun groupHeaderUsesTheSharedTitleAndCountsMembers() = runTest {
+        val group = subject(conversationId = DemoData.GROUP).viewModel.state.value
+        assertEquals("Priya Raman, Jordan Lee", group.title, "the same string as the inbox row")
+        assertEquals(3, group.memberCount)
+        assertFalse(group.isDirect)
+        val dm = subject().viewModel.state.value
+        assertEquals("Priya Raman", dm.title)
+        assertNull(dm.memberCount)
+        assertTrue(dm.isDirect)
+    }
+
+    @Test
     fun reconnectingAndBackShowsTheBannerThenClearsIt() = runTest {
         val s = subject()
         assertEquals(ConnectionBannerState.Connected, s.viewModel.state.value.connection.banner)
         s.graph.realtime.drop()
         runCurrent()
         assertEquals(ConnectionBannerState.Reconnecting, s.viewModel.state.value.connection.banner)
-        assertEquals(R.string.feature_chat_subtitle_reconnecting, s.viewModel.state.value.connection.subtitle)
         s.viewModel.retryConnection()
         runCurrent()
         assertEquals(ConnectionBannerState.Connected, s.viewModel.state.value.connection.banner)
-        assertNull(s.viewModel.state.value.connection.subtitle)
     }
 
     @Test
@@ -503,11 +515,15 @@ class ConversationViewModelTest {
     }
 
     @Test
-    fun aMissingHighlightTargetIsIgnoredQuietly() = runTest {
+    fun aMissingHighlightTargetKeepsTheConversationAndSaysSo() = runTest {
         val s = subject()
-        s.viewModel.highlight(123_456)
-        runCurrent()
-        advanceTimeBy(ConversationViewModel.HIGHLIGHT_WAIT_MILLIS * 2)
+        s.viewModel.effects.test {
+            s.viewModel.highlight(123_456)
+            runCurrent()
+            advanceTimeBy(ConversationViewModel.HIGHLIGHT_WAIT_MILLIS * 2)
+            val note = assertIs<ChatEffect.Snackbar>(expectMostRecentItem())
+            assertEquals(R.string.feature_chat_message_missing, note.message)
+        }
         assertNull(s.viewModel.state.value.highlightKey)
         assertEquals(ConversationContent.Messages, s.viewModel.state.value.content)
     }

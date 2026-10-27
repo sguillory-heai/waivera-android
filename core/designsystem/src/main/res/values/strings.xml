@@ -8,6 +8,8 @@
     <string name="core_designsystem_retry">Retry</string>
     <string name="core_designsystem_try_again">Try again</string>
     <string name="core_designsystem_dismiss">Dismiss</string>
+    <string name="core_designsystem_banner_show_details">Show details</string>
+    <string name="core_designsystem_banner_hide_details">Hide details</string>
     <string name="core_designsystem_undo">Undo</string>
     <string name="core_designsystem_selected">Selected</string>
     <string name="core_designsystem_not_selected">Not selected</string>

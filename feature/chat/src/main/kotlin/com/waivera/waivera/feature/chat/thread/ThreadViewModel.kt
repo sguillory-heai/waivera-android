@@ -6,6 +6,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.waivera.waivera.core.data.model.Conversation
 import com.waivera.waivera.core.data.model.ConversationKind
+import com.waivera.waivera.core.data.model.ConversationTitleText
+import com.waivera.waivera.core.data.model.ConversationTitles
 import com.waivera.waivera.core.data.model.Message
 import com.waivera.waivera.core.data.model.MessageThread
 import com.waivera.waivera.core.data.model.SendState
@@ -121,6 +123,7 @@ class ThreadViewModel @AssistedInject constructor(
     downloads: AttachmentDownloads,
     private val clock: ChatClock,
     @ChatComputeDispatcher private val computeDispatcher: CoroutineDispatcher,
+    private val titles: ConversationTitleText,
 ) : ViewModel() {
     @AssistedFactory
     interface Factory {
@@ -284,7 +287,7 @@ class ThreadViewModel @AssistedInject constructor(
         _state.update {
             it.copy(
                 names = names,
-                conversationTitle = value?.title(me)?.takeIf(String::isNotBlank),
+                conversationTitle = value?.let { c -> ConversationTitles.format(c, me, titles) },
                 canWrite = value?.let { c -> c.canWrite && c.kind != ConversationKind.BOT },
                 readOnlyReason = value?.let(ConversationViewModel::readOnlyReason),
                 myUserId = me,
@@ -326,14 +329,24 @@ class ThreadViewModel @AssistedInject constructor(
 
     // region Highlight
 
-    /** 04 §5: highlight only what the thread response holds; no context fetch, no error. */
+    /**
+     * 04 §5: highlight only what the thread response holds; no context fetch. A target that is not
+     * there (deleted, or the link was wrong) keeps the thread open with a brief note, so a push
+     * about a reply never lands on a thread that silently shows something else (UI2-08).
+     */
     fun highlight(messageId: Long?) {
         if (messageId == null || messageId <= 0 || messageId == requestedHighlight) return
         requestedHighlight = messageId
         highlightJob?.cancel()
         highlightJob = viewModelScope.launch {
             val ready = _state.first { it.content != ThreadContent.Loading }
-            val key = keyFor(ready, messageId) ?: return@launch
+            val key = keyFor(ready, messageId)
+            if (key == null) {
+                if (ready.content == ThreadContent.Ready) {
+                    emit(ChatEffect.Snackbar(R.string.feature_chat_reply_missing))
+                }
+                return@launch
+            }
             delay(HIGHLIGHT_SCROLL_DELAY_MILLIS)
             emit(ChatEffect.ScrollTo(key))
             _state.update { it.copy(highlightKey = key) }

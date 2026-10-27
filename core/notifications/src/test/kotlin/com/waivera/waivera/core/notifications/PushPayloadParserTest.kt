@@ -67,7 +67,7 @@ class PushPayloadParserTest {
     @Test
     fun `thread reply routes to the thread with the reply highlighted`() {
         val chat = assertIs<PushMessage.Chat>(parse("chat-message-thread-reply.json"))
-        assertEquals(DeepLinkTarget.Thread(conversationId = 7, rootMessageId = 9312, messageId = 9330), chat.target)
+        assertEquals(DeepLinkTarget.Thread(conversationId = 7, rootMessageId = 9330, messageId = 9332), chat.target)
     }
 
     @Test

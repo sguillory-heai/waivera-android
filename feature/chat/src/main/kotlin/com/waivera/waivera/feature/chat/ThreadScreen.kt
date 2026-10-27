@@ -33,6 +33,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
@@ -79,15 +80,18 @@ import com.waivera.waivera.feature.chat.message.LocalChatImages
 import com.waivera.waivera.feature.chat.message.MessageRowCallbacks
 import com.waivera.waivera.feature.chat.message.ReadOnlyNotice
 import com.waivera.waivera.feature.chat.message.RowTime
-import com.waivera.waivera.feature.chat.message.SendErrorBanner
+import com.waivera.waivera.feature.chat.message.SendErrorSignal
+import com.waivera.waivera.feature.chat.message.SendErrorUi
 import com.waivera.waivera.feature.chat.message.TimelineContext
 import com.waivera.waivera.feature.chat.message.TimelineItem
 import com.waivera.waivera.feature.chat.message.TimelineItemView
 import com.waivera.waivera.feature.chat.message.rememberChatImageEnvironment
+import com.waivera.waivera.feature.chat.message.rememberSendErrorUi
 import com.waivera.waivera.feature.chat.thread.ThreadContent
 import com.waivera.waivera.feature.chat.thread.ThreadUiState
 import com.waivera.waivera.feature.chat.thread.ThreadViewModel
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 /** Entry point for the thread screen. Owned by `:feature:chat`; routed by `:app`. */
 @Composable
@@ -251,8 +255,8 @@ internal fun threadEntries(state: ThreadUiState): List<ThreadEntry> {
     if (state.content != ThreadContent.Ready) return emptyList()
     return buildList {
         add(state.root?.let { ThreadEntry.Item(it) } ?: ThreadEntry.RootMissing)
-        add(ThreadEntry.Header(state.replyCount))
-        if (state.replies.isEmpty()) add(ThreadEntry.NoReplies)
+        // "0 replies" over "No replies yet" says it twice; the empty state alone says it.
+        if (state.replies.isEmpty()) add(ThreadEntry.NoReplies) else add(ThreadEntry.Header(state.replyCount))
         state.replies.forEach { add(ThreadEntry.Item(it)) }
     }
 }
@@ -278,6 +282,15 @@ fun ThreadScreenContent(
     skeletonDelayMillis: Long? = null,
 ) {
     val colors = WaiveraTheme.colors
+    val entries = remember(state.root, state.replies, state.content, state.replyCount) { threadEntries(state) }
+    val failedIndices = remember(entries) {
+        entries.indices.reversed().filter { index ->
+            (entries[index] as? ThreadEntry.Item)?.item?.let(SendErrorUi::isFailedRow) == true
+        }
+    }
+    val sendErrorUi = rememberSendErrorUi(state.sendError, failedIndices, listState)
+    val scope = rememberCoroutineScope()
+    val sendError = SendErrorState(sendErrorUi) { index -> scope.launch { listState.animateScrollToItem(index) } }
     Box(
         modifier = modifier
             .fillMaxSize()
@@ -286,7 +299,8 @@ fun ThreadScreenContent(
         Column(Modifier.fillMaxSize()) {
             WaiveraTopBar(
                 title = stringResource(R.string.feature_chat_thread_screen_title),
-                subtitle = state.connection.subtitle?.let { stringResource(it) } ?: state.conversationTitle,
+                // Where the thread lives; the connection banner is the one connection signal.
+                subtitle = state.conversationTitle?.let { stringResource(R.string.feature_chat_thread_in, it) },
                 onBack = actions.onBack,
             )
             Column(
@@ -304,7 +318,8 @@ fun ThreadScreenContent(
                     onRetry = actions.onRetryConnection,
                     offlineMessage = stringResource(R.string.feature_chat_messages_offline_saved),
                 )
-                if (state.isStale && connectionBanner == ConnectionBannerState.Connected) {
+                val stale = state.isStale && connectionBanner == ConnectionBannerState.Connected
+                if (stale) {
                     WaiveraBanner(
                         message = stringResource(R.string.feature_chat_messages_stale),
                         tone = BannerTone.Warning,
@@ -312,6 +327,7 @@ fun ThreadScreenContent(
                         onAction = actions.onRetryLoad,
                     )
                 }
+                if (stale || connectionBanner != ConnectionBannerState.Connected) WaiveraDivider()
                 Box(
                     modifier = Modifier
                         .weight(1f)
@@ -321,7 +337,7 @@ fun ThreadScreenContent(
                 }
                 // Nothing to reply to when the thread is missing or failed to load (UI review UI-18).
                 if (state.content != ThreadContent.Invalid && state.content !is ThreadContent.Error) {
-                    ThreadComposerArea(state, draft, onDraftChange, actions, focusRequester)
+                    ThreadComposerArea(state, draft, onDraftChange, actions, focusRequester, sendError)
                 }
             }
         }
@@ -485,6 +501,7 @@ private fun ThreadComposerArea(
     onDraftChange: (String) -> Unit,
     actions: ThreadActions,
     focusRequester: FocusRequester?,
+    sendError: SendErrorState,
 ) {
     Column(
         modifier = Modifier
@@ -497,9 +514,12 @@ private fun ThreadComposerArea(
         if (reason != null) {
             ReadOnlyNotice(reason = reason, isThread = true)
         } else {
-            state.sendError?.let { kind ->
-                SendErrorBanner(kind = kind, isReply = true, onDismiss = actions.onDismissSendError)
-            }
+            SendErrorSignal(
+                ui = sendError.ui,
+                isReply = true,
+                onShow = sendError.onShow,
+                onDismiss = actions.onDismissSendError,
+            )
             Composer(
                 draft = draft,
                 onDraftChange = onDraftChange,
