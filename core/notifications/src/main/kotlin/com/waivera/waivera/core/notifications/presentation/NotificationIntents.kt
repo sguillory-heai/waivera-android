@@ -49,6 +49,8 @@ internal class NotificationIntents(private val context: Context) {
             .setAllowGeneratedReplies(true)
             .setSemanticAction(NotificationCompat.Action.SEMANTIC_ACTION_REPLY)
             .setShowsUserInterface(false)
+            // Replying sends as the employee, so a locked phone must be unlocked first (AS-06, API 31+).
+            .setAuthenticationRequired(true)
             .build()
     }
 
@@ -66,6 +68,7 @@ internal class NotificationIntents(private val context: Context) {
         )
             .setSemanticAction(NotificationCompat.Action.SEMANTIC_ACTION_MARK_AS_READ)
             .setShowsUserInterface(false)
+            .setAuthenticationRequired(true)
             .build()
     }
 
