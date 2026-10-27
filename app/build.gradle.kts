@@ -2,6 +2,8 @@ plugins {
     alias(libs.plugins.waivera.android.application)
     alias(libs.plugins.waivera.android.application.compose)
     alias(libs.plugins.waivera.hilt)
+    // Robolectric + Roborazzi for the navigation path tour (app/src/testDebug, docs/testing/navigation-paths.md).
+    alias(libs.plugins.waivera.android.screenshot)
     alias(libs.plugins.kotlin.serialization)
 }
 
@@ -59,6 +61,11 @@ dependencies {
 
     testImplementation(projects.core.testing)
     testImplementation(libs.kotlinx.coroutines.test)
+    // The navigation path tour runs the real Hilt graph with test modules swapped in (@TestInstallIn).
+    // Same version as Hilt itself; declared here rather than in the catalog because only these tests use it.
+    testImplementation("com.google.dagger:hilt-android-testing:${libs.versions.hilt.get()}")
+    kspTest(libs.hilt.compiler)
+    kspTest(libs.kotlin.metadata)
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
 }
