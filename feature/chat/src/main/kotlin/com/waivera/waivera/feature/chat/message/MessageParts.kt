@@ -46,6 +46,7 @@ import androidx.compose.ui.semantics.onLongClick
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontStyle
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import com.waivera.waivera.core.data.model.Attachment
@@ -111,8 +112,8 @@ private fun ReactionPill(reaction: ReactionSummary, onToggle: ((String) -> Unit)
                 .heightIn(min = ChatDimens.ReactionPillHeight)
                 .background(if (reaction.mine) colors.accentSoft else colors.background, WaiveraShapes.Pill)
                 .border(
-                    WaiveraSpacing.Hairline,
-                    if (reaction.mine) colors.accentBorderStrong else colors.border,
+                    if (reaction.mine) WaiveraSizes.SelectedOutline else WaiveraSpacing.Hairline,
+                    if (reaction.mine) colors.accent else colors.border,
                     WaiveraShapes.Pill,
                 )
                 .padding(horizontal = WaiveraSpacing.Small),
@@ -120,13 +121,13 @@ private fun ReactionPill(reaction: ReactionSummary, onToggle: ((String) -> Unit)
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(text = reaction.emoji, style = MaterialTheme.typography.bodySmall)
-            if (reaction.count > 1) {
-                Text(
-                    text = reaction.count.toString(),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = if (reaction.mine) colors.onAccentSoft else colors.textSecondary,
-                )
-            }
+            // Always shown, 1 included (UI2-28): a bare emoji reads as decoration, not a count.
+            Text(
+                text = reaction.count.toString(),
+                style = MaterialTheme.typography.labelSmall,
+                fontWeight = if (reaction.mine) FontWeight.SemiBold else null,
+                color = if (reaction.mine) colors.onAccentSoft else colors.textSecondary,
+            )
         }
     }
     if (onToggle == null) {

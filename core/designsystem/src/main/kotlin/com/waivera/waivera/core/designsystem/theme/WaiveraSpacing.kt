@@ -44,6 +44,9 @@ object WaiveraSizes {
     val PresenceRing: Dp = 2.5.dp
     val PresenceHairline: Dp = 1.5.dp
 
+    /** Outline of a selected or "mine" pill (reactions): heavier than the hairline so it reads at a glance. */
+    val SelectedOutline: Dp = 1.5.dp
+
     /** Milestone corner badge (07 §4): at least this big, scaled with the avatar above it. */
     val MilestoneBadgeMin: Dp = 17.dp
     val MilestoneBadgeBorder: Dp = 2.dp
