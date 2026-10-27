@@ -229,7 +229,7 @@ class ConversationScreenshotTest {
     fun sendFailedOffscreen() = captureScreenshots("conversation_send_failed_offscreen") {
         ConversationView(
             state().copy(sendError = SendErrorKind.Offline),
-            listState = rememberLazyListState(firstVisibleItemIndex = SCROLLED_UP_INDEX),
+            listState = rememberLazyListState(initialFirstVisibleItemIndex = SCROLLED_UP_INDEX),
         )
     }
 
