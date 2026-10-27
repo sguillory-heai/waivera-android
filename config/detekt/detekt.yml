@@ -14,6 +14,8 @@ complexity:
     ignoreAnnotated: ['Composable']
   TooManyFunctions:
     ignoreAnnotated: ['Preview', 'WaiveraPreviews']
+    # Interface implementations (notifier, repositories) are sized by their interface.
+    ignoreOverridden: true
 
 style:
   MagicNumber:
