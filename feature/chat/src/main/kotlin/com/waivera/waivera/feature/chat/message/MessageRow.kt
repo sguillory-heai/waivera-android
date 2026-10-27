@@ -98,7 +98,6 @@ fun MessageRowView(
     modifier: Modifier = Modifier,
 ) {
     val colors = WaiveraTheme.colors
-    val message = row.message
     val arrival = rememberArrivalProgress(row.isLiveArrival)
     val rowBackground = when {
         highlighted -> colors.accentWash
