@@ -50,7 +50,7 @@ dependencies {
     implementation(libs.androidx.navigation3.runtime)
     implementation(libs.androidx.navigation3.ui)
     // SingletonImageLoader.setSafe installs core:data's authenticated loader (G-15).
-    implementation(libs.coil.core)
+    implementation(libs.coil)
     implementation(platform(libs.firebase.bom))
     implementation(libs.firebase.common)
     implementation(libs.kotlinx.serialization.json)
