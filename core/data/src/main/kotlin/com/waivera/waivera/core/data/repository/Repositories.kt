@@ -14,8 +14,11 @@ import com.waivera.waivera.core.data.model.MessageTimeline
 import com.waivera.waivera.core.data.model.Milestone
 import com.waivera.waivera.core.data.model.NotificationCategory
 import com.waivera.waivera.core.data.model.NotificationPreferences
+import com.waivera.waivera.core.data.model.Organization
 import com.waivera.waivera.core.data.model.Person
+import com.waivera.waivera.core.data.model.PersonDetails
 import com.waivera.waivera.core.data.model.RealtimeStatus
+import com.waivera.waivera.core.data.model.ScheduleEvent
 import com.waivera.waivera.core.data.model.ScheduleFeed
 import com.waivera.waivera.core.data.model.SessionState
 import com.waivera.waivera.core.data.model.Synced
@@ -77,6 +80,16 @@ interface ConversationRepository {
 
     /** People typing in [conversationId] right now (expires after 5 s without a refresh). */
     fun observeTyping(conversationId: Long): Flow<Set<String>>
+
+    /** [observeTyping] for every conversation at once (the inbox); empty sets are left out. */
+    fun observeAllTyping(): Flow<Map<Long, Set<String>>>
+
+    /**
+     * The web lobby URL for the conversation's call (03 §19): joins the live room, or creates
+     * one when none is live. Fails with [com.waivera.waivera.core.network.error.WaiveraError.Configuration]
+     * when the build has no web base URL.
+     */
+    suspend fun callLobbyUrl(conversationId: Long): Result<String>
 
     /** Call on each composer change; throttled to one hub event per 3 s. */
     fun onComposerChanged(conversationId: Long, isEmpty: Boolean)
@@ -172,6 +185,9 @@ interface PeopleRepository {
 
     /** Avatar image bytes (decoded from the API's data URI), cached; null when the user has none. */
     suspend fun avatar(userId: String): ByteArray?
+
+    /** Another person's account details (roles, organization) from `GetUserDetailsByUserID`. */
+    suspend fun details(userId: String): Result<PersonDetails>
 }
 
 interface CalendarRepository {
@@ -187,6 +203,16 @@ interface CalendarRepository {
 
     suspend fun refreshMilestones(): Result<Unit>
 
+    /**
+     * One event by id (push, deep link, the event screen), from
+     * `GET api/CalendarEvent/GetEventbyId/{id}`; refreshes on first collection when stale or
+     * missing. `data == null` after a sync means the event was not found.
+     */
+    fun observeEvent(eventId: String): Flow<Synced<ScheduleEvent?>>
+
+    suspend fun refreshEvent(eventId: String): Result<Unit>
+
+    /** On success every cached copy of the event (single event and feeds) shows the new answer. */
     suspend fun respondToInvitation(eventId: String, accept: Boolean): Result<Unit>
 
     /** Creates or reuses the meeting room and returns the web lobby URL to open. */
@@ -211,6 +237,9 @@ interface ProfileRepository {
     suspend fun files(userId: String, page: Int): Result<EmployeeFilePage>
 
     suspend fun updateContact(phoneNumber: String?, timeZoneId: String?): Result<Unit>
+
+    /** The session's organization from `OrganizationDetails`, matched by id; null when absent. */
+    suspend fun organization(): Result<Organization?>
 }
 
 interface SettingsRepository {

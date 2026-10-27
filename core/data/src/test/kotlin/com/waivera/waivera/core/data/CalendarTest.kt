@@ -14,6 +14,8 @@ import com.waivera.waivera.core.network.dto.CalendarEventResponseDto
 import com.waivera.waivera.core.network.dto.InviteStatus
 import com.waivera.waivera.core.network.dto.MilestoneType
 import com.waivera.waivera.core.network.error.WaiveraError
+import com.waivera.waivera.core.testing.Fixtures
+import com.waivera.waivera.core.testing.eventually
 import java.time.Duration
 import java.time.Instant
 import java.time.LocalDate
@@ -24,11 +26,16 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertIs
+import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.runTest
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.jsonArray
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
 
 class CalendarTest {
     private val chicago = ZoneId.of("America/Chicago")
@@ -250,5 +257,79 @@ class CalendarTest {
         kotlin.test.assertFailsWith<IllegalArgumentException> {
             DateRange(LocalDate.of(2026, 1, 1), LocalDate.of(2026, 1, 1))
         }
+    }
+
+    /** The check-in event from the range fixture, wrapped as `GetEventbyId` returns it. */
+    private fun checkInResponse(transform: (String) -> String = { it }): String {
+        val root = Json.parseToJsonElement(Fixtures.text("rest-calendar-get-all-event.json")).jsonObject
+        val event = root.getValue("data").jsonObject.getValue("events").jsonArray
+            .single { it.jsonObject["id"]?.jsonPrimitive?.content == "evt_8f2b19c4" }
+        return """{"data":${transform(event.toString())},"statusCode":200,"success":true}"""
+    }
+
+    @Test
+    fun singleEventLoadsByIdAndA404IsRememberedAsGone() = testScope.runTest {
+        graph.server.json("GET /api/CalendarEvent/GetEventbyId/evt_8f2b19c4", checkInResponse())
+        graph.calendar.refreshEvent("evt_8f2b19c4").getOrThrow()
+        val event = assertNotNull(graph.calendar.observeEvent("evt_8f2b19c4").first().data)
+        assertEquals("North team check-in", event.title)
+        assertEquals(MyInvitation.ACCEPTED, event.myInvitation)
+
+        graph.server.status("GET /api/CalendarEvent/GetEventbyId/evt_gone", 404)
+        graph.calendar.refreshEvent("evt_gone").getOrThrow()
+        val gone = graph.calendar.observeEvent("evt_gone").first()
+        assertNull(gone.data)
+        assertNotNull(gone.lastSyncedAt, "looked up, not just missing")
+
+        graph.server.status("GET /api/CalendarEvent/GetEventbyId/evt_8f2b19c4", 500)
+        assertIs<WaiveraError.Server>(graph.calendar.refreshEvent("evt_8f2b19c4").exceptionOrNull())
+        assertNotNull(graph.calendar.observeEvent("evt_8f2b19c4").first().data, "last good copy stays")
+    }
+
+    @Test
+    fun coldSingleEventRefreshesWhenObserved() = testScope.runTest {
+        graph.server.json("GET /api/CalendarEvent/GetEventbyId/evt_8f2b19c4", checkInResponse())
+        val path = "/api/CalendarEvent/GetEventbyId/evt_8f2b19c4"
+        graph.calendar.observeEvent("evt_8f2b19c4").first()
+        eventually { graph.server.requestsTo(path).size == 1 }
+        eventually { graph.calendar.observeEvent("evt_8f2b19c4").first().data != null }
+    }
+
+    @Test
+    fun answeringAnInvitationUpdatesEveryCachedCopy() = testScope.runTest {
+        graph.server.fixture("GET /api/CalendarEvent/GetAllEvent", "rest-calendar-get-all-event.json")
+        val range = CalendarMath.monthGrid(YearMonth.of(2026, 10))
+        graph.calendar.refresh(range).getOrThrow()
+        graph.server.json("GET /api/CalendarEvent/GetEventbyId/evt_8f2b19c4", checkInResponse())
+        graph.calendar.refreshEvent("evt_8f2b19c4").getOrThrow()
+
+        // The server now has the decline; the follow-up refetch must agree with the local patch.
+        graph.server.json(
+            "GET /api/CalendarEvent/GetEventbyId/evt_8f2b19c4",
+            checkInResponse { it.replaceFirst("\"inviteStatus\":\"ACCEPTED\"", "\"inviteStatus\":\"DECLINED\"") },
+        )
+        graph.server.fixture("POST /api/invitation/AcceptDenyMeeting", "rest-invitation-accept-deny-meeting.json")
+        graph.calendar.respondToInvitation("evt_8f2b19c4", accept = false).getOrThrow()
+
+        val inFeed = graph.calendar.observeRange(range).first().data.events.single { it.id == "evt_8f2b19c4" }
+        assertEquals(MyInvitation.DECLINED, inFeed.myInvitation)
+        assertEquals(InviteStatus.DECLINED, inFeed.attendees.single { it.userId == "usr_alex_rivera" }.inviteStatus)
+        assertEquals(
+            InviteStatus.INVITED,
+            inFeed.attendees.single { it.userId == "usr_jordan_lee" }.inviteStatus,
+            "only my row changes",
+        )
+        assertEquals(MyInvitation.DECLINED, graph.calendar.observeEvent("evt_8f2b19c4").first().data?.myInvitation)
+        eventually {
+            graph.server.requestsTo("/api/CalendarEvent/GetEventbyId/evt_8f2b19c4").size == 2
+        }
+    }
+
+    @Test
+    fun holidaysKeepTheirDescription() = testScope.runTest {
+        graph.server.fixture("GET /api/CalendarEvent/GetAllEvent", "rest-calendar-get-all-event.json")
+        val range = CalendarMath.monthGrid(YearMonth.of(2026, 11))
+        graph.calendar.refresh(range).getOrThrow()
+        assertEquals("Office closed", graph.calendar.observeRange(range).first().data.holidays.single().description)
     }
 }

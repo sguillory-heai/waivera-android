@@ -6,6 +6,7 @@ import com.waivera.waivera.core.data.db.OutboxDao
 import com.waivera.waivera.core.data.db.OutboxEntity
 import com.waivera.waivera.core.data.model.Attachment
 import com.waivera.waivera.core.data.model.Message
+import com.waivera.waivera.core.data.model.SendFailure
 import com.waivera.waivera.core.data.model.SendState
 import com.waivera.waivera.core.network.WaiveraJson
 import com.waivera.waivera.core.network.time.UtcInstantSerializer
@@ -15,8 +16,11 @@ import javax.inject.Inject
 import javax.inject.Qualifier
 import javax.inject.Singleton
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.update
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.Transient
 import kotlinx.serialization.UseSerializers
 import kotlinx.serialization.json.JsonElement
 
@@ -44,6 +48,10 @@ data class OutboxItem(
     val state: SendState = SendState.QUEUED,
     val attempts: Int = 0,
     val createdAt: Instant,
+    /** Why the last attempt gave up; set with [SendState.FAILED], cleared on retry. */
+    val failure: SendFailure? = null,
+    /** Upload progress 0..1, from memory only (never persisted). */
+    @Transient val uploadProgress: Float? = null,
 ) {
     /** The optimistic message shown in the timeline. Negative ids never collide with server ids. */
     fun toMessage(author: com.waivera.waivera.core.data.model.Person?): Message = Message(
@@ -61,6 +69,8 @@ data class OutboxItem(
         parentMessageId = parentMessageId,
         threadRootMessageId = parentMessageId,
         sendState = state,
+        sendFailure = failure.takeIf { state == SendState.FAILED },
+        uploadProgress = uploadProgress.takeIf { state == SendState.SENDING },
     )
 }
 
@@ -72,10 +82,29 @@ annotation class OutboxDirectory
 
 @Singleton
 class OutboxStore @Inject constructor(private val dao: OutboxDao) {
-    fun observeConversation(conversationId: Long): Flow<List<OutboxItem>> =
-        dao.observeConversation(conversationId).map { rows -> rows.mapNotNull(::decode) }
+    /** Upload progress by client id, in memory: it changes too often to write to the database. */
+    private val progress = MutableStateFlow<Map<String, Float>>(emptyMap())
 
-    fun observeAll(): Flow<List<OutboxItem>> = dao.observeAll().map { rows -> rows.mapNotNull(::decode) }
+    fun observeConversation(conversationId: Long): Flow<List<OutboxItem>> =
+        combine(dao.observeConversation(conversationId), progress) { rows, uploads -> decode(rows, uploads) }
+
+    fun observeAll(): Flow<List<OutboxItem>> =
+        combine(dao.observeAll(), progress) { rows, uploads -> decode(rows, uploads) }
+
+    /** Records how much of [clientMessageId]'s attachment has been sent, 0..1. */
+    fun setUploadProgress(clientMessageId: String, fraction: Float) {
+        val clamped = fraction.coerceIn(0f, 1f)
+        progress.update { it + (clientMessageId to clamped) }
+    }
+
+    fun clearUploadProgress(clientMessageId: String) {
+        progress.update { it - clientMessageId }
+    }
+
+    private fun decode(rows: List<OutboxEntity>, uploads: Map<String, Float>): List<OutboxItem> =
+        rows.mapNotNull { row ->
+            decode(row)?.let { item -> uploads[item.clientMessageId]?.let { item.copy(uploadProgress = it) } ?: item }
+        }
 
     suspend fun get(clientMessageId: String): OutboxItem? = dao.get(clientMessageId)?.let(::decode)
 
@@ -99,11 +128,13 @@ class OutboxStore @Inject constructor(private val dao: OutboxDao) {
     }
 
     suspend fun remove(item: OutboxItem) {
+        clearUploadProgress(item.clientMessageId)
         dao.delete(item.clientMessageId)
         item.attachment?.let { File(it.localPath).delete() }
     }
 
     suspend fun clear(directory: File) {
+        progress.value = emptyMap()
         dao.clear()
         directory.listFiles()?.forEach(File::delete)
     }

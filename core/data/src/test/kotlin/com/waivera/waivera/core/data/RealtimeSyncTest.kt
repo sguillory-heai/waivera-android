@@ -1,12 +1,14 @@
 package com.waivera.waivera.core.data
 
 import app.cash.turbine.test
+import com.waivera.waivera.core.data.calendar.CalendarMath
 import com.waivera.waivera.core.network.dto.BookmarkUpdateDto
 import com.waivera.waivera.core.network.dto.ChatReadStateDto
 import com.waivera.waivera.core.realtime.HubEvent
 import com.waivera.waivera.core.realtime.HubEventDecoder
 import com.waivera.waivera.core.testing.Fixtures
 import com.waivera.waivera.core.testing.eventually
+import java.time.YearMonth
 import kotlin.test.AfterTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -197,5 +199,37 @@ class RealtimeSyncTest {
         graph.realtime.connected = false
         assertTrue(!status.shouldSuppressNotification(7))
         assertTrue(graph.conversations.observeConversations().first().data.isEmpty())
+    }
+
+    @Test
+    fun allTypingIsKeyedByConversation() = testScope.runTest {
+        graph.conversations.observeAllTyping().test {
+            assertEquals(emptyMap(), awaitItem())
+            sync.apply(HubEvent.TypingStatus(7, "usr_priya_raman", true))
+            assertEquals(mapOf(7L to setOf("usr_priya_raman")), awaitItem())
+            sync.apply(HubEvent.TypingStatus(11, "usr_jordan_lee", true))
+            assertEquals(setOf(7L, 11L), awaitItem().keys)
+            cancelAndIgnoreRemainingEvents()
+        }
+    }
+
+    @Test
+    fun resyncRefetchesActivityAndOpenScheduleRangesOnly() = testScope.runTest {
+        seedInbox()
+        graph.server.json("GET /api/chat/recent-activity", "[]")
+        graph.server.fixture("GET /api/CalendarEvent/GetAllEvent", "rest-calendar-get-all-event.json")
+        val path = "/api/CalendarEvent/GetAllEvent"
+        val range = CalendarMath.monthGrid(YearMonth.of(2026, 10))
+        graph.calendar.observeRange(range).test {
+            eventually { graph.server.requestsTo(path).size == 1 }
+            sync.resync()
+            assertEquals(2, graph.server.requestsTo(path).size)
+            assertEquals(1, graph.server.requestsTo("/api/chat/recent-activity").size)
+            cancelAndIgnoreRemainingEvents()
+        }
+        runCurrent()
+        assertTrue(graph.calendar.activeRanges.isEmpty())
+        sync.resync()
+        assertEquals(2, graph.server.requestsTo(path).size, "a closed range is not refetched")
     }
 }

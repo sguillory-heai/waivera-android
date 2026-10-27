@@ -212,7 +212,7 @@ class LiveMessageRepository @Inject constructor(
 
     override suspend fun retry(clientMessageId: String): Result<Unit> = catchingWaivera {
         val item = outbox.get(clientMessageId) ?: throw WaiveraError.NotFound()
-        outbox.put(item.copy(state = SendState.QUEUED, attempts = 0))
+        outbox.put(item.copy(state = SendState.QUEUED, attempts = 0, failure = null))
         kick()
     }
 

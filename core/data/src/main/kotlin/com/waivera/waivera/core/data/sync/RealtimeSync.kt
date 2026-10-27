@@ -3,6 +3,7 @@ package com.waivera.waivera.core.data.sync
 import com.waivera.waivera.core.data.live.ChatCache
 import com.waivera.waivera.core.data.live.LiveActivityRepository
 import com.waivera.waivera.core.data.live.LiveBookmarkRepository
+import com.waivera.waivera.core.data.live.LiveCalendarRepository
 import com.waivera.waivera.core.data.live.LiveConversationRepository
 import com.waivera.waivera.core.data.live.LiveMessageRepository
 import com.waivera.waivera.core.data.live.LiveThreadRepository
@@ -35,6 +36,7 @@ class RealtimeSync @Inject constructor(
     private val threads: LiveThreadRepository,
     private val bookmarks: LiveBookmarkRepository,
     private val activity: LiveActivityRepository,
+    private val calendar: LiveCalendarRepository,
     private val typing: TypingTracker,
     private val session: SessionRepository,
 ) {
@@ -99,6 +101,7 @@ class RealtimeSync @Inject constructor(
                         text = update.newContent ?: update.messagePlaintext ?: it.text,
                         doc = update.messageDoc ?: it.doc,
                         contentFormat = update.contentFormat,
+                        plainText = update.messagePlaintext ?: it.plainText,
                         isEdited = true,
                         updatedAt = update.updateDate ?: it.updatedAt,
                     )
@@ -114,13 +117,18 @@ class RealtimeSync @Inject constructor(
         }
     }
 
-    /** After a reconnect or resume: inbox, every open timeline's tail, open threads, activity. */
+    /**
+     * After a reconnect or resume: inbox, every open timeline's tail, open threads, activity and
+     * every schedule range on screen. Activity and the schedule have no hub events for most
+     * changes (G-07), so this is how they catch up after time offline.
+     */
     suspend fun resync() = coroutineScope {
         val jobs = buildList {
             add(async { conversations.refresh() })
             messages.activeConversations.forEach { id -> add(async { messages.refreshLatest(id) }) }
             threads.activeRoots.forEach { root -> add(async { threads.refresh(root) }) }
             add(async { activity.refresh() })
+            calendar.activeRanges.forEach { range -> add(async { calendar.refresh(range) }) }
         }
         jobs.awaitAll()
         Unit

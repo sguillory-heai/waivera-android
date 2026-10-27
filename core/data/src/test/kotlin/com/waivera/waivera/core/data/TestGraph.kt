@@ -76,7 +76,8 @@ class TestGraph(val scope: CoroutineScope, connected: Boolean = true) : AutoClos
     val outbox = OutboxStore(db.outbox)
     val ingest = MessageIngest(cache, outbox)
     val typing = TypingTracker(realtime, clock, scope)
-    val conversations = LiveConversationRepository(chatApi, cache, sync, session, typing, visible, clock)
+    val conversations =
+        LiveConversationRepository(chatApi, videoApi, server.config, cache, sync, session, typing, visible, clock)
     val processor = OutboxProcessor(outbox, chatApi, realtime, ingest)
     val messages = LiveMessageRepository(
         chatApi, cache, sync, ingest, outbox, processor, scheduler, realtime, session, conversations, typing, clock,
@@ -85,13 +86,13 @@ class TestGraph(val scope: CoroutineScope, connected: Boolean = true) : AutoClos
     val threads = LiveThreadRepository(chatApi, cache, sync, ingest, outbox, realtime, session, scope)
     val bookmarks = LiveBookmarkRepository(chatApi, cache, sync)
     val activity = LiveActivityRepository(chatApi, cache, sync)
-    val people = LivePeopleRepository(chatApi, fileApi, cache, sync, clock)
+    val people = LivePeopleRepository(chatApi, fileApi, authApi, cache, sync, clock)
     val calendar = LiveCalendarRepository(calendarApi, videoApi, cache, sync, session, server.config, clock, scope)
     val profile = LiveProfileRepository(employeeApi, timeOffApi, authApi, cache, sync, session)
     val settings = LiveSettingsRepository(settingsStore)
     val push = LivePushRegistrationRepository(pushApi, secureStore, session, settings)
     val realtimeSync =
-        RealtimeSync(cache, ingest, conversations, messages, threads, bookmarks, activity, typing, session)
+        RealtimeSync(cache, ingest, conversations, messages, threads, bookmarks, activity, calendar, typing, session)
 
     override fun close() {
         server.close()

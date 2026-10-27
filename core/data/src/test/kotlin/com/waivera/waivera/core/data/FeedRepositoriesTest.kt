@@ -2,9 +2,12 @@ package com.waivera.waivera.core.data
 
 import app.cash.turbine.test
 import com.waivera.waivera.core.data.live.LivePeopleRepository
+import com.waivera.waivera.core.data.model.CurrentUser
+import com.waivera.waivera.core.data.model.SessionState
 import com.waivera.waivera.core.data.model.SyncStatus
 import com.waivera.waivera.core.data.model.isEmpty
 import com.waivera.waivera.core.network.error.WaiveraError
+import com.waivera.waivera.core.testing.FixtureServer
 import com.waivera.waivera.core.testing.Fixtures
 import com.waivera.waivera.core.testing.eventually
 import kotlin.test.AfterTest
@@ -16,6 +19,8 @@ import kotlin.test.assertIs
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.runCurrent
@@ -225,5 +230,72 @@ class FeedRepositoriesTest {
         assertEquals(dir, file.parentFile, "file names cannot escape the cache directory")
         assertEquals("PDFDATA", file.readText())
         dir.deleteRecursively()
+    }
+
+    private fun activityPage(page: Int): String = (1..30).joinToString(",", "[", "]") { n ->
+        val id = page * 100 + n
+        """{"id":$id,"activityType":"chat.mention","conversationId":7,"messageId":$id,""" +
+            """"summary":"s$id","createdAt":"2026-10-20T13:02:44","read":false}"""
+    }
+
+    @Test
+    fun failedMarkReadPutsTheRowsBackToUnread() = testScope.runTest {
+        graph.server.fixture("GET /api/chat/recent-activity", "rest-chat-recent-activity.json")
+        graph.activity.refresh().getOrThrow()
+        val unreadBefore = graph.activity.observeActivity().first().data.unreadCount
+        assertTrue(unreadBefore > 0)
+
+        graph.server.status("PUT /api/chat/recent-activity/4411/read", 500)
+        assertIs<WaiveraError.Server>(graph.activity.markRead(4411).exceptionOrNull())
+        assertFalse(graph.cache.allActivity().single { it.id == 4411L }.read, "rolled back")
+
+        graph.server.status("PUT /api/chat/recent-activity/read-all", 503)
+        assertTrue(graph.activity.markAllRead().isFailure)
+        assertEquals(unreadBefore, graph.activity.observeActivity().first().data.unreadCount)
+    }
+
+    @Test
+    fun overlappingLoadMoreCallsFetchEachPageOnce() = testScope.runTest {
+        graph.server.route("GET /api/chat/recent-activity") { request ->
+            FixtureServer.json(activityPage(request.url.queryParameter("page")?.toInt() ?: 1))
+        }
+        graph.activity.refresh().getOrThrow()
+        listOf(async { graph.activity.loadMore() }, async { graph.activity.loadMore() }).awaitAll()
+            .forEach { it.getOrThrow() }
+        val pages = graph.server.requestsTo("/api/chat/recent-activity").map { it.url.queryParameter("page") }
+        assertEquals(listOf("1", "2", "3"), pages)
+        assertEquals(90, graph.cache.allActivity().size)
+    }
+
+    @Test
+    fun personDetailsAndOrganizationLoad() = testScope.runTest {
+        graph.server.fixture(
+            "GET /api/Authentication/GetUserDetailsByUserID/usr_alex_rivera",
+            "rest-auth-get-user-details.json",
+        )
+        val details = graph.people.details("usr_alex_rivera").getOrThrow()
+        assertEquals("Northside Supports", details.organizationName)
+        assertEquals("SC-4821", details.scId)
+        assertEquals(listOf("SUPPORT COORDINATOR"), details.roles)
+
+        graph.session.mutableState.value =
+            SessionState.SignedIn(CurrentUser("usr_alex_rivera", organizationId = 12))
+        graph.server.fixture("GET /api/Authentication/OrganizationDetails", "rest-auth-organization-details.json")
+        assertEquals("+1-555-0190", graph.profile.organization().getOrThrow()?.contactNumber)
+        graph.server.status("GET /api/Authentication/OrganizationDetails", 404)
+        assertNull(graph.profile.organization().getOrThrow(), "404 means no organizations")
+        graph.session.mutableState.value = SessionState.SignedIn(CurrentUser("usr_alex_rivera"))
+        assertNull(graph.profile.organization().getOrThrow(), "no organization id, no lookup")
+    }
+
+    @Test
+    fun timeOffBalanceKeepsTheServerPercentage() = testScope.runTest {
+        graph.server.fixture(
+            "GET /api/TimeOff/get-timeOffs-for-user-profile/usr_alex_rivera",
+            "rest-timeoff-get-for-user-profile.json",
+        )
+        val balance = assertNotNull(graph.profile.timeOff("usr_alex_rivera").getOrThrow().balance)
+        assertEquals(26.67, balance.usedPercentage)
+        assertEquals(11.0, balance.remainingDays)
     }
 }

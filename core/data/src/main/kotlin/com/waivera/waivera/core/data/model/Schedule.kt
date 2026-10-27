@@ -92,7 +92,14 @@ data class TimeOffEntry(
 
 /** Holidays are date-only; [endInclusive] is the last day off. */
 @Serializable
-data class Holiday(val id: Long, val title: String? = null, val start: LocalDate, val endInclusive: LocalDate)
+data class Holiday(
+    val id: Long,
+    val title: String? = null,
+    val start: LocalDate,
+    val endInclusive: LocalDate,
+    /** Shown under the title (07 §3), for example "Office closed". */
+    val description: String? = null,
+)
 
 @Serializable
 data class ScheduleFeed(

@@ -6,9 +6,11 @@ import com.waivera.waivera.core.network.dto.AttachmentScanStatus
 import com.waivera.waivera.core.network.dto.CallRecordStatus
 import com.waivera.waivera.core.network.dto.ChannelType
 import com.waivera.waivera.core.network.dto.MessageType
+import com.waivera.waivera.core.network.error.WaiveraError
 import com.waivera.waivera.core.network.time.UtcInstantSerializer
 import java.time.Instant
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.Transient
 import kotlinx.serialization.UseSerializers
 import kotlinx.serialization.json.JsonElement
 
@@ -65,6 +67,7 @@ data class MessagePreview(
     val messageId: Long,
     val authorId: String? = null,
     val authorName: String? = null,
+    /** `messageContent`: plain text, or for rich messages whatever the sender stored (TipTap JSON, HTML). */
     val text: String? = null,
     val attachmentName: String? = null,
     val attachmentContentType: String? = null,
@@ -72,6 +75,16 @@ data class MessagePreview(
     val isDeleted: Boolean = false,
     val messageType: MessageType = MessageType.USER,
     val createdAt: Instant? = null,
+    /** [Message.CONTENT_FORMAT_PLAIN] or [Message.CONTENT_FORMAT_RICH] (rest.md `contentFormat`). */
+    val contentFormat: Int = Message.CONTENT_FORMAT_PLAIN,
+    /** The server's plain-text rendering of a rich message (`messagePlaintext`); prefer it over [text]. */
+    val plainText: String? = null,
+    /** Sent by a bot: the DTO's `isBot`, a `botId`, or a `bot:` author id. */
+    val isBot: Boolean = false,
+    val botId: String? = null,
+    val systemEventType: String? = null,
+    /** Set when [systemEventType] is `ticket.update` and the payload is valid. */
+    val ticket: TicketUpdate? = null,
 )
 
 @Serializable
@@ -88,8 +101,13 @@ data class Conversation(
 ) {
     val canWrite: Boolean get() = channel?.let { it.canWrite && !it.isArchived } ?: true
 
-    /** Sort key for the inbox: newest activity first. */
-    val activityAt: Instant? get() = lastMessage?.createdAt
+    /**
+     * Sort key for the inbox: newest activity first. Spec 02 falls back to `lastActivityAt`,
+     * `modifiedDate` and `createDate`, which sprout_api's conversation DTOs do not send; the
+     * timestamps it does send stand in, and the list breaks ties by id (newer ids are newer chats).
+     */
+    val activityAt: Instant?
+        get() = lastMessage?.createdAt ?: ongoingCall?.startedAt ?: activeMeeting?.startAt
 
     /** Everyone except [myUserId]; for DM titles and avatars. */
     fun others(myUserId: String?): List<Person> = participants.filter { it.id != myUserId }
@@ -120,6 +138,70 @@ data class Reaction(val userId: String, val emoji: String)
 
 enum class SendState { SENT, QUEUED, SENDING, FAILED }
 
+/**
+ * Why an outbox send failed for good, stored with the outbox row (an exception cannot be
+ * persisted or compared). [toError] gives the [WaiveraError] the UI already knows how to explain.
+ */
+enum class SendFailure {
+    NETWORK,
+    TIMEOUT,
+    SERVER,
+    RATE_LIMITED,
+    CHANNEL_ARCHIVED,
+    CHANNEL_READ_ONLY,
+    FORBIDDEN,
+    NOT_FOUND,
+    VALIDATION,
+    ATTACHMENT_EXPIRED,
+    ATTACHMENT_REJECTED,
+    ATTACHMENT_TOO_LARGE,
+    SESSION_EXPIRED,
+    NOT_SIGNED_IN,
+    REALTIME_UNAVAILABLE,
+    OTHER,
+    ;
+
+    fun toError(): WaiveraError = when (this) {
+        NETWORK -> WaiveraError.Network()
+        TIMEOUT -> WaiveraError.Timeout()
+        SERVER -> WaiveraError.Server(WaiveraError.HTTP_SERVER_ERROR)
+        RATE_LIMITED -> WaiveraError.RateLimited()
+        CHANNEL_ARCHIVED -> WaiveraError.ChannelArchived()
+        CHANNEL_READ_ONLY -> WaiveraError.ChannelReadOnly()
+        FORBIDDEN -> WaiveraError.Forbidden()
+        NOT_FOUND -> WaiveraError.NotFound()
+        VALIDATION -> WaiveraError.Validation()
+        ATTACHMENT_EXPIRED -> WaiveraError.AttachmentExpired()
+        ATTACHMENT_REJECTED -> WaiveraError.AttachmentRejected()
+        ATTACHMENT_TOO_LARGE -> WaiveraError.AttachmentTooLarge()
+        SESSION_EXPIRED -> WaiveraError.SessionExpired()
+        NOT_SIGNED_IN -> WaiveraError.NotSignedIn()
+        REALTIME_UNAVAILABLE -> WaiveraError.RealtimeUnavailable()
+        OTHER -> WaiveraError.Unexpected()
+    }
+
+    companion object {
+        fun of(error: WaiveraError): SendFailure = when (error) {
+            is WaiveraError.Network -> NETWORK
+            is WaiveraError.Timeout -> TIMEOUT
+            is WaiveraError.Server -> SERVER
+            is WaiveraError.RateLimited -> RATE_LIMITED
+            is WaiveraError.ChannelArchived -> CHANNEL_ARCHIVED
+            is WaiveraError.ChannelReadOnly -> CHANNEL_READ_ONLY
+            is WaiveraError.Forbidden -> FORBIDDEN
+            is WaiveraError.NotFound -> NOT_FOUND
+            is WaiveraError.Validation -> VALIDATION
+            is WaiveraError.AttachmentExpired -> ATTACHMENT_EXPIRED
+            is WaiveraError.AttachmentRejected -> ATTACHMENT_REJECTED
+            is WaiveraError.AttachmentTooLarge -> ATTACHMENT_TOO_LARGE
+            is WaiveraError.SessionExpired -> SESSION_EXPIRED
+            is WaiveraError.NotSignedIn -> NOT_SIGNED_IN
+            is WaiveraError.RealtimeUnavailable -> REALTIME_UNAVAILABLE
+            else -> OTHER
+        }
+    }
+}
+
 @Serializable
 data class Message(
     /** Server id, or a negative placeholder for an unsent outbox message. */
@@ -148,7 +230,16 @@ data class Message(
     val threadRootMessageId: Long? = null,
     val threadReplyCount: Int = 0,
     val sendState: SendState = SendState.SENT,
+    /** The server's plain-text rendering of a rich message (`messagePlaintext`). */
+    val plainText: String? = null,
+    /** Why the outbox gave up on this message; set only while [sendState] is FAILED. */
+    val sendFailure: SendFailure? = null,
+    /** 0..1 while the attachment uploads; null when there is nothing uploading. */
+    @Transient val uploadProgress: Float? = null,
 ) {
+    /** [sendFailure] as the typed error the UI maps to copy. */
+    val sendError: WaiveraError? get() = sendFailure?.toError()
+
     val isThreadReply: Boolean get() = threadRootMessageId != null && threadRootMessageId != id
 
     val isPending: Boolean get() = sendState != SendState.SENT
@@ -157,6 +248,11 @@ data class Message(
 
     /** Thread root for navigation: replies open their thread, roots open themselves. */
     val navigationRootId: Long? get() = threadRootMessageId ?: if (threadReplyCount > 0) id else null
+
+    companion object {
+        const val CONTENT_FORMAT_PLAIN = 0
+        const val CONTENT_FORMAT_RICH = 1
+    }
 }
 
 /** Messages newest last, plus whether older pages exist (G-06 stop rules). */

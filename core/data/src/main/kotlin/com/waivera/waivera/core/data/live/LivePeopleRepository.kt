@@ -1,14 +1,17 @@
 package com.waivera.waivera.core.data.live
 
 import com.waivera.waivera.core.data.model.Person
+import com.waivera.waivera.core.data.model.PersonDetails
 import com.waivera.waivera.core.data.model.Synced
 import com.waivera.waivera.core.data.repository.PeopleRepository
+import com.waivera.waivera.core.network.api.AuthenticationApi
 import com.waivera.waivera.core.network.api.ChatApi
 import com.waivera.waivera.core.network.api.FileApi
 import com.waivera.waivera.core.network.error.WaiveraError
 import com.waivera.waivera.core.network.error.apiCall
 import com.waivera.waivera.core.network.error.apiCallOrNull
 import com.waivera.waivera.core.network.error.catchingWaivera
+import com.waivera.waivera.core.network.error.requireData
 import java.time.Clock
 import java.util.Base64
 import javax.inject.Inject
@@ -27,6 +30,7 @@ import kotlinx.coroutines.sync.withLock
 class LivePeopleRepository @Inject constructor(
     private val chatApi: ChatApi,
     private val fileApi: FileApi,
+    private val authApi: AuthenticationApi,
     private val cache: ChatCache,
     private val sync: SyncTracker,
     private val clock: Clock,
@@ -44,6 +48,21 @@ class LivePeopleRepository @Inject constructor(
     override suspend fun refresh(): Result<Unit> = sync.track(KEY) {
         val people = apiCall { chatApi.getInitiationDirectory() }.mapNotNull(Mappers::person)
         cache.putPeople(people)
+    }
+
+    override suspend fun details(userId: String): Result<PersonDetails> = catchingWaivera {
+        val dto = apiCall { authApi.getUserDetails(userId) }.requireData()
+        PersonDetails(
+            userId = dto.id?.takeIf(String::isNotBlank) ?: userId,
+            firstName = dto.firstName,
+            lastName = dto.lastName,
+            displayName = dto.displayName,
+            email = dto.email,
+            phoneNumber = dto.phoneNumber,
+            roles = dto.roles.map(String::trim).filter(String::isNotEmpty),
+            organizationName = dto.organizationName?.takeIf(String::isNotBlank),
+            scId = dto.scId?.takeIf(String::isNotBlank),
+        )
     }
 
     @Suppress("ReturnCount")

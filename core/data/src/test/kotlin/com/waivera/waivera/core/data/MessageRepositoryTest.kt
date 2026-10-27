@@ -1,11 +1,14 @@
 package com.waivera.waivera.core.data
 
 import app.cash.turbine.test
+import com.waivera.waivera.core.data.model.SendFailure
 import com.waivera.waivera.core.data.model.SendState
+import com.waivera.waivera.core.data.outbox.OutboxItem
 import com.waivera.waivera.core.network.error.WaiveraError
 import com.waivera.waivera.core.testing.FixtureServer
 import com.waivera.waivera.core.testing.Fixtures
 import com.waivera.waivera.core.testing.eventually
+import java.time.Instant
 import kotlin.test.AfterTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -252,5 +255,41 @@ class MessageRepositoryTest {
         graph.server.json("PUT /api/chat/message/$editedId", editFixture)
         val edited = repo.edit(editedId, "fixed").getOrThrow()
         assertTrue(edited.isEdited)
+    }
+
+    @Test
+    fun permanentFailureKeepsItsReasonUntilRetried() = testScope.runTest {
+        graph.realtime.connected = false
+        graph.server.status("POST /api/chat/send", 403)
+        val clientId = repo.send(7, "nope")
+        eventually { graph.outbox.get(clientId)?.state == SendState.FAILED }
+        val failed = graph.outbox.get(clientId)
+        assertEquals(SendFailure.FORBIDDEN, failed?.failure)
+        assertIs<WaiveraError.Forbidden>(failed?.toMessage(null)?.sendError)
+
+        graph.server.status("POST /api/chat/send", 503)
+        repo.retry(clientId).getOrThrow()
+        eventually { graph.outbox.get(clientId)?.state == SendState.QUEUED }
+        assertNull(graph.outbox.get(clientId)?.failure, "a retry clears the old reason")
+    }
+
+    @Test
+    fun uploadProgressShowsOnTheSendingMessageOnly() = testScope.runTest {
+        val item = OutboxItem(
+            clientMessageId = "c1",
+            conversationId = 7,
+            authorId = "usr_alex_rivera",
+            text = "",
+            state = SendState.SENDING,
+            createdAt = Instant.parse("2026-10-20T13:00:00Z"),
+        )
+        graph.outbox.put(item)
+        graph.outbox.setUploadProgress("c1", 0.4f)
+        assertEquals(0.4f, graph.outbox.observeConversation(7).first().single().toMessage(null).uploadProgress)
+        graph.outbox.put(item.copy(state = SendState.FAILED, failure = SendFailure.NETWORK))
+        assertNull(graph.outbox.observeConversation(7).first().single().toMessage(null).uploadProgress)
+        graph.outbox.clearUploadProgress("c1")
+        graph.outbox.put(item)
+        assertNull(graph.outbox.observeConversation(7).first().single().uploadProgress)
     }
 }

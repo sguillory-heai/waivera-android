@@ -3,6 +3,8 @@ package com.waivera.waivera.core.data.live
 import com.waivera.waivera.core.data.calendar.CalendarMath
 import com.waivera.waivera.core.data.model.DateRange
 import com.waivera.waivera.core.data.model.Milestone
+import com.waivera.waivera.core.data.model.MyInvitation
+import com.waivera.waivera.core.data.model.ScheduleEvent
 import com.waivera.waivera.core.data.model.ScheduleFeed
 import com.waivera.waivera.core.data.model.Synced
 import com.waivera.waivera.core.data.model.currentUser
@@ -15,6 +17,7 @@ import com.waivera.waivera.core.network.api.VideoApi
 import com.waivera.waivera.core.network.di.ApplicationScope
 import com.waivera.waivera.core.network.dto.CreateMeetingRoomRequest
 import com.waivera.waivera.core.network.dto.InternalInvitationResponseReq
+import com.waivera.waivera.core.network.dto.InviteStatus
 import com.waivera.waivera.core.network.error.WaiveraError
 import com.waivera.waivera.core.network.error.apiCall
 import com.waivera.waivera.core.network.error.catchingWaivera
@@ -27,10 +30,15 @@ import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.emitAll
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onStart
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.serialization.Serializable
 import kotlinx.serialization.builtins.ListSerializer
 
 /**
@@ -57,14 +65,32 @@ class LiveCalendarRepository @Inject constructor(
     private fun currentZone(raw: String? = session.state.value.currentUser?.timeZoneId): ZoneId =
         WaiveraTime.employeeZone(raw)
 
-    override fun observeRange(range: DateRange): Flow<Synced<ScheduleFeed>> {
-        val key = feedKey(range)
-        val empty = ScheduleFeed(range, currentZone().id)
-        val data = cache.observeDocument(key, ScheduleFeed.serializer()).map { it ?: empty }
-        return sync.synced(key, data).onStart {
-            scope.launch {
-                val last = sync.lastSyncedNow(key)
-                if (last == null || Duration.between(last, clock.instant()) > FEED_STALE) refresh(range)
+    /** Ranges with a collector right now, refetched after a reconnect (see [RealtimeSync.resync]). */
+    private val openRanges = MutableStateFlow<Map<DateRange, Int>>(emptyMap())
+
+    /** Feed documents written by this process, patched when an invitation answer is saved. */
+    private val writtenFeeds = MutableStateFlow<Set<String>>(emptySet())
+
+    val activeRanges: Set<DateRange> get() = openRanges.value.keys
+
+    override fun observeRange(range: DateRange): Flow<Synced<ScheduleFeed>> = flow {
+        openRanges.update { it + (range to (it[range] ?: 0) + 1) }
+        try {
+            val key = feedKey(range)
+            val empty = ScheduleFeed(range, currentZone().id)
+            val data = cache.observeDocument(key, ScheduleFeed.serializer()).map { it ?: empty }
+            emitAll(
+                sync.synced(key, data).onStart {
+                    scope.launch {
+                        val last = sync.lastSyncedNow(key)
+                        if (last == null || Duration.between(last, clock.instant()) > FEED_STALE) refresh(range)
+                    }
+                },
+            )
+        } finally {
+            openRanges.update { current ->
+                val count = (current[range] ?: 1) - 1
+                if (count <= 0) current - range else current + (range to count)
             }
         }
     }
@@ -81,7 +107,35 @@ class LiveCalendarRepository @Inject constructor(
             )
         }.requireData()
         val feed = CalendarMath.feed(dto, range, zone, session.state.value.currentUserId)
-        cache.putDocument(feedKey(range), ScheduleFeed.serializer(), feed)
+        val key = feedKey(range)
+        cache.putDocument(key, ScheduleFeed.serializer(), feed)
+        writtenFeeds.update { it + key }
+    }
+
+    /**
+     * One event by id, for screens opened from a push or link. The cached copy shows at once;
+     * a cold or stale copy refreshes on first collection. `data == null` with a sync time means
+     * the server answered 404 (deleted, or in another organization).
+     */
+    override fun observeEvent(eventId: String): Flow<Synced<ScheduleEvent?>> {
+        val key = eventKey(eventId)
+        val data = cache.observeDocument(key, CachedEvent.serializer()).map { it?.event }
+        return sync.synced(key, data).onStart {
+            scope.launch {
+                val last = sync.lastSyncedNow(key)
+                if (last == null || Duration.between(last, clock.instant()) > FEED_STALE) refreshEvent(eventId)
+            }
+        }
+    }
+
+    override suspend fun refreshEvent(eventId: String): Result<Unit> = sync.track(eventKey(eventId)) {
+        val event = try {
+            apiCall { calendarApi.getEventById(eventId) }.requireData()
+                .let { CalendarMath.event(it, session.state.value.currentUserId) }
+        } catch (_: WaiveraError.NotFound) {
+            null
+        }
+        cache.putDocument(eventKey(eventId), CachedEvent.serializer(), CachedEvent(event))
     }
 
     override fun observeMilestones(): Flow<Synced<List<Milestone>>> {
@@ -102,6 +156,30 @@ class LiveCalendarRepository @Inject constructor(
             )
         }.data
         if (ok != true) throw WaiveraError.Unexpected()
+        applyInvitation(eventId, if (accept) MyInvitation.ACCEPTED else MyInvitation.DECLINED, userId)
+        // The server stays authoritative: settle the single-event copy with its answer.
+        scope.launch { refreshEvent(eventId) }
+    }
+
+    /** The saved answer, written into every cached copy of the event so all screens agree at once. */
+    private suspend fun applyInvitation(eventId: String, answer: MyInvitation, userId: String) {
+        val status = if (answer == MyInvitation.ACCEPTED) InviteStatus.ACCEPTED else InviteStatus.DECLINED
+        val now = clock.instant()
+        fun ScheduleEvent.answered(): ScheduleEvent = copy(
+            myInvitation = answer,
+            attendees = attendees.map {
+                if (it.userId == userId) it.copy(inviteStatus = status, respondedAt = now) else it
+            },
+        )
+        cache.document(eventKey(eventId), CachedEvent.serializer())?.event?.let { event ->
+            cache.putDocument(eventKey(eventId), CachedEvent.serializer(), CachedEvent(event.answered()))
+        }
+        writtenFeeds.value.forEach { key ->
+            val feed = cache.document(key, ScheduleFeed.serializer()) ?: return@forEach
+            if (feed.events.none { it.id == eventId }) return@forEach
+            val events = feed.events.map { if (it.id == eventId) it.answered() else it }
+            cache.putDocument(key, ScheduleFeed.serializer(), feed.copy(events = events))
+        }
     }
 
     override suspend fun meetingLobbyUrl(eventId: String): Result<String> = catchingWaivera {
@@ -118,6 +196,12 @@ class LiveCalendarRepository @Inject constructor(
     }
 
     private fun feedKey(range: DateRange) = "calendar:${currentZone().id}:${range.key}"
+
+    private fun eventKey(eventId: String) = "calendar:event:$eventId"
+
+    /** Wraps the event so "looked up and not found" (null) is stored, not just absent. */
+    @Serializable
+    private data class CachedEvent(val event: ScheduleEvent? = null)
 
     companion object {
         private const val MILESTONES = "milestones"

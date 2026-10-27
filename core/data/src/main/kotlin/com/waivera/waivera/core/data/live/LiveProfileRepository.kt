@@ -3,11 +3,13 @@ package com.waivera.waivera.core.data.live
 import com.waivera.waivera.core.data.model.EmployeeFile
 import com.waivera.waivera.core.data.model.EmployeeFilePage
 import com.waivera.waivera.core.data.model.EmployeeProfile
+import com.waivera.waivera.core.data.model.Organization
 import com.waivera.waivera.core.data.model.Person
 import com.waivera.waivera.core.data.model.Synced
 import com.waivera.waivera.core.data.model.TimeOffBalance
 import com.waivera.waivera.core.data.model.TimeOffRequest
 import com.waivera.waivera.core.data.model.TimeOffSummary
+import com.waivera.waivera.core.data.model.currentUser
 import com.waivera.waivera.core.data.model.currentUserId
 import com.waivera.waivera.core.data.repository.ProfileRepository
 import com.waivera.waivera.core.data.repository.SessionRepository
@@ -44,8 +46,24 @@ class LiveProfileRepository @Inject constructor(
 
     override suspend fun profile(employeeId: String): Result<EmployeeProfile> = catchingWaivera { fetch(employeeId) }
 
-    private suspend fun fetch(employeeId: String): EmployeeProfile =
-        map(apiCall { employeeApi.getProfile(employeeId) }.requireData(), employeeId)
+    private suspend fun fetch(employeeId: String): EmployeeProfile {
+        val profile = map(apiCall { employeeApi.getProfile(employeeId) }.requireData(), employeeId)
+        // The profile DTO has no SCID; the bootstrap's user details do, for the signed-in person.
+        val me = session.state.value.currentUser
+        return if (me != null && me.userId == profile.employeeId) profile.copy(scId = me.scId) else profile
+    }
+
+    /** `OrganizationDetails` lists organizations; only the one whose id is the session's counts. */
+    override suspend fun organization(): Result<Organization?> = catchingWaivera {
+        val id = session.state.value.currentUser?.organizationId?.takeIf { it > 0 } ?: return@catchingWaivera null
+        val list = try {
+            apiCall { authApi.getOrganizationDetails() }.requireData()
+        } catch (_: WaiveraError.NotFound) {
+            // The endpoint answers 404 when the list is empty.
+            emptyList()
+        }
+        list.firstOrNull { it.id == id }?.let { Organization(it.id, it.name, it.address, it.contactNumber) }
+    }
 
     override suspend fun timeOff(userId: String): Result<TimeOffSummary> = catchingWaivera {
         val rows = apiCall { timeOffApi.getTimeOffForProfile(userId) }.requireData()
@@ -59,12 +77,13 @@ class LiveProfileRepository @Inject constructor(
             // Balance figures repeat on every row; the first row carries them.
             balance = rows.firstOrNull()?.let {
                 TimeOffBalance(
-                    it.remainingLeaveDays,
-                    it.remainingLeaveHours,
-                    it.usedLeaveDays,
-                    it.usedLeaveHours,
-                    it.allocatedLeaveCount,
-                    it.pendingTimeOffCount,
+                    remainingDays = it.remainingLeaveDays ?: it.remainingLeaveCount,
+                    remainingHours = it.remainingLeaveHours,
+                    usedDays = it.usedLeaveDays,
+                    usedHours = it.usedLeaveHours,
+                    allocated = it.allocatedLeaveCount,
+                    pending = it.pendingTimeOffCount,
+                    usedPercentage = it.usedLeavePercentage,
                 )
             },
         )
@@ -119,6 +138,7 @@ class LiveProfileRepository @Inject constructor(
         regions = dto.regions.mapNotNull { it.name },
         agencies = dto.agencyNames,
         timeZoneId = dto.timezone,
+        waiverFamilies = dto.waiverFamilies.orEmpty().map(String::trim).filter(String::isNotEmpty),
     )
 
     companion object {

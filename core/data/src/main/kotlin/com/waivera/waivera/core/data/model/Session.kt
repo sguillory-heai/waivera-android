@@ -20,6 +20,7 @@ data class CurrentUser(
     val roles: List<String> = emptyList(),
     val phoneNumber: String? = null,
     val requiresOnboarding: Boolean = false,
+    val scId: String? = null,
 ) {
     /** The employee's saved zone, or the organisation default (dates.md §2). Never the device zone. */
     val zone: ZoneId get() = com.waivera.waivera.core.network.time.WaiveraTime.employeeZone(timeZoneId)

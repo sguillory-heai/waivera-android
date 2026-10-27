@@ -186,7 +186,13 @@ object CalendarMath {
             holidays = dto.holidays.mapNotNull { h ->
                 val start = h.startDate ?: return@mapNotNull null
                 // Holiday end dates are exclusive like all-day events (Thanksgiving is 26 to 27).
-                Holiday(h.id, h.title, start, h.endDate?.takeIf { it.isAfter(start) }?.minusDays(1) ?: start)
+                Holiday(
+                    id = h.id,
+                    title = h.title,
+                    start = start,
+                    endInclusive = h.endDate?.takeIf { it.isAfter(start) }?.minusDays(1) ?: start,
+                    description = h.description?.takeIf(String::isNotBlank),
+                )
             },
         )
 

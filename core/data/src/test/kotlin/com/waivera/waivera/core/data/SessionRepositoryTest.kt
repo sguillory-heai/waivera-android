@@ -17,7 +17,10 @@ import kotlin.test.assertEquals
 import kotlin.test.assertIs
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
+import kotlinx.coroutines.flow.toList
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.TestScope
+import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 
@@ -163,5 +166,45 @@ class SessionRepositoryTest {
         assertIs<SessionState.SignedOut>(repo.state.value)
         assertEquals("device-1", graph.secureStore.values[SecureStore.DEVICE_ID], "the device id survives")
         assertNull(graph.secureStore.values[SecureStore.CACHED_SESSION])
+    }
+
+    @Test
+    fun voluntaryPasswordChangeStaysSignedInWithoutALoadingState() = testScope.runTest {
+        serveLogin()
+        graph.server.status("POST /api/Authentication/confirm-password-change", 204)
+        val gateway = FakeAuthGateway()
+        val repo = repository(gateway)
+        repo.signIn("alex.rivera@example.com", "correct-horse").getOrThrow()
+        val states = mutableListOf<SessionState>()
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { repo.state.toList(states) }
+
+        repo.changePassword("correct-horse", "battery-staple").getOrThrow()
+        assertEquals("battery-staple", gateway.accounts["alex.rivera@example.com"])
+        assertTrue(states.all { it is SessionState.SignedIn }, "no Initializing flash: $states")
+        assertEquals(2, graph.server.requestsTo("/api/Authentication/login").size, "re-bootstrapped quietly")
+    }
+
+    @Test
+    fun passwordChangeResumesAtTheBackendConfirmAfterAFailure() = testScope.runTest {
+        serveLogin("rest-auth-login-requires-password-change.json")
+        val gateway = FakeAuthGateway()
+        val repo = repository(gateway)
+        repo.signIn("alex.rivera@example.com", "correct-horse").getOrThrow()
+        graph.server.status("POST /api/Authentication/confirm-password-change", 503)
+        assertTrue(repo.changePassword("correct-horse", "battery-staple").isFailure)
+        assertEquals("battery-staple", gateway.accounts["alex.rivera@example.com"], "Firebase already changed")
+
+        // Retrying with the same new password skips Firebase; the old password would now be rejected there.
+        serveLogin()
+        graph.server.status("POST /api/Authentication/confirm-password-change", 204)
+        repo.changePassword("correct-horse", "battery-staple").getOrThrow()
+        assertIs<SessionState.SignedIn>(repo.state.value)
+        assertEquals(2, graph.server.requestsTo("/api/Authentication/confirm-password-change").size)
+
+        // A different new password is a new change and goes through Firebase again.
+        graph.server.status("POST /api/Authentication/confirm-password-change", 503)
+        assertIs<WaiveraError.InvalidCredentials>(
+            repo.changePassword("correct-horse", "another-one").exceptionOrNull(),
+        )
     }
 }

@@ -10,8 +10,11 @@ import com.waivera.waivera.core.data.model.Milestone
 import com.waivera.waivera.core.data.model.MyInvitation
 import com.waivera.waivera.core.data.model.NotificationCategory
 import com.waivera.waivera.core.data.model.NotificationPreferences
+import com.waivera.waivera.core.data.model.Organization
 import com.waivera.waivera.core.data.model.Person
+import com.waivera.waivera.core.data.model.PersonDetails
 import com.waivera.waivera.core.data.model.RealtimeStatus
+import com.waivera.waivera.core.data.model.ScheduleEvent
 import com.waivera.waivera.core.data.model.ScheduleFeed
 import com.waivera.waivera.core.data.model.SessionState
 import com.waivera.waivera.core.data.model.Synced
@@ -113,6 +116,22 @@ class DemoPeopleRepository @Inject constructor(private val backend: DemoBackend)
 
     /** Only Priya has a photo, so initials fallbacks are visible too. */
     override suspend fun avatar(userId: String): ByteArray? = avatar.takeIf { userId == DemoData.PRIYA }
+
+    override suspend fun details(userId: String): Result<PersonDetails> {
+        val person = backend.people.value.firstOrNull { it.id == userId }
+            ?: return Result.failure(WaiveraError.NotFound())
+        return Result.success(
+            PersonDetails(
+                userId = person.id,
+                firstName = person.firstName,
+                lastName = person.lastName,
+                displayName = person.displayName,
+                email = person.email,
+                roles = listOf("Direct Support Professional"),
+                organizationName = DemoData.currentUser().organizationName,
+            ),
+        )
+    }
 }
 
 @Singleton
@@ -138,6 +157,11 @@ class DemoCalendarRepository @Inject constructor(private val backend: DemoBacken
     override fun observeMilestones(): Flow<Synced<List<Milestone>>> = backend.synced(backend.milestones)
 
     override suspend fun refreshMilestones(): Result<Unit> = backend.refresh()
+
+    override fun observeEvent(eventId: String): Flow<Synced<ScheduleEvent?>> =
+        backend.synced(backend.events.map { events -> events.firstOrNull { it.id == eventId } })
+
+    override suspend fun refreshEvent(eventId: String): Result<Unit> = backend.refresh()
 
     override suspend fun respondToInvitation(eventId: String, accept: Boolean): Result<Unit> {
         backend.events.update { list ->
@@ -189,6 +213,14 @@ class DemoProfileRepository @Inject constructor(private val backend: DemoBackend
     override suspend fun files(userId: String, page: Int): Result<EmployeeFilePage> {
         val all = DemoData.files()
         return Result.success(EmployeeFilePage(all, all.size, page))
+    }
+
+    override suspend fun organization(): Result<Organization?> {
+        val user = DemoData.currentUser()
+        val id = user.organizationId.takeIf { it > 0 } ?: return Result.success(null)
+        return Result.success(
+            Organization(id, user.organizationName, "900 Example Ave, Springfield", "+1-555-0190"),
+        )
     }
 
     override suspend fun updateContact(phoneNumber: String?, timeZoneId: String?): Result<Unit> {

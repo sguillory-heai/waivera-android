@@ -8,11 +8,14 @@ import com.waivera.waivera.core.data.model.Synced
 import com.waivera.waivera.core.data.model.currentUserId
 import com.waivera.waivera.core.data.repository.ConversationRepository
 import com.waivera.waivera.core.data.repository.SessionRepository
+import com.waivera.waivera.core.network.NetworkConfig
 import com.waivera.waivera.core.network.api.ChatApi
+import com.waivera.waivera.core.network.api.VideoApi
 import com.waivera.waivera.core.network.dto.ChatReadStateDto
 import com.waivera.waivera.core.network.dto.ChatReadThroughRequest
 import com.waivera.waivera.core.network.dto.ConversationCallStateDto
 import com.waivera.waivera.core.network.dto.CreateConversationRequest
+import com.waivera.waivera.core.network.dto.CreateMeetingRoomRequest
 import com.waivera.waivera.core.network.error.WaiveraError
 import com.waivera.waivera.core.network.error.apiCall
 import com.waivera.waivera.core.network.error.catchingWaivera
@@ -32,6 +35,8 @@ import kotlinx.coroutines.flow.map
 @Suppress("TooManyFunctions", "LongParameterList")
 class LiveConversationRepository @Inject constructor(
     private val chatApi: ChatApi,
+    private val videoApi: VideoApi,
+    private val config: NetworkConfig,
     private val cache: ChatCache,
     private val sync: SyncTracker,
     private val session: SessionRepository,
@@ -158,6 +163,40 @@ class LiveConversationRepository @Inject constructor(
     }
 
     override fun observeTyping(conversationId: Long): Flow<Set<String>> = typing.observe(conversationId)
+
+    override fun observeAllTyping(): Flow<Map<Long, Set<String>>> = typing.observeAll()
+
+    /**
+     * 03 §19: join the live room (`ongoingCall`, then `activeMeeting`) without publishing, or
+     * create one through `createmeetingroom`, which reuses a room the server knows about. That
+     * also covers a cached conversation that says a call is live but carries no room id.
+     */
+    override suspend fun callLobbyUrl(conversationId: Long): Result<String> = catchingWaivera {
+        val web = config.webBase ?: throw WaiveraError.Configuration(listOf("waivera.webBaseUrl"))
+        val conversation = cache.conversation(conversationId) ?: refreshConversation(conversationId).getOrThrow()
+        // 03 §19: the ongoing call first, then the meeting; only a meeting carries an event id.
+        val callRoom = conversation.ongoingCall?.takeIf { it.isLive }?.roomId?.takeIf(String::isNotBlank)
+        val meetingRoom = conversation.activeMeeting?.roomId?.takeIf(String::isNotBlank)
+        val liveRoom = callRoom ?: meetingRoom
+        val state = MeetingHandoff.State(
+            calenderEventId = if (callRoom == null) conversation.activeMeeting?.calendarEventId else null,
+            relatedChatConversationId = conversationId.toString(),
+            isPublisher = false,
+            isOneToOneCall = conversation.participants.size == 2,
+        )
+        if (liveRoom != null) return@catchingWaivera MeetingHandoff.lobbyUrl(web, liveRoom, state)
+        val meeting = apiCall {
+            videoApi.createMeetingRoom(
+                CreateMeetingRoomRequest(calendarEventId = null, conversationId = conversationId),
+            )
+        }.requireData()
+        val roomId = meeting.roomId?.takeIf(String::isNotBlank) ?: throw WaiveraError.Unexpected()
+        MeetingHandoff.lobbyUrl(
+            web,
+            roomId,
+            state.copy(calenderEventId = meeting.calendarEventId, isPublisher = meeting.isPublisher),
+        )
+    }
 
     override fun onComposerChanged(conversationId: Long, isEmpty: Boolean) =
         typing.onComposerChanged(conversationId, isEmpty)

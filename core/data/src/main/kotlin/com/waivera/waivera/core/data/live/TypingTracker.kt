@@ -36,6 +36,9 @@ class TypingTracker @Inject constructor(
     fun observe(conversationId: Long): Flow<Set<String>> =
         typing.map { it[conversationId].orEmpty() }.distinctUntilChanged()
 
+    /** Everyone typing, by conversation; conversations with nobody typing are absent. */
+    fun observeAll(): Flow<Map<Long, Set<String>>> = typing
+
     fun onRemoteTyping(conversationId: Long, userId: String, isTyping: Boolean, myUserId: String?) {
         if (userId == myUserId) return
         val key = conversationId to userId

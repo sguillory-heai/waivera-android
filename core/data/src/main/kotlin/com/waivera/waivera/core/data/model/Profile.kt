@@ -28,7 +28,39 @@ data class EmployeeProfile(
     val regions: List<String> = emptyList(),
     val agencies: List<String> = emptyList(),
     val timeZoneId: String? = null,
+    /** `GetEmployeeProfileDto.waiverFamilies`. */
+    val waiverFamilies: List<String> = emptyList(),
+    /** `UserWithRoleDto.scId`, known for the signed-in person (from the session bootstrap). */
+    val scId: String? = null,
 )
+
+/** The signed-in person's organization, matched by id (08 §5); never by name. */
+@Serializable
+data class Organization(
+    val id: Int,
+    val name: String? = null,
+    val address: String? = null,
+    val contactNumber: String? = null,
+)
+
+/** Another person's account details (06 §C2), from `GetUserDetailsByUserID`. */
+@Serializable
+data class PersonDetails(
+    val userId: String,
+    val firstName: String? = null,
+    val lastName: String? = null,
+    val displayName: String? = null,
+    val email: String? = null,
+    val phoneNumber: String? = null,
+    val roles: List<String> = emptyList(),
+    val organizationName: String? = null,
+    val scId: String? = null,
+) {
+    /** Display name, else first + last; null when the server sent neither. */
+    val name: String?
+        get() = displayName?.takeIf(String::isNotBlank)
+            ?: listOfNotNull(firstName, lastName).joinToString(" ").trim().takeIf(String::isNotEmpty)
+}
 
 @Serializable
 data class TimeOffRequest(
@@ -45,12 +77,15 @@ data class TimeOffRequest(
 
 @Serializable
 data class TimeOffBalance(
+    /** `remainingLeaveDays`, else `remainingLeaveCount`. */
     val remainingDays: Double? = null,
     val remainingHours: Double? = null,
     val usedDays: Double? = null,
     val usedHours: Double? = null,
     val allocated: Double? = null,
     val pending: Double? = null,
+    /** `usedLeavePercentage` as sent (0..100); screens derive it from days only when absent. */
+    val usedPercentage: Double? = null,
 )
 
 @Serializable

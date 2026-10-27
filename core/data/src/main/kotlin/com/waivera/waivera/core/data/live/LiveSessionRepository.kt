@@ -3,6 +3,7 @@ package com.waivera.waivera.core.data.live
 import com.waivera.waivera.core.data.auth.AuthGateway
 import com.waivera.waivera.core.data.model.CurrentUser
 import com.waivera.waivera.core.data.model.SessionState
+import com.waivera.waivera.core.data.model.currentUserId
 import com.waivera.waivera.core.data.repository.PushRegistrationRepository
 import com.waivera.waivera.core.data.repository.SessionRepository
 import com.waivera.waivera.core.data.store.SecureStore
@@ -19,6 +20,7 @@ import com.waivera.waivera.core.network.error.catchingWaivera
 import com.waivera.waivera.core.network.error.requireData
 import com.waivera.waivera.core.network.log.WaiveraLog
 import com.waivera.waivera.core.realtime.RealtimeClient
+import java.security.MessageDigest
 import javax.inject.Inject
 import javax.inject.Provider
 import javax.inject.Singleton
@@ -57,6 +59,9 @@ class LiveSessionRepository @Inject constructor(
     /** Why the next SignedOut happens, set before a forced Firebase sign-out. */
     private var pendingSignOutReason: WaiveraError? = null
 
+    @Volatile
+    private var pendingConfirm: PendingConfirm? = null
+
     init {
         val missing = gateway.missingKeys + networkConfig.missingKeys
         if (missing.isNotEmpty()) {
@@ -64,6 +69,7 @@ class LiveSessionRepository @Inject constructor(
         } else {
             scope.launch {
                 gateway.user.map { it?.uid }.distinctUntilChanged().collectLatest { uid ->
+                    if (pendingConfirm?.uid != uid) pendingConfirm = null
                     if (uid == null) {
                         _state.value = SessionState.SignedOut(pendingSignOutReason)
                         pendingSignOutReason = null
@@ -75,8 +81,13 @@ class LiveSessionRepository @Inject constructor(
         }
     }
 
-    private suspend fun bootstrap(uid: String) {
-        _state.value = SessionState.Initializing
+    /**
+     * [announce] publishes [SessionState.Initializing] first, which puts the shell on its loader;
+     * a refresh from inside the app (a voluntary password change) keeps the current state up
+     * until the result is in.
+     */
+    private suspend fun bootstrap(uid: String, announce: Boolean = true) {
+        if (announce) _state.value = SessionState.Initializing
         val result = catchingWaivera { fetchUser() }
         result.onSuccess { (login, user) ->
             secureStore.put(
@@ -156,15 +167,36 @@ class LiveSessionRepository @Inject constructor(
 
     override suspend fun refresh(): Result<Unit> = catchingWaivera {
         val uid = gateway.user.value?.uid ?: throw WaiveraError.NotSignedIn()
-        bootstrap(uid)
+        // Signed in already (a profile edit, coming back online): keep the screens up meanwhile.
+        bootstrap(uid, announce = state.value.currentUserId == null)
         (state.value as? SessionState.BootstrapFailed)?.let { throw it.error }
     }
 
+    /**
+     * Firebase first, then `confirm-password-change`. If Firebase took the new password but the
+     * confirm call failed (offline), a retry with the same new password skips Firebase, which
+     * would now reject the old one as the current password, and only confirms. The session is
+     * reloaded without [SessionState.Initializing], so the screen stays up while it runs.
+     */
     override suspend fun changePassword(currentPassword: String, newPassword: String): Result<Unit> = catchingWaivera {
-        gateway.reauthenticateAndUpdatePassword(currentPassword, newPassword)
+        val uid = gateway.user.value?.uid ?: throw WaiveraError.NotSignedIn()
+        val digest = digest(newPassword)
+        val pending = pendingConfirm
+        if (pending == null || pending.uid != uid || !MessageDigest.isEqual(pending.digest, digest)) {
+            gateway.reauthenticateAndUpdatePassword(currentPassword, newPassword)
+            pendingConfirm = PendingConfirm(uid, digest)
+        }
         apiCallUnit { authApi.confirmPasswordChange() }
-        refresh().getOrThrow()
+        pendingConfirm = null
+        bootstrap(uid, announce = false)
+        (state.value as? SessionState.BootstrapFailed)?.let { throw it.error }
     }
+
+    private fun digest(password: String): ByteArray =
+        MessageDigest.getInstance("SHA-256").digest(password.toByteArray(Charsets.UTF_8))
+
+    /** A Firebase password change still waiting for the backend confirm; memory only, never the password. */
+    private class PendingConfirm(val uid: String, val digest: ByteArray)
 
     private fun WaiveraError.isAuthRejection(): Boolean = this is WaiveraError.AccountNotProvisioned ||
         this is WaiveraError.SessionExpired ||
@@ -195,6 +227,7 @@ class LiveSessionRepository @Inject constructor(
             roles = details?.roles.orEmpty(),
             phoneNumber = details?.phoneNumber,
             requiresOnboarding = requiresOnboarding,
+            scId = details?.scId?.takeIf(String::isNotBlank),
         )
     }
 }

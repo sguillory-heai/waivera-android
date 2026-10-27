@@ -11,6 +11,7 @@ import com.waivera.waivera.core.data.model.MessagePreview
 import com.waivera.waivera.core.data.model.OngoingCall
 import com.waivera.waivera.core.data.model.Person
 import com.waivera.waivera.core.data.model.Reaction
+import com.waivera.waivera.core.data.model.TicketUpdate
 import com.waivera.waivera.core.network.dto.ChannelDto
 import com.waivera.waivera.core.network.dto.ChatActivityResponse
 import com.waivera.waivera.core.network.dto.ConversationMeetingRoomDto
@@ -61,6 +62,7 @@ object Mappers {
             parentMessageId = dto.parentMessageId,
             threadRootMessageId = dto.threadRootMessageId ?: dto.parentMessageId,
             threadReplyCount = dto.threadReplyCount,
+            plainText = if (deleted) null else dto.messagePlaintext,
         )
     }
 
@@ -91,6 +93,12 @@ object Mappers {
             isDeleted = dto.isDeleted,
             messageType = dto.messageType,
             createdAt = dto.createDate,
+            contentFormat = dto.contentFormat,
+            plainText = if (dto.isDeleted) null else dto.messagePlaintext?.takeIf(String::isNotBlank),
+            isBot = isBot(dto.isBot, dto.botId, authorId),
+            botId = dto.botId,
+            systemEventType = dto.systemEventType,
+            ticket = if (dto.isDeleted) null else TicketUpdate.from(dto.systemEventType, dto.systemEventData),
         )
     }
 
@@ -105,7 +113,19 @@ object Mappers {
         isDeleted = message.isDeleted,
         messageType = message.type,
         createdAt = message.createdAt,
+        contentFormat = message.contentFormat,
+        plainText = message.plainText?.takeIf(String::isNotBlank),
+        isBot = isBot(false, message.botId, message.authorId),
+        botId = message.botId,
+        systemEventType = message.systemEventType,
+        ticket = if (message.isDeleted) null else TicketUpdate.from(message.systemEventType, message.systemEventData),
     )
+
+    /** Bot authors carry `isBot`, a `botId`, or an id of the form `bot:<n>` (rest.md UserInfoResponse). */
+    fun isBot(flag: Boolean, botId: String?, authorId: String?): Boolean =
+        flag || !botId.isNullOrBlank() || authorId?.startsWith(BOT_PREFIX) == true
+
+    private const val BOT_PREFIX = "bot:"
 
     fun conversation(dto: ConversationResponse): Conversation {
         val participants = dto.participants.mapNotNull(::person)
@@ -206,6 +226,12 @@ object ConversationMerge {
             attachmentContentType = incoming.attachmentContentType ?: current.attachmentContentType,
             hasAttachment = incoming.hasAttachment || current.hasAttachment,
             createdAt = incoming.createdAt ?: current.createdAt,
+            contentFormat = maxOf(incoming.contentFormat, current.contentFormat),
+            plainText = if (incoming.isDeleted) null else incoming.plainText ?: current.plainText,
+            isBot = incoming.isBot || current.isBot,
+            botId = incoming.botId ?: current.botId,
+            systemEventType = incoming.systemEventType ?: current.systemEventType,
+            ticket = if (incoming.isDeleted) null else incoming.ticket ?: current.ticket,
         )
     }
 

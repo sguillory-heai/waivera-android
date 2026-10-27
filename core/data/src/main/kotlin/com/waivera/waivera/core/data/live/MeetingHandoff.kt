@@ -16,7 +16,8 @@ object MeetingHandoff {
     @Serializable
     data class State(
         val calenderEventId: String? = null,
-        val relatedChatConversationId: Long? = null,
+        /** A string in the web contract (`String(conversation.id)` in the reference client, 03 §19). */
+        val relatedChatConversationId: String? = null,
         val isPublisher: Boolean = false,
         val isOneToOneCall: Boolean = false,
     )

@@ -2,6 +2,7 @@ package com.waivera.waivera.core.data.outbox
 
 import com.waivera.waivera.core.data.live.Mappers
 import com.waivera.waivera.core.data.live.MessageIngest
+import com.waivera.waivera.core.data.model.SendFailure
 import com.waivera.waivera.core.data.model.SendState
 import com.waivera.waivera.core.network.api.ChatApi
 import com.waivera.waivera.core.network.dto.SendMessageRequest
@@ -18,7 +19,6 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.MultipartBody
-import okhttp3.RequestBody.Companion.asRequestBody
 
 /**
  * Sends queued messages in order. The hub is preferred when connected and there is no
@@ -60,7 +60,7 @@ class OutboxProcessor @Inject constructor(
     private enum class Outcome { SENT, RETRY, FAILED }
 
     private suspend fun sendOne(item: OutboxItem): Outcome {
-        store.put(item.copy(state = SendState.SENDING))
+        store.put(item.copy(state = SendState.SENDING, failure = null))
         return try {
             val withUpload = upload(item)
             val dto = if (withUpload.attachment == null && realtime.state.value == ConnectionState.Connected) {
@@ -91,9 +91,11 @@ class OutboxProcessor @Inject constructor(
                 Outcome.RETRY
             } else {
                 WaiveraLog.w(TAG, "Send failed permanently (${error.javaClass.simpleName})")
-                store.put(latest.copy(state = SendState.FAILED, attempts = attempts))
+                store.put(latest.copy(state = SendState.FAILED, attempts = attempts, failure = SendFailure.of(error)))
                 Outcome.FAILED
             }
+        } finally {
+            store.clearUploadProgress(item.clientMessageId)
         }
     }
 
@@ -128,11 +130,11 @@ class OutboxProcessor @Inject constructor(
         if (attachment.uploadedUrl != null) return item
         val file = File(attachment.localPath)
         if (!file.exists()) throw WaiveraError.AttachmentExpired()
-        val part = MultipartBody.Part.createFormData(
-            "file",
-            attachment.fileName,
-            file.asRequestBody(attachment.contentType.toMediaTypeOrNull()),
-        )
+        store.setUploadProgress(item.clientMessageId, 0f)
+        val body = ProgressRequestBody(file, attachment.contentType.toMediaTypeOrNull()) { fraction ->
+            store.setUploadProgress(item.clientMessageId, fraction)
+        }
+        val part = MultipartBody.Part.createFormData("file", attachment.fileName, body)
         val uploaded = apiCall { chatApi.uploadAttachment(part) }
         val key = uploaded.documentUrl ?: throw WaiveraError.Unexpected()
         val updated = item.copy(attachment = attachment.copy(uploadedUrl = key))

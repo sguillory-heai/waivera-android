@@ -17,6 +17,7 @@ import java.time.Instant
 import java.time.ZoneOffset
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import okhttp3.HttpUrl
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.update
 
@@ -40,6 +41,12 @@ class DemoBackend(val clock: Clock = Clock.fixed(DemoData.NOW, ZoneOffset.UTC)) 
 
     /** When set, every refresh fails with this error (cached data stays visible). */
     var failRefreshes: WaiveraError? = null
+
+    /**
+     * The web app for call lobbies. Null in demo builds, so "Join on web" explains that it is
+     * not configured, exactly as a live build without `waivera.webBaseUrl` does; tests set it.
+     */
+    var webBase: HttpUrl? = null
 
     /** Overrides the status every flow reports, for loading-state screenshots. */
     val syncStatus = MutableStateFlow<SyncStatus>(SyncStatus.Idle)

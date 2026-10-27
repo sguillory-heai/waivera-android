@@ -311,7 +311,9 @@ object DemoData {
     }
 
     fun holidays(): List<Holiday> =
-        listOf(Holiday(9, "Thanksgiving", LocalDate.of(2026, 11, 26), LocalDate.of(2026, 11, 26)))
+        listOf(
+            Holiday(9, "Thanksgiving", LocalDate.of(2026, 11, 26), LocalDate.of(2026, 11, 26), "Office closed"),
+        )
 
     fun milestones(): List<Milestone> {
         val fixture = DemoFixtures.decode(
@@ -347,6 +349,8 @@ object DemoData {
             regions = dto?.regions.orEmpty().mapNotNull { it.name },
             agencies = dto?.agencyNames.orEmpty(),
             timeZoneId = ZONE.id,
+            waiverFamilies = dto?.waiverFamilies.orEmpty(),
+            scId = currentUser().scId,
         )
     }
 
@@ -364,12 +368,13 @@ object DemoData {
             },
             balance = rows.firstOrNull()?.let {
                 TimeOffBalance(
-                    it.remainingLeaveDays,
-                    it.remainingLeaveHours,
-                    it.usedLeaveDays,
-                    it.usedLeaveHours,
-                    it.allocatedLeaveCount,
-                    it.pendingTimeOffCount,
+                    remainingDays = it.remainingLeaveDays ?: it.remainingLeaveCount,
+                    remainingHours = it.remainingLeaveHours,
+                    usedDays = it.usedLeaveDays,
+                    usedHours = it.usedLeaveHours,
+                    allocated = it.allocatedLeaveCount,
+                    pending = it.pendingTimeOffCount,
+                    usedPercentage = it.usedLeavePercentage,
                 )
             },
         )

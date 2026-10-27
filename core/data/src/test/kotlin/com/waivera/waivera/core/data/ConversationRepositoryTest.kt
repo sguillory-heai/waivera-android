@@ -1,13 +1,16 @@
 package com.waivera.waivera.core.data
 
 import app.cash.turbine.test
+import com.waivera.waivera.core.data.live.LiveConversationRepository
 import com.waivera.waivera.core.data.model.SyncStatus
 import com.waivera.waivera.core.data.model.isEmpty
+import com.waivera.waivera.core.network.NetworkConfig
 import com.waivera.waivera.core.network.error.WaiveraError
 import com.waivera.waivera.core.testing.Fixtures
 import kotlin.test.AfterTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertIs
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
@@ -127,5 +130,58 @@ class ConversationRepositoryTest {
         repo.markRead(7, 9312).getOrThrow()
         assertEquals(0, repo.observeConversation(7).first()?.unreadCount)
         assertEquals(3, repo.observeUnreadTotal().first(), "only the channel badge remains")
+    }
+
+    private fun lobbyState(url: String): String {
+        val state = url.substringAfter("?state=")
+        return java.net.URLDecoder.decode(
+            String(java.util.Base64.getDecoder().decode(java.net.URLDecoder.decode(state, "UTF-8"))),
+            "UTF-8",
+        )
+    }
+
+    @Test
+    fun callLobbyJoinsTheOngoingCallWithoutCreatingARoom() = testScope.runTest {
+        serveInbox()
+        repo.refresh().getOrThrow()
+        val url = repo.callLobbyUrl(11).getOrThrow()
+        assertTrue(url.startsWith("https://app.example.test/lobby/room_7f3c91?state="))
+        val state = lobbyState(url)
+        assertTrue("\"relatedChatConversationId\":\"11\"" in state, "a string, as the web client sends it")
+        assertTrue("\"isPublisher\":false" in state)
+        assertTrue("\"isOneToOneCall\":false" in state, "three participants")
+        assertTrue("\"calenderEventId\":null" in state)
+        assertTrue(graph.server.requestsTo("/api/video/createmeetingroom").isEmpty())
+    }
+
+    @Test
+    fun callLobbyCreatesARoomWhenNoneIsActive() = testScope.runTest {
+        serveInbox()
+        repo.refresh().getOrThrow()
+        graph.server.fixture("POST /api/video/createmeetingroom", "rest-video-create-meeting-room.json")
+        val url = repo.callLobbyUrl(7).getOrThrow()
+        assertTrue(url.startsWith("https://app.example.test/lobby/room_7f3c91?state="))
+        val body = graph.server.requestsTo("/api/video/createmeetingroom").single().body?.utf8().orEmpty()
+        assertTrue("\"conversationId\":7" in body)
+        assertFalse("\"calendarEventId\":\"" in body, "no event for an ad-hoc call")
+        val state = lobbyState(url)
+        assertTrue("\"isPublisher\":true" in state, "the creator publishes")
+        assertTrue("\"isOneToOneCall\":true" in state)
+        assertTrue("\"relatedChatConversationId\":\"7\"" in state)
+    }
+
+    @Test
+    fun callLobbyFetchesAnUncachedConversationAndNeedsTheWebBase() = testScope.runTest {
+        graph.server.fixture("GET /api/chat/conversation/7", "rest-chat-get-conversation.json")
+        graph.server.fixture("POST /api/video/createmeetingroom", "rest-video-create-meeting-room.json")
+        assertTrue(repo.callLobbyUrl(7).getOrThrow().contains("/lobby/"))
+        assertEquals(1, graph.server.requestsTo("/api/chat/conversation/7").size)
+
+        val unconfigured = LiveConversationRepository(
+            graph.chatApi, graph.videoApi, NetworkConfig(graph.server.baseUrl, ""), graph.cache, graph.sync,
+            graph.session, graph.typing, graph.visible, graph.clock,
+        )
+        val error = assertIs<WaiveraError.Configuration>(unconfigured.callLobbyUrl(7).exceptionOrNull())
+        assertEquals(listOf("waivera.webBaseUrl"), error.missingKeys)
     }
 }

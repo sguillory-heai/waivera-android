@@ -1,5 +1,6 @@
 package com.waivera.waivera.core.demo
 
+import com.waivera.waivera.core.data.live.MeetingHandoff
 import com.waivera.waivera.core.data.model.Attachment
 import com.waivera.waivera.core.data.model.AttachmentSource
 import com.waivera.waivera.core.data.model.Bookmark
@@ -91,7 +92,26 @@ class DemoConversationRepository @Inject constructor(private val backend: DemoBa
         it[conversationId].orEmpty()
     }
 
+    override fun observeAllTyping(): Flow<Map<Long, Set<String>>> =
+        backend.typing.map { all -> all.filterValues { it.isNotEmpty() } }
+
     override fun onComposerChanged(conversationId: Long, isEmpty: Boolean) = Unit
+
+    /** Same rules as the live repository, with a made-up room when none is live. */
+    override suspend fun callLobbyUrl(conversationId: Long): Result<String> {
+        val web = backend.webBase
+            ?: return Result.failure(WaiveraError.Configuration(listOf("waivera.webBaseUrl")))
+        val conversation = backend.conversation(conversationId) ?: return Result.failure(WaiveraError.NotFound())
+        val liveRoom = conversation.ongoingCall?.takeIf { it.isLive }?.roomId?.takeIf(String::isNotBlank)
+            ?: conversation.activeMeeting?.roomId?.takeIf(String::isNotBlank)
+        val state = MeetingHandoff.State(
+            calenderEventId = conversation.activeMeeting?.calendarEventId,
+            relatedChatConversationId = conversationId.toString(),
+            isPublisher = liveRoom == null,
+            isOneToOneCall = conversation.participants.size == 2,
+        )
+        return Result.success(MeetingHandoff.lobbyUrl(web, liveRoom ?: "room_demo_$conversationId", state))
+    }
 }
 
 /**
