@@ -22,6 +22,8 @@ import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 
+private const val MAX_ATTEMPTS = com.waivera.waivera.core.data.outbox.OutboxProcessor.MAX_AUTOMATIC_ATTEMPTS
+
 class MessageRepositoryTest {
     private val testScope = TestScope()
     private val graph = TestGraph(testScope.backgroundScope)
@@ -138,6 +140,51 @@ class MessageRepositoryTest {
         assertEquals(SendState.QUEUED, item?.state)
         assertEquals(1, item?.attempts)
         assertEquals(1, graph.scheduler.scheduled)
+    }
+
+    private fun hubAnswers(failure: WaiveraError?) {
+        graph.realtime.sendResult = { conversationId, text, clientId, _ ->
+            failure?.let { throw it }
+            com.waivera.waivera.core.network.dto.MessageSendResponse(
+                id = 9_600 + text.length.toLong(),
+                conversationId = conversationId,
+                clientMessageId = clientId,
+                messageContent = text,
+            )
+        }
+    }
+
+    @Test
+    fun messagesWrittenOfflineStayQueuedAndGoOutWhenTheNetworkReturns() = testScope.runTest {
+        graph.connectivity.online.value = false
+        hubAnswers(WaiveraError.Network())
+        val ids = listOf("a", "bb", "ccc", "dddd", "eeeee", "ffffff").map { repo.send(7, it) }
+        repeat(MAX_ATTEMPTS + 1) { graph.processor.process() }
+        val queued = ids.mapNotNull { graph.outbox.get(it) }
+        assertEquals(List(ids.size) { SendState.QUEUED }, queued.map { it.state }, "nothing fails while offline")
+        assertEquals(List(ids.size) { 0 }, queued.map { it.attempts })
+
+        graph.connectivity.online.value = true
+        hubAnswers(null)
+        assertFalse(graph.processor.process(), "nothing is left")
+        assertTrue(ids.all { graph.outbox.get(it) == null })
+    }
+
+    @Test
+    fun aSendThatFailedForAPassingReasonResumesButARejectedOneStaysFailed() = testScope.runTest {
+        hubAnswers(WaiveraError.Server(503))
+        val flaky = repo.send(7, "flaky")
+        eventually { graph.outbox.get(flaky)?.attempts == 1 }
+        repeat(MAX_ATTEMPTS) { graph.processor.process() }
+        assertEquals(SendState.FAILED, graph.outbox.get(flaky)?.state, "the online retry budget is spent")
+        hubAnswers(WaiveraError.Validation())
+        val rejected = repo.send(8, "rejected")
+        eventually { graph.outbox.get(rejected)?.state == SendState.FAILED }
+
+        hubAnswers(null)
+        graph.processor.process(resumeFailed = true)
+        assertNull(graph.outbox.get(flaky), "the server error could pass, so it is sent again")
+        assertEquals(SendState.FAILED, graph.outbox.get(rejected)?.state, "a rejected message waits for Retry")
     }
 
     @Test

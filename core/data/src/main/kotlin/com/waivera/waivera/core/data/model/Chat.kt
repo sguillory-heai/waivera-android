@@ -164,6 +164,9 @@ enum class SendFailure(private val type: KClass<out WaiveraError>?, private val 
 
     fun toError(): WaiveraError = error()
 
+    /** Whether the same send can succeed later without the person changing anything. */
+    val isTransient: Boolean get() = toError().isTransient
+
     companion object {
         /** The stored kind for [error]; anything without its own kind is [OTHER]. */
         fun of(error: WaiveraError): SendFailure = entries.firstOrNull { it.type?.isInstance(error) == true } ?: OTHER

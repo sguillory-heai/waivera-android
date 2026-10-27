@@ -62,7 +62,8 @@ class LiveDataLayerStarter @Inject constructor(
             connectivity.isOnline.drop(1).filter { it }.collect {
                 runCatching { push.retryPendingUnregister() }
                 realtime.retryNow()
-                if (runCatching { outbox.process() }.getOrDefault(true)) outboxScheduler.schedule()
+                // Messages that failed while the network was flaky go out again on their own (IF-04).
+                if (runCatching { outbox.process(resumeFailed = true) }.getOrDefault(true)) outboxScheduler.schedule()
                 if ((session.state.value as? SessionState.SignedIn)?.isOffline == true) session.refresh()
             }
         }
@@ -70,7 +71,9 @@ class LiveDataLayerStarter @Inject constructor(
             session.state.map { it is SessionState.SignedIn }.distinctUntilChanged().collect { signedIn ->
                 if (signedIn) {
                     // Messages queued before a restart are sent as soon as the session is back.
-                    if (runCatching { outbox.process() }.getOrDefault(true)) outboxScheduler.schedule()
+                    if (runCatching { outbox.process(resumeFailed = true) }.getOrDefault(true)) {
+                        outboxScheduler.schedule()
+                    }
                 } else {
                     typing.clear()
                     syncTracker.reset()

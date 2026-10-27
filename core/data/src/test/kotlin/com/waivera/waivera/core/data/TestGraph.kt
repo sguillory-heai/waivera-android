@@ -27,6 +27,7 @@ import com.waivera.waivera.core.network.api.FileApi
 import com.waivera.waivera.core.network.api.MobilePushApi
 import com.waivera.waivera.core.network.api.TimeOffApi
 import com.waivera.waivera.core.network.api.VideoApi
+import com.waivera.waivera.core.testing.FakeConnectivityMonitor
 import com.waivera.waivera.core.testing.FakeRealtimeClient
 import com.waivera.waivera.core.testing.FixtureServer
 import com.waivera.waivera.core.testing.InMemoryDatabase
@@ -85,7 +86,8 @@ class TestGraph(val scope: CoroutineScope, connected: Boolean = true) : AutoClos
     val typing = TypingTracker(realtime, clock, scope)
     val conversations =
         LiveConversationRepository(chatApi, videoApi, server.config, cache, sync, session, typing, visible, clock)
-    val processor = OutboxProcessor(outbox, chatApi, realtime, ingest, session)
+    val connectivity = FakeConnectivityMonitor()
+    val processor = OutboxProcessor(outbox, chatApi, realtime, ingest, session, connectivity)
     val messages = LiveMessageRepository(
         chatApi, cache, sync, ingest, outbox, processor, scheduler, realtime, session, conversations, typing, clock,
         outboxDir, Dispatchers.IO, scope,
