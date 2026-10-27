@@ -130,6 +130,7 @@ class ConversationRepositoryTest {
         repo.markRead(7, 9312).getOrThrow()
         assertEquals(0, repo.observeConversation(7).first()?.unreadCount)
         assertEquals(3, repo.observeUnreadTotal().first(), "only the channel badge remains")
+        assertEquals(listOf(7L), graph.readsCleared, "reading in the app clears the shade too (IF-07)")
     }
 
     @Test
@@ -143,6 +144,7 @@ class ConversationRepositoryTest {
         val rolledBack = repo.observeConversation(7).first()
         assertEquals(before.unreadCount, rolledBack?.unreadCount, "the server is still unread, so is the badge")
         assertEquals(before.lastReadAt, rolledBack?.lastReadAt)
+        assertEquals(emptyList(), graph.readsCleared, "still unread, so the notification stays")
 
         graph.server.fixture("PUT /api/chat/7/read-through", "rest-chat-read-through.json")
         repo.markRead(7, 9312).getOrThrow()
@@ -197,7 +199,7 @@ class ConversationRepositoryTest {
         val noWebBase = NetworkConfig(graph.server.baseUrl, "", allowLocalCleartext = true)
         val unconfigured = LiveConversationRepository(
             graph.chatApi, graph.videoApi, noWebBase, graph.cache, graph.sync,
-            graph.session, graph.typing, graph.visible, graph.clock,
+            graph.session, graph.typing, graph.visible, graph.clock, {},
         )
         val error = assertIs<WaiveraError.Configuration>(unconfigured.callLobbyUrl(7).exceptionOrNull())
         assertEquals(listOf("waivera.webBaseUrl"), error.missingKeys)

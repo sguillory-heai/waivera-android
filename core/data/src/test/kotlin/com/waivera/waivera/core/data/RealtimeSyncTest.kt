@@ -170,6 +170,20 @@ class RealtimeSyncTest {
     }
 
     @Test
+    fun readingAConversationElsewhereClearsItsNotifications() = testScope.runTest {
+        seedInbox()
+        val unread = graph.cache.conversations().filter { it.unreadCount > 0 }.map { it.id }.toSet()
+        // IF-07: the hub reports this user's own reads, from this device or another one.
+        sync.apply(HubEvent.ChatReadState(ChatReadStateDto(conversationId = 7, threadRootMessageId = 9_310)))
+        assertEquals(emptyList(), graph.readsCleared, "a thread read leaves the conversation's alerts")
+        sync.apply(HubEvent.ChatReadState(ChatReadStateDto(conversationId = 7)))
+        assertEquals(listOf(7L), graph.readsCleared)
+        graph.readsCleared.clear()
+        sync.apply(event("hub-receive-chat-read-state-read-all.json"))
+        assertEquals(unread - 7L, graph.readsCleared.toSet(), "read all clears every conversation that was unread")
+    }
+
+    @Test
     fun activityAddAndRemove() = testScope.runTest {
         sync.apply(event("hub-receive-chat-activity.json"))
         val added = graph.cache.allActivity().single()

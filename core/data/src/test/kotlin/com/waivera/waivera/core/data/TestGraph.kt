@@ -61,6 +61,9 @@ class TestGraph(val scope: CoroutineScope, connected: Boolean = true) : AutoClos
     val realtime = FakeRealtimeClient(connected)
     val scheduler = RecordingOutboxScheduler()
     val visible = VisibleConversation()
+
+    /** Conversations whose notifications the data layer asked to clear. */
+    val readsCleared = mutableListOf<Long>()
     val outboxDir = Files.createTempDirectory("outbox").toFile()
 
     /** The Firebase ID token the push repository captures; null once Firebase has signed out. */
@@ -85,7 +88,9 @@ class TestGraph(val scope: CoroutineScope, connected: Boolean = true) : AutoClos
     val ingest = MessageIngest(cache, outbox)
     val typing = TypingTracker(realtime, clock, scope)
     val conversations =
-        LiveConversationRepository(chatApi, videoApi, server.config, cache, sync, session, typing, visible, clock)
+        LiveConversationRepository(chatApi, videoApi, server.config, cache, sync, session, typing, visible, clock) {
+            readsCleared += it
+        }
     val connectivity = FakeConnectivityMonitor()
     val processor = OutboxProcessor(outbox, chatApi, realtime, ingest, session, connectivity)
     val messages = LiveMessageRepository(

@@ -43,6 +43,7 @@ class LiveConversationRepository @Inject constructor(
     private val typing: TypingTracker,
     private val visible: VisibleConversation,
     private val clock: Clock,
+    private val reads: ConversationReadListener,
 ) : ConversationRepository {
     private val myUserId: String? get() = session.state.value.currentUserId
 
@@ -188,7 +189,7 @@ class LiveConversationRepository @Inject constructor(
             }
             throw error
         }
-        Unit
+        reads.onRead(conversationId)
     }
 
     override fun observeTyping(conversationId: Long): Flow<Set<String>> = typing.observe(conversationId)
@@ -257,15 +258,15 @@ class LiveConversationRepository @Inject constructor(
     suspend fun onReadState(state: ChatReadStateDto) {
         val readAt = state.readAt ?: clock.instant()
         if (state.conversationId == 0L) {
-            cache.transactions.run {
-                cache.putConversations(
-                    cache.conversations().filter {
-                        it.unreadCount > 0
-                    }.map { it.copy(unreadCount = 0, lastReadAt = readAt) },
-                )
+            val cleared = cache.transactions.run {
+                val unread = cache.conversations().filter { it.unreadCount > 0 }
+                cache.putConversations(unread.map { it.copy(unreadCount = 0, lastReadAt = readAt) })
+                unread.map { it.id }
             }
+            cleared.forEach(reads::onRead)
         } else if (state.threadRootMessageId == null) {
             cache.updateConversation(state.conversationId) { it.copy(unreadCount = 0, lastReadAt = readAt) }
+            reads.onRead(state.conversationId)
         }
     }
 

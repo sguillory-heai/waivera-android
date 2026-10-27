@@ -1,5 +1,6 @@
 package com.waivera.waivera.notifications
 
+import com.waivera.waivera.core.data.live.ConversationReadListener
 import com.waivera.waivera.core.data.live.PushTokenRevoker
 import com.waivera.waivera.core.data.live.SignOutCleaner
 import com.waivera.waivera.core.data.repository.RealtimeStatusRepository
@@ -48,6 +49,11 @@ abstract class NotificationBindingsModule {
         @Provides
         fun liveConversation(realtime: RealtimeStatusRepository): LiveConversationMonitor =
             LiveConversationMonitor { conversationId -> realtime.shouldSuppressNotification(conversationId) }
+
+        /** A conversation read here or on another device leaves the shade too (IF-07). */
+        @Provides
+        fun conversationReads(notifier: Notifier): ConversationReadListener =
+            ConversationReadListener(notifier::cancelConversation)
 
         /** A session end clears the shade too, even with no screen alive to do it (AS-02). */
         @Provides
