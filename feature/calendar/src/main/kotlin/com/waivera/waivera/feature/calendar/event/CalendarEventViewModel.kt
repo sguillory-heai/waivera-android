@@ -24,6 +24,7 @@ import java.time.Clock
 import java.time.ZoneId
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.async
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
@@ -41,7 +42,8 @@ import kotlinx.coroutines.launch
 /**
  * Event detail (07 §7). Accept and Decline are optimistic: the answer shows at once, an Undo
  * window runs before anything is sent, and a failed save rolls back with a visible Retry. A
- * pending answer is still sent if the screen goes away during the window.
+ * pending answer is still sent if the screen goes away during the window, and one already being
+ * saved finishes in the app scope.
  */
 @HiltViewModel(assistedFactory = CalendarEventViewModel.Factory::class)
 @Suppress("LongParameterList", "TooManyFunctions")
@@ -224,8 +226,9 @@ class CalendarEventViewModel @AssistedInject constructor(
 
     private suspend fun commit(accept: Boolean) {
         optimistic.value = OptimisticResponse(accept, ResponsePhase.SAVING)
-        // On success the repository patches every cached copy (this event and the feeds).
-        calendar.respondToInvitation(eventId, accept)
+        // The request runs in the app scope so closing the screen mid-save cannot cancel it; this
+        // coroutine only waits for the answer. On success the repository patches every cached copy.
+        appScope.async { calendar.respondToInvitation(eventId, accept) }.await()
             .onSuccess {
                 optimistic.value = OptimisticResponse(accept, ResponsePhase.SAVED)
                 effectChannel.trySend(EventEffect.ResponseSaved(accept))

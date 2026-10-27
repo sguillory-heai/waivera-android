@@ -56,6 +56,10 @@ class FakeCalendarRepository(private val clock: Clock, zone: ZoneId = ZoneId.of(
 
     val responses = mutableListOf<Pair<String, Boolean>>()
     var respondResult: Result<Unit> = Result.success(Unit)
+
+    /** When set, a response waits here after it is sent; [savedResponses] lists the ones that finished. */
+    var respondGate: CompletableDeferred<Unit>? = null
+    val savedResponses = mutableListOf<Pair<String, Boolean>>()
     var lobbyResult: Result<String> = Result.success("https://meet.example.test/lobby/1")
     val lobbyRequests = mutableListOf<String>()
 
@@ -120,6 +124,8 @@ class FakeCalendarRepository(private val clock: Clock, zone: ZoneId = ZoneId.of(
 
     override suspend fun respondToInvitation(eventId: String, accept: Boolean): Result<Unit> {
         responses += eventId to accept
+        respondGate?.await()
+        if (respondResult.isSuccess) savedResponses += eventId to accept
         if (respondResult.isSuccess) {
             val answer = if (accept) MyInvitation.ACCEPTED else MyInvitation.DECLINED
             eventStates[eventId]?.let { state ->
