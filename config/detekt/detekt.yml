@@ -1,0 +1,23 @@
+# Overrides on top of detekt's default rules (buildUponDefaultConfig = true).
+# Each override says why; keep this file short.
+
+naming:
+  FunctionNaming:
+    # Composable functions are PascalCase by convention.
+    ignoreAnnotated: ['Composable']
+  TopLevelPropertyNaming:
+    constantPattern: '[A-Z][A-Za-z0-9_]*'
+
+complexity:
+  LongParameterList:
+    # Stateless composables take state plus callbacks plus a Modifier.
+    ignoreAnnotated: ['Composable']
+  TooManyFunctions:
+    ignoreAnnotated: ['Preview']
+
+style:
+  MagicNumber:
+    # Design tokens are the one place literal dp, sp and colour values live.
+    excludes: ['**/core/designsystem/**', '**/test/**', '**/androidTest/**']
+  UnusedPrivateMember:
+    ignoreAnnotated: ['Preview']

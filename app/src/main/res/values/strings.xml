@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Waivera</string>
+    <string name="today_title">Today</string>
+    <string name="today_placeholder">Your schedule, messages and tasks will appear here.</string>
+</resources>

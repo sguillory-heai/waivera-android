@@ -1,0 +1,26 @@
+version: 2
+updates:
+  - package-ecosystem: gradle
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      kotlin-agp:
+        patterns:
+          - "com.android.tools.build:*"
+          - "com.android.application"
+          - "com.android.library"
+          - "org.jetbrains.kotlin*"
+          - "com.google.devtools.ksp*"
+          - "com.google.dagger*"
+      androidx:
+        patterns:
+          - "androidx.*"
+      square:
+        patterns:
+          - "com.squareup.*"
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
