@@ -15,6 +15,7 @@ import com.waivera.waivera.core.data.model.Synced
 import com.waivera.waivera.core.data.repository.AttachmentRepository
 import com.waivera.waivera.core.data.repository.BookmarkRepository
 import com.waivera.waivera.core.data.repository.ConversationRepository
+import com.waivera.waivera.core.data.repository.DurableMessageSender
 import com.waivera.waivera.core.data.repository.MessageRepository
 import com.waivera.waivera.core.data.repository.ThreadRepository
 import com.waivera.waivera.core.network.error.WaiveraError
@@ -119,7 +120,12 @@ class DemoConversationRepository @Inject constructor(private val backend: DemoBa
  * failed state so Retry can be tried; retrying it succeeds.
  */
 @Singleton
-class DemoMessageRepository @Inject constructor(private val backend: DemoBackend) : MessageRepository {
+class DemoMessageRepository @Inject constructor(private val backend: DemoBackend) :
+    MessageRepository,
+    DurableMessageSender {
+    override suspend fun sendDurably(conversationId: Long, text: String, parentMessageId: Long?): String =
+        send(conversationId = conversationId, text = text, parentMessageId = parentMessageId)
+
     override fun observeTimeline(conversationId: Long): Flow<Synced<MessageTimeline>> = backend.synced(
         backend.messages.map { all ->
             MessageTimeline(all[conversationId].orEmpty().sortedWith(ORDER), hasOlder = false)

@@ -118,6 +118,19 @@ interface ConversationRepository {
     fun onComposerChanged(conversationId: Long, isEmpty: Boolean)
 }
 
+/**
+ * Sending for a caller whose process may end right after it returns: an inline reply from a
+ * notification, where the receiver finishes and the system may stop the app (IF-03).
+ */
+fun interface DurableMessageSender {
+    /**
+     * Queues like [MessageRepository.send], then returns only once a durable retry is scheduled
+     * and the first attempt has finished, so the message is never left queued with nothing to
+     * send it.
+     */
+    suspend fun sendDurably(conversationId: Long, text: String, parentMessageId: Long?): String
+}
+
 interface MessageRepository {
     /**
      * Server messages merged with unsent outbox rows, oldest first. Collecting also joins the
@@ -144,14 +157,6 @@ interface MessageRepository {
         attachment: AttachmentSource? = null,
         parentMessageId: Long? = null,
     ): String
-
-    /**
-     * Like [send], for a caller whose process may end right after it returns (an inline reply
-     * from a notification): returns once a durable retry is scheduled and the first attempt has
-     * finished, so the message is never left queued with nothing to send it (IF-03).
-     */
-    suspend fun sendDurably(conversationId: Long, text: String, parentMessageId: Long?): String =
-        send(conversationId = conversationId, text = text, parentMessageId = parentMessageId)
 
     /** Re-queues a failed message. */
     suspend fun retry(clientMessageId: String): Result<Unit>

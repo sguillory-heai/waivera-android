@@ -14,6 +14,7 @@ import com.waivera.waivera.core.data.outbox.OutboxItem
 import com.waivera.waivera.core.data.outbox.OutboxProcessor
 import com.waivera.waivera.core.data.outbox.OutboxScheduler
 import com.waivera.waivera.core.data.outbox.OutboxStore
+import com.waivera.waivera.core.data.repository.DurableMessageSender
 import com.waivera.waivera.core.data.repository.MessageRepository
 import com.waivera.waivera.core.data.repository.SessionRepository
 import com.waivera.waivera.core.network.api.ChatApi
@@ -79,7 +80,8 @@ class LiveMessageRepository @Inject constructor(
     @OutboxDirectory private val outboxDirectory: File,
     @IoDispatcher private val io: CoroutineDispatcher,
     @ApplicationScope private val scope: CoroutineScope,
-) : MessageRepository {
+) : MessageRepository,
+    DurableMessageSender {
     private val active = MutableStateFlow<Map<Long, Int>>(emptyMap())
     private val loadingOlder = MutableStateFlow<Set<Long>>(emptySet())
 

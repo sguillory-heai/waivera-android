@@ -6,7 +6,7 @@ import com.waivera.waivera.core.data.model.NotificationCategory
 import com.waivera.waivera.core.data.model.NotificationPreferences
 import com.waivera.waivera.core.data.model.currentUserId
 import com.waivera.waivera.core.data.repository.ConversationRepository
-import com.waivera.waivera.core.data.repository.MessageRepository
+import com.waivera.waivera.core.data.repository.DurableMessageSender
 import com.waivera.waivera.core.data.repository.PushRegistrationRepository
 import com.waivera.waivera.core.data.repository.SessionRepository
 import com.waivera.waivera.core.data.repository.SettingsRepository
@@ -30,13 +30,13 @@ import kotlinx.coroutines.flow.first
  * queues, so a reply from the shade is not lost to a cold start (AF-07).
  */
 class DataLayerChatNotificationActions @Inject constructor(
-    private val messages: MessageRepository,
+    private val replies: DurableMessageSender,
     private val conversations: ConversationRepository,
 ) : ChatNotificationActions {
     override suspend fun reply(conversationId: Long, text: String, threadRootMessageId: Long?) {
         // The receiver finishes right after this returns and the process may go with it, so the
         // reply is persisted, given a durable retry and tried once before returning (IF-03).
-        messages.sendDurably(conversationId = conversationId, text = text, parentMessageId = threadRootMessageId)
+        replies.sendDurably(conversationId = conversationId, text = text, parentMessageId = threadRootMessageId)
     }
 
     override suspend fun markRead(conversationId: Long, lastMessageId: Long?) {
