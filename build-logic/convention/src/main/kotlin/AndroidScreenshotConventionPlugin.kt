@@ -34,6 +34,8 @@ abstract class AndroidScreenshotConventionPlugin : Plugin<Project> {
             tasks.withType<Test>().configureEach {
                 systemProperty("robolectric.graphicsMode", "NATIVE")
                 systemProperty("robolectric.pixelCopyRenderMode", "hardware")
+                // Robolectric's API 37 runtime reaches FileDescriptor internals through SharedSecrets.
+                jvmArgs("--add-exports=java.base/jdk.internal.access=ALL-UNNAMED")
             }
 
             dependencies {

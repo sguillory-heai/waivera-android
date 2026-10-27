@@ -13,7 +13,7 @@ dependencies {
     implementation(libs.androidx.core.ktx)
     // Images load through the app's authenticated Coil singleton (G-15) and the screen draws the
     // results itself. `libs.coil.compose` is in the catalog for a later move to AsyncImage.
-    implementation(libs.coil.core)
+    implementation(libs.coil)
     // TipTap documents and ticket payloads arrive as JsonElement.
     implementation(libs.kotlinx.serialization.json)
 
