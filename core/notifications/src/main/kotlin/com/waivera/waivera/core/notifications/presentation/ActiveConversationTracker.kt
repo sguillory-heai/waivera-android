@@ -27,6 +27,11 @@ class ActiveConversationTracker @Inject constructor(private val notifier: Notifi
         notifier.cancelConversation(conversationId)
     }
 
+    /** Nothing is on screen (the app left the foreground, or the shell left the chat). */
+    fun clear() {
+        visibleChat.value = null
+    }
+
     fun leave(conversationId: Long, threadRootMessageId: Long? = null) {
         visibleChat.update { current ->
             if (current == VisibleChat(conversationId, threadRootMessageId)) null else current
