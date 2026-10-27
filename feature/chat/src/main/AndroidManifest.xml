@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <application>
+        <!--
+            Shares one downloaded attachment at a time with the app the person picks. Only the
+            feature_chat_share cache folder is exposed, and only through a granted read uri.
+        -->
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.feature.chat.files"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/feature_chat_file_paths" />
+        </provider>
+    </application>
+
+</manifest>
