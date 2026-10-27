@@ -41,14 +41,11 @@ class ProfileScreenshotTest {
     @After
     fun tearDown() = scope.cancel()
 
-    private fun capture(
-        name: String,
-        heightDp: Int? = null,
-        content: @Composable () -> Unit,
-    ) = captureScreenshots(name, heightDp = heightDp) {
-        // Avatars stay on initials: an async image decode would make captures racy.
-        CompositionLocalProvider(LocalSkeletonDelayMillis provides 0L) { content() }
-    }
+    private fun capture(name: String, heightDp: Int? = null, content: @Composable () -> Unit) =
+        captureScreenshots(name, heightDp = heightDp) {
+            // Avatars stay on initials: an async image decode would make captures racy.
+            CompositionLocalProvider(LocalSkeletonDelayMillis provides 0L) { content() }
+        }
 
     private fun ready(
         details: Section<EmployeeProfile> = Section.Ready(DemoData.profile()),

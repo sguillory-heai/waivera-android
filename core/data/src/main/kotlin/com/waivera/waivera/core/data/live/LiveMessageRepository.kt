@@ -148,7 +148,9 @@ class LiveMessageRepository @Inject constructor(
             val meta = meta(conversationId)
             val newestCached = confirmedEdge(meta, cache.messageDao.newestId(conversationId))
             val oldestFetched = page.minOfOrNull { it.id }
-            val hole = newestCached != null && oldestFetched != null && oldestFetched > newestCached &&
+            val hole = newestCached != null &&
+                oldestFetched != null &&
+                oldestFetched > newestCached &&
                 page.size >= ChatApi.MESSAGE_PAGE_SIZE
             // A stale cache with no jump in it is simply dropped. A cache holding a context page
             // (a jump to an old message) keeps it and records the hole, which paging fills.

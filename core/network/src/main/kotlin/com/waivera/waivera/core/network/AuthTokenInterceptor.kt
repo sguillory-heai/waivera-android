@@ -66,8 +66,7 @@ class AuthTokenInterceptor(
         return url.host == base.host && url.port == base.port && url.scheme == base.scheme
     }
 
-    private fun Request.withBearer(token: String): Request =
-        newBuilder().header(AUTHORIZATION, "Bearer $token").build()
+    private fun Request.withBearer(token: String): Request = newBuilder().header(AUTHORIZATION, "Bearer $token").build()
 
     private companion object {
         const val HTTP_UNAUTHORIZED = 401

@@ -139,10 +139,9 @@ class OutboxStore @Inject constructor(private val dao: OutboxDao) {
 private fun decode(row: OutboxEntity): OutboxItem? =
     runCatching { WaiveraJson.decodeFromString(OutboxItem.serializer(), row.json) }.getOrNull()
 
-private fun decode(rows: List<OutboxEntity>, uploads: Map<String, Float>): List<OutboxItem> =
-    rows.mapNotNull { row ->
-        decode(row)?.let { item -> uploads[item.clientMessageId]?.let { item.copy(uploadProgress = it) } ?: item }
-    }
+private fun decode(rows: List<OutboxEntity>, uploads: Map<String, Float>): List<OutboxItem> = rows.mapNotNull { row ->
+    decode(row)?.let { item -> uploads[item.clientMessageId]?.let { item.copy(uploadProgress = it) } ?: item }
+}
 
 /** Schedules durable outbox processing (WorkManager in the app, a counter in tests). */
 fun interface OutboxScheduler {

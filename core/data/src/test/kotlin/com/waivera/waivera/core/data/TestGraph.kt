@@ -105,7 +105,14 @@ class TestGraph(val scope: CoroutineScope, connected: Boolean = true) : AutoClos
     val profile = LiveProfileRepository(employeeApi, timeOffApi, authApi, cache, sync, session)
     val settings = LiveSettingsRepository(settingsStore)
     val push = LivePushRegistrationRepository(
-        pushApi, secureStore, session, settings, { idToken }, unregisterScheduler, clock, Dispatchers.IO,
+        pushApi,
+        secureStore,
+        session,
+        settings,
+        { idToken },
+        unregisterScheduler,
+        clock,
+        Dispatchers.IO,
     )
     val realtimeSync =
         RealtimeSync(cache, ingest, conversations, messages, threads, bookmarks, activity, calendar, typing, session)

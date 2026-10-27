@@ -155,13 +155,15 @@ private fun PresenceDot(presence: PresenceStatus, modifier: Modifier = Modifier)
             .then(
                 when (presence) {
                     PresenceStatus.Online -> Modifier.background(color, WaiveraShapes.Circle)
-                    PresenceStatus.Away -> Modifier
-                        .background(color, WaiveraShapes.Circle)
-                        .padding(WaiveraSizes.PresenceRing)
-                        .background(colors.surface, WaiveraShapes.Circle)
-                    PresenceStatus.Offline -> Modifier
-                        .background(colors.surface, WaiveraShapes.Circle)
-                        .border(WaiveraSizes.PresenceHairline, color, WaiveraShapes.Circle)
+                    PresenceStatus.Away ->
+                        Modifier
+                            .background(color, WaiveraShapes.Circle)
+                            .padding(WaiveraSizes.PresenceRing)
+                            .background(colors.surface, WaiveraShapes.Circle)
+                    PresenceStatus.Offline ->
+                        Modifier
+                            .background(colors.surface, WaiveraShapes.Circle)
+                            .border(WaiveraSizes.PresenceHairline, color, WaiveraShapes.Circle)
                 },
             ),
     )

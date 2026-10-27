@@ -11,11 +11,7 @@ import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
  * to the emulator host or localhost, matching the debug-only network security config; a release
  * build configured with an http base stays unconfigured instead of sending tokens in clear.
  */
-data class NetworkConfig(
-    val apiBaseUrl: String,
-    val webBaseUrl: String,
-    val allowLocalCleartext: Boolean = false,
-) {
+data class NetworkConfig(val apiBaseUrl: String, val webBaseUrl: String, val allowLocalCleartext: Boolean = false) {
     /** The API base with exactly one trailing slash, or null when unset or invalid. */
     val apiBase: HttpUrl? = normalize(apiBaseUrl, allowLocalCleartext)
 

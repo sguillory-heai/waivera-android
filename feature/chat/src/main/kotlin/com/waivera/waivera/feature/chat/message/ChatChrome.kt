@@ -169,7 +169,6 @@ fun Composer(
     }
 }
 
-
 @Composable
 private fun EditingBar(onCancel: () -> Unit) {
     Row(

@@ -40,11 +40,10 @@ object Attachments {
             ?: "waivera-attachment-${messageId.coerceAtLeast(0)}.${extensionFor(typeHint(attachment))}"
 
     /** The type if it is a MIME type, else inferred from the file name, else octet-stream. */
-    fun mimeType(attachment: Attachment, messageId: Long): String =
-        attachment.contentType?.takeIf { '/' in it }
-            ?: attachment.type?.takeIf { '/' in it }
-            ?: MIME_BY_EXTENSION[fileName(attachment, messageId).substringAfterLast('.', "").lowercase()]
-            ?: DEFAULT_MIME
+    fun mimeType(attachment: Attachment, messageId: Long): String = attachment.contentType?.takeIf { '/' in it }
+        ?: attachment.type?.takeIf { '/' in it }
+        ?: MIME_BY_EXTENSION[fileName(attachment, messageId).substringAfterLast('.', "").lowercase()]
+        ?: DEFAULT_MIME
 
     fun kind(attachment: Attachment, messageId: Long): FileKind {
         val hint = (typeHint(attachment) + " " + fileName(attachment, messageId)).lowercase()

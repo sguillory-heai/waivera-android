@@ -69,14 +69,13 @@ object MessageGrouping {
         previous != null && current != null && sameSender(previous, current) && closeInTime(previous, current, zone)
 
     /** Same author and thread, and both ordinary live messages. */
-    private fun sameSender(previous: Message, current: Message): Boolean =
-        previous.authorId != null &&
-            current.authorId == previous.authorId &&
-            !previous.isDeleted &&
-            !current.isDeleted &&
-            !SystemMessages.isSystem(previous) &&
-            !SystemMessages.isSystem(current) &&
-            threadKey(previous) == threadKey(current)
+    private fun sameSender(previous: Message, current: Message): Boolean = previous.authorId != null &&
+        current.authorId == previous.authorId &&
+        !previous.isDeleted &&
+        !current.isDeleted &&
+        !SystemMessages.isSystem(previous) &&
+        !SystemMessages.isSystem(current) &&
+        threadKey(previous) == threadKey(current)
 
     /** Same local day and at most [WINDOW] apart, in order; unknown or epoch times never group. */
     private fun closeInTime(previous: Message, current: Message, zone: ZoneId): Boolean {

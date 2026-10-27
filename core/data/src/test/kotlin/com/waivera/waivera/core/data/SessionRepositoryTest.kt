@@ -78,7 +78,14 @@ class SessionRepositoryTest {
             calls += "revoke-token"
         }
         return LiveSessionRepository(
-            gateway, authApi, graph.secureStore, realtime, ender, config, rejections, testScope.backgroundScope,
+            gateway,
+            authApi,
+            graph.secureStore,
+            realtime,
+            ender,
+            config,
+            rejections,
+            testScope.backgroundScope,
         )
     }
 
