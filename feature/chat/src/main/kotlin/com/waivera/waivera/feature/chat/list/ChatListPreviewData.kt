@@ -1,0 +1,90 @@
+package com.waivera.waivera.feature.chat.list
+
+/** Sample rows for previews and screenshot tests (test data, not product copy). */
+internal object ChatListPreviewData {
+    val rows: List<ChatRowUi> = listOf(
+        ChatRowUi(
+            id = 7,
+            title = "Priya Raman",
+            leading = RowLeading.Direct(userId = "usr_priya_raman", name = "Priya Raman"),
+            preview = "Can you cover the Hughes visit on Friday afternoon?",
+            previewKind = PreviewKind.Text,
+            timeLabel = "4m",
+            unreadCount = 3,
+            lastMessageId = 9400,
+        ),
+        ChatRowUi(
+            id = 11,
+            title = "Priya Raman & 1 other",
+            leading = RowLeading.Group,
+            preview = "",
+            previewKind = PreviewKind.Text,
+            timeLabel = "10:02 AM",
+            unreadCount = 2,
+            isCallLive = true,
+            lastMessageId = 9503,
+        ),
+        ChatRowUi(
+            id = 41,
+            title = "north-team",
+            leading = RowLeading.Channel(archived = false),
+            preview = "roster.pdf",
+            previewKind = PreviewKind.Attachment,
+            senderPrefix = "Jordan",
+            timeLabel = "Yesterday",
+            hasAttachment = true,
+            isChannel = true,
+            isReadOnly = true,
+            lastMessageId = 9301,
+        ),
+        ChatRowUi(
+            id = 12,
+            title = "Jordan Lee",
+            leading = RowLeading.Direct(userId = "usr_jordan_lee", name = "Jordan Lee"),
+            preview = "Thanks!",
+            previewKind = PreviewKind.Text,
+            typingLabel = "Jordan Lee is typing…",
+            timeLabel = "Oct 20",
+            lastMessageId = 9200,
+        ),
+        ChatRowUi(
+            id = 14,
+            title = "Waivera",
+            leading = RowLeading.Bot,
+            preview = "Your weekly summary is ready.",
+            previewKind = PreviewKind.Text,
+            timeLabel = "Oct 19",
+            unreadCount = 1,
+            lastMessageId = 9280,
+        ),
+        ChatRowUi(
+            id = 58,
+            title = "old-pilot-program-coordination-and-scheduling",
+            leading = RowLeading.Channel(archived = true),
+            preview = "Conversation update",
+            previewKind = PreviewKind.System,
+            timeLabel = "Sep 2",
+            isChannel = true,
+            isReadOnly = true,
+            lastMessageId = 8000,
+        ),
+        ChatRowUi(
+            id = 15,
+            title = "Sam Okafor",
+            leading = RowLeading.Direct(userId = "usr_sam_okafor", name = "Sam Okafor"),
+            preview = "Sending the updated schedule now",
+            previewKind = PreviewKind.Text,
+            senderPrefix = "You",
+            timeLabel = "Aug 30",
+            lastMessageId = 7000,
+        ),
+    )
+
+    val state = ChatListUiState(
+        content = ChatListContent.Rows,
+        rows = rows,
+        connection = ConnectionUi.Online,
+        accountName = "Alex Rivera",
+        myUserId = "usr_alex_rivera",
+    )
+}
