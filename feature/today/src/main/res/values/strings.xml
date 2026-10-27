@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="feature_today_today_title">Today</string>
+    <string name="feature_today_today_placeholder">Your shifts, messages and updates for today will appear here.</string>
+    <string name="feature_today_account_name">Your account</string>
+</resources>

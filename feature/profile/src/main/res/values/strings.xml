@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="feature_profile_profile_title">Profile</string>
+    <string name="feature_profile_profile_placeholder">Your profile will appear here.</string>
+    <string name="feature_profile_people_title">People</string>
+    <string name="feature_profile_people_placeholder">Everyone you can message will appear here.</string>
+    <string name="feature_profile_person_detail_title">Person</string>
+    <string name="feature_profile_person_detail_placeholder">This person\'s profile will appear here.</string>
+    <string name="feature_profile_person_detail_reference">Reference %1$s</string>
+    <string name="feature_profile_bookmarks_title">Bookmarks</string>
+    <string name="feature_profile_bookmarks_placeholder">Messages you bookmark will appear here.</string>
+</resources>

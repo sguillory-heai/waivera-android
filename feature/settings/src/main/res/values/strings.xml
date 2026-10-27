@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="feature_settings_settings_title">Settings</string>
+    <string name="feature_settings_settings_placeholder">Appearance, notifications and account settings will appear here.</string>
+    <string name="feature_settings_notification_settings_title">Notifications</string>
+    <string name="feature_settings_notification_settings_placeholder">Choose which notifications you get for messages, group activity and your schedule.</string>
+    <string name="feature_settings_appearance_title">Appearance</string>
+    <string name="feature_settings_appearance_placeholder">Theme and haptics settings will appear here.</string>
+</resources>
