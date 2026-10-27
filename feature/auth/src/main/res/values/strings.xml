@@ -1,14 +1,80 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="feature_auth_sign_in_title">Sign in</string>
-    <string name="feature_auth_sign_in_placeholder">Sign in with your Waivera email and password.</string>
+    <!-- Sign in -->
+    <string name="feature_auth_brand" translatable="false">Waivera</string>
+    <string name="feature_auth_sign_in_title">Welcome back.</string>
+    <string name="feature_auth_sign_in_subtitle">Stay connected to the people, conversations and work that move your organization forward.</string>
+    <string name="feature_auth_sign_in_card_title">Sign in to your account</string>
+    <string name="feature_auth_sign_in_card_subtitle">Use the same email and password you use for Waivera on the web.</string>
+    <string name="feature_auth_email_label">Email</string>
+    <string name="feature_auth_email_placeholder">you@organization.com</string>
+    <string name="feature_auth_password_label">Password</string>
+    <string name="feature_auth_show_password">Show password</string>
+    <string name="feature_auth_hide_password">Hide password</string>
+    <string name="feature_auth_sign_in_button">Sign in</string>
+    <string name="feature_auth_connecting">Connecting to Waivera…</string>
+    <string name="feature_auth_forgot_password">Forgot password?</string>
+    <string name="feature_auth_footer">Protected by Waivera sign-in and your organization\'s access policies.</string>
+    <string name="feature_auth_sign_in_failed_title">Couldn\'t sign in</string>
+    <string name="feature_auth_reset_sent_title">Check your email</string>
+    <string name="feature_auth_reset_sent_message">If %1$s has a Waivera account, we\'ve sent it a link to reset the password.</string>
+    <string name="feature_auth_configuration_title">This build isn\'t set up yet</string>
+    <string name="feature_auth_configuration_message">This copy of the app is missing its server settings, so sign-in is turned off. Ask your administrator for a supported version of Waivera.</string>
+    <string name="feature_auth_configuration_details">Missing settings: %1$s</string>
+
+    <!-- Validation -->
+    <string name="feature_auth_error_email_required">Enter your email.</string>
+    <string name="feature_auth_error_email_invalid">Enter an email address like name@organization.com.</string>
+    <string name="feature_auth_error_password_required">Enter your password.</string>
+    <string name="feature_auth_error_current_password_required">Enter your current password.</string>
+    <string name="feature_auth_error_current_password_wrong">That isn\'t your current password. Try again.</string>
+    <string name="feature_auth_error_new_password_short">Use at least %1$d characters.</string>
+    <string name="feature_auth_error_new_password_same">Choose a password that\'s different from your current one.</string>
+    <string name="feature_auth_error_confirm_mismatch">These passwords don\'t match.</string>
+
+    <!-- Password change -->
     <string name="feature_auth_password_change_title">Change your password</string>
-    <string name="feature_auth_password_change_placeholder">Your organisation asks you to set a new password before you continue.</string>
+    <string name="feature_auth_password_change_required_title">Set a new password</string>
+    <string name="feature_auth_password_change_required_message">To keep your account secure, Waivera asks for a new password the first time you sign in and every six months after that.</string>
+    <string name="feature_auth_password_change_voluntary_message">Enter your current password, then choose a new one. You\'ll stay signed in on this device.</string>
+    <string name="feature_auth_current_password_label">Current password</string>
+    <string name="feature_auth_new_password_label">New password</string>
+    <string name="feature_auth_new_password_hint">At least %1$d characters. A short phrase is easier to remember.</string>
+    <string name="feature_auth_confirm_password_label">Confirm new password</string>
+    <string name="feature_auth_password_change_save">Update password</string>
+    <string name="feature_auth_password_change_saving">Updating your password…</string>
+    <string name="feature_auth_password_change_failed_title">Password not updated</string>
+    <string name="feature_auth_password_change_done_title">Password updated</string>
+    <string name="feature_auth_password_change_done_message">Use your new password the next time you sign in.</string>
+    <string name="feature_auth_sign_out">Sign out</string>
+
+    <!-- Onboarding required -->
+    <string name="feature_auth_onboarding_title">Finish setting up your account</string>
+    <string name="feature_auth_onboarding_message">Your Waivera account isn\'t fully set up yet. Complete the setup from the invitation your organization sent you, then come back here.</string>
+    <string name="feature_auth_onboarding_help">If you can\'t find the invitation, ask your administrator to send it again.</string>
+    <string name="feature_auth_onboarding_check">I\'ve finished, check again</string>
+    <string name="feature_auth_onboarding_still_pending">Your account still needs setup. It can take a few minutes after you finish.</string>
+
+    <!-- Bootstrap failed -->
+    <string name="feature_auth_bootstrap_title">We couldn\'t reach Waivera</string>
+    <string name="feature_auth_bootstrap_offline_title">You\'re offline</string>
+    <string name="feature_auth_bootstrap_help">You\'re signed in. We just need to finish loading your account.</string>
+    <string name="feature_auth_try_again">Try again</string>
+
+    <!-- Notification primer -->
     <string name="feature_auth_primer_title">Stay in the loop</string>
-    <string name="feature_auth_primer_message">Turn on notifications so you know when something needs you.</string>
-    <string name="feature_auth_primer_messages">Messages and mentions from your team</string>
-    <string name="feature_auth_primer_schedule">Schedule changes and reminders before a shift</string>
-    <string name="feature_auth_primer_control">You choose which kinds you get in Settings</string>
+    <string name="feature_auth_primer_message">Turn on notifications so you know when something needs you. Here\'s what each kind is for.</string>
+    <string name="feature_auth_primer_messages_title">Direct messages and mentions</string>
+    <string name="feature_auth_primer_messages_body">When someone messages you or mentions you. These can make a sound.</string>
+    <string name="feature_auth_primer_group_title">Group chat activity</string>
+    <string name="feature_auth_primer_group_body">New messages in your group chats and channels.</string>
+    <string name="feature_auth_primer_reminders_title">Schedule reminders</string>
+    <string name="feature_auth_primer_reminders_body">Shifts and events that are about to start. These can make a sound.</string>
+    <string name="feature_auth_primer_changes_title">Schedule changes</string>
+    <string name="feature_auth_primer_changes_body">Events that were added, moved or cancelled.</string>
+    <string name="feature_auth_primer_digest_title">Digest and announcements</string>
+    <string name="feature_auth_primer_digest_body">Milestones and other low-priority updates, delivered quietly.</string>
+    <string name="feature_auth_primer_control">You can turn each kind on or off at any time in Settings.</string>
     <string name="feature_auth_primer_enable">Turn on notifications</string>
     <string name="feature_auth_primer_not_now">Not now</string>
 </resources>
