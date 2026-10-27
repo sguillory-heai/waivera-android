@@ -240,7 +240,6 @@ class ThreadViewModel @AssistedInject constructor(
             _state.update { it.copy(sendError = kind) }
             emit(ChatEffect.Haptic(HapticMoment.Error))
         }
-        if (events.retrySucceeded) emit(ChatEffect.Haptic(HapticMoment.Success))
         return Prepared(thread, root, replies, me, bot)
     }
 
@@ -395,10 +394,8 @@ class ThreadViewModel @AssistedInject constructor(
                     parentMessageId = rootMessageId,
                 )
             }
-                .onSuccess {
-                    emit(ChatEffect.Haptic(HapticMoment.Success))
-                    emit(ChatEffect.ScrollToLatest)
-                }
+                // Same as the conversation: a sent reply shows "Sent", only a failure buzzes.
+                .onSuccess { emit(ChatEffect.ScrollToLatest) }
                 .onFailure { error ->
                     val typed = error as? WaiveraError ?: WaiveraError.from(error)
                     _state.update { it.copy(sendError = SendErrors.from(typed)) }

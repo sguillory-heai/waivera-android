@@ -223,7 +223,6 @@ class ConversationViewModel @AssistedInject constructor(
             _state.update { it.copy(sendError = kind) }
             emit(ChatEffect.Haptic(HapticMoment.Error))
         }
-        if (events.retrySucceeded) emit(ChatEffect.Haptic(HapticMoment.Success))
         return Prepared(timeline, visible, me, bot)
     }
 
@@ -430,10 +429,9 @@ class ConversationViewModel @AssistedInject constructor(
         viewModelScope.launch {
             val attachment = image?.let(io::source)
             runCatching { messages.send(conversationId, outgoing?.text.orEmpty(), outgoing?.doc, attachment) }
-                .onSuccess {
-                    emit(ChatEffect.Haptic(HapticMoment.Success))
-                    emit(ChatEffect.ScrollToLatest)
-                }
+                // A successful send is confirmed by the row ("Sent · 9:41 AM"), not a vibration;
+                // only a failure buzzes.
+                .onSuccess { emit(ChatEffect.ScrollToLatest) }
                 .onFailure { error ->
                     val typed = error as? WaiveraError ?: WaiveraError.from(error)
                     _state.update { it.copy(sendError = SendErrors.from(typed), stagedImage = image) }

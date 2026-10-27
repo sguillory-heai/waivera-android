@@ -77,7 +77,7 @@ Run the narrowest module task first, then the full checks before pushing.
 - Use `core/designsystem` tokens only. Primary purple `#7E57C2` (dark mode accent `#A78BFA`). No inline colors or magic dp values.
 - Support font scale up to 200%, TalkBack content descriptions on every control, and 48×48dp minimum touch targets.
 - Motion: shared `WaiveraMotion` specs (spring-based), shared-element and predictive-back transitions where natural. Respect the system animator scale and "remove animations" setting.
-- Haptics through the shared `Haptics` helper at meaningful moments only: send, receive while visible, errors, toggles.
+- Haptics through the shared `Haptics` helper at meaningful moments only: send failures (a successful send does not vibrate), receive while visible, errors, toggles.
 - Optimistic UI for sends and status changes, with visible retry on failure. Show skeletons for loads over ~300ms; no blocking spinners over content.
 - Confirmations use the shared styled confirmation bottom sheet/dialog from the design system, never a raw `AlertDialog`.
 - Check light, dark, a small phone, a large phone, and 200% font scale before calling UI done.

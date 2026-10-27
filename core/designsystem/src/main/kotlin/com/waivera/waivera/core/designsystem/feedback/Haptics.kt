@@ -12,7 +12,9 @@ import androidx.compose.ui.platform.LocalHapticFeedback
 /**
  * Moments that earn a haptic, from the UX research "Waivera feedback map". Plain taps on
  * buttons and rows have no haptic on purpose (the press scale is the feedback), and incoming
- * messages never buzz while the app is open.
+ * messages never buzz while the app is open. A message or reply that sends, first time or after
+ * a retry, has no haptic either (PLAN, 2026-10-27): its row says "Sent", and only a failed send
+ * vibrates, once, with [Error].
  */
 enum class HapticMoment {
     /** A switch turned on. */
@@ -27,7 +29,7 @@ enum class HapticMoment {
     /** A swipe action crossing its threshold. */
     SwipeThreshold,
 
-    /** Task done, message sent after a retry, invitation accepted, copied. */
+    /** Task done, invitation accepted, copied, an edit saved. Never a sent message. */
     Success,
 
     /** Validation or send failure. */

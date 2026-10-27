@@ -234,7 +234,7 @@ class MessageInteractions(
         }
     }
 
-    /** The success haptic waits for the row to actually send; [SendTracker] reports that. */
+    /** A retry that sends is confirmed by the row's "Sent" label; only a failure buzzes. */
     fun retry(clientMessageId: String) {
         scope.launch { messages.retry(clientMessageId).onFailure { fail(R.string.feature_chat_send_error_server, it) } }
     }

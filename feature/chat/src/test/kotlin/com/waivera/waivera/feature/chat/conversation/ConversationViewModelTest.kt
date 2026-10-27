@@ -1,5 +1,6 @@
 package com.waivera.waivera.feature.chat.conversation
 
+import app.cash.turbine.Event
 import app.cash.turbine.test
 import com.waivera.waivera.core.data.model.Message
 import com.waivera.waivera.core.data.model.SendState
@@ -207,14 +208,15 @@ class ConversationViewModelTest {
     // region Sending
 
     @Test
-    fun sendIsOptimisticClearsTheDraftAndBuzzes() = runTest {
+    fun sendIsOptimisticClearsTheDraftAndDoesNotBuzz() = runTest {
         val s = subject()
         s.viewModel.effects.test {
             s.viewModel.send("  On my way  ")
             runCurrent()
             assertEquals(ChatEffect.SetDraft(""), awaitItem())
-            assertEquals(ChatEffect.Haptic(HapticMoment.Success), awaitItem())
+            // HAPTIC-SENT: a successful send has no vibration; the row says "Sent".
             assertEquals(ChatEffect.ScrollToLatest, awaitItem())
+            expectNoEvents()
         }
         val sent = s.viewModel.state.value.rows.single { it.message.text == "On my way" }
         assertTrue(sent.isMine)
@@ -228,12 +230,12 @@ class ConversationViewModelTest {
             s.viewModel.send("this will fail")
             runCurrent()
             // Corrects a wrong expectation, it checks no less: the send is optimistic, so the queued
-            // state (draft cleared, send cue, scroll) comes first and the failure cue follows it.
+            // state (draft cleared, scroll) comes first and the one failure cue follows it.
             assertEquals(ChatEffect.SetDraft(""), awaitItem())
-            assertEquals(ChatEffect.Haptic(HapticMoment.Success), awaitItem())
             assertEquals(ChatEffect.ScrollToLatest, awaitItem())
             assertEquals(ChatEffect.Haptic(HapticMoment.Error), awaitItem())
-            cancelAndIgnoreRemainingEvents()
+            val rest = cancelAndConsumeRemainingEvents()
+            assertTrue(rest.none { it is Event.Item && it.value is ChatEffect.Haptic }, "one cue per failure")
         }
         assertEquals(SendErrorKind.Server, s.viewModel.state.value.sendError)
         val failed = s.viewModel.state.value.rows.last { it.message.sendState == SendState.FAILED }.message
@@ -241,8 +243,9 @@ class ConversationViewModelTest {
         s.viewModel.effects.test {
             s.viewModel.retry(requireNotNull(failed.clientMessageId))
             runCurrent()
-            assertEquals(ChatEffect.Haptic(HapticMoment.Success), awaitItem())
-            cancelAndIgnoreRemainingEvents()
+            // HAPTIC-SENT: the retried row sends without a vibration.
+            val events = cancelAndConsumeRemainingEvents()
+            assertTrue(events.none { it is Event.Item && it.value is ChatEffect.Haptic }, "no sent cue")
         }
         assertNull(s.viewModel.state.value.sendError)
         assertTrue(

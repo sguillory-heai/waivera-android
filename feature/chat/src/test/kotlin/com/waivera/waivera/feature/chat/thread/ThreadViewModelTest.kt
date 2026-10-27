@@ -143,8 +143,9 @@ class ThreadViewModelTest {
             s.viewModel.send("Count me in")
             runCurrent()
             assertEquals(ChatEffect.SetDraft(""), awaitItem())
-            assertEquals(ChatEffect.Haptic(HapticMoment.Success), awaitItem())
+            // HAPTIC-SENT: a sent reply has no vibration.
             assertEquals(ChatEffect.ScrollToLatest, awaitItem())
+            expectNoEvents()
         }
         val newest = s.viewModel.state.value.replyRows.last().message
         assertEquals("Count me in", newest.text)
