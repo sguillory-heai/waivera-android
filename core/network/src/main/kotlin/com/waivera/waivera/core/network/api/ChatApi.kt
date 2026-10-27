@@ -199,5 +199,8 @@ interface ChatApi {
         const val SEARCH_PAGE_SIZE = 20
         const val GLOBAL_SEARCH_PAGE_SIZE = 30
         const val CONTEXT_WINDOW = 30
+
+        /** The server clamps `before`/`after` on the context endpoint to 0..75. */
+        const val MAX_CONTEXT_WINDOW = 75
     }
 }
