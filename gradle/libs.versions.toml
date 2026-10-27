@@ -7,7 +7,7 @@ hilt = "2.60.1"
 
 androidxActivityCompose = "1.13.0"
 androidxComposeBom = "2026.09.00"
-androidxCoreKtx = "1.19.0"
+androidxCoreKtx = "1.19.1"
 androidxLifecycle = "2.11.0"
 coroutines = "1.11.0"
 desugarJdkLibs = "2.1.5"
