@@ -3,7 +3,10 @@ package com.waivera.waivera.core.notifications.presentation
 import com.waivera.waivera.core.notifications.channel.WaiveraChannel
 import com.waivera.waivera.core.notifications.payload.PushMessage
 
-/** What the app knows about the foreground at the moment a push arrives. */
+/**
+ * What the app knows about the foreground at the moment a push arrives. [hubConnected] is the
+ * data layer's answer for the pushed conversation: hub connected and that conversation on screen.
+ */
 data class PresenceSnapshot(val hubConnected: Boolean, val visibleChat: VisibleChat?)
 
 sealed interface PresentationDecision {

@@ -4,7 +4,7 @@ import com.waivera.waivera.core.notifications.payload.PushMessage
 import com.waivera.waivera.core.notifications.payload.PushPayloadParser
 import com.waivera.waivera.core.notifications.presentation.ActiveConversationTracker
 import com.waivera.waivera.core.notifications.presentation.ConversationInfoSource
-import com.waivera.waivera.core.notifications.presentation.HubConnectionMonitor
+import com.waivera.waivera.core.notifications.presentation.LiveConversationMonitor
 import com.waivera.waivera.core.notifications.presentation.NotificationPreferencesSource
 import com.waivera.waivera.core.notifications.presentation.NotificationPresentationPolicy
 import com.waivera.waivera.core.notifications.presentation.Notifier
@@ -22,7 +22,7 @@ class PushMessageHandler @Inject constructor(
     private val notifier: Notifier,
     private val preferences: NotificationPreferencesSource,
     private val conversations: ConversationInfoSource,
-    private val hub: HubConnectionMonitor,
+    private val hub: LiveConversationMonitor,
     private val tracker: ActiveConversationTracker,
 ) {
     /** @return what was decided, for tests and debug tooling; null when the payload was unusable. */
@@ -33,13 +33,16 @@ class PushMessageHandler @Inject constructor(
         notificationBody: String? = null,
     ): PresentationDecision? {
         val message = PushPayloadParser.parse(data, notificationTitle, notificationBody) ?: return null
-        val conversation = (message as? PushMessage.Chat)?.let { conversations.find(it.conversationId) }
+        val chat = message as? PushMessage.Chat
+        val conversation = chat?.let { conversations.find(it.conversationId) }
+        // The data layer confirms hub + conversation; the tracker narrows it to the exact thread.
+        val liveOnScreen = chat != null && hub.isLiveOnScreen(chat.conversationId)
         val channel = NotificationPresentationPolicy.channelFor(message, conversation)
         val decision = NotificationPresentationPolicy.decide(
             message = message,
             channel = channel,
             preferences = preferences.current(),
-            presence = PresenceSnapshot(hubConnected = hub.isConnected(), visibleChat = tracker.visible.value),
+            presence = PresenceSnapshot(hubConnected = liveOnScreen, visibleChat = tracker.visible.value),
         )
         if (decision is PresentationDecision.Show && notifier.canPost()) {
             notifier.show(message, decision.channel, conversation)

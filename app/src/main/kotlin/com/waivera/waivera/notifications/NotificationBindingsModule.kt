@@ -3,7 +3,7 @@ package com.waivera.waivera.notifications
 import com.waivera.waivera.core.data.repository.RealtimeStatusRepository
 import com.waivera.waivera.core.notifications.action.ChatNotificationActions
 import com.waivera.waivera.core.notifications.presentation.ConversationInfoSource
-import com.waivera.waivera.core.notifications.presentation.HubConnectionMonitor
+import com.waivera.waivera.core.notifications.presentation.LiveConversationMonitor
 import com.waivera.waivera.core.notifications.presentation.NotificationPreferencesSource
 import com.waivera.waivera.core.notifications.token.PushTokenSink
 import dagger.Binds
@@ -29,8 +29,9 @@ abstract class NotificationBindingsModule {
     abstract fun tokenSink(impl: RegistrationTokenSink): PushTokenSink
 
     companion object {
+        /** Foreground suppression asks the data layer: hub connected and that conversation on screen. */
         @Provides
-        fun hubConnection(realtime: RealtimeStatusRepository): HubConnectionMonitor =
-            HubConnectionMonitor { realtime.status.value.isConnected }
+        fun liveConversation(realtime: RealtimeStatusRepository): LiveConversationMonitor =
+            LiveConversationMonitor { conversationId -> realtime.shouldSuppressNotification(conversationId) }
     }
 }

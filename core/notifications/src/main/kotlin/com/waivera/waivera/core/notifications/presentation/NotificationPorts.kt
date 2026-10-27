@@ -21,9 +21,12 @@ data class ClientNotificationPreferences(
     fun allows(channel: WaiveraChannel): Boolean = pushEnabled && channel in enabledChannels
 }
 
-/** Whether the chat hub is connected right now. */
-fun interface HubConnectionMonitor {
-    fun isConnected(): Boolean
+/**
+ * The data layer's foreground check for one conversation: true only when the chat hub is
+ * connected **and** that conversation is on screen (`RealtimeStatusRepository.shouldSuppressNotification`).
+ */
+fun interface LiveConversationMonitor {
+    fun isLiveOnScreen(conversationId: Long): Boolean
 }
 
 /** Cached conversation facts used to title and categorize chat notifications. */
