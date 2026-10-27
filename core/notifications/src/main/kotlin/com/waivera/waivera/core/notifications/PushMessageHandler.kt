@@ -20,7 +20,6 @@ import javax.inject.Singleton
  * debug broadcast receiver. Never logs payload contents. Nothing is shown while signed out.
  */
 @Singleton
-@Suppress("LongParameterList")
 class PushMessageHandler @Inject constructor(
     private val notifier: Notifier,
     private val preferences: NotificationPreferencesSource,

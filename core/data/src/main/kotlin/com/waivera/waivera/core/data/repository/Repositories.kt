@@ -156,12 +156,6 @@ interface MessageRepository {
 
     /** Toggles [emoji]: same emoji removes, a different one replaces. Hub only (G-01). */
     suspend fun react(messageId: Long, emoji: String): Result<Unit>
-
-    /**
-     * The thread root of a cached message, or null when it is a main-timeline message or not
-     * cached. Lets push suppression tell a thread reply from a main message (AF-12).
-     */
-    suspend fun cachedThreadRoot(messageId: Long): Long? = null
 }
 
 interface ThreadRepository {
@@ -171,6 +165,12 @@ interface ThreadRepository {
     suspend fun refresh(rootMessageId: Long): Result<Unit>
 
     suspend fun markRead(conversationId: Long, rootMessageId: Long, lastVisibleMessageId: Long): Result<Unit>
+
+    /**
+     * The thread root of a cached message, or null when it is a main-timeline message or not
+     * cached. Lets push suppression tell a thread reply from a main message.
+     */
+    suspend fun cachedRootOf(messageId: Long): Long? = null
 }
 
 interface AttachmentRepository {

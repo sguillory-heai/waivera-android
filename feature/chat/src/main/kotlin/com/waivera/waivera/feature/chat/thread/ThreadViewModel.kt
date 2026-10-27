@@ -364,7 +364,11 @@ class ThreadViewModel @AssistedInject constructor(
         if (!isValid) return
         val current = _state.value
         if (current.canWrite != true) return
-        current.editingMessageId?.let { return submitEdit(it, draft) }
+        val editing = current.editingMessageId
+        if (editing != null) submitEdit(editing, draft) else sendReply(draft)
+    }
+
+    private fun sendReply(draft: String) {
         val outgoing = createOutgoingMessage(draft) ?: return
         _state.update { it.copy(sendError = null) }
         emit(ChatEffect.SetDraft(""))

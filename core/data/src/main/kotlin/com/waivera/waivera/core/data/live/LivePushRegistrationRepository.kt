@@ -46,7 +46,6 @@ fun interface PushUnregisterScheduler {
  * FCM token is revoked on every session end as well, so a stale server row cannot deliver.
  */
 @Singleton
-@Suppress("LongParameterList")
 class LivePushRegistrationRepository @Inject constructor(
     private val pushApi: MobilePushApi,
     private val secureStore: SecureStore,

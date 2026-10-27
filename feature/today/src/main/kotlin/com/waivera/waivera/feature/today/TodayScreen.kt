@@ -78,7 +78,7 @@ private fun TodayEffects(viewModel: TodayViewModel, snackbarHostState: SnackbarH
     }
 }
 
-private class TodayMessages(
+private data class TodayMessages(
     val refreshFailed: String,
     val markReadFailed: String,
     val markAllFailed: String,

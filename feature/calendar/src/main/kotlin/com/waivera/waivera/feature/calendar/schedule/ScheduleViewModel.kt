@@ -67,7 +67,7 @@ class ScheduleViewModel @Inject constructor(
         val today = today(instant, z)
         val date = picked ?: today
         Period(v, date, today, z, SchedulePeriods.rangeFor(v, date))
-    }.stateIn(viewModelScope, SharingStarted.Eagerly, initialPeriod())
+    }.stateIn(viewModelScope, SharingStarted.Eagerly, initialPeriod(clock.instant(), initialZone))
 
     @OptIn(ExperimentalCoroutinesApi::class)
     private val feed: Flow<FeedSnapshot?> = period
@@ -86,16 +86,17 @@ class ScheduleViewModel @Inject constructor(
     }
 
     val uiState: StateFlow<ScheduleUiState> = combine(period, feed, milestones, chrome) { p, f, m, c ->
-        buildState(p, f, m, c)
+        buildState(p, f, m, c, deviceZone)
     }.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS),
-        initialValue = buildState(initialPeriod(), null, null, null),
+        initialValue = buildState(initialPeriod(clock.instant(), initialZone), null, null, null, deviceZone),
     )
 
     init {
         viewModelScope.launch { refreshMilestonesIfStale() }
-        viewModelScope.launch { refreshAfterReconnect() }
+        // Calendar has no realtime events (gaps.md G-07), so a reconnect or coming back online refetches.
+        viewModelScope.launch { realtime.status.collectReconnects { refreshAll() } }
     }
 
     /** Switching views keeps the selected date. */
@@ -158,39 +159,6 @@ class ScheduleViewModel @Inject constructor(
         }
     }
 
-    /** Calendar has no realtime events (gaps.md G-07), so a reconnect or coming back online refetches. */
-    private suspend fun refreshAfterReconnect() {
-        var seenUp = false
-        var lostSinceUp = false
-        realtime.status.map { it.isOnline && it.isConnected }.distinctUntilChanged().collect { up ->
-            if (up) {
-                if (lostSinceUp) refreshAll()
-                seenUp = true
-                lostSinceUp = false
-            } else if (seenUp) {
-                lostSinceUp = true
-            }
-        }
-    }
-
-    private fun initialPeriod(): Period {
-        val today = today(clock.instant(), initialZone)
-        val range = SchedulePeriods.rangeFor(ScheduleView.MONTH, today)
-        return Period(ScheduleView.MONTH, today, today, initialZone, range)
-    }
-
-    private fun buildState(p: Period, f: FeedSnapshot?, m: MilestoneState?, c: Chrome?): ScheduleUiState =
-        ScheduleStateBuilder.build(
-            period = SchedulePeriod(p.view, p.date, p.today, p.zone),
-            feed = f?.takeIf { it.range == p.range && it.zone == p.zone }?.synced,
-            milestones = m?.index ?: MilestoneIndex.Empty,
-            milestonesError = m?.synced?.error,
-            savedZoneId = c?.savedZoneId,
-            deviceZone = c?.let { deviceZone.current() },
-            isOffline = c?.status?.isOnline == false,
-            isRefreshing = c?.pullRefreshing == true,
-        )
-
     private data class Period(
         val view: ScheduleView,
         val date: LocalDate,
@@ -210,5 +178,37 @@ class ScheduleViewModel @Inject constructor(
         val MILESTONES_STALE: Duration = Duration.ofMinutes(15)
 
         fun today(instant: Instant, zone: ZoneId): LocalDate = instant.atZone(zone).toLocalDate()
+
+        fun initialPeriod(instant: Instant, zone: ZoneId): Period {
+            val today = today(instant, zone)
+            return Period(ScheduleView.MONTH, today, today, zone, SchedulePeriods.rangeFor(ScheduleView.MONTH, today))
+        }
+
+        fun buildState(p: Period, f: FeedSnapshot?, m: MilestoneState?, c: Chrome?, deviceZone: DeviceZone) =
+            ScheduleStateBuilder.build(
+                period = SchedulePeriod(p.view, p.date, p.today, p.zone),
+                feed = f?.takeIf { it.range == p.range && it.zone == p.zone }?.synced,
+                milestones = m?.index ?: MilestoneIndex.Empty,
+                milestonesError = m?.synced?.error,
+                savedZoneId = c?.savedZoneId,
+                deviceZone = c?.let { deviceZone.current() },
+                isOffline = c?.status?.isOnline == false,
+                isRefreshing = c?.pullRefreshing == true,
+            )
+    }
+}
+
+/** Runs [action] each time the connection comes back after it was lost (not on the first connect). */
+private suspend fun Flow<RealtimeStatus>.collectReconnects(action: suspend () -> Unit) {
+    var seenUp = false
+    var lostSinceUp = false
+    map { it.isOnline && it.isConnected }.distinctUntilChanged().collect { up ->
+        if (up) {
+            if (lostSinceUp) action()
+            seenUp = true
+            lostSinceUp = false
+        } else if (seenUp) {
+            lostSinceUp = true
+        }
     }
 }

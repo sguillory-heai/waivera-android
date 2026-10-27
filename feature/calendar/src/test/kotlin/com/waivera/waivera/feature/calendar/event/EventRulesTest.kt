@@ -55,7 +55,7 @@ class EventRulesTest {
 
     @Test
     fun invitedAttendeeBeforeTheStartCanAcceptOrDecline() {
-        val ui = assertNotNull(EventRules.invitation(event(), me, before, chicago, null, null))
+        val ui = assertNotNull(EventRules.invitation(event(), me, before, chicago))
         assertTrue(ui.canChange)
         assertEquals(MyInvitation.PENDING, ui.response)
         assertEquals(ResponsePhase.IDLE, ui.phase)
@@ -63,15 +63,15 @@ class EventRulesTest {
 
     @Test
     fun ownerNeverSeesAcceptOrDecline() {
-        assertNull(EventRules.invitation(event(invitation = MyInvitation.ORGANIZER), me, before, chicago, null, null))
+        assertNull(EventRules.invitation(event(invitation = MyInvitation.ORGANIZER), me, before, chicago))
         // Owner by backend id, even if the invitation field says otherwise.
-        assertNull(EventRules.invitation(event(owner = me), me, before, chicago, null, null))
+        assertNull(EventRules.invitation(event(owner = me), me, before, chicago))
     }
 
     @Test
     fun startedEventHidesTheButtonsAndJoinGoverns() {
         val atStart = start.plusSeconds(60)
-        val ui = assertNotNull(EventRules.invitation(event(), me, atStart, chicago, null, null))
+        val ui = assertNotNull(EventRules.invitation(event(), me, atStart, chicago))
         assertFalse(ui.canChange)
         val join = assertNotNull(EventRules.join(event(online = true), atStart, isBusy = false, error = null))
         assertEquals(JoinState.OPEN, join.state)
@@ -90,7 +90,7 @@ class EventRulesTest {
         )
         val mapped = assertNotNull(CalendarMath.event(dto, me))
         assertEquals(MyInvitation.NOT_INVITED_OR_UNKNOWN, mapped.myInvitation)
-        assertNull(EventRules.invitation(mapped, me, before, chicago, null, null))
+        assertNull(EventRules.invitation(mapped, me, before, chicago))
 
         // An explicit DECLINED status is shown as declined, not as pending.
         val declined = dto.copy(
@@ -105,7 +105,7 @@ class EventRulesTest {
         )
         val ui =
             assertNotNull(
-                EventRules.invitation(assertNotNull(CalendarMath.event(declined, me)), me, before, chicago, null, null),
+                EventRules.invitation(assertNotNull(CalendarMath.event(declined, me)), me, before, chicago),
             )
         assertEquals(MyInvitation.DECLINED, ui.response)
     }
@@ -117,8 +117,7 @@ class EventRulesTest {
             me,
             before,
             chicago,
-            OptimisticResponse(true, ResponsePhase.UNDO_WINDOW),
-            null,
+            EventInteraction(optimistic = OptimisticResponse(true, ResponsePhase.UNDO_WINDOW)),
         )
         assertEquals(MyInvitation.ACCEPTED, waiting?.response)
         assertEquals(true, waiting?.canChange)
@@ -127,8 +126,7 @@ class EventRulesTest {
             me,
             before,
             chicago,
-            OptimisticResponse(false, ResponsePhase.SAVING),
-            null,
+            EventInteraction(optimistic = OptimisticResponse(false, ResponsePhase.SAVING)),
         )
         assertEquals(MyInvitation.DECLINED, saving?.response)
         assertEquals(false, saving?.canChange)
@@ -137,8 +135,7 @@ class EventRulesTest {
             me,
             before,
             chicago,
-            null,
-            ResponseFailure(true, WaiveraError.Network()),
+            EventInteraction(failure = ResponseFailure(true, WaiveraError.Network())),
         )
         assertEquals(MyInvitation.PENDING, failed?.response)
         assertEquals(true, failed?.failedChoiceAccept)

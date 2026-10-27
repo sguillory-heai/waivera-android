@@ -12,6 +12,8 @@ import com.waivera.waivera.core.network.dto.MilestoneType
 import com.waivera.waivera.feature.calendar.R
 import com.waivera.waivera.feature.calendar.model.EventTiming
 import com.waivera.waivera.feature.calendar.model.PeriodTitle
+import com.waivera.waivera.feature.calendar.model.ScheduleClock
+import com.waivera.waivera.feature.calendar.model.ScheduleLabels
 import com.waivera.waivera.feature.calendar.model.ScheduleText
 import com.waivera.waivera.feature.calendar.model.ZoneNotice
 import java.time.ZonedDateTime
@@ -114,10 +116,10 @@ internal fun eventTimeLines(timing: EventTiming, currentYear: Int): Pair<String,
 /** "Approved · half day am" (07 §3); the status is omitted when the API sends none. */
 @Composable
 internal fun timeOffSubtitle(entry: TimeOffEntry): String {
-    val type = ScheduleText.requestTypeLabel(entry.requestType)
-    val status = ScheduleText.sentenceCase(entry.status)
+    val type = ScheduleLabels.requestTypeLabel(entry.requestType)
+    val status = ScheduleLabels.sentenceCase(entry.status)
     return if (status == null) {
-        ScheduleText.sentenceCase(type).orEmpty()
+        ScheduleLabels.sentenceCase(type).orEmpty()
     } else {
         stringResource(R.string.feature_calendar_with_detail, status, type)
     }
@@ -134,7 +136,7 @@ internal fun milestoneSubtitle(occurrence: MilestoneOccurrence): String = when (
 
 @Composable
 internal fun zoneNoticeText(notice: ZoneNotice): String {
-    val name = ScheduleText.zoneName(notice.zone, currentLocale())
+    val name = ScheduleClock.zoneName(notice.zone, currentLocale())
     return if (notice.isFallback) {
         stringResource(R.string.feature_calendar_zone_notice_fallback, name)
     } else {
@@ -154,18 +156,18 @@ internal fun inviteStatusText(status: InviteStatus): String? = when (status) {
 }
 
 @Composable
-internal fun clock(time: ZonedDateTime, locale: Locale = currentLocale()): String = ScheduleText.clock(time, locale)
+internal fun clock(time: ZonedDateTime, locale: Locale = currentLocale()): String = ScheduleClock.clock(time, locale)
 
 @Composable
 private fun dayAndClock(time: ZonedDateTime, locale: Locale): String = stringResource(
     R.string.feature_calendar_day_time,
     ScheduleText.weekdayShort(time.toLocalDate(), locale),
-    ScheduleText.clock(time, locale),
+    ScheduleClock.clock(time, locale),
 )
 
 @Composable
 private fun longDayAndClock(time: ZonedDateTime, currentYear: Int, locale: Locale): String = stringResource(
     R.string.feature_calendar_day_time_long,
     ScheduleText.shortDay(time.toLocalDate(), currentYear, locale),
-    ScheduleText.clock(time, locale),
+    ScheduleClock.clock(time, locale),
 )

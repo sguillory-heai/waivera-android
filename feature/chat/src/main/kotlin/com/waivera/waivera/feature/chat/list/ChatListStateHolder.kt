@@ -256,7 +256,7 @@ class ChatListStateHolder(
     private fun hydrate(list: List<Conversation>) {
         val sparse = list.mapNotNull { c ->
             val message = c.lastMessage ?: return@mapNotNull null
-            val blank = ConversationPresentation.preview(message, text).kind == PreviewKind.Blank
+            val blank = RowSubtitle.preview(message, text).kind == PreviewKind.Blank
             (c.id to message.messageId).takeIf { blank && hydrated.add(it) }
         }
         if (sparse.isEmpty()) return
@@ -282,7 +282,6 @@ class ChatListStateHolder(
         sessionState: SessionState,
         status: RealtimeStatus,
     ): ChatListUiState {
-        val me = sessionState.currentUserId
         val user = sessionState.currentUser
         val base = ChatListUiState(
             query = l.query,
@@ -293,33 +292,46 @@ class ChatListStateHolder(
                 u.displayName?.takeIf(String::isNotBlank)
                     ?: listOfNotNull(u.firstName, u.lastName).joinToString(" ").trim()
             }.orEmpty(),
-            myUserId = me,
+            myUserId = sessionState.currentUserId,
         )
-        if (s == null) return base
-        val data = s.data
-        if (data.isEmpty()) {
-            val error = s.error
-            return when {
-                error != null -> base.copy(content = ChatListContent.Error(error.messageRes))
-                s.isInitialLoad -> base
-                else -> base.copy(
-                    content = ChatListContent.Empty(ConversationPresentation.emptyReason(l.filter, l.query)),
-                )
-            }
+        return when {
+            s == null -> base
+            s.data.isEmpty() -> emptyState(base, s, l)
+            else -> withRows(base, s, rowsFor(s.data, typingMap, now, sessionState, l))
         }
-        val zone = user?.zone ?: WaiveraTime.employeeZone(null)
-        val rows = data.sortedWith(ConversationPresentation.Order)
+    }
+
+    private fun rowsFor(
+        data: List<Conversation>,
+        typingMap: Map<Long, Set<String>>,
+        now: Instant,
+        sessionState: SessionState,
+        l: Local,
+    ): List<ChatRowUi> {
+        val me = sessionState.currentUserId
+        val zone = sessionState.currentUser?.zone ?: WaiveraTime.employeeZone(null)
+        return data.sortedWith(ConversationPresentation.Order)
             .map { c -> row(c, typingMap[c.id].orEmpty(), now, zone, me, l) }
-            .filter { ConversationPresentation.matches(it, l.filter, l.query) }
-        return base.copy(
-            content = if (rows.isEmpty()) {
-                ChatListContent.Empty(ConversationPresentation.emptyReason(l.filter, l.query))
-            } else {
-                ChatListContent.Rows
-            },
-            rows = rows,
-            refreshErrorRes = s.error?.messageRes,
-        )
+            .filter { ChatListFilters.matches(it, l.filter, l.query) }
+    }
+
+    private fun withRows(base: ChatListUiState, s: Synced<List<Conversation>>, rows: List<ChatRowUi>) = base.copy(
+        content = if (rows.isEmpty()) {
+            ChatListContent.Empty(ChatListFilters.emptyReason(base.filter, base.query))
+        } else {
+            ChatListContent.Rows
+        },
+        rows = rows,
+        refreshErrorRes = s.error?.messageRes,
+    )
+
+    private fun emptyState(base: ChatListUiState, s: Synced<List<Conversation>>, l: Local): ChatListUiState {
+        val error = s.error
+        return when {
+            error != null -> base.copy(content = ChatListContent.Error(error.messageRes))
+            s.isInitialLoad -> base
+            else -> base.copy(content = ChatListContent.Empty(ChatListFilters.emptyReason(l.filter, l.query)))
+        }
     }
 
     @Suppress("LongParameterList")
@@ -331,7 +343,7 @@ class ChatListStateHolder(
         me: String?,
         l: Local,
     ): ChatRowUi {
-        val preview = ConversationPresentation.preview(c.lastMessage, text)
+        val preview = RowSubtitle.preview(c.lastMessage, text)
         val isChannel = ConversationPresentation.isChannel(c)
         return ChatRowUi(
             id = c.id,
@@ -339,8 +351,8 @@ class ChatListStateHolder(
             leading = ConversationPresentation.leading(c, me),
             preview = preview.text,
             previewKind = preview.kind,
-            senderPrefix = ConversationPresentation.senderPrefix(c, preview, me, text),
-            typingLabel = ConversationPresentation.typingLabel(c, typingIds, me, text),
+            senderPrefix = RowSubtitle.senderPrefix(c, preview, me, text),
+            typingLabel = RowSubtitle.typingLabel(c, typingIds, me, text),
             timeLabel = relativeTime.label(c.lastMessage?.createdAt, now, zone),
             unreadCount = if (c.id in l.optimisticRead) 0 else c.unreadCount,
             hasAttachment = c.lastMessage?.let { it.hasAttachment && !it.isDeleted } == true,

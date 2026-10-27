@@ -138,27 +138,14 @@ class LiveMessageRepository @Inject constructor(
             val meta = meta(conversationId)
             val newestCached = cache.messageDao.newestId(conversationId)
             val oldestFetched = page.minOfOrNull { it.id }
-            val full = page.size >= ChatApi.MESSAGE_PAGE_SIZE
-            val hole = newestCached != null && full && oldestFetched != null && oldestFetched > newestCached
+            val hole = newestCached != null && oldestFetched != null && oldestFetched > newestCached &&
+                page.size >= ChatApi.MESSAGE_PAGE_SIZE
             // A stale cache with no jump in it is simply dropped. A cache holding a context page
             // (a jump to an old message) keeps it and records the hole, which paging fills.
             val dropStale = hole && meta.gaps.isEmpty()
             if (dropStale) cache.messageDao.deleteConversation(conversationId)
             ingest.ingest(page)
-            val updated = when {
-                newestCached == null || dropStale -> TimelineMeta(hasOlder = full)
-                oldestFetched == null -> meta
-                !full -> meta.copy(gaps = TimelineGaps.cover(meta.gaps, Long.MIN_VALUE, Long.MAX_VALUE))
-                else -> {
-                    val covered = TimelineGaps.cover(meta.gaps, oldestFetched, Long.MAX_VALUE)
-                    val withHole = if (hole && newestCached != null) {
-                        TimelineGaps.add(covered, TimelineGap(newestCached, oldestFetched))
-                    } else {
-                        covered
-                    }
-                    meta.copy(gaps = withHole)
-                }
-            }
+            val updated = latestPageMeta(meta, newestCached.takeUnless { dropStale }, page)
             if (updated != meta || newestCached == null) putMeta(conversationId, updated)
         }
         page.filter { !it.isThreadReply }.maxByOrNull { it.id }?.let { conversations.onMessage(it) }
@@ -187,6 +174,25 @@ class LiveMessageRepository @Inject constructor(
             }
         } finally {
             loadingOlder.update { it - conversationId }
+        }
+    }
+
+    /**
+     * Gap bookkeeping after the newest page, which is contiguous up to the latest message.
+     * [newestCached] is null when nothing was cached (or the stale cache was dropped).
+     */
+    private fun latestPageMeta(meta: TimelineMeta, newestCached: Long?, page: List<Message>): TimelineMeta {
+        val oldestFetched = page.minOfOrNull { it.id }
+        val full = page.size >= ChatApi.MESSAGE_PAGE_SIZE
+        return when {
+            newestCached == null -> TimelineMeta(hasOlder = full)
+            oldestFetched == null -> meta
+            !full -> meta.copy(gaps = TimelineGaps.cover(meta.gaps, Long.MIN_VALUE, Long.MAX_VALUE))
+            else -> {
+                val covered = TimelineGaps.cover(meta.gaps, oldestFetched, Long.MAX_VALUE)
+                // A page that overlaps the cache is an empty gap, which add() ignores.
+                meta.copy(gaps = TimelineGaps.add(covered, TimelineGap(newestCached, oldestFetched)))
+            }
         }
     }
 
@@ -366,9 +372,6 @@ class LiveMessageRepository @Inject constructor(
         }
         cache.message(messageId)?.let { conversations.onMessageChanged(it) }
     }
-
-    override suspend fun cachedThreadRoot(messageId: Long): Long? =
-        cache.message(messageId)?.takeIf { it.isThreadReply }?.threadRootMessageId
 
     /** Hub only (G-01); optimistic with rollback. */
     override suspend fun react(messageId: Long, emoji: String): Result<Unit> = catchingWaivera {

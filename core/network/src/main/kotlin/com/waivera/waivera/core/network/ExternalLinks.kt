@@ -12,9 +12,7 @@ object ExternalLinks {
     private val WEB_SCHEMES = setOf("http", "https")
 
     fun isOpenable(link: String?): Boolean {
-        val value = link?.trim().orEmpty()
-        if (value.isEmpty()) return false
-        val uri = runCatching { URI(value) }.getOrNull() ?: return false
-        return uri.scheme?.lowercase() in WEB_SCHEMES && !uri.host.isNullOrBlank()
+        val uri = link?.trim()?.takeIf { it.isNotEmpty() }?.let { runCatching { URI(it) }.getOrNull() }
+        return uri != null && uri.scheme?.lowercase() in WEB_SCHEMES && !uri.host.isNullOrBlank()
     }
 }

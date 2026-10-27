@@ -49,14 +49,14 @@ class OutboxProcessor @Inject constructor(
         val me = (session.state.value as? SessionState.SignedIn)?.user?.userId ?: return@withLock false
         // A SENDING row at this point was interrupted (process death); the server dedupes by id.
         store.withState(SendState.SENDING).forEach { store.put(it.copy(state = SendState.QUEUED)) }
+        val (mine, others) = store.withState(SendState.QUEUED).partition { it.authorId == me }
+        others.forEach { item ->
+            WaiveraLog.w(TAG, "Dropped a queued message from another account")
+            store.remove(item)
+        }
         val blocked = mutableSetOf<Long>()
         var retryLater = false
-        for (item in store.withState(SendState.QUEUED)) {
-            if (item.authorId != me) {
-                WaiveraLog.w(TAG, "Dropped a queued message from another account")
-                store.remove(item)
-                continue
-            }
+        for (item in mine) {
             // Keep per-conversation order: nothing overtakes a message waiting for retry.
             val current = store.get(item.clientMessageId)
                 ?.takeIf { it.state == SendState.QUEUED && item.conversationId !in blocked }

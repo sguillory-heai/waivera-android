@@ -10,6 +10,7 @@ import com.waivera.waivera.core.data.repository.MessageRepository
 import com.waivera.waivera.core.data.repository.PushRegistrationRepository
 import com.waivera.waivera.core.data.repository.SessionRepository
 import com.waivera.waivera.core.data.repository.SettingsRepository
+import com.waivera.waivera.core.data.repository.ThreadRepository
 import com.waivera.waivera.core.notifications.action.ChatNotificationActions
 import com.waivera.waivera.core.notifications.channel.WaiveraChannel
 import com.waivera.waivera.core.notifications.presentation.ClientNotificationPreferences
@@ -90,8 +91,8 @@ class SessionPushGate @Inject constructor(private val session: SessionRepository
 }
 
 /** Thread replies from the local store, for suppression while a chat is on screen (AF-12). */
-class CachedThreadRoots @Inject constructor(private val messages: MessageRepository) : ThreadRootLookup {
-    override suspend fun threadRootOf(messageId: Long): Long? = messages.cachedThreadRoot(messageId)
+class CachedThreadRoots @Inject constructor(private val threads: ThreadRepository) : ThreadRootLookup {
+    override suspend fun threadRootOf(messageId: Long): Long? = threads.cachedRootOf(messageId)
 }
 
 /** Every session end deletes the FCM token, so a stale server registration cannot deliver. */

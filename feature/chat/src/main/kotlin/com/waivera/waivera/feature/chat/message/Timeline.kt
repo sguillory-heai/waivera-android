@@ -65,20 +65,25 @@ object MessageGrouping {
     val WINDOW: Duration = Duration.ofMinutes(5)
 
     /** `canVisuallyGroupMessages` (03 §4): same author, same thread, same local day, within 5 minutes. */
-    @Suppress("ReturnCount")
-    fun canGroup(previous: Message?, current: Message?, zone: ZoneId): Boolean {
-        if (previous == null || current == null) return false
-        val author = previous.authorId ?: return false
-        if (current.authorId != author) return false
-        if (previous.isDeleted || current.isDeleted) return false
-        if (SystemMessages.isSystem(previous) || SystemMessages.isSystem(current)) return false
-        if (threadKey(previous) != threadKey(current)) return false
-        val a = previous.createdAt ?: return false
-        val b = current.createdAt ?: return false
-        if (a.toEpochMilli() <= 0 || b.toEpochMilli() <= 0) return false
-        if (ChatTime.day(a, zone) != ChatTime.day(b, zone)) return false
+    fun canGroup(previous: Message?, current: Message?, zone: ZoneId): Boolean =
+        previous != null && current != null && sameSender(previous, current) && closeInTime(previous, current, zone)
+
+    /** Same author and thread, and both ordinary live messages. */
+    private fun sameSender(previous: Message, current: Message): Boolean =
+        previous.authorId != null &&
+            current.authorId == previous.authorId &&
+            !previous.isDeleted &&
+            !current.isDeleted &&
+            !SystemMessages.isSystem(previous) &&
+            !SystemMessages.isSystem(current) &&
+            threadKey(previous) == threadKey(current)
+
+    /** Same local day and at most [WINDOW] apart, in order; unknown or epoch times never group. */
+    private fun closeInTime(previous: Message, current: Message, zone: ZoneId): Boolean {
+        val a = previous.createdAt?.takeIf { it.toEpochMilli() > 0 } ?: return false
+        val b = current.createdAt?.takeIf { it.toEpochMilli() > 0 } ?: return false
         val diff = Duration.between(a, b)
-        return !diff.isNegative && diff <= WINDOW
+        return ChatTime.day(a, zone) == ChatTime.day(b, zone) && !diff.isNegative && diff <= WINDOW
     }
 
     private fun threadKey(message: Message): Long? = if (message.isThreadReply) message.threadRootMessageId else null

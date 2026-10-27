@@ -96,6 +96,9 @@ class LiveThreadRepository @Inject constructor(
         }
     }
 
+    override suspend fun cachedRootOf(messageId: Long): Long? =
+        cache.message(messageId)?.takeIf { it.isThreadReply }?.threadRootMessageId
+
     override suspend fun markRead(conversationId: Long, rootMessageId: Long, lastVisibleMessageId: Long): Result<Unit> =
         catchingWaivera {
             apiCall { chatApi.readThrough(conversationId, ChatReadThroughRequest(lastVisibleMessageId, rootMessageId)) }

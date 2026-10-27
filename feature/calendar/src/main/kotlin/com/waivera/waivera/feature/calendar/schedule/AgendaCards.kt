@@ -38,7 +38,7 @@ import com.waivera.waivera.core.designsystem.theme.WaiveraSpacing
 import com.waivera.waivera.core.designsystem.theme.WaiveraTheme
 import com.waivera.waivera.feature.calendar.R
 import com.waivera.waivera.feature.calendar.model.AgendaItem
-import com.waivera.waivera.feature.calendar.model.ScheduleText
+import com.waivera.waivera.feature.calendar.model.ScheduleLabels
 import com.waivera.waivera.feature.calendar.ui.CalendarIcons
 import com.waivera.waivera.feature.calendar.ui.CalendarSizes
 import com.waivera.waivera.feature.calendar.ui.CelebrationText
@@ -146,7 +146,7 @@ private fun EventCard(
 ) {
     val colors = WaiveraTheme.colors
     val event = item.event
-    val ownerColor = remember(event.ownerColor) { ScheduleText.parseOwnerColor(event.ownerColor)?.let { Color(it) } }
+    val ownerColor = remember(event.ownerColor) { ScheduleLabels.parseOwnerColor(event.ownerColor)?.let { Color(it) } }
     val time = agendaTimeText(item.timing, currentYear)
     val subtitle = event.location?.takeIf(String::isNotBlank)
         ?.let { stringResource(R.string.feature_calendar_with_detail, time, it) }

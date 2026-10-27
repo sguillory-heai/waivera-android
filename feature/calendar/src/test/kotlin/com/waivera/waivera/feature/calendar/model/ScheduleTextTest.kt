@@ -16,21 +16,21 @@ class ScheduleTextTest {
 
     @Test
     fun timeOffPartsMatchTheSpecSubtitle() {
-        assertEquals("Approved", ScheduleText.sentenceCase("APPROVED"))
-        assertEquals("half day am", ScheduleText.requestTypeLabel("HALF_DAY_AM"))
-        assertEquals("full day", ScheduleText.requestTypeLabel(null))
-        assertEquals("Cancellation pending", ScheduleText.sentenceCase("CANCELLATION_PENDING"))
-        assertNull(ScheduleText.sentenceCase("  "))
+        assertEquals("Approved", ScheduleLabels.sentenceCase("APPROVED"))
+        assertEquals("half day am", ScheduleLabels.requestTypeLabel("HALF_DAY_AM"))
+        assertEquals("full day", ScheduleLabels.requestTypeLabel(null))
+        assertEquals("Cancellation pending", ScheduleLabels.sentenceCase("CANCELLATION_PENDING"))
+        assertNull(ScheduleLabels.sentenceCase("  "))
     }
 
     @Test
     fun ownerColourParsesServerHexAndRejectsAnythingElse() {
-        assertEquals(0xFF7E57C2, ScheduleText.parseOwnerColor("#7E57C2"))
-        assertEquals(0xFF7E57C2, ScheduleText.parseOwnerColor("7e57c2"))
-        assertEquals(0x807E57C2, ScheduleText.parseOwnerColor("#807E57C2"))
-        assertNull(ScheduleText.parseOwnerColor("purple"))
-        assertNull(ScheduleText.parseOwnerColor("#7E57"))
-        assertNull(ScheduleText.parseOwnerColor(null))
+        assertEquals(0xFF7E57C2, ScheduleLabels.parseOwnerColor("#7E57C2"))
+        assertEquals(0xFF7E57C2, ScheduleLabels.parseOwnerColor("7e57c2"))
+        assertEquals(0x807E57C2, ScheduleLabels.parseOwnerColor("#807E57C2"))
+        assertNull(ScheduleLabels.parseOwnerColor("purple"))
+        assertNull(ScheduleLabels.parseOwnerColor("#7E57"))
+        assertNull(ScheduleLabels.parseOwnerColor(null))
     }
 
     @Test
@@ -53,7 +53,7 @@ class ScheduleTextTest {
         val notice = ZoneNotice.of(chicago, "America/Chicago", tokyo)
         assertNotNull(notice)
         assertFalse(notice.isFallback)
-        assertEquals("Central Time", ScheduleText.zoneName(notice.zone, Locale.US))
+        assertEquals("Central Time", ScheduleClock.zoneName(notice.zone, Locale.US))
         assertNull(ZoneNotice.of(chicago, "America/Chicago", chicago))
     }
 

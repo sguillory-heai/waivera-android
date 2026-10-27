@@ -278,13 +278,10 @@ private fun Bubble(
                     },
                 )
             }
-            val root = message.navigationRootId
-            if (callbacks.onOpenThread != null &&
-                !message.isThreadReply &&
-                message.threadReplyCount > 0 &&
-                root != null
-            ) {
-                ThreadChip(count = message.threadReplyCount, onClick = { callbacks.onOpenThread.invoke(root) })
+            val threadRoot = message.navigationRootId?.takeIf { !message.isThreadReply && message.threadReplyCount > 0 }
+            val openThread = callbacks.onOpenThread
+            if (openThread != null && threadRoot != null) {
+                ThreadChip(count = message.threadReplyCount, onClick = { openThread(threadRoot) })
             }
         }
     }

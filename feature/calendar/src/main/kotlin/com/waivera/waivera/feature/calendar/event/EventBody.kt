@@ -20,6 +20,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.Immutable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -62,6 +63,7 @@ import com.waivera.waivera.feature.calendar.ui.rememberAvatarPainter
 import com.waivera.waivera.feature.calendar.ui.zoneNoticeText
 
 /** Everything the event screen can ask for. */
+@Immutable
 class EventActions(
     val onBack: () -> Unit = {},
     val onRetry: () -> Unit = {},

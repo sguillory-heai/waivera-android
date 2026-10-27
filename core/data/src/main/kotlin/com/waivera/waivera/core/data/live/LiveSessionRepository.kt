@@ -189,8 +189,8 @@ class LiveSessionRepository @Inject constructor(
     override suspend fun settledUserId(timeoutMillis: Long): String? {
         val settled = withTimeoutOrNull(timeoutMillis) { state.first { it !is SessionState.Initializing } }
         if (settled != null) return settled.currentUserId
-        val uid = gateway.user.value?.uid ?: return null
-        return cachedSession()?.takeIf { it.uid == uid }?.user?.userId
+        val uid = gateway.user.value?.uid
+        return cachedSession()?.takeIf { uid != null && it.uid == uid }?.user?.userId
     }
 
     override suspend fun sendPasswordReset(email: String): Result<Unit> = catchingWaivera {

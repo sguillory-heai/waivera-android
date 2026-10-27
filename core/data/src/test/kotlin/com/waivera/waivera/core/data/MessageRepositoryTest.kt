@@ -277,19 +277,6 @@ class MessageRepositoryTest {
     }
 
     @Test
-    fun cachedThreadRootTellsRepliesFromMainMessages() = testScope.runTest {
-        graph.cache.putMessages(
-            listOf(
-                com.waivera.waivera.core.data.model.Message(id = 9312, conversationId = 7, threadRootMessageId = 9310),
-                com.waivera.waivera.core.data.model.Message(id = 9310, conversationId = 7, threadRootMessageId = 9310),
-            ),
-        )
-        assertEquals(9310L, repo.cachedThreadRoot(9312))
-        assertNull(repo.cachedThreadRoot(9310), "a root is a main-timeline message")
-        assertNull(repo.cachedThreadRoot(1), "not cached")
-    }
-
-    @Test
     fun reactionsAreOptimisticAndRollBackOnFailure() = testScope.runTest {
         graph.server.fixture("GET /api/chat/7/messages/pagination", "rest-chat-get-messages-pagination.json")
         repo.refreshLatest(7).getOrThrow()

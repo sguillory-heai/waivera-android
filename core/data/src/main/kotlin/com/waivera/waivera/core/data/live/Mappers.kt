@@ -210,29 +210,11 @@ object ConversationMerge {
     }
 
     /** Newer preview wins; for the same message, keep every field the newer copy lacks. */
-    @Suppress("ReturnCount")
-    fun mergePreview(current: MessagePreview?, incoming: MessagePreview?): MessagePreview? {
-        if (current == null) return incoming
-        if (incoming == null) return current
-        if (incoming.messageId != current.messageId) {
-            val incomingNewer = incoming.messageId > current.messageId
-            return if (incomingNewer) incoming else current
-        }
-        return incoming.copy(
-            authorId = incoming.authorId ?: current.authorId,
-            authorName = incoming.authorName ?: current.authorName,
-            text = if (incoming.isDeleted) null else incoming.text ?: current.text,
-            attachmentName = incoming.attachmentName ?: current.attachmentName,
-            attachmentContentType = incoming.attachmentContentType ?: current.attachmentContentType,
-            hasAttachment = incoming.hasAttachment || current.hasAttachment,
-            createdAt = incoming.createdAt ?: current.createdAt,
-            contentFormat = maxOf(incoming.contentFormat, current.contentFormat),
-            plainText = if (incoming.isDeleted) null else incoming.plainText ?: current.plainText,
-            isBot = incoming.isBot || current.isBot,
-            botId = incoming.botId ?: current.botId,
-            systemEventType = incoming.systemEventType ?: current.systemEventType,
-            ticket = if (incoming.isDeleted) null else incoming.ticket ?: current.ticket,
-        )
+    fun mergePreview(current: MessagePreview?, incoming: MessagePreview?): MessagePreview? = when {
+        current == null -> incoming
+        incoming == null -> current
+        incoming.messageId != current.messageId -> if (incoming.messageId > current.messageId) incoming else current
+        else -> incoming.filledFrom(current)
     }
 
     /**
@@ -249,4 +231,25 @@ object ConversationMerge {
             activeMeeting = fresh.activeMeeting ?: cached.activeMeeting.takeIf { keepUnread },
         )
     }
+}
+
+/** The same message seen twice: keep every field this copy lacks. */
+private fun MessagePreview.filledFrom(older: MessagePreview): MessagePreview = copy(
+    authorId = authorId ?: older.authorId,
+    authorName = authorName ?: older.authorName,
+    attachmentName = attachmentName ?: older.attachmentName,
+    attachmentContentType = attachmentContentType ?: older.attachmentContentType,
+    hasAttachment = hasAttachment || older.hasAttachment,
+    createdAt = createdAt ?: older.createdAt,
+    contentFormat = maxOf(contentFormat, older.contentFormat),
+    isBot = isBot || older.isBot,
+    botId = botId ?: older.botId,
+    systemEventType = systemEventType ?: older.systemEventType,
+).withContentFrom(older)
+
+/** A deletion clears the content for good; otherwise missing content comes from the older copy. */
+private fun MessagePreview.withContentFrom(older: MessagePreview): MessagePreview = if (isDeleted) {
+    copy(text = null, plainText = null, ticket = null)
+} else {
+    copy(text = text ?: older.text, plainText = plainText ?: older.plainText, ticket = ticket ?: older.ticket)
 }

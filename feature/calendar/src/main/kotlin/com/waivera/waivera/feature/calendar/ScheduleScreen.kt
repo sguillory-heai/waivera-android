@@ -19,6 +19,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -98,6 +99,7 @@ fun ScheduleScreen(onAccountClick: () -> Unit, onOpenEvent: (eventId: String) ->
 }
 
 /** Everything the schedule screen can ask for. */
+@Immutable
 class ScheduleActions(
     val onAccountClick: () -> Unit = {},
     val onOpenEvent: (String) -> Unit = {},

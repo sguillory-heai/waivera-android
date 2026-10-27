@@ -139,12 +139,8 @@ object Agenda {
 
     private fun daysOf(event: ScheduleEvent, zone: ZoneId): ClosedRange<LocalDate>? {
         val allDayStart = event.allDayStart
-        if (allDayStart != null) {
-            val endInclusive = event.allDayEndExclusive?.takeIf { it.isAfter(allDayStart) }?.minusDays(1)
-                ?: allDayStart
-            return allDayStart..endInclusive
-        }
-        val start = event.startAt ?: return null
-        return CalendarMath.daysTouched(start, event.endAt, zone)
+            ?: return event.startAt?.let { CalendarMath.daysTouched(it, event.endAt, zone) }
+        val endInclusive = event.allDayEndExclusive?.takeIf { it.isAfter(allDayStart) }?.minusDays(1)
+        return allDayStart..(endInclusive ?: allDayStart)
     }
 }

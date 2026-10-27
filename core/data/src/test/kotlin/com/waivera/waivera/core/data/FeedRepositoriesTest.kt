@@ -140,6 +140,19 @@ class FeedRepositoriesTest {
     }
 
     @Test
+    fun cachedThreadRootTellsRepliesFromMainMessages() = testScope.runTest {
+        graph.cache.putMessages(
+            listOf(
+                com.waivera.waivera.core.data.model.Message(id = 9312, conversationId = 7, threadRootMessageId = 9310),
+                com.waivera.waivera.core.data.model.Message(id = 9310, conversationId = 7, threadRootMessageId = 9310),
+            ),
+        )
+        assertEquals(9310L, graph.threads.cachedRootOf(9312))
+        assertNull(graph.threads.cachedRootOf(9310), "a root is a main-timeline message")
+        assertNull(graph.threads.cachedRootOf(1), "not cached")
+    }
+
+    @Test
     fun threadErrorIsTyped() = testScope.runTest {
         graph.server.status("GET /api/chat/thread/1", 404)
         assertIs<WaiveraError.NotFound>(graph.threads.refresh(1).exceptionOrNull())
