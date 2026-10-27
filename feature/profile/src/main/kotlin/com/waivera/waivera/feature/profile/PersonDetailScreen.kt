@@ -108,7 +108,10 @@ internal fun PersonDetailContent(
                 title = state.name.ifBlank { stringResource(R.string.feature_profile_person_detail_title) },
                 onBack = onBack,
             )
-            ConnectionBanner(state = state.connection, onRetry = onRetryConnection)
+            ConnectionBanner(
+                state = bannerFor(state.connection, showsLoadError = state.details is Section.Failed),
+                onRetry = onRetryConnection,
+            )
             Column(
                 modifier = Modifier
                     .fillMaxSize()
@@ -122,6 +125,7 @@ internal fun PersonDetailContent(
                         text = stringResource(R.string.feature_profile_person_message),
                         onClick = onMessage,
                         loading = state.isOpeningChat,
+                        loadingText = stringResource(R.string.feature_profile_person_opening_chat),
                         fullWidth = true,
                         leadingIcon = WaiveraIcons.Chat,
                         modifier = Modifier.padding(horizontal = WaiveraSpacing.Gutter),
@@ -197,7 +201,7 @@ private fun PersonDetailsCard(section: Section<PersonDetails>, onRetry: () -> Un
         }
         is Section.Ready -> {
             val details = section.value
-            val roles = details.roles.joinedOrNull()
+            val roles = details.roles.map { ProfileFormat.roleLabel(it) }.joinedOrNull()
             // Absent values are left out here: this card describes someone else, not a form to fill.
             if (details.organization != null || roles != null || details.phoneNumber != null) {
                 ProfileCard {

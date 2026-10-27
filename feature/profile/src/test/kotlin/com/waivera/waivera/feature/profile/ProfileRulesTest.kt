@@ -4,6 +4,7 @@ import com.waivera.waivera.core.data.model.Milestone
 import com.waivera.waivera.core.data.model.TimeOffBalance
 import com.waivera.waivera.core.data.model.TimeOffRequest
 import com.waivera.waivera.core.data.model.TimeOffSummary
+import com.waivera.waivera.core.designsystem.component.ConnectionBannerState
 import com.waivera.waivera.core.network.dto.MilestoneType
 import com.waivera.waivera.core.network.time.WaiveraTime
 import java.time.Instant
@@ -67,6 +68,39 @@ class ProfileFormatTest {
         assertEquals("Nov 3, 2026", ProfileFormat.dateRange(day, day, Locale.US))
         assertEquals("Nov 3, 2026 – Nov 5, 2026", ProfileFormat.dateRange(day, day.plusDays(2), Locale.US))
         assertNull(ProfileFormat.dateRange(null, null, Locale.US))
+    }
+}
+
+class RoleLabelTest {
+    @Test
+    fun systemRoleNamesShowInTitleCase() {
+        assertEquals("Support Coordinator", ProfileFormat.roleLabel("SUPPORT COORDINATOR", Locale.US))
+        assertEquals("Care Team Lead", ProfileFormat.roleLabel("CARE_TEAM_LEAD", Locale.US))
+    }
+
+    @Test
+    fun displayTextIsLeftAlone() {
+        assertEquals("Senior support coordinator", ProfileFormat.roleLabel("Senior support coordinator", Locale.US))
+    }
+}
+
+/** One connection signal per screen (UI-04). */
+class ConnectionSignalTest {
+    @Test
+    fun loadErrorSilencesTheConnectionBanner() {
+        assertEquals(
+            ConnectionBannerState.Connected,
+            bannerFor(ConnectionBannerState.Reconnecting, showsLoadError = true),
+        )
+        assertEquals(ConnectionBannerState.Offline, bannerFor(ConnectionBannerState.Offline, showsLoadError = false))
+    }
+
+    @Test
+    fun refreshFailureShowsOnlyWhileConnected() {
+        assertTrue(showsRefreshFailed(ConnectionBannerState.Connected, refreshFailed = true))
+        assertFalse(showsRefreshFailed(ConnectionBannerState.Offline, refreshFailed = true))
+        assertFalse(showsRefreshFailed(ConnectionBannerState.Reconnecting, refreshFailed = true))
+        assertFalse(showsRefreshFailed(ConnectionBannerState.Connected, refreshFailed = false))
     }
 }
 

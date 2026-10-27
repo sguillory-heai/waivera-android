@@ -21,6 +21,7 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -118,8 +119,12 @@ internal fun ProfileContent(
                 modifier = Modifier.padding(top = WaiveraSpacing.Large),
             )
             is ProfileUiState.Ready -> {
-                ConnectionBanner(state = state.connection, onRetry = onRetryConnection)
                 val details = state.details
+                ConnectionBanner(
+                    state = bannerFor(state.connection, showsLoadError = details is Section.Failed),
+                    onRetry = onRetryConnection,
+                    offlineMessage = stringResource(R.string.feature_profile_offline_saved),
+                )
                 if (details is Section.Failed) {
                     WaiveraErrorState(
                         title = stringResource(R.string.feature_profile_error_title),
@@ -150,7 +155,7 @@ private fun ProfileBody(
             .padding(top = WaiveraSpacing.MediumSmall),
         verticalArrangement = Arrangement.spacedBy(WaiveraSpacing.MediumSmall),
     ) {
-        if (state.detailsRefreshError != null) {
+        if (showsRefreshFailed(state.connection, state.detailsRefreshError != null)) {
             WaiveraBanner(
                 message = stringResource(R.string.feature_profile_refresh_failed),
                 tone = BannerTone.Error,
@@ -185,32 +190,52 @@ private fun IdentityCard(user: CurrentUser, profile: EmployeeProfile?, celebrati
         ?: listOfNotNull(profile?.firstName, profile?.lastName).joinToString(" ").takeIf(String::isNotBlank)
         ?: user.displayName?.takeIf(String::isNotBlank)
         ?: listOfNotNull(user.firstName, user.lastName).joinToString(" ")
-    val jobTitle = profile?.positions?.firstOrNull { it.isNotBlank() } ?: user.roles.firstOrNull()
+    val jobTitle = profile?.positions?.firstOrNull { it.isNotBlank() }
+        ?: user.roles.firstOrNull { it.isNotBlank() }?.let { ProfileFormat.roleLabel(it) }
     val email = profile?.email ?: user.email
-    ProfileCard {
-        Row(
-            modifier = Modifier.padding(horizontal = WaiveraSpacing.Medium),
-            horizontalArrangement = Arrangement.spacedBy(WaiveraSpacing.Medium),
-            verticalAlignment = Alignment.CenterVertically,
+    // Above 130% font a text column beside the avatar is too narrow for a name or an email, so
+    // the avatar moves above the text and the text gets the card's full width.
+    val stacked = LocalDensity.current.fontScale > HEADER_STACK_FONT_SCALE
+    val avatar: @Composable () -> Unit = {
+        WaiveraAvatar(
+            name = name,
+            painter = rememberAvatarPainter(user.userId),
+            size = WaiveraSizes.AvatarLarge,
+            milestone = celebration?.milestoneKind,
+            contentDescription = null,
+        )
+    }
+    val text: @Composable (Modifier) -> Unit = { textModifier ->
+        Column(
+            modifier = textModifier.semantics(mergeDescendants = true) {},
+            verticalArrangement = Arrangement.spacedBy(WaiveraSpacing.XxSmall),
         ) {
-            WaiveraAvatar(
-                name = name,
-                painter = rememberAvatarPainter(user.userId),
-                size = WaiveraSizes.AvatarLarge,
-                milestone = celebration?.milestoneKind,
-                contentDescription = null,
-            )
+            Text(text = name, style = MaterialTheme.typography.headlineSmall, color = colors.text)
+            if (jobTitle != null) {
+                Text(text = jobTitle, style = MaterialTheme.typography.bodyMedium, color = colors.textSecondary)
+            }
+            if (!email.isNullOrBlank()) {
+                Text(text = email, style = MaterialTheme.typography.bodyMedium, color = colors.textSecondary)
+            }
+        }
+    }
+    ProfileCard {
+        if (stacked) {
             Column(
-                modifier = Modifier.weight(1f).semantics(mergeDescendants = true) {},
-                verticalArrangement = Arrangement.spacedBy(WaiveraSpacing.XxSmall),
+                modifier = Modifier.padding(horizontal = WaiveraSpacing.Medium),
+                verticalArrangement = Arrangement.spacedBy(WaiveraSpacing.MediumSmall),
             ) {
-                Text(text = name, style = MaterialTheme.typography.headlineSmall, color = colors.text)
-                if (jobTitle != null) {
-                    Text(text = jobTitle, style = MaterialTheme.typography.bodyMedium, color = colors.textSecondary)
-                }
-                if (!email.isNullOrBlank()) {
-                    Text(text = email, style = MaterialTheme.typography.bodyMedium, color = colors.textSecondary)
-                }
+                avatar()
+                text(Modifier.fillMaxWidth())
+            }
+        } else {
+            Row(
+                modifier = Modifier.padding(horizontal = WaiveraSpacing.Medium),
+                horizontalArrangement = Arrangement.spacedBy(WaiveraSpacing.Medium),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                avatar()
+                text(Modifier.weight(1f))
             }
         }
         if (celebration != null) {
@@ -371,3 +396,5 @@ internal object ProfilePreviewData {
         connection = ConnectionBannerState.Connected,
     )
 }
+
+private const val HEADER_STACK_FONT_SCALE = 1.3f

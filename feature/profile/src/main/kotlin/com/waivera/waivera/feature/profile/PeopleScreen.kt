@@ -79,14 +79,18 @@ internal fun PeopleContent(
                 TopBarAction(WaiveraIcons.Refresh, refreshLabel, { if (!state.isRefreshing) onRefresh() }),
             ),
         )
-        ConnectionBanner(state = state.connection, onRetry = onRetryConnection)
+        ConnectionBanner(
+            state = bannerFor(state.connection, showsLoadError = state.phase == ListPhase.Error),
+            onRetry = onRetryConnection,
+            offlineMessage = stringResource(R.string.feature_profile_people_offline_saved),
+        )
         ProfileSearchField(
             value = state.query,
             onValueChange = onQueryChange,
             placeholder = stringResource(R.string.feature_profile_people_search),
             clearDescription = stringResource(R.string.feature_profile_people_search_clear),
         )
-        if (state.error != null && state.phase == ListPhase.Content) {
+        if (showsRefreshFailed(state.connection, state.error != null && state.phase == ListPhase.Content)) {
             WaiveraBanner(
                 message = stringResource(R.string.feature_profile_people_refresh_failed),
                 tone = BannerTone.Error,

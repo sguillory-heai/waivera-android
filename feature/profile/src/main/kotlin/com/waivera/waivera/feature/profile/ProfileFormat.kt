@@ -38,4 +38,20 @@ internal object ProfileFormat {
     /** "Central Time" for America/Chicago, falling back to the id when the JDK has no name. */
     fun zoneName(zone: ZoneId, locale: Locale = Locale.getDefault()): String =
         zone.getDisplayName(TextStyle.FULL, locale).takeIf { it.isNotBlank() && it != zone.id } ?: zone.id
+
+    /**
+     * Account roles arrive as system names ("SUPPORT COORDINATOR"); show them in title case like
+     * the profile's positions, so the header reads the same before and after the profile loads.
+     * Mixed-case values are already display text and stay as they are.
+     */
+    fun roleLabel(raw: String, locale: Locale = Locale.getDefault()): String {
+        val trimmed = raw.trim()
+        if (trimmed.any(Char::isLowerCase)) return trimmed
+        return trimmed.replace('_', ' ')
+            .split(' ')
+            .filter(String::isNotEmpty)
+            .joinToString(" ") { word ->
+                word.lowercase(locale).replaceFirstChar { it.titlecase(locale) }
+            }
+    }
 }

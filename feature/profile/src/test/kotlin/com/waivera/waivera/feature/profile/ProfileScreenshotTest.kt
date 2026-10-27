@@ -184,7 +184,19 @@ class ProfileScreenshotTest {
 
     @Test
     fun peopleError() = capture("people_error") {
-        People(PeopleUiState(phase = ListPhase.Error, error = WaiveraError.Network()))
+        People(PeopleUiState(phase = ListPhase.Error, error = WaiveraError.Server(500)))
+    }
+
+    // Offline with nothing cached: the error state alone, no offline banner on top of it.
+    @Test
+    fun peopleErrorOffline() = capture("people_error_offline") {
+        People(
+            PeopleUiState(
+                phase = ListPhase.Error,
+                error = WaiveraError.Network(),
+                connection = ConnectionBannerState.Offline,
+            ),
+        )
     }
 
     @Test
