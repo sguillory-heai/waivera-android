@@ -16,11 +16,7 @@ import com.waivera.waivera.core.designsystem.theme.WaiveraTheme
  */
 @Suppress("UnusedParameter")
 @Composable
-fun ScheduleScreen(
-    onAccountClick: () -> Unit,
-    onOpenEvent: (eventId: String) -> Unit,
-    modifier: Modifier = Modifier,
-) {
+fun ScheduleScreen(onAccountClick: () -> Unit, onOpenEvent: (eventId: String) -> Unit, modifier: Modifier = Modifier) {
     WaiveraPlaceholderScreen(
         title = stringResource(R.string.feature_calendar_schedule_title),
         message = stringResource(R.string.feature_calendar_schedule_placeholder),

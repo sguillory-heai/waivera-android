@@ -17,8 +17,10 @@ object PushPayloadParser {
      *   conversation id (nothing to show and nowhere to go).
      */
     fun parse(
-        data: Map<String,
-        String>,
+        data: Map<
+            String,
+            String,
+            >,
         notificationTitle: String? = null,
         notificationBody: String? = null,
     ): PushMessage? {

@@ -77,8 +77,8 @@ internal object WaiveraPalette {
     val NewHireContainerDark = Color(0xFF2C2340)
     val OnNewHireContainerDark = Color(0xFFC4B5FD)
 
-    const val ScrimAlpha = 0.36f
-    const val WashAlpha = 0.08f
-    const val BorderAlpha = 0.16f
-    const val BorderStrongAlpha = 0.21f
+    const val SCRIM_ALPHA = 0.36f
+    const val WASH_ALPHA = 0.08f
+    const val BORDER_ALPHA = 0.16f
+    const val BORDER_STRONG_ALPHA = 0.21f
 }

@@ -23,12 +23,11 @@ object WaiveraShapes {
     val Circle: Shape = CircleShape
 
     /** Square avatars use `max(8, round(size * 0.24))`, matching the Expo avatar. */
-    fun avatar(size: Dp, rounded: Boolean): Shape =
-        if (rounded) {
-            CircleShape
-        } else {
-            RoundedCornerShape(maxOf(MIN_AVATAR_RADIUS, (size.value * AVATAR_RADIUS_RATIO).roundToInt()).dp)
-        }
+    fun avatar(size: Dp, rounded: Boolean): Shape = if (rounded) {
+        CircleShape
+    } else {
+        RoundedCornerShape(maxOf(MIN_AVATAR_RADIUS, (size.value * AVATAR_RADIUS_RATIO).roundToInt()).dp)
+    }
 
     private const val MIN_AVATAR_RADIUS = 8
     private const val AVATAR_RADIUS_RATIO = 0.24f

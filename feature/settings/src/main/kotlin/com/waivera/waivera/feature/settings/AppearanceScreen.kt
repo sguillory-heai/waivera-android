@@ -10,10 +10,7 @@ import com.waivera.waivera.core.designsystem.theme.WaiveraTheme
 
 /** Entry point for the appearance screen. Owned by `:feature:settings`; routed by `:app`. */
 @Composable
-fun AppearanceScreen(
-    onBack: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
+fun AppearanceScreen(onBack: () -> Unit, modifier: Modifier = Modifier) {
     WaiveraPlaceholderScreen(
         title = stringResource(R.string.feature_settings_appearance_title),
         message = stringResource(R.string.feature_settings_appearance_placeholder),

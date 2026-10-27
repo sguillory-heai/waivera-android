@@ -14,9 +14,9 @@ import com.waivera.waivera.core.data.auth.FirebaseConfig
 object FirebaseInitializer {
     fun initialize(context: Context): Boolean {
         if (FirebaseApp.getApps(context).isNotEmpty()) return true
-        val options = options() ?: return false
-        FirebaseApp.initializeApp(context, options)
-        return true
+        val options = options()
+        if (options != null) FirebaseApp.initializeApp(context, options)
+        return options != null
     }
 
     /** Null when a required value is missing. The sender id is optional (push only). */

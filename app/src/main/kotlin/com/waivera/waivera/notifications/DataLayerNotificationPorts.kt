@@ -16,8 +16,8 @@ import com.waivera.waivera.core.notifications.presentation.ConversationInfoSourc
 import com.waivera.waivera.core.notifications.presentation.ConversationNotificationInfo
 import com.waivera.waivera.core.notifications.presentation.NotificationPreferencesSource
 import com.waivera.waivera.core.notifications.token.PushTokenSink
-import kotlinx.coroutines.flow.first
 import javax.inject.Inject
+import kotlinx.coroutines.flow.first
 
 /** Inline Reply and Mark read go through the outbox and the read pipeline like in-app actions. */
 class DataLayerChatNotificationActions @Inject constructor(
@@ -39,9 +39,8 @@ class DataLayerChatNotificationActions @Inject constructor(
 }
 
 /** Per-category switches from Settings, applied when a push arrives. */
-class SettingsNotificationPreferences @Inject constructor(
-    private val settings: SettingsRepository,
-) : NotificationPreferencesSource {
+class SettingsNotificationPreferences @Inject constructor(private val settings: SettingsRepository) :
+    NotificationPreferencesSource {
     override suspend fun current(): ClientNotificationPreferences = settings.settings.first().notifications.toClient()
 }
 
@@ -68,8 +67,6 @@ class CachedConversationInfo @Inject constructor(
 }
 
 /** Token rotation stores and re-registers the token without touching the session or the hub. */
-class RegistrationTokenSink @Inject constructor(
-    private val registration: PushRegistrationRepository,
-) : PushTokenSink {
+class RegistrationTokenSink @Inject constructor(private val registration: PushRegistrationRepository) : PushTokenSink {
     override suspend fun onNewToken(token: String) = registration.onNewToken(token)
 }

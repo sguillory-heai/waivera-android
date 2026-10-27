@@ -4,10 +4,10 @@ import android.content.Context
 import com.google.firebase.FirebaseApp
 import com.google.firebase.messaging.FirebaseMessaging
 import dagger.hilt.android.qualifiers.ApplicationContext
-import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.tasks.await
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.tasks.await
 
 /**
  * Receives FCM tokens. Implemented in `:app`: when signed in it registers the token with
@@ -24,9 +24,8 @@ interface PushTokenProvider {
 }
 
 @Singleton
-class FirebasePushTokenProvider @Inject constructor(
-    @ApplicationContext private val context: Context,
-) : PushTokenProvider {
+class FirebasePushTokenProvider @Inject constructor(@ApplicationContext private val context: Context) :
+    PushTokenProvider {
 
     // Emulators without Play services and builds without Firebase config have no token; that is
     // not an error the person can act on, so it is not surfaced.

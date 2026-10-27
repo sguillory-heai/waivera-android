@@ -17,6 +17,7 @@ import com.waivera.waivera.core.notifications.presentation.ActiveConversationTra
 import com.waivera.waivera.core.notifications.presentation.Notifier
 import com.waivera.waivera.core.notifications.token.PushRegistrar
 import dagger.hilt.android.lifecycle.HiltViewModel
+import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -27,7 +28,6 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.Json
-import javax.inject.Inject
 
 /** Everything the root composable needs, as one immutable value. */
 data class ShellUiState(
@@ -41,6 +41,8 @@ data class ShellUiState(
  * Owns the auth gate, the tab back stacks and deep links. Navigation survives process death
  * through [SavedStateHandle]; a pending deep link is saved as its `waivera://` URI.
  */
+// The shell owns tabs, deep links, permission and push registration; each is one small handler.
+@Suppress("TooManyFunctions")
 @HiltViewModel
 class AppShellViewModel @Inject constructor(
     private val savedState: SavedStateHandle,

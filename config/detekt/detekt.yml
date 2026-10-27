@@ -5,13 +5,16 @@ naming:
   FunctionNaming:
     # Composable functions are PascalCase by convention.
     ignoreAnnotated: ['Composable']
+  MatchingDeclarationName:
+    # Compose files are named after their primary composable, with its small model type beside it.
+    active: false
   TopLevelPropertyNaming:
     constantPattern: '[A-Z][A-Za-z0-9_]*'
 
 complexity:
   LongParameterList:
-    # Stateless composables take state plus callbacks plus a Modifier.
-    ignoreAnnotated: ['Composable']
+    # Stateless composables take state plus callbacks plus a Modifier; Hilt constructors list their dependencies.
+    ignoreAnnotated: ['Composable', 'Inject']
   TooManyFunctions:
     ignoreAnnotated: ['Preview', 'WaiveraPreviews']
     # Interface implementations (notifier, repositories) are sized by their interface.

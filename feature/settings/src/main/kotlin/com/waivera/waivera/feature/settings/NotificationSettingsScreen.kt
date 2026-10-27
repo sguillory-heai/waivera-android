@@ -10,10 +10,7 @@ import com.waivera.waivera.core.designsystem.theme.WaiveraTheme
 
 /** Entry point for the notifications screen. Owned by `:feature:settings`; routed by `:app`. */
 @Composable
-fun NotificationSettingsScreen(
-    onBack: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
+fun NotificationSettingsScreen(onBack: () -> Unit, modifier: Modifier = Modifier) {
     WaiveraPlaceholderScreen(
         title = stringResource(R.string.feature_settings_notification_settings_title),
         message = stringResource(R.string.feature_settings_notification_settings_placeholder),

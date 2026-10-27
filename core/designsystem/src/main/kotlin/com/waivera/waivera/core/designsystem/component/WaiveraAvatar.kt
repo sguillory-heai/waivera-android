@@ -47,6 +47,8 @@ enum class MilestoneKind { Birthday, WorkAnniversary, NewHire }
  *   While null the fallback shows; callers keep the last painter during reloads to avoid flashing.
  * @param contentDescription null when the avatar sits next to the person's name and is decorative.
  */
+// Image, initials fallback, presence and milestone badges are layered in one Box.
+@Suppress("LongMethod")
 @Composable
 fun WaiveraAvatar(
     name: String,

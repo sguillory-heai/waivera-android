@@ -3,6 +3,7 @@ package com.waivera.waivera.core.demo
 import android.app.Activity
 import android.content.Context
 import android.content.Intent
+import androidx.core.content.edit
 import com.waivera.waivera.core.data.auth.FirebaseConfig
 import com.waivera.waivera.core.network.BuildConfig as NetworkBuildConfig
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -49,7 +50,7 @@ class DemoMode @Inject constructor(@ApplicationContext context: Context) {
             val prefs = prefs(activity)
             if (prefs.getBoolean(KEY_ENABLED, false) == wanted) return false
             // commit() so the value is on disk before the process exits.
-            prefs.edit().putBoolean(KEY_ENABLED, wanted).commit()
+            prefs.edit(commit = true) { putBoolean(KEY_ENABLED, wanted) }
             val restart = activity.packageManager.getLaunchIntentForPackage(activity.packageName)
                 ?.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
             activity.finishAffinity()

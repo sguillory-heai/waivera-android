@@ -15,10 +15,7 @@ import com.waivera.waivera.core.designsystem.theme.WaiveraTheme
  */
 @Suppress("UnusedParameter")
 @Composable
-fun SignInScreen(
-    configurationMissing: Boolean,
-    modifier: Modifier = Modifier,
-) {
+fun SignInScreen(configurationMissing: Boolean, modifier: Modifier = Modifier) {
     WaiveraPlaceholderScreen(
         title = stringResource(R.string.feature_auth_sign_in_title),
         message = stringResource(R.string.feature_auth_sign_in_placeholder),

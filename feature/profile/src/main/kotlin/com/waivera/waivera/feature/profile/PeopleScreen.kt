@@ -15,11 +15,7 @@ import com.waivera.waivera.core.designsystem.theme.WaiveraTheme
  */
 @Suppress("UnusedParameter")
 @Composable
-fun PeopleScreen(
-    onBack: () -> Unit,
-    onOpenPerson: (userId: String) -> Unit,
-    modifier: Modifier = Modifier,
-) {
+fun PeopleScreen(onBack: () -> Unit, onOpenPerson: (userId: String) -> Unit, modifier: Modifier = Modifier) {
     WaiveraPlaceholderScreen(
         title = stringResource(R.string.feature_profile_people_title),
         message = stringResource(R.string.feature_profile_people_placeholder),

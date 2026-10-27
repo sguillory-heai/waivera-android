@@ -27,11 +27,13 @@ class DeepLinkUrisTest {
 
     @Test
     fun `every target round-trips through its uri`() {
-        everyTarget.forEach { target -> assertEquals(
-            target,
-            DeepLinkUris.parse(DeepLinkUris.toUri(target)),
-            "$target",
-        ) }
+        everyTarget.forEach { target ->
+            assertEquals(
+                target,
+                DeepLinkUris.parse(DeepLinkUris.toUri(target)),
+                "$target",
+            )
+        }
     }
 
     @Test

@@ -9,12 +9,12 @@ import com.waivera.waivera.core.notifications.presentation.ConversationNotificat
 import com.waivera.waivera.core.notifications.presentation.NotificationPreferencesSource
 import com.waivera.waivera.core.notifications.presentation.Notifier
 import com.waivera.waivera.core.notifications.presentation.PresentationDecision
-import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
+import kotlinx.coroutines.test.runTest
 
 class PushMessageHandlerTest {
     private val notifier = FakeNotifier()
