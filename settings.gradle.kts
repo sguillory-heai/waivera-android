@@ -32,6 +32,8 @@ rootProject.name = "waivera-android"
 enableFeaturePreview("TYPESAFE_PROJECT_ACCESSORS")
 
 include(":app")
+include(":core:data")
+include(":core:demo")
 include(":core:designsystem")
 include(":core:network")
 include(":core:realtime")

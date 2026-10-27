@@ -1,5 +1,7 @@
 package com.waivera.waivera.core.network
 
+import com.waivera.waivera.core.network.error.NotSignedInException
+import okhttp3.HttpUrl
 import okhttp3.Interceptor
 import okhttp3.Request
 import okhttp3.Response
@@ -14,26 +16,38 @@ fun interface AuthTokenProvider {
 }
 
 /**
- * Adds `Authorization: Bearer <Firebase ID token>` and retries once with a
- * refreshed token on 401, matching the Expo app's API client.
+ * Adds `Authorization: Bearer <Firebase ID token>` to requests for the sprout_api host only (the
+ * token never leaves for another host, such as an image CDN) and retries once with a
+ * force-refreshed token on 401, matching the Expo client. With no signed-in user the request
+ * fails locally with [NotSignedInException] and never reaches the network.
+ *
+ * One-shot bodies (streamed uploads) cannot be replayed, so their 401 is returned to the caller,
+ * which re-creates the body and retries once (see the attachments repository).
  */
-class AuthTokenInterceptor(private val tokens: AuthTokenProvider) : Interceptor {
+class AuthTokenInterceptor(
+    private val tokens: AuthTokenProvider,
+    private val apiBaseUrl: HttpUrl? = null,
+) : Interceptor {
     override fun intercept(chain: Interceptor.Chain): Response {
-        val token = tokens.idToken(forceRefresh = false)
-        val response = chain.proceed(chain.request().withBearer(token))
-        val refreshed = if (response.code == HTTP_UNAUTHORIZED && token != null) {
-            tokens.idToken(forceRefresh = true)
-        } else {
-            null
-        }
-        if (refreshed == null) return response
+        val request = chain.request()
+        if (!request.isForApi()) return chain.proceed(request)
 
+        val token = tokens.idToken(forceRefresh = false) ?: throw NotSignedInException()
+        val response = chain.proceed(request.withBearer(token))
+        if (response.code != HTTP_UNAUTHORIZED || request.body?.isOneShot() == true) return response
+
+        val refreshed = tokens.idToken(forceRefresh = true) ?: return response
         response.close()
-        return chain.proceed(chain.request().withBearer(refreshed))
+        return chain.proceed(request.withBearer(refreshed))
     }
 
-    private fun Request.withBearer(token: String?): Request =
-        if (token == null) this else newBuilder().header("Authorization", "Bearer $token").build()
+    private fun Request.isForApi(): Boolean {
+        val base = apiBaseUrl ?: return true
+        return url.host == base.host && url.port == base.port && url.scheme == base.scheme
+    }
+
+    private fun Request.withBearer(token: String): Request =
+        newBuilder().header("Authorization", "Bearer $token").build()
 
     private companion object {
         const val HTTP_UNAUTHORIZED = 401

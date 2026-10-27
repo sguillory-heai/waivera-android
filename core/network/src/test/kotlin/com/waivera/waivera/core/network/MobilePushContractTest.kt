@@ -1,42 +1,45 @@
 package com.waivera.waivera.core.network
 
-import com.waivera.waivera.core.network.push.MobilePushRegistrationRequest
+import com.waivera.waivera.core.network.dto.MobilePushRegistrationRequest
+import com.waivera.waivera.core.network.dto.MobilePushResultDto
+import com.waivera.waivera.core.testing.Fixtures
 import kotlin.test.Test
 import kotlin.test.assertEquals
-import kotlinx.serialization.encodeToString
+import kotlin.test.assertFalse
 import kotlinx.serialization.json.JsonObject
-import kotlinx.serialization.json.boolean
 import kotlinx.serialization.json.jsonObject
-import kotlinx.serialization.json.jsonPrimitive
 
 class MobilePushContractTest {
     @Test
-    fun registrationUsesSproutApiFieldNamesAndRegistersAnFcmToken() {
+    fun registrationMatchesTheAndroidRequestFixture() {
         val request = MobilePushRegistrationRequest(
-            deviceId = "device-1",
-            pushToken = "fcm-token",
+            deviceId = "dev_a1b2c3d4e5f60718",
+            pushToken = "fcm-example-registration-token-android-0001",
             pushEnabled = true,
             chatMessagesEnabled = true,
             mentionsEnabled = true,
-            reactionsEnabled = false,
+            reactionsEnabled = true,
             activeCallsEnabled = true,
-            soundEnabled = false,
+            soundEnabled = true,
             vibrationEnabled = true,
-            previewContentEnabled = false,
+            previewContentEnabled = true,
         )
 
-        val json: JsonObject = WaiveraJson.parseToJsonElement(WaiveraJson.encodeToString(request)).jsonObject
+        val encoded: JsonObject = WaiveraJson.parseToJsonElement(
+            WaiveraJson.encodeToString(MobilePushRegistrationRequest.serializer(), request),
+        ).jsonObject
+        val fixture = WaiveraJson.parseToJsonElement(Fixtures.text("rest-mobile-push-register-request-android.json"))
 
-        assertEquals(
-            setOf(
-                "deviceId", "pushToken", "platform", "provider", "pushEnabled", "chatMessagesEnabled",
-                "mentionsEnabled", "reactionsEnabled", "activeCallsEnabled", "soundEnabled",
-                "vibrationEnabled", "previewContentEnabled",
-            ),
-            json.keys,
+        assertEquals(fixture, encoded)
+    }
+
+    @Test
+    fun registrationErrorBodyDecodes() {
+        val result = WaiveraJson.decodeNormalized(
+            MobilePushResultDto.serializer(),
+            Fixtures.text("rest-mobile-push-register-error.json"),
         )
-        assertEquals("fcm", json.getValue("provider").jsonPrimitive.content)
-        assertEquals("android", json.getValue("platform").jsonPrimitive.content)
-        assertEquals(false, json.getValue("previewContentEnabled").jsonPrimitive.boolean)
+
+        assertFalse(result.success)
     }
 }
