@@ -6,6 +6,8 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.defaultMinSize
@@ -402,6 +404,8 @@ private fun SavedPill() {
 
 private const val SAVED_POP_START = 0.75f
 
+/** Retry, Edit and Discard wrap as whole buttons at large font, never mid-word. */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun PendingMeta(message: Message, callbacks: MessageRowCallbacks) {
     val colors = WaiveraTheme.colors
@@ -423,7 +427,7 @@ private fun PendingMeta(message: Message, callbacks: MessageRowCallbacks) {
             textAlign = TextAlign.End,
         )
         if (message.sendState == SendState.FAILED && clientId != null) {
-            Row(horizontalArrangement = Arrangement.spacedBy(WaiveraSpacing.XxSmall)) {
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(WaiveraSpacing.XxSmall, Alignment.End)) {
                 WaiveraButton(
                     text = stringResource(R.string.feature_chat_failed_retry),
                     onClick = { callbacks.onRetry(clientId) },

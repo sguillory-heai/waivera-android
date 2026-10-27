@@ -77,6 +77,7 @@ class DesignSystemScreenshotTest {
         WaiveraButton(text = "Sign out", onClick = {}, loading = true, loadingText = "Signing out…", fullWidth = true)
         WaiveraButton(text = "Sign in", onClick = {}, enabled = false, fullWidth = true)
         WaiveraButton(text = "Cancel", onClick = {}, variant = WaiveraButtonVariant.Secondary, fullWidth = true)
+        WaiveraButton(text = "Join on web", onClick = {}, variant = WaiveraButtonVariant.Tonal)
         WaiveraButton(
             text = "Delete message",
             onClick = {},

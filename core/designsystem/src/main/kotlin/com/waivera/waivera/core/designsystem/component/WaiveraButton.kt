@@ -41,7 +41,11 @@ import com.waivera.waivera.core.designsystem.theme.WaiveraSizes
 import com.waivera.waivera.core.designsystem.theme.WaiveraSpacing
 import com.waivera.waivera.core.designsystem.theme.WaiveraTheme
 
-enum class WaiveraButtonVariant { Primary, Secondary, Destructive, Text }
+/**
+ * [Tonal] is the quiet filled style (accent-soft fill) for an action that matters but should not
+ * shout, such as joining a call from a banner or a chosen option in a pair.
+ */
+enum class WaiveraButtonVariant { Primary, Secondary, Tonal, Destructive, Text }
 
 /**
  * The app's button.
@@ -145,6 +149,7 @@ private class ButtonStyle(val container: Color, val content: Color, val disabled
 private fun WaiveraButtonVariant.styleFrom(colors: WaiveraColors): ButtonStyle = when (this) {
     WaiveraButtonVariant.Primary -> ButtonStyle(colors.accent, colors.onAccent, colors.surfaceMuted)
     WaiveraButtonVariant.Secondary -> ButtonStyle(colors.surface, colors.text, colors.surface)
+    WaiveraButtonVariant.Tonal -> ButtonStyle(colors.accentSoft, colors.onAccentSoft, colors.surfaceMuted)
     WaiveraButtonVariant.Destructive -> ButtonStyle(colors.dangerFill, colors.onDangerFill, colors.surfaceMuted)
     WaiveraButtonVariant.Text -> ButtonStyle(Color.Transparent, colors.accent, Color.Transparent)
 }
@@ -161,6 +166,7 @@ private fun WaiveraButtonPreview() {
             WaiveraButton(text = "Send", onClick = {}, loading = true, fullWidth = true)
             WaiveraButton(text = "Sign out", onClick = {}, loading = true, loadingText = "Signing out…")
             WaiveraButton(text = "Cancel", onClick = {}, variant = WaiveraButtonVariant.Secondary)
+            WaiveraButton(text = "Join on web", onClick = {}, variant = WaiveraButtonVariant.Tonal)
             WaiveraButton(text = "Delete message", onClick = {}, variant = WaiveraButtonVariant.Destructive)
             WaiveraButton(text = "Not now", onClick = {}, variant = WaiveraButtonVariant.Text)
             WaiveraButton(text = "New chat", onClick = {}, leadingIcon = WaiveraIcons.Add, enabled = false)
