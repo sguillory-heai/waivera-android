@@ -1,0 +1,199 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Conversation and thread screens. Kept apart from strings.xml, which the chat list owns. -->
+<resources>
+    <!-- Chrome -->
+    <string name="feature_chat_conversation_fallback_title">Conversation</string>
+    <string name="feature_chat_conversation_invalid">Invalid conversation ID.</string>
+    <string name="feature_chat_thread_invalid">This thread could not be opened.</string>
+    <string name="feature_chat_subtitle_reconnecting">Reconnecting…</string>
+    <string name="feature_chat_subtitle_connecting">Connecting…</string>
+    <string name="feature_chat_subtitle_offline">Offline</string>
+    <string name="feature_chat_call_start">Start video call on web</string>
+    <string name="feature_chat_call_join">Join video call on web</string>
+    <string name="feature_chat_call_in_progress">Call in progress</string>
+    <string name="feature_chat_call_join_on_web">Join on web ›</string>
+    <string name="feature_chat_call_open_failed">Unable to open video call</string>
+
+    <!-- States -->
+    <string name="feature_chat_messages_loading">Loading messages</string>
+    <string name="feature_chat_messages_error_title">Messages didn\'t load</string>
+    <string name="feature_chat_messages_empty_title">No messages yet</string>
+    <string name="feature_chat_messages_empty">No messages yet. Start the conversation.</string>
+    <string name="feature_chat_messages_stale">Showing saved messages. We couldn\'t refresh them.</string>
+    <string name="feature_chat_thread_error_title">Thread didn\'t load</string>
+    <string name="feature_chat_thread_empty">No replies yet.</string>
+    <string name="feature_chat_thread_loading">Loading thread</string>
+    <string name="feature_chat_older_failed">Older messages didn\'t load.</string>
+    <string name="feature_chat_older_loading">Loading older messages</string>
+    <string name="feature_chat_retry">Retry</string>
+    <string name="feature_chat_jump_to_latest">Jump to latest</string>
+    <string name="feature_chat_day_today">Today</string>
+
+    <!-- Message rows -->
+    <string name="feature_chat_message_deleted">Message deleted</string>
+    <string name="feature_chat_message_edited">edited</string>
+    <string name="feature_chat_timestamp_edited">%1$s · edited</string>
+    <string name="feature_chat_automated">AUTOMATED</string>
+    <string name="feature_chat_saved">Saved</string>
+    <string name="feature_chat_sending">Sending…</string>
+    <string name="feature_chat_queued">Waiting for connection…</string>
+    <string name="feature_chat_failed">Failed</string>
+    <string name="feature_chat_failed_retry">Retry</string>
+    <string name="feature_chat_failed_edit">Edit</string>
+    <string name="feature_chat_failed_discard">Discard</string>
+    <string name="feature_chat_uploading">Uploading…</string>
+    <string name="feature_chat_upload_failed">Upload failed</string>
+    <plurals name="feature_chat_thread_replies">
+        <item quantity="one">%d reply</item>
+        <item quantity="other">%d replies</item>
+    </plurals>
+    <string name="feature_chat_open_thread">Open thread</string>
+    <string name="feature_chat_open_actions">Message actions</string>
+    <string name="feature_chat_show_time">Show time</string>
+    <string name="feature_chat_row_mine">You: %1$s</string>
+    <string name="feature_chat_row_other">%1$s: %2$s</string>
+    <string name="feature_chat_row_attachment">Attachment %1$s</string>
+    <string name="feature_chat_row_image">Image</string>
+    <string name="feature_chat_open_profile">Open profile of %1$s</string>
+    <string name="feature_chat_unknown_author">Unknown user</string>
+    <string name="feature_chat_you">You</string>
+
+    <!-- Relative time -->
+    <string name="feature_chat_time_just_now">just now</string>
+    <plurals name="feature_chat_time_seconds">
+        <item quantity="one">%d second ago</item>
+        <item quantity="other">%d seconds ago</item>
+    </plurals>
+    <plurals name="feature_chat_time_minutes">
+        <item quantity="one">%d minute ago</item>
+        <item quantity="other">%d minutes ago</item>
+    </plurals>
+    <plurals name="feature_chat_time_hours">
+        <item quantity="one">%d hour ago</item>
+        <item quantity="other">%d hours ago</item>
+    </plurals>
+    <plurals name="feature_chat_time_days">
+        <item quantity="one">%d day ago</item>
+        <item quantity="other">%d days ago</item>
+    </plurals>
+
+    <!-- Reactions -->
+    <string name="feature_chat_reaction_label">%1$s, %2$d</string>
+    <string name="feature_chat_reaction_label_mine">%1$s, %2$d, including you</string>
+    <string name="feature_chat_reaction_toggle">Toggle reaction</string>
+    <string name="feature_chat_reaction_details">Show who reacted</string>
+    <string name="feature_chat_reactions_title">Reactions</string>
+    <string name="feature_chat_reactions_close">Close reactions</string>
+    <string name="feature_chat_react_with">React with %1$s</string>
+    <string name="feature_chat_reaction_failed">Reaction failed</string>
+    <string name="feature_chat_reaction_needs_connection">Reactions require a live chat connection.</string>
+
+    <!-- Action sheet -->
+    <string name="feature_chat_preview_label">MESSAGE PREVIEW</string>
+    <string name="feature_chat_action_copy">Copy text</string>
+    <string name="feature_chat_action_copied">Copied to clipboard</string>
+    <string name="feature_chat_action_reply">Reply in thread</string>
+    <string name="feature_chat_action_edit">Edit message</string>
+    <string name="feature_chat_action_bookmark">Bookmark</string>
+    <string name="feature_chat_action_bookmarked">Bookmarked · tap to remove</string>
+    <string name="feature_chat_action_delete">Delete message</string>
+    <string name="feature_chat_action_close">Close message actions</string>
+    <string name="feature_chat_bookmark_saved">Bookmark saved</string>
+    <string name="feature_chat_bookmark_removed">Bookmark removed</string>
+    <string name="feature_chat_bookmark_failed">Bookmark failed</string>
+    <string name="feature_chat_undo">Undo</string>
+    <string name="feature_chat_delete_title">Delete message?</string>
+    <string name="feature_chat_delete_message">This removes the message for everyone in the conversation.</string>
+    <string name="feature_chat_delete_confirm">Delete</string>
+    <string name="feature_chat_delete_failed">Delete failed</string>
+    <string name="feature_chat_edit_failed">Edit failed</string>
+
+    <!-- Composer -->
+    <string name="feature_chat_composer_placeholder">Message</string>
+    <string name="feature_chat_composer_reply_placeholder">Reply</string>
+    <string name="feature_chat_attach_image">Attach image</string>
+    <string name="feature_chat_send">Send message</string>
+    <string name="feature_chat_send_reply">Send reply</string>
+    <string name="feature_chat_save_edit">Save changes</string>
+    <string name="feature_chat_selected_image">Selected image</string>
+    <string name="feature_chat_remove_image">Remove</string>
+    <string name="feature_chat_editing">Editing message</string>
+    <string name="feature_chat_cancel_edit">Cancel editing</string>
+    <string name="feature_chat_image_unreadable">That image couldn\'t be opened.</string>
+
+    <!-- Typing -->
+    <string name="feature_chat_typing_one">%1$s is typing…</string>
+    <string name="feature_chat_typing_two">%1$s and %2$s are typing…</string>
+    <string name="feature_chat_typing_many">Several people are typing…</string>
+
+    <!-- Send error banner, noun "message" -->
+    <string name="feature_chat_not_sent">Not sent</string>
+    <string name="feature_chat_dismiss_send_error">Dismiss send error</string>
+    <string name="feature_chat_send_error_archived">This conversation is archived, so your message could not be sent.</string>
+    <string name="feature_chat_send_error_read_only">You do not currently have permission to send this message.</string>
+    <string name="feature_chat_send_error_offline">You appear to be offline. Reconnect and try sending the message again.</string>
+    <string name="feature_chat_send_error_session">Your session needs to be refreshed before this message can be sent.</string>
+    <string name="feature_chat_send_error_server">The server could not send this message. Your draft is still here—please try again.</string>
+    <!-- Same, noun "reply" -->
+    <string name="feature_chat_reply_error_archived">This conversation is archived, so your reply could not be sent.</string>
+    <string name="feature_chat_reply_error_read_only">You do not currently have permission to send this reply.</string>
+    <string name="feature_chat_reply_error_offline">You appear to be offline. Reconnect and try sending the reply again.</string>
+    <string name="feature_chat_reply_error_session">Your session needs to be refreshed before this reply can be sent.</string>
+    <string name="feature_chat_reply_error_server">The server could not send this reply. Your draft is still here—please try again.</string>
+
+    <!-- Read-only notice -->
+    <string name="feature_chat_read_only_bot_title">Automated notifications</string>
+    <string name="feature_chat_read_only_bot_reason">Waivera uses this conversation for automated notifications. Replies are disabled.</string>
+    <string name="feature_chat_read_only_channel_title">Read-only channel</string>
+    <string name="feature_chat_read_only_channel_reason">You have read-only access to this channel. Contact a channel administrator if you need permission to post.</string>
+    <string name="feature_chat_read_only_archived_title">Archived channel</string>
+    <string name="feature_chat_read_only_archived_reason">This channel is archived, so new messages are turned off.</string>
+    <string name="feature_chat_read_only_thread_title">Replies are read only</string>
+    <string name="feature_chat_read_only_thread_reason">You can review this thread, but you do not have permission to reply.</string>
+
+    <!-- Attachments -->
+    <string name="feature_chat_open_image">Open image preview</string>
+    <string name="feature_chat_image_unavailable">Image unavailable</string>
+    <string name="feature_chat_image_close">Close image preview</string>
+    <string name="feature_chat_image_zoom_hint">Pinch or double-tap to zoom</string>
+    <string name="feature_chat_file_caption">Tap for download options</string>
+    <string name="feature_chat_file_sheet_message">Choose what you want to do with this attachment.</string>
+    <string name="feature_chat_file_save">Save to device</string>
+    <string name="feature_chat_file_share">Open / Share</string>
+    <string name="feature_chat_file_preparing">Preparing file…</string>
+    <string name="feature_chat_file_saved">File saved: %1$s</string>
+    <string name="feature_chat_file_save_failed">Unable to save attachment</string>
+    <string name="feature_chat_file_open_failed">Unable to open attachment</string>
+    <string name="feature_chat_attachment_scanning">Checking attachment for safety…</string>
+    <string name="feature_chat_attachment_blocked">Blocked by security scanning</string>
+
+    <!-- Ticket card -->
+    <string name="feature_chat_ticket_open">Open ticket</string>
+    <string name="feature_chat_ticket_created_by">Created by</string>
+    <string name="feature_chat_ticket_created">Created</string>
+    <string name="feature_chat_ticket_due">Due</string>
+    <string name="feature_chat_ticket_not_set">Not set</string>
+    <string name="feature_chat_ticket_unknown_user">Unknown user</string>
+
+    <!-- Call log card -->
+    <string name="feature_chat_call_declined">Video call declined</string>
+    <string name="feature_chat_call_missed">Missed video call</string>
+    <string name="feature_chat_call_ended">Video call</string>
+    <string name="feature_chat_call_live">Video call in progress</string>
+    <string name="feature_chat_call_expand">Show call details</string>
+    <string name="feature_chat_call_collapse">Hide call details</string>
+
+    <!-- Thread -->
+    <string name="feature_chat_thread_screen_title">Thread</string>
+    <plurals name="feature_chat_thread_reply_count_header">
+        <item quantity="one">%d reply</item>
+        <item quantity="other">%d replies</item>
+    </plurals>
+    <string name="feature_chat_thread_root_missing">The original message isn\'t available.</string>
+    <!-- Snackbar title followed by the client-owned reason, e.g. "Delete failed. You're offline." -->
+    <string name="feature_chat_snackbar_with_detail">%1$s. %2$s</string>
+    <string name="feature_chat_link_failed">That link couldn\'t be opened.</string>
+    <string name="feature_chat_share_title">Share %1$s</string>
+    <string name="feature_chat_messages_list">Messages</string>
+    <string name="feature_chat_thread_list">Thread replies</string>
+</resources>
