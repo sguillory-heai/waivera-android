@@ -223,6 +223,9 @@ class ThreadViewModel @AssistedInject constructor(
                 liveArrivals.update { it - arrivals }
             }
         }
+        if (isResumed && ArrivalTracker.hasIncoming(replies, arrivals, me)) {
+            emit(ChatEffect.Haptic(HapticMoment.Receive))
+        }
         val events = sendTracker.update(replies)
         if (events.newFailures > 0) {
             val kind = SendErrors.forFailedSend(

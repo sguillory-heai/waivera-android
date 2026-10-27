@@ -1,6 +1,7 @@
 package com.waivera.waivera.feature.chat.conversation
 
 import app.cash.turbine.test
+import com.waivera.waivera.core.data.model.Message
 import com.waivera.waivera.core.data.model.SendState
 import com.waivera.waivera.core.data.model.SyncStatus
 import com.waivera.waivera.core.demo.DemoData
@@ -540,7 +541,46 @@ class ConversationViewModelTest {
 
     // endregion
 
+    // region Receive cue
+
+    private fun DemoGraph.incoming(text: String, ageSeconds: Long = 0) = Message(
+        id = backend.nextMessageId(),
+        conversationId = DemoData.DM_PRIYA,
+        authorId = DemoData.PRIYA,
+        text = text,
+        createdAt = backend.now().minusSeconds(ageSeconds),
+    )
+
+    @Test
+    fun someoneElsesMessageArrivingOnScreenGivesTheReceiveCue() = runTest {
+        val s = subject()
+        s.viewModel.onResumed()
+        runCurrent()
+        s.viewModel.effects.test {
+            s.graph.backend.append(s.graph.incoming("Running ten minutes late"))
+            runCurrent()
+            assertEquals(ChatEffect.Haptic(HapticMoment.Receive), awaitItem())
+        }
+    }
+
+    @Test
+    fun arrivalsWhilePausedAndOlderBackfillStayQuiet() = runTest {
+        val s = subject()
+        s.viewModel.effects.test {
+            s.graph.backend.append(s.graph.incoming("While you were away"))
+            runCurrent()
+            s.viewModel.onResumed()
+            runCurrent()
+            s.graph.backend.append(s.graph.incoming("From last week", ageSeconds = BACKFILL_AGE_SECONDS))
+            runCurrent()
+            expectNoEvents()
+        }
+    }
+
+    // endregion
+
     private companion object {
         const val UNKNOWN = 999L
+        const val BACKFILL_AGE_SECONDS = 7 * 24 * 3_600L
     }
 }

@@ -21,6 +21,7 @@ class HapticsTest {
             HapticMoment.Error to HapticSignal.Reject,
             HapticMoment.Warning to HapticSignal.Reject,
             HapticMoment.LongPress to HapticSignal.LongPress,
+            HapticMoment.Receive to HapticSignal.SegmentTick,
         )
         assertEquals(HapticMoment.entries.toSet(), expected.keys)
         expected.forEach { (moment, signal) -> assertEquals(signal, moment.signal(), "$moment") }

@@ -204,6 +204,9 @@ class ConversationViewModel @AssistedInject constructor(
                 liveArrivals.update { it - arrivals }
             }
         }
+        if (isResumed && ArrivalTracker.hasIncoming(visible, arrivals, me)) {
+            emit(ChatEffect.Haptic(HapticMoment.Receive))
+        }
         val events = sendTracker.update(visible)
         if (events.newFailures > 0) {
             val status = realtime.status.value
