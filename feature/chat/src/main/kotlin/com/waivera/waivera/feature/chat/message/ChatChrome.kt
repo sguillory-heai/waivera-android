@@ -23,6 +23,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.platform.LocalDensity
@@ -48,6 +49,7 @@ import com.waivera.waivera.core.designsystem.component.rememberSkeletonPulse
 import com.waivera.waivera.core.designsystem.component.rememberSkeletonVisible
 import com.waivera.waivera.core.designsystem.icon.WaiveraIcons
 import com.waivera.waivera.core.designsystem.preview.WaiveraPreviews
+import com.waivera.waivera.core.designsystem.theme.WaiveraElevation
 import com.waivera.waivera.core.designsystem.theme.WaiveraShapes
 import com.waivera.waivera.core.designsystem.theme.WaiveraSizes
 import com.waivera.waivera.core.designsystem.theme.WaiveraSpacing
@@ -447,6 +449,10 @@ fun MessageListSkeleton(modifier: Modifier = Modifier, rows: Int = ChatDimens.SK
     }
 }
 
+/**
+ * Floats over the timeline, so it is lifted off the bubbles with a shadow and a strong border:
+ * in dark mode a flat surface pill had almost the same value as an incoming bubble (UI3-03).
+ */
 @Composable
 fun JumpToLatestPill(onClick: () -> Unit, modifier: Modifier = Modifier) {
     val colors = WaiveraTheme.colors
@@ -458,8 +464,9 @@ fun JumpToLatestPill(onClick: () -> Unit, modifier: Modifier = Modifier) {
         Row(
             modifier = Modifier
                 .align(Alignment.Center)
+                .shadow(WaiveraElevation.Level3, WaiveraShapes.Pill)
                 .background(colors.surface, WaiveraShapes.Pill)
-                .border(WaiveraSpacing.Hairline, colors.border, WaiveraShapes.Pill)
+                .border(WaiveraSpacing.Hairline, colors.borderStrong, WaiveraShapes.Pill)
                 .padding(horizontal = WaiveraSpacing.MediumSmall, vertical = WaiveraSpacing.Small),
             horizontalArrangement = Arrangement.spacedBy(WaiveraSpacing.ExtraSmall),
             verticalAlignment = Alignment.CenterVertically,

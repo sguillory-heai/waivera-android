@@ -4,9 +4,11 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.StringRes
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.displayCutout
@@ -60,6 +62,7 @@ import com.waivera.waivera.core.designsystem.component.WaiveraSnackbarHost
 import com.waivera.waivera.core.designsystem.component.WaiveraTopBar
 import com.waivera.waivera.core.designsystem.icon.WaiveraIcons
 import com.waivera.waivera.core.designsystem.preview.WaiveraPreviews
+import com.waivera.waivera.core.designsystem.theme.WaiveraSpacing
 import com.waivera.waivera.core.designsystem.theme.WaiveraTheme
 import com.waivera.waivera.core.network.R as NetworkR
 import com.waivera.waivera.feature.chat.conversation.CallUi
@@ -325,7 +328,9 @@ fun ConversationScreenContent(
                         .weight(1f)
                         .fillMaxWidth(),
                 ) {
-                    MessageArea(state, time, actions, listState, onJumpToLatest, skeletonDelayMillis)
+                    // With the not-sent banner up, its Show is the way down; a pill would stack on it.
+                    val jump = onJumpToLatest.takeIf { sendErrorUi !is SendErrorUi.Offscreen }
+                    MessageArea(state, time, actions, listState, jump, skeletonDelayMillis)
                 }
                 if (state.content.offersComposer()) {
                     ComposerArea(state, draft, onDraftChange, actions, SendErrorState(sendErrorUi, onShowFailed))
@@ -372,7 +377,7 @@ private fun MessageArea(
     time: RowTime,
     actions: ConversationActions,
     listState: LazyListState,
-    onJumpToLatest: () -> Unit,
+    onJumpToLatest: (() -> Unit)?,
     skeletonDelayMillis: Long?,
 ) {
     when (val content = state.content) {
@@ -423,7 +428,7 @@ private fun MessageList(
     time: RowTime,
     actions: ConversationActions,
     listState: LazyListState,
-    onJumpToLatest: () -> Unit,
+    onJumpToLatest: (() -> Unit)?,
 ) {
     val motion = WaiveraTheme.motion
     val density = LocalDensity.current
@@ -440,11 +445,18 @@ private fun MessageList(
     }
     val jumpThresholdPx = with(density) { ChatDimens.JumpToLatestThreshold.roundToPx() }
     val stickThresholdPx = with(density) { ChatDimens.StickToBottomThreshold.roundToPx() }
-    val showJump by remember {
+    val scrolledAway by remember {
         derivedStateOf {
             listState.firstVisibleItemIndex > 0 || listState.firstVisibleItemScrollOffset > jumpThresholdPx
         }
     }
+    val showJump = scrolledAway && onJumpToLatest != null
+    // Room under the newest rows while the pill floats there, so it never sits on the last bubble.
+    val pillInset by animateDpAsState(
+        targetValue = if (showJump) ChatDimens.JumpPillInset else WaiveraSpacing.None,
+        animationSpec = motion.layout(),
+        label = "jumpPillInset",
+    )
 
     HideKeyboardOnDrag(listState)
     // A new newest row keeps the list pinned when the person was already at (or next to) it.
@@ -475,6 +487,7 @@ private fun MessageList(
         LazyColumn(
             state = listState,
             reverseLayout = true,
+            contentPadding = PaddingValues(bottom = pillInset),
             modifier = Modifier
                 .fillMaxSize()
                 .semantics { contentDescription = listLabel },
@@ -497,7 +510,7 @@ private fun MessageList(
                 }
             }
         }
-        if (showJump) {
+        if (showJump && onJumpToLatest != null) {
             JumpToLatestPill(
                 onClick = onJumpToLatest,
                 modifier = Modifier

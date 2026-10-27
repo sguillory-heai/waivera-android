@@ -5,6 +5,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.waivera.waivera.core.designsystem.theme.WaiveraSpacing
 import com.waivera.waivera.feature.chat.R
 
 /**
@@ -38,6 +39,9 @@ internal object ChatDimens {
     val CallBannerMinHeight: Dp = 48.dp
     val SkeletonBubbleHeight: Dp = 54.dp
     val JumpPillBottomGap: Dp = 12.dp
+
+    /** Timeline bottom inset while the pill shows: its gap, its 48dp height and a small margin. */
+    val JumpPillInset: Dp = JumpPillBottomGap + WaiveraSpacing.MinTouchTarget + WaiveraSpacing.Small
     val ArrivalOffset: Dp = 18.dp
     val PreviewMaxHeight: Dp = 220.dp
     val EmojiTarget: Dp = 48.dp

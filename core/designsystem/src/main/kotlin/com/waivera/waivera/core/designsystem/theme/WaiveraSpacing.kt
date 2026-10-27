@@ -5,6 +5,7 @@ import androidx.compose.ui.unit.dp
 
 /** Spacing scale. Layouts use these instead of literal dp values. */
 object WaiveraSpacing {
+    val None: Dp = 0.dp
     val Hairline: Dp = 1.dp
     val XxSmall: Dp = 2.dp
     val ExtraSmall: Dp = 4.dp
