@@ -231,6 +231,7 @@ fun ChatSheetHost(
                         initialEmoji = sheet.initialEmoji,
                         nameFor = nameFor,
                         onClose = callbacks.onDismiss,
+                        myUserId = myUserId,
                     )
                 }
             }

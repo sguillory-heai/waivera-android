@@ -3,12 +3,15 @@ package com.waivera.waivera.feature.chat.screenshot
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import com.waivera.waivera.core.data.model.Conversation
 import com.waivera.waivera.core.data.model.ConversationTitles
 import com.waivera.waivera.core.data.model.Message
 import com.waivera.waivera.core.data.model.SendState
 import com.waivera.waivera.core.demo.DemoData
 import com.waivera.waivera.core.designsystem.component.ConnectionBannerState
+import com.waivera.waivera.core.designsystem.component.LocalSignedInAccount
+import com.waivera.waivera.core.designsystem.component.SignedInAccount
 import com.waivera.waivera.core.screenshottesting.ScreenshotSdk
 import com.waivera.waivera.core.screenshottesting.captureScreenshots
 import com.waivera.waivera.core.testing.EnglishConversationTitles
@@ -298,12 +301,15 @@ class ConversationScreenshotTest {
     @Test
     fun reactionDetailsSheet() = captureScreenshots("conversation_reactions_sheet") {
         val reacted = messages.first { it.reactions.size > 1 }
-        ReactionDetailsContent(
-            reactions = Reactions.summarize(reacted.reactions, DemoData.ME),
-            initialEmoji = reacted.reactions.first().emoji,
-            nameFor = { id -> names[id] ?: "You" },
-            onClose = {},
-        )
+        CompositionLocalProvider(LocalSignedInAccount provides SignedInAccount("Alex Rivera")) {
+            ReactionDetailsContent(
+                reactions = Reactions.summarize(reacted.reactions, DemoData.ME),
+                initialEmoji = reacted.reactions.first().emoji,
+                nameFor = { id -> names[id] ?: "You" },
+                onClose = {},
+                myUserId = DemoData.ME,
+            )
+        }
     }
 
     @Test

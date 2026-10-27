@@ -1,5 +1,6 @@
 package com.waivera.waivera.core.designsystem.screenshot
 
+import android.graphics.BitmapFactory
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -9,8 +10,11 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.painter.BitmapPainter
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import com.waivera.waivera.core.designsystem.component.BadgeTone
@@ -152,6 +156,28 @@ class DesignSystemScreenshotTest {
             WaiveraAvatar(name = "Jo", milestone = MilestoneKind.NewHire, size = WaiveraSizes.AvatarSmall)
             WaiveraAvatar(name = "", size = WaiveraSizes.AvatarLarge, presence = PresenceStatus.Offline)
             WaiveraAvatar(name = "Jordan Lee", presence = PresenceStatus.Offline)
+        }
+    }
+
+    /** The photo path: crop, presence and milestone rings over a real image, beside an initials fallback. */
+    @Test
+    fun avatarsWithPhoto() = capture("AvatarsPhoto") {
+        val photo = remember { photoPainter() }
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(WaiveraSpacing.MediumSmall),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            WaiveraAvatar(name = "Priya Raman", painter = photo, presence = PresenceStatus.Online)
+            WaiveraAvatar(name = "Priya Raman", painter = photo, milestone = MilestoneKind.Birthday)
+            WaiveraAvatar(name = "Priya Raman", painter = photo, rounded = false, size = WaiveraSizes.AvatarLarge)
+            WaiveraAvatar(name = "Priya Raman", painter = photo, size = WaiveraSizes.AvatarSmall)
+            WaiveraMilestoneAvatar(
+                "Priya Raman",
+                MilestoneBadge(MilestoneKind.WorkAnniversary, years = 5),
+                WaiveraSizes.AvatarMedium,
+                painter = photo,
+            )
+            WaiveraAvatar(name = "Jordan Lee", presence = PresenceStatus.Away)
         }
     }
 
@@ -451,5 +477,11 @@ class DesignSystemScreenshotTest {
                 content()
             }
         }
+    }
+
+    private fun photoPainter(): BitmapPainter {
+        // An abstract 128px test image (shapes, no face), the same one the demo serves as an avatar.
+        val bytes = checkNotNull(javaClass.classLoader?.getResourceAsStream("avatar-photo.png")).use { it.readBytes() }
+        return BitmapPainter(BitmapFactory.decodeByteArray(bytes, 0, bytes.size).asImageBitmap())
     }
 }

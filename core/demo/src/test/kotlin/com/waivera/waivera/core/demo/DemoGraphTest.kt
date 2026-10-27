@@ -6,10 +6,13 @@ import com.waivera.waivera.core.data.model.MyInvitation
 import com.waivera.waivera.core.data.model.SendState
 import com.waivera.waivera.core.network.error.WaiveraError
 import com.waivera.waivera.core.realtime.HubEvent
+import java.io.ByteArrayInputStream
 import java.time.LocalDate
 import java.time.ZonedDateTime
+import javax.imageio.ImageIO
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
@@ -33,6 +36,14 @@ class DemoGraphTest {
         val unreadForMe = list.filter { it.isUnreadFor(DemoData.ME) }
         assertEquals(unreadForMe.sumOf { it.unreadCount }, graph.conversations.observeUnreadTotal().first())
         assertEquals(setOf(DemoData.DM_PRIYA), graph.conversations.observeFailedSends().first())
+    }
+
+    @Test
+    fun theDemoAvatarIsARealImage() {
+        // The fixture once held a PNG with a broken data stream, so no screenshot showed a photo.
+        val bytes = assertNotNull(DemoData.avatarBytes())
+        val image = assertNotNull(ImageIO.read(ByteArrayInputStream(bytes)), "the avatar decodes")
+        assertEquals(AVATAR_SIZE to AVATAR_SIZE, image.width to image.height)
     }
 
     @Test
@@ -146,5 +157,6 @@ class DemoGraphTest {
 
     private companion object {
         const val SCRIPT_MILLIS = 20_000L
+        const val AVATAR_SIZE = 128
     }
 }

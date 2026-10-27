@@ -51,6 +51,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.waivera.waivera.core.data.model.Message
+import com.waivera.waivera.core.designsystem.component.LocalSignedInAccount
 import com.waivera.waivera.core.designsystem.component.WaiveraAvatar
 import com.waivera.waivera.core.designsystem.component.WaiveraButton
 import com.waivera.waivera.core.designsystem.component.WaiveraButtonVariant
@@ -252,7 +253,9 @@ fun ReactionDetailsContent(
     nameFor: (String) -> String,
     onClose: () -> Unit,
     modifier: Modifier = Modifier,
+    myUserId: String? = null,
 ) {
+    val account = LocalSignedInAccount.current
     var selected by rememberSaveable(initialEmoji) {
         mutableStateOf(reactions.firstOrNull { it.emoji == initialEmoji }?.emoji ?: reactions.firstOrNull()?.emoji)
     }
@@ -294,11 +297,14 @@ fun ReactionDetailsContent(
         current?.userIds?.forEach { userId ->
             val name = nameFor(userId)
             val avatar = rememberAvatar(userId)
+            // "You" is my row: show my own picture or initials, the same as the top bar, not a "Y".
+            val me = account?.takeIf { userId == myUserId && it.name.isNotBlank() }
             WaiveraListRow(
                 headline = name,
                 leading = {
                     WaiveraAvatar(
-                        name = name,
+                        name = me?.name ?: name,
+                        imageModel = me?.imageModel,
                         painter = avatar?.let { remember(it) { BitmapPainter(it) } },
                         size = WaiveraSizes.IconTile,
                         contentDescription = null,
