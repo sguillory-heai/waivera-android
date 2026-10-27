@@ -5,8 +5,8 @@ import com.waivera.waivera.core.data.model.PersonDetails
 import com.waivera.waivera.core.data.model.Synced
 import com.waivera.waivera.core.data.repository.PeopleRepository
 import com.waivera.waivera.core.network.api.AuthenticationApi
-import com.waivera.waivera.core.network.api.ChatApi
 import com.waivera.waivera.core.network.api.FileApi
+import com.waivera.waivera.core.network.dto.GetUserNameResponseVM
 import com.waivera.waivera.core.network.error.WaiveraError
 import com.waivera.waivera.core.network.error.apiCall
 import com.waivera.waivera.core.network.error.apiCallOrNull
@@ -17,18 +17,20 @@ import java.util.Base64
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 
 /**
- * The staff directory comes from `/api/chat/initiation-directory` (people the user may message),
- * merged with every conversation participant seen. Avatars come from `/api/file/avatar/{id}` as
+ * The staff directory comes from `/api/Authentication/get-username-list` (02, the endpoint the
+ * Expo app uses; `initiation-directory` is SUPER ADMIN only, AF-01), merged with every
+ * conversation participant seen. A directory entry has only an id and a name, so it never
+ * overwrites a richer cached person. Avatars come from `/api/file/avatar/{id}` as
  * data URIs; they are decoded once and cached in memory, including a short negative cache so a
  * list of avatar-less people does not refetch on every scroll.
  */
 @Singleton
 class LivePeopleRepository @Inject constructor(
-    private val chatApi: ChatApi,
     private val fileApi: FileApi,
     private val authApi: AuthenticationApi,
     private val cache: ChatCache,
@@ -46,8 +48,22 @@ class LivePeopleRepository @Inject constructor(
     override fun observePerson(userId: String): Flow<Person?> = cache.observePerson(userId)
 
     override suspend fun refresh(): Result<Unit> = sync.track(KEY) {
-        val people = apiCall { chatApi.getInitiationDirectory() }.mapNotNull(Mappers::person)
-        cache.putPeople(people)
+        // 204 means no users and has no data; the directory is then the known participants.
+        val entries = apiCallOrNull { authApi.getUserNameList() }?.data.orEmpty()
+        val known = cache.observePeople().first().associateBy { it.id }
+        cache.putPeople(entries.mapNotNull { directoryPerson(it, known) })
+    }
+
+    /** A new person from the directory, or a cached one that had no name yet; null when nothing changes. */
+    private fun directoryPerson(entry: GetUserNameResponseVM, known: Map<String, Person>): Person? {
+        val id = entry.userId?.trim()?.takeIf(String::isNotEmpty) ?: return null
+        val name = entry.userName?.trim()?.takeIf(String::isNotEmpty)
+        val cached = known[id]
+        return when {
+            cached == null -> Person(id, displayName = name)
+            cached.name.isBlank() && name != null -> cached.copy(displayName = name)
+            else -> null
+        }
     }
 
     override suspend fun details(userId: String): Result<PersonDetails> = catchingWaivera {

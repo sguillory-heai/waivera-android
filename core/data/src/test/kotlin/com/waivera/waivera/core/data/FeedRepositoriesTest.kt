@@ -148,8 +148,8 @@ class FeedRepositoriesTest {
     @Test
     fun directoryLoadsAndAvatarsDecodeWithANegativeCache() = testScope.runTest {
         graph.server.json(
-            "GET /api/chat/initiation-directory",
-            """[{"id":"usr_jordan_lee","displayName":"Jordan Lee"}]""",
+            "GET /api/Authentication/get-username-list",
+            """{"data":[{"userId":"usr_jordan_lee","userName":"Jordan Lee"}],"statusCode":200,"success":true}""",
         )
         graph.people.refresh().getOrThrow()
         assertEquals(listOf("usr_jordan_lee"), graph.people.observeDirectory().first().data.map { it.id })
@@ -172,9 +172,37 @@ class FeedRepositoriesTest {
 
     @Test
     fun emptyDirectoryIsEmpty() = testScope.runTest {
-        graph.server.json("GET /api/chat/initiation-directory", "[]")
+        graph.server.status("GET /api/Authentication/get-username-list", 204)
         graph.people.refresh().getOrThrow()
         assertTrue(graph.people.observeDirectory().first().isEmpty)
+    }
+
+    @Test
+    fun ordinaryStaffGetTheDirectoryFromTheUsernameList() = testScope.runTest {
+        // initiation-directory is SUPER ADMIN only: ordinary staff get 403 there (AF-01).
+        graph.server.status("GET /api/chat/initiation-directory", 403)
+        graph.server.fixture("GET /api/Authentication/get-username-list", "rest-auth-get-username-list.json")
+        graph.people.refresh().getOrThrow()
+        val people = graph.people.observeDirectory().first().data
+        assertEquals(listOf("Alex Rivera", "Jordan Lee", "Priya Raman"), people.map { it.name }.sorted())
+        assertTrue(graph.server.requestsTo("/api/chat/initiation-directory").isEmpty())
+    }
+
+    @Test
+    fun theDirectoryNeverOverwritesARicherCachedPerson() = testScope.runTest {
+        val participant = com.waivera.waivera.core.data.model.Person(
+            id = "usr_priya_raman",
+            firstName = "Priya",
+            lastName = "Raman",
+            email = "priya@example.com",
+            avatarUrl = "https://cdn.example.test/p.png",
+        )
+        graph.cache.putPeople(listOf(participant))
+        graph.server.fixture("GET /api/Authentication/get-username-list", "rest-auth-get-username-list.json")
+        graph.people.refresh().getOrThrow()
+        val people = graph.people.observeDirectory().first().data
+        assertEquals(participant, people.single { it.id == "usr_priya_raman" })
+        assertEquals(3, people.size)
     }
 
     @Test
