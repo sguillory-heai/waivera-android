@@ -101,7 +101,12 @@ object TimelineBuilder {
         daySeparators: Boolean = true,
         liveArrivals: Set<Long> = emptySet(),
     ): List<TimelineItem> {
-        val sorted = messages.sortedWith(MessageOrder)
+        val ambiguous = ambiguousClientIds(messages)
+        val serverClientIds = messages.filter { !it.isPending }.mapNotNullTo(mutableSetOf()) { it.clientId() }
+        // While a send lands, its outbox row and server copy can both be present: keep the copy.
+        val sorted = messages
+            .filter { !(it.isPending && it.clientId() in serverClientIds) }
+            .sortedWith(MessageOrder)
         val calls = sorted.filter { SystemMessages.callRecordId(it) != null }.groupBy { SystemMessages.callRecordId(it) }
         val callPosition = calls.mapValues { (_, group) -> group.last().id }
         val items = mutableListOf<TimelineItem>()
@@ -119,17 +124,26 @@ object TimelineBuilder {
                     val group = calls.getValue(callId)
                     TimelineItem.CallLog("call-$callId", callId, group, CallLogs.summarize(group))
                 }
-                else -> row(message, sorted.getOrNull(index - 1), sorted.getOrNull(index + 1), myUserId, zone, botConversation, liveArrivals)
+                else -> row(
+                    message = message,
+                    key = keyOf(message, ambiguous),
+                    previous = sorted.getOrNull(index - 1),
+                    next = sorted.getOrNull(index + 1),
+                    myUserId = myUserId,
+                    zone = zone,
+                    botConversation = botConversation,
+                    liveArrivals = liveArrivals,
+                )
             }
         }
-        // A LazyColumn key must be unique; if a server copy and its optimistic row overlap for one
-        // emission, the server copy (sorted first) wins.
+        // A LazyColumn key must be unique; this is the last guard if the rules above ever miss.
         return items.distinctBy { it.key }
     }
 
     @Suppress("LongParameterList")
     private fun row(
         message: Message,
+        key: String,
         previous: Message?,
         next: Message?,
         myUserId: String?,
@@ -139,10 +153,10 @@ object TimelineBuilder {
     ): TimelineItem {
         val ticket = TicketNotifications.from(message, botConversation)
         if (ticket == null && SystemMessages.isSystem(message)) {
-            return TimelineItem.SystemRow(keyOf(message), message, SystemMessages.parse(message.text).text)
+            return TimelineItem.SystemRow(key, message, SystemMessages.parse(message.text).text)
         }
         return TimelineItem.MessageRow(
-            key = keyOf(message),
+            key = key,
             message = message,
             isMine = message.isMine(myUserId),
             isBot = TicketNotifications.isBot(message, botConversation),
@@ -157,8 +171,20 @@ object TimelineBuilder {
 
     /**
      * Keyed by client id when there is one, so an optimistic row keeps its identity (and its place
-     * on screen) when the server copy replaces it.
+     * on screen) when the server copy replaces it. Client ids that several server messages share
+     * (seen in real payloads) fall back to the server id, since keys must be unique.
      */
-    fun keyOf(message: Message): String = message.clientMessageId?.takeIf(String::isNotBlank)?.let { "client-$it" }
-        ?: "message-${message.id}"
+    fun keyOf(message: Message, ambiguousClientIds: Set<String> = emptySet()): String =
+        message.clientId()?.takeIf { it !in ambiguousClientIds }?.let { "client-$it" } ?: "message-${message.id}"
+
+    /** Client ids carried by more than one server message. */
+    fun ambiguousClientIds(messages: List<Message>): Set<String> = messages.asSequence()
+        .filter { !it.isPending }
+        .mapNotNull { it.clientId() }
+        .groupingBy { it }
+        .eachCount()
+        .filterValues { it > 1 }
+        .keys
+
+    private fun Message.clientId(): String? = clientMessageId?.takeIf(String::isNotBlank)
 }

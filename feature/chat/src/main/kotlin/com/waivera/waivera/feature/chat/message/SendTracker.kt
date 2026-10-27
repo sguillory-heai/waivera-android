@@ -54,13 +54,14 @@ class ArrivalTracker {
     fun update(messages: List<Message>): Set<Long> {
         val previous = seen
         val previousNewest = newest
-        seen = messages.mapTo(mutableSetOf(), TimelineBuilder::keyOf)
+        val ambiguous = TimelineBuilder.ambiguousClientIds(messages)
+        seen = messages.mapTo(mutableSetOf()) { TimelineBuilder.keyOf(it, ambiguous) }
         newest = messages.mapNotNull { it.createdAt }.maxOrNull() ?: previousNewest
         if (previous == null) return emptySet()
         // The first page arriving after an empty cache is history, except for one's own send.
         if (previous.isEmpty()) return messages.filter { it.isPending }.mapTo(mutableSetOf()) { it.id }
         return messages.asSequence()
-            .filter { TimelineBuilder.keyOf(it) !in previous }
+            .filter { TimelineBuilder.keyOf(it, ambiguous) !in previous }
             .filter { it.isPending || previousNewest == null || it.createdAt?.isBefore(previousNewest) != true }
             .mapTo(mutableSetOf()) { it.id }
     }
