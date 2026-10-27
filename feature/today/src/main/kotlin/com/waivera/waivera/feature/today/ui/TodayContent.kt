@@ -335,7 +335,8 @@ private fun Modifier.animateTodayItem(scope: LazyItemScope, motion: WaiveraMotio
  */
 @Composable
 private fun guardNavigation(callbacks: TodayCallbacks): TodayCallbacks {
-    var last by remember { mutableLongStateOf(0L) }
+    // No earlier navigation: starting at 0 would drop every tap in the first 600 ms of uptime.
+    var last by remember { mutableLongStateOf(-NAVIGATION_GUARD_MILLIS) }
     return remember(callbacks) {
         fun guard(navigate: () -> Unit) {
             val now = SystemClock.uptimeMillis()
