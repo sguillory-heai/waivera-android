@@ -19,7 +19,7 @@
     <string name="feature_calendar_empty_title">Nothing scheduled</string>
     <string name="feature_calendar_empty_message">This day is clear.</string>
     <string name="feature_calendar_feed_refresh_failed">Couldn\'t refresh your schedule. Showing what was saved.</string>
-    <string name="feature_calendar_milestones_failed">Team celebrations couldn\'t load.</string>
+    <string name="feature_calendar_milestones_failed">Team celebrations didn\'t load.</string>
     <string name="feature_calendar_offline">You\'re offline. Showing your saved schedule.</string>
     <string name="feature_calendar_retry">Retry</string>
     <string name="feature_calendar_grid_label">Calendar</string>

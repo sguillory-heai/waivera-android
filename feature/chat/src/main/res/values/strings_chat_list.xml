@@ -75,6 +75,7 @@
     <string name="feature_chat_newchat_subtitle">Select one person for a direct message or several for a group.</string>
     <string name="feature_chat_newchat_search_label">Search staff</string>
     <string name="feature_chat_newchat_search_placeholder">Type a name</string>
+    <string name="feature_chat_newchat_load_error_title">Coworkers didn\'t load</string>
     <string name="feature_chat_newchat_create_conflict">That chat couldn\'t be started just now. Try again in a moment.</string>
     <string name="feature_chat_newchat_opening">Opening chat…</string>
     <string name="feature_chat_newchat_creating">Creating group…</string>

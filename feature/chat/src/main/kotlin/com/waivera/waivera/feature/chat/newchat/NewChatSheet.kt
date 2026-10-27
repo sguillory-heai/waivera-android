@@ -161,6 +161,7 @@ fun ColumnScope.NewChatSheetContent(
                     Column { repeat(SKELETON_ROWS) { SkeletonListRow(pulse = pulse) } }
                 }
                 state.loadErrorRes != null -> WaiveraErrorState(
+                    title = stringResource(R.string.feature_chat_newchat_load_error_title),
                     message = stringResource(state.loadErrorRes),
                     onRetry = onRetryLoad,
                 )

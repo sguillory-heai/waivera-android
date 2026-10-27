@@ -11,7 +11,7 @@
     <string name="core_designsystem_undo">Undo</string>
     <string name="core_designsystem_selected">Selected</string>
     <string name="core_designsystem_not_selected">Not selected</string>
-    <string name="core_designsystem_error_title">Something went wrong</string>
+    <string name="core_designsystem_error_title">This didn\'t load</string>
     <string name="core_designsystem_presence_online">Online</string>
     <string name="core_designsystem_presence_away">Away</string>
     <string name="core_designsystem_presence_offline">Offline</string>
