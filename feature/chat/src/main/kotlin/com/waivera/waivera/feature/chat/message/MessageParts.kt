@@ -393,16 +393,22 @@ fun TicketCard(ticket: TicketNotification, onOpen: (String) -> Unit, modifier: M
     }
 }
 
+/**
+ * Label and value side by side; at large font the value goes under the label, because an
+ * unweighted value measured first would squeeze the label into mid-word breaks.
+ */
 @Composable
 private fun TicketMeta(icon: Int, label: String, value: String, muted: Boolean) {
     val colors = WaiveraTheme.colors
+    val stacked = LocalDensity.current.fontScale > TICKET_META_STACK_FONT_SCALE
+    val valueColor = if (muted) colors.textSecondary else colors.text
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = WaiveraSpacing.MediumSmall, vertical = WaiveraSpacing.Small)
             .semantics(mergeDescendants = true) {},
         horizontalArrangement = Arrangement.spacedBy(WaiveraSpacing.Small),
-        verticalAlignment = Alignment.CenterVertically,
+        verticalAlignment = if (stacked) Alignment.Top else Alignment.CenterVertically,
     ) {
         Icon(
             painterResource(icon),
@@ -410,20 +416,29 @@ private fun TicketMeta(icon: Int, label: String, value: String, muted: Boolean) 
             tint = colors.textSecondary,
             modifier = Modifier.size(WaiveraSizes.IconSmall),
         )
-        Text(
-            text = label,
-            style = MaterialTheme.typography.labelMedium,
-            color = colors.textSecondary,
-            modifier = Modifier.weight(1f),
-        )
-        Text(
-            text = value,
-            style = MaterialTheme.typography.labelMedium,
-            color = if (muted) colors.textSecondary else colors.text,
-            textAlign = TextAlign.End,
-        )
+        if (stacked) {
+            Column(Modifier.weight(1f)) {
+                Text(text = label, style = MaterialTheme.typography.labelMedium, color = colors.textSecondary)
+                Text(text = value, style = MaterialTheme.typography.labelMedium, color = valueColor)
+            }
+        } else {
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelMedium,
+                color = colors.textSecondary,
+                modifier = Modifier.weight(1f),
+            )
+            Text(
+                text = value,
+                style = MaterialTheme.typography.labelMedium,
+                color = valueColor,
+                textAlign = TextAlign.End,
+            )
+        }
     }
 }
+
+private const val TICKET_META_STACK_FONT_SCALE = 1.3f
 
 // System rows, call logs and day separators ---------------------------------------------------
 
