@@ -33,6 +33,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import com.waivera.waivera.core.designsystem.component.ConnectionBanner
+import com.waivera.waivera.core.designsystem.component.ConnectionBannerState
 import com.waivera.waivera.core.designsystem.component.WaiveraButton
 import com.waivera.waivera.core.designsystem.component.WaiveraButtonVariant
 import com.waivera.waivera.core.designsystem.component.WaiveraEmptyState
@@ -50,6 +51,7 @@ import com.waivera.waivera.feature.today.TodayAction
 import com.waivera.waivera.feature.today.model.ActivityRow
 import com.waivera.waivera.feature.today.model.NeedsYouItem
 import com.waivera.waivera.feature.today.model.TodayUiState
+import java.time.LocalTime
 
 /** Navigation and actions for [TodayContent]. Every row deep-links through these lambdas. */
 @Stable
@@ -90,7 +92,11 @@ internal fun TodayContent(
                 fallbackName = state.accountName,
             ),
         )
-        ConnectionBanner(state = state.connection, onRetry = { callbacks.onAction(TodayAction.RetryConnection) })
+        ConnectionBanner(
+            state = state.connection,
+            onRetry = { callbacks.onAction(TodayAction.RetryConnection) },
+            offlineMessage = offlineMessage(state.savedAt),
+        )
         Box(modifier = Modifier.weight(1f)) {
             PullToRefreshBox(
                 isRefreshing = state.isRefreshing,
@@ -117,6 +123,14 @@ internal fun TodayContent(
     }
 }
 
+/** Today's offline copy names what is on screen, not messages Today doesn't send (UI2-17). */
+@Composable
+private fun offlineMessage(savedAt: LocalTime?): String {
+    val formats = rememberTodayFormats()
+    return savedAt?.let { stringResource(R.string.feature_today_offline_saved_at, formats.time(it)) }
+        ?: stringResource(R.string.feature_today_offline_saved)
+}
+
 @Composable
 private fun TodayList(state: TodayUiState, callbacks: TodayCallbacks, listState: LazyListState) {
     val formats = rememberTodayFormats()
@@ -134,7 +148,10 @@ private fun TodayList(state: TodayUiState, callbacks: TodayCallbacks, listState:
             callbacks.onAction(TodayAction.LoadMoreActivity)
         }
     }
-    val staleLine = state.staleSince?.let { staleText(it, formats) }
+    // The offline banner already says how old the data is, so the quiet line waits until it's gone.
+    val staleLine = state.staleSince
+        ?.takeIf { state.connection == ConnectionBannerState.Connected }
+        ?.let { staleText(it, formats) }
     LazyColumn(
         state = listState,
         modifier = Modifier.fillMaxSize(),

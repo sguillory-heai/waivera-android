@@ -166,6 +166,15 @@ class TodayAssemblerTest {
     }
 
     @Test
+    fun `the offline banner can name when the oldest data was saved, in the employee's zone`() {
+        // 2026-11-01T06:30Z is 1:30 AM CDT, before the fall-back hour.
+        val savedAt = Instant.parse("2026-11-01T06:30:00Z")
+        val state = assemble(sources(synced = savedAt))
+        assertEquals(LocalTime.of(1, 30), state.savedAt)
+        assertNull(assemble(sources(synced = null)).savedAt)
+    }
+
+    @Test
     fun `a DM with an unknown last author still needs me`() {
         val unknown = conversation(7, unread = 1).let { it.copy(lastMessage = it.lastMessage?.copy(authorId = null)) }
         assertEquals(listOf("dm-7"), assemble(sources(conversations = listOf(unknown))).needsYou.items.map { it.key })

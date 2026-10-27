@@ -111,6 +111,7 @@ internal fun PersonDetailContent(
             ConnectionBanner(
                 state = bannerFor(state.connection, showsLoadError = state.details is Section.Failed),
                 onRetry = onRetryConnection,
+                offlineMessage = stringResource(R.string.feature_profile_person_offline_saved),
             )
             Column(
                 modifier = Modifier

@@ -8,12 +8,15 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.windowInsetsBottomHeight
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
@@ -23,6 +26,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.semantics
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -314,17 +318,34 @@ private fun DetailsSections(profile: EmployeeProfile?, state: ProfileUiState.Rea
     }
 }
 
-/** Small error inside one section; the rest of the profile stays usable. */
+/**
+ * Small error inside one section; the rest of the profile stays usable. Quiet, like Today's
+ * section errors (UI2-18): a muted icon, secondary text and a text Retry, so red stays for
+ * something the person did that failed.
+ */
 @Composable
 internal fun SectionError(error: WaiveraError, onRetry: () -> Unit, modifier: Modifier = Modifier) {
-    Column(
-        modifier = modifier.fillMaxWidth().padding(horizontal = WaiveraSpacing.Medium),
-        verticalArrangement = Arrangement.spacedBy(WaiveraSpacing.ExtraSmall),
+    val colors = WaiveraTheme.colors
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .heightIn(min = WaiveraSizes.ListRowMinHeight)
+            .padding(start = WaiveraSpacing.Medium, end = WaiveraSpacing.Small)
+            .semantics(mergeDescendants = true) {},
+        horizontalArrangement = Arrangement.spacedBy(WaiveraSpacing.MediumSmall),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
+        Icon(
+            painter = painterResource(WaiveraIcons.Error),
+            contentDescription = null,
+            tint = colors.textSecondary,
+            modifier = Modifier.size(WaiveraSizes.Icon),
+        )
         Text(
             text = stringResource(error.messageRes),
             style = MaterialTheme.typography.bodyMedium,
-            color = WaiveraTheme.colors.dangerText,
+            color = colors.textSecondary,
+            modifier = Modifier.weight(1f),
         )
         WaiveraButton(
             text = stringResource(R.string.feature_profile_try_again),

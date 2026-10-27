@@ -78,6 +78,7 @@ object TodayAssembler {
             loadError = if (nothingCached && !stillLoading) firstError else null,
             connection = connectionBanner(context.realtime),
             staleSince = staleLabel(primary.filterNotNull(), context),
+            savedAt = primary.mapNotNull { it?.lastSyncedAt }.minOrNull()?.atZone(context.zone)?.toLocalTime(),
             isRefreshing = context.local.isRefreshing,
             needsYou = needsYou,
             nextUp = nextUp,

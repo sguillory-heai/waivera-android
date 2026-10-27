@@ -23,6 +23,8 @@ data class TodayUiState(
     val connection: ConnectionBannerState = ConnectionBannerState.Connected,
     /** Set only when the data on screen is stale, so the normal state stays calm. */
     val staleSince: PastLabel? = null,
+    /** When the oldest data on screen was saved, in the employee's zone: the offline banner names it. */
+    val savedAt: LocalTime? = null,
     val isRefreshing: Boolean = false,
     val needsYou: NeedsYouSection = NeedsYouSection(),
     val nextUp: NextUpSection = NextUpSection(),
