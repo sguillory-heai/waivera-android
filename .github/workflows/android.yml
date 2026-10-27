@@ -2,6 +2,9 @@ name: Android CI
 
 # Manual only: Actions minutes are limited, so runs are started on purpose
 # after local verification instead of on every push.
+#
+# Every check runs even when an earlier one fails, and every report is uploaded, so one run
+# collects all failures. The last step fails the job and names the checks that failed.
 on:
   workflow_dispatch:
 
@@ -14,9 +17,9 @@ permissions:
 
 jobs:
   verify:
-    name: Lint, test and build
+    name: Lint, test, screenshots and build
     runs-on: ubuntu-latest
-    timeout-minutes: 40
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@v5
 
@@ -25,27 +28,88 @@ jobs:
           distribution: temurin
           java-version: 17
 
-      # Also validates the Gradle wrapper jar against known checksums.
+      # Caches Gradle and also validates the wrapper jar against known checksums.
       - uses: gradle/actions/setup-gradle@v5
 
-      - name: Format and static analysis
-        run: ./gradlew ktlintCheck detekt
+      - name: ktlint
+        id: ktlint
+        continue-on-error: true
+        run: ./gradlew ktlintCheck --continue
+
+      - name: detekt
+        id: detekt
+        continue-on-error: true
+        run: ./gradlew detekt --continue
 
       - name: Android Lint
-        run: ./gradlew lintDebug
+        id: lint
+        continue-on-error: true
+        run: ./gradlew lintDebug --continue
 
       - name: Unit tests
-        run: ./gradlew testDebugUnitTest
+        id: unit
+        continue-on-error: true
+        run: ./gradlew testDebugUnitTest --continue
+
+      - name: Record screenshots
+        id: screenshots
+        continue-on-error: true
+        run: ./gradlew recordRoborazziDebug --continue
 
       - name: Build debug APK
-        run: ./gradlew assembleDebug
+        id: assemble
+        continue-on-error: true
+        run: ./gradlew assembleDebug --continue
 
-      - name: Upload reports
-        if: failure()
+      - name: Upload reports and test results
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: reports
           path: |
             **/build/reports/
             **/build/test-results/
+          if-no-files-found: ignore
           retention-days: 7
+
+      - name: Upload screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: screenshots
+          path: |
+            **/build/outputs/roborazzi/
+          if-no-files-found: ignore
+          retention-days: 7
+
+      - name: Upload debug APK
+        if: always() && steps.assemble.outcome == 'success'
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-debug
+          path: app/build/outputs/apk/debug/*.apk
+          retention-days: 7
+
+      - name: Fail if any check failed
+        if: always()
+        env:
+          KTLINT: ${{ steps.ktlint.outcome }}
+          DETEKT: ${{ steps.detekt.outcome }}
+          LINT: ${{ steps.lint.outcome }}
+          UNIT: ${{ steps.unit.outcome }}
+          SCREENSHOTS: ${{ steps.screenshots.outcome }}
+          ASSEMBLE: ${{ steps.assemble.outcome }}
+        run: |
+          failed=""
+          [ "$KTLINT" = "success" ] || failed="$failed ktlint"
+          [ "$DETEKT" = "success" ] || failed="$failed detekt"
+          [ "$LINT" = "success" ] || failed="$failed lint"
+          [ "$UNIT" = "success" ] || failed="$failed unit-tests"
+          [ "$SCREENSHOTS" = "success" ] || failed="$failed screenshots"
+          [ "$ASSEMBLE" = "success" ] || failed="$failed assembleDebug"
+          if [ -n "$failed" ]; then
+            echo "::error::Failed checks:$failed"
+            echo "Failed checks:$failed" >> "$GITHUB_STEP_SUMMARY"
+            exit 1
+          fi
+          echo "All checks passed" >> "$GITHUB_STEP_SUMMARY"
