@@ -1,5 +1,8 @@
 package com.waivera.waivera.feature.chat.list
 
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.ViewModelStore
 import com.waivera.waivera.core.data.model.SyncStatus
 import com.waivera.waivera.core.demo.DemoData
 import com.waivera.waivera.core.demo.DemoGraph
@@ -40,15 +43,36 @@ class ChatListViewModelDemoTest {
     @After
     fun tearDown() = Dispatchers.resetMain()
 
-    private fun run(block: suspend TestScope.() -> Unit) = runTest(dispatcher, testBody = block)
+    // The list's relative-time ticker never completes, so each test clears its ViewModels the way
+    // navigation does; otherwise runTest keeps advancing virtual time forever.
+    private val viewModels = ViewModelStore()
+    private var owned = 0
 
-    private fun TestScope.listViewModel(graph: DemoGraph) = ChatListViewModel(
-        conversations = graph.conversations,
-        session = graph.session,
-        realtime = graph.realtimeStatus,
-        people = graph.people,
-        text = EnglishText,
-        clock = graph.backend.clock,
+    private fun run(block: suspend TestScope.() -> Unit) = runTest(dispatcher) {
+        try {
+            block()
+        } finally {
+            viewModels.clear()
+        }
+    }
+
+    private fun <T : ViewModel> own(vm: T): T = ViewModelProvider(
+        viewModels,
+        object : ViewModelProvider.Factory {
+            @Suppress("UNCHECKED_CAST")
+            override fun <V : ViewModel> create(modelClass: Class<V>): V = vm as V
+        },
+    )["vm${owned++}", vm.javaClass]
+
+    private fun TestScope.listViewModel(graph: DemoGraph) = own(
+        ChatListViewModel(
+            conversations = graph.conversations,
+            session = graph.session,
+            realtime = graph.realtimeStatus,
+            people = graph.people,
+            text = EnglishText,
+            clock = graph.backend.clock,
+        ),
     )
 
     @Test
@@ -96,7 +120,7 @@ class ChatListViewModelDemoTest {
     fun choosingSomeoneWithAnExistingDirectChatOpensItWithoutCreatingOne() = run {
         val graph = DemoGraph(backgroundScope)
         val before = graph.backend.conversations.value.keys
-        val vm = NewChatViewModel(graph.people, graph.conversations, graph.session, graph.backend.clock)
+        val vm = own(NewChatViewModel(graph.people, graph.conversations, graph.session, graph.backend.clock))
         val effects = mutableListOf<NewChatEffect>()
         backgroundScope.launch { vm.effects.toList(effects) }
         vm.onToggle(DemoData.PRIYA)
@@ -108,7 +132,7 @@ class ChatListViewModelDemoTest {
     @Test
     fun choosingSeveralPeopleCreatesAGroup() = run {
         val graph = DemoGraph(backgroundScope)
-        val vm = NewChatViewModel(graph.people, graph.conversations, graph.session, graph.backend.clock)
+        val vm = own(NewChatViewModel(graph.people, graph.conversations, graph.session, graph.backend.clock))
         val effects = mutableListOf<NewChatEffect>()
         backgroundScope.launch { vm.effects.toList(effects) }
         vm.onToggle("usr_sam_okafor")
