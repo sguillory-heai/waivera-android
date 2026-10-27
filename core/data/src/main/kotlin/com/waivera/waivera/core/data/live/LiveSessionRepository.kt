@@ -7,6 +7,7 @@ import com.waivera.waivera.core.data.model.currentUserId
 import com.waivera.waivera.core.data.repository.SessionRepository
 import com.waivera.waivera.core.data.store.SecureStore
 import com.waivera.waivera.core.network.NetworkConfig
+import com.waivera.waivera.core.network.SessionRejections
 import com.waivera.waivera.core.network.WaiveraJson
 import com.waivera.waivera.core.network.api.AuthenticationApi
 import com.waivera.waivera.core.network.di.ApplicationScope
@@ -23,6 +24,7 @@ import java.security.MessageDigest
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -56,6 +58,7 @@ class LiveSessionRepository @Inject constructor(
     private val realtime: RealtimeClient,
     private val ender: SessionEnder,
     private val networkConfig: NetworkConfig,
+    private val rejections: SessionRejections,
     @ApplicationScope private val scope: CoroutineScope,
 ) : SessionRepository {
     private val _state = MutableStateFlow<SessionState>(SessionState.Initializing)
@@ -82,6 +85,27 @@ class LiveSessionRepository @Inject constructor(
                     }
                 }
             }
+            scope.launch {
+                rejections.events.collect {
+                    recheckAfterRejection()
+                    // Further rejections meanwhile collapse into one check after the pause.
+                    delay(RECHECK_PAUSE_MILLIS)
+                }
+            }
+        }
+    }
+
+    /**
+     * A 401 survived a refreshed token (IF-05). The bootstrap is asked again; only its own
+     * rejection ends the session. Anything else (offline, 5xx, one endpoint's 401) leaves it.
+     */
+    private suspend fun recheckAfterRejection() {
+        if (_state.value !is SessionState.SignedIn) return
+        val error = catchingWaivera { fetchUser() }.exceptionOrNull()?.let(WaiveraError::from) ?: return
+        if (error.isAuthRejection() && _state.value is SessionState.SignedIn) {
+            WaiveraLog.w(TAG, "Session rejected (${error.httpStatus}); signing out")
+            endSession(reason = error, force = true)
+            gateway.signOut()
         }
     }
 
@@ -245,6 +269,9 @@ class LiveSessionRepository @Inject constructor(
 
     companion object {
         private const val TAG = "Session"
+
+        /** At most one revocation check a minute, whatever the number of rejected calls. */
+        private const val RECHECK_PAUSE_MILLIS = 60_000L
 
         fun currentUser(
             userId: String,

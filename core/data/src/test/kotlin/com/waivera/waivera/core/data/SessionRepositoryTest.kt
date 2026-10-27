@@ -10,6 +10,9 @@ import com.waivera.waivera.core.data.outbox.OutboxItem
 import com.waivera.waivera.core.data.repository.PushRegistrationRepository
 import com.waivera.waivera.core.data.store.SecureStore
 import com.waivera.waivera.core.network.NetworkConfig
+import com.waivera.waivera.core.network.SessionRejections
+import com.waivera.waivera.core.network.api.AuthenticationApi
+import com.waivera.waivera.core.network.error.TokenUnavailableException
 import com.waivera.waivera.core.network.error.WaiveraError
 import com.waivera.waivera.core.testing.FakeAuthGateway
 import com.waivera.waivera.core.testing.Fixtures
@@ -24,6 +27,7 @@ import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
+import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 
@@ -31,6 +35,7 @@ class SessionRepositoryTest {
     private val testScope = TestScope()
     private val graph = TestGraph(testScope.backgroundScope)
     private val calls = mutableListOf<String>()
+    private val rejections = SessionRejections()
 
     @AfterTest
     fun tearDown() = graph.close()
@@ -47,6 +52,7 @@ class SessionRepositoryTest {
         gateway: FakeAuthGateway,
         config: NetworkConfig = graph.server.config,
         dataCleaners: Set<SignOutCleaner> = emptySet(),
+        authApi: AuthenticationApi = graph.authApi,
     ): LiveSessionRepository {
         val push = object : PushRegistrationRepository {
             override suspend fun register(
@@ -72,7 +78,7 @@ class SessionRepositoryTest {
             calls += "revoke-token"
         }
         return LiveSessionRepository(
-            gateway, graph.authApi, graph.secureStore, realtime, ender, config, testScope.backgroundScope,
+            gateway, authApi, graph.secureStore, realtime, ender, config, rejections, testScope.backgroundScope,
         )
     }
 
@@ -177,6 +183,47 @@ class SessionRepositoryTest {
         eventually { restarted.state.value !is SessionState.Initializing }
         val state = assertIs<SessionState.SignedIn>(restarted.state.value)
         assertTrue(state.isOffline)
+    }
+
+    @Test
+    fun aTokenThatCannotBeFetchedKeepsTheCachedSessionInsteadOfSigningOut() = testScope.runTest {
+        serveLogin()
+        val gateway = FakeAuthGateway()
+        repository(gateway).signIn("alex.rivera@example.com", "correct-horse").getOrThrow()
+        calls.clear()
+
+        // IS-02: offline or rate limited, Firebase cannot hand out a token on the next start.
+        val noToken = graph.server.retrofit { throw TokenUnavailableException() }.create(AuthenticationApi::class.java)
+        val restarted = repository(FakeAuthGateway(initialUser = gateway.user.value), authApi = noToken)
+        eventually { restarted.state.value !is SessionState.Initializing }
+        assertTrue(assertIs<SessionState.SignedIn>(restarted.state.value).isOffline)
+        assertEquals(emptyList(), calls, "nothing was wiped")
+        assertEquals(0, gateway.signOuts)
+    }
+
+    @Test
+    fun aRejectedCallEndsTheSessionOnlyWhenTheBootstrapIsRejectedToo() = testScope.runTest {
+        serveLogin()
+        val gateway = FakeAuthGateway()
+        val repo = repository(gateway)
+        repo.signIn("alex.rivera@example.com", "correct-horse").getOrThrow()
+        calls.clear()
+
+        // One endpoint answering 401 while the bootstrap still works changes nothing.
+        val logins = graph.server.requestsTo("/api/Authentication/login").size
+        rejections.report()
+        eventually { graph.server.requestsTo("/api/Authentication/login").size > logins }
+        runCurrent()
+        assertIs<SessionState.SignedIn>(repo.state.value)
+        assertEquals(emptyList(), calls)
+
+        // The account was disabled in sprout_api: the bootstrap is rejected as well (IF-05).
+        graph.server.status("GET /api/Authentication/login", 401)
+        advanceTimeBy(60_001)
+        rejections.report()
+        eventually { repo.state.value is SessionState.SignedOut }
+        assertEquals(listOf("realtime-stop", "unregister", "clear", "revoke-token"), calls)
+        assertEquals(1, gateway.signOuts)
     }
 
     @Test

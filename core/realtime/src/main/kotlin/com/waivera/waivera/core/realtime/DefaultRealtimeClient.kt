@@ -41,9 +41,10 @@ import kotlinx.serialization.json.JsonElement
  * [RealtimeClient] that keeps one [HubTransport] alive while signed in and in the foreground.
  *
  * Each attempt gets a fresh transport and a generation number; callbacks from an older
- * transport are ignored, so a late `onClosed` can never tear down its replacement. After a
- * failed attempt the next handshake force-refreshes the ID token, which covers a token that
- * expired while the app slept.
+ * transport are ignored, so a late `onClosed` can never tear down its replacement. The first
+ * retry after a failure force-refreshes the ID token once, which covers a token revoked while
+ * the app slept; later retries take the SDK's token, which it refreshes itself when expired.
+ * Forcing a refresh on every retry would hammer Firebase through a long hub outage (IS-02).
  */
 @Singleton
 @Suppress("TooManyFunctions")
@@ -133,6 +134,7 @@ class DefaultRealtimeClient @Inject constructor(
         }
         var attempt = 0
         var forceRefresh = false
+        var refreshedThisOutage = false
         try {
             while (shouldRun()) {
                 attempt++
@@ -145,13 +147,15 @@ class DefaultRealtimeClient @Inject constructor(
                 if (connected) {
                     attempt = 0
                     forceRefresh = false
+                    refreshedThisOutage = false
                     onConnected(live)
                     val cause = live.closed.await()
                     WaiveraLog.d(TAG, "Hub closed (${cause?.javaClass?.simpleName ?: "clean"})")
                     // stop() closes the transport before collectLatest cancels this loop.
                     if (!shouldRun()) return
                 } else {
-                    forceRefresh = true
+                    forceRefresh = !refreshedThisOutage
+                    refreshedThisOutage = true
                     lock.withLock { if (current === live) current = null }
                 }
             }

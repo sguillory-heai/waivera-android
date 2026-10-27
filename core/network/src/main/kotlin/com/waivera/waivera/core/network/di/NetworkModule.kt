@@ -4,6 +4,7 @@ import com.waivera.waivera.core.network.AuthTokenInterceptor
 import com.waivera.waivera.core.network.AuthTokenProvider
 import com.waivera.waivera.core.network.BuildConfig
 import com.waivera.waivera.core.network.NetworkConfig
+import com.waivera.waivera.core.network.SessionRejections
 import com.waivera.waivera.core.network.WaiveraConverterFactory
 import com.waivera.waivera.core.network.WaiveraJson
 import com.waivera.waivera.core.network.api.AuthenticationApi
@@ -56,10 +57,14 @@ object NetworkModule {
     @Provides
     @Singleton
     @AuthenticatedHttpClient
-    fun authenticatedClient(config: NetworkConfig, tokens: AuthTokenProvider): OkHttpClient = OkHttpClient.Builder()
+    fun authenticatedClient(
+        config: NetworkConfig,
+        tokens: AuthTokenProvider,
+        rejections: SessionRejections,
+    ): OkHttpClient = OkHttpClient.Builder()
         .connectTimeout(CONNECT_TIMEOUT_SECONDS, TimeUnit.SECONDS)
         .readTimeout(READ_TIMEOUT_SECONDS, TimeUnit.SECONDS)
-        .addInterceptor(AuthTokenInterceptor(tokens, config.retrofitBaseUrl))
+        .addInterceptor(AuthTokenInterceptor(tokens, config.retrofitBaseUrl, rejections::report))
         .build()
 
     @Provides

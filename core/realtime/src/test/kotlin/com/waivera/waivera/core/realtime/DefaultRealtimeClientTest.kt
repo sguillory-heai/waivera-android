@@ -139,7 +139,7 @@ class DefaultRealtimeClientTest {
     }
 
     @Test
-    fun failedHandshakesBackOffForeverAndForceTokenRefresh() = runTest {
+    fun failedHandshakesBackOffForeverAndForceATokenRefreshOncePerOutage() = runTest {
         factory.failStarts = 6
         val client = client()
         client.start("usr_alex_rivera")
@@ -154,8 +154,17 @@ class DefaultRealtimeClientTest {
         }
         assertEquals(ConnectionState.Connected, client.state.value)
         assertEquals(7, factory.created.size)
-        assertEquals(false, tokenRequests.first())
-        assertTrue(tokenRequests.drop(1).all { it }, "retries after a failure force-refresh the token")
+        // IS-02: only the first retry forces a refresh; forcing one on every retry floods
+        // Firebase during a long outage. This replaced an expectation of a refresh per retry.
+        assertEquals(listOf(false, true, false, false, false, false, false), tokenRequests)
+        factory.latest.drop()
+        factory.failStarts = 2
+        repeat(3) {
+            advanceTimeBy(8_001)
+            runCurrent()
+        }
+        assertEquals(ConnectionState.Connected, client.state.value)
+        assertEquals(listOf(false, true, false), tokenRequests.drop(7), "a new outage gets one refresh again")
     }
 
     @Test

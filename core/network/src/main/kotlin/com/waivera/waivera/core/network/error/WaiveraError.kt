@@ -122,3 +122,10 @@ sealed class WaiveraError(
  * user. An IOException so OkHttp reports it through the normal failure path.
  */
 class NotSignedInException : java.io.IOException("No signed-in user")
+
+/**
+ * The signed-in user's ID token could not be fetched for a reason that can pass (offline, rate
+ * limited, timed out). Reported as a network failure, never as signed out, so it cannot end the
+ * session (IS-02). An IOException so OkHttp reports it through the normal failure path.
+ */
+class TokenUnavailableException(cause: Throwable? = null) : java.io.IOException("ID token unavailable", cause)
