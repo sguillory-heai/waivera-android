@@ -45,6 +45,10 @@ data class SignInUiState(
     val canSubmit: Boolean get() = fieldsEnabled && email.isNotBlank() && password.isNotEmpty()
     val isSigningIn: Boolean get() = phase == SignInPhase.SigningIn
 
+    /** A banner shows above the form (configuration, failure, signed out or reset sent). */
+    val hasBanner: Boolean
+        get() = missingConfiguration != null || errorMessage != null || signedOutNotice || resetSentTo != null
+
     /** Never print the password, even in a debug log or a crash report of this object. */
     override fun toString(): String =
         "SignInUiState(emailSet=${email.isNotEmpty()}, passwordSet=${password.isNotEmpty()}, phase=$phase, " +

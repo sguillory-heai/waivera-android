@@ -380,7 +380,11 @@ class DesignSystemScreenshotTest {
         BottomActionLayoutSample(fields = 1)
     }
 
-    /** Too tall for the small phone: the actions follow the content and the fade marks the edge. */
+    /**
+     * Too tall for the small phone. At 100% the actions stay pinned and the fade sits above them,
+     * over the content; at 200% they follow the content and the fade only shows while they are
+     * entirely below the edge.
+     */
     @Test
     fun bottomActionLayoutOverflows() = capture("BottomActionLayoutOverflows", padded = false) {
         BottomActionLayoutSample(fields = 6)

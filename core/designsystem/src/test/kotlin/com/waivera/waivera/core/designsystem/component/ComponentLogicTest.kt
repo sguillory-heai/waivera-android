@@ -30,6 +30,12 @@ class ComponentLogicTest {
     }
 
     @Test
+    fun `bottom actions stay pinned up to large font and flow inline above it`() {
+        assertEquals(BottomActionMode.Pinned, bottomActionMode(largeFont = false))
+        assertEquals(BottomActionMode.Inline, bottomActionMode(largeFont = true))
+    }
+
+    @Test
     fun `badge count caps at 99 plus and hides zero`() {
         assertNull(formatBadgeCount(0))
         assertNull(formatBadgeCount(-3))

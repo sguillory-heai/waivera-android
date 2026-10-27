@@ -109,7 +109,8 @@ internal fun SignInContent(state: SignInUiState, actions: SignInActions, modifie
         modifier = modifier,
         bottomBar = { SignInButtons(state = state, onSubmit = submit, onForgotPassword = actions.onForgotPassword) },
     ) {
-        SignInHero()
+        // On a short window a banner pushes the form down; the tagline goes first so the fields stay close.
+        SignInHero(showTagline = !isLargeFontScale() && !(state.hasBanner && LocalCompactAuthWindow.current))
         SignInBanners(state = state, onDismiss = actions.onDismissMessage)
         SignInForm(state = state, actions = actions, onSubmit = submit)
         Text(
@@ -224,7 +225,7 @@ private fun SignInButtons(state: SignInUiState, onSubmit: () -> Unit, onForgotPa
 }
 
 @Composable
-private fun SignInHero() {
+private fun SignInHero(showTagline: Boolean) {
     val colors = WaiveraTheme.colors
     Column(
         modifier = Modifier
@@ -256,7 +257,7 @@ private fun SignInHero() {
             modifier = Modifier.semantics { heading() },
         )
         // At large text the form has to start on the first screen; the tagline is the first to go.
-        if (!isLargeFontScale()) {
+        if (showTagline) {
             Text(
                 text = stringResource(R.string.feature_auth_sign_in_subtitle),
                 style = MaterialTheme.typography.bodyLarge,

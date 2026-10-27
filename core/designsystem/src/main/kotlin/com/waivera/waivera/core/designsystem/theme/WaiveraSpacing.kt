@@ -65,4 +65,7 @@ object WaiveraSizes {
 
     /** Height of the fade that shows more content scrolls below a viewport edge. */
     val FadeEdge: Dp = 24.dp
+
+    /** Windows shorter than this (a small phone, landscape) drop optional copy so actions stay close. */
+    val CompactWindowHeight: Dp = 700.dp
 }

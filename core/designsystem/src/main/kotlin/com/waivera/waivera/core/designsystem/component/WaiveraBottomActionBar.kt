@@ -21,19 +21,28 @@ import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.layout.boundsInRoot
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInRoot
 import com.waivera.waivera.core.designsystem.preview.WaiveraPreviews
+import com.waivera.waivera.core.designsystem.theme.LARGE_FONT_SCALE
 import com.waivera.waivera.core.designsystem.theme.WaiveraSizes
 import com.waivera.waivera.core.designsystem.theme.WaiveraSpacing
 import com.waivera.waivera.core.designsystem.theme.WaiveraTheme
+import com.waivera.waivera.core.designsystem.theme.isLargeFontScale
 
 /**
  * The primary and secondary actions of a one-tap screen (sign in, notification primer, password
  * change). [insets] pads the bar for the navigation bar and keyboard when the screen does not
  * already own those insets. The hairline divider is for bars that sit over scrolling content
- * ([showDivider]); inside [WaiveraBottomActionLayout] nothing scrolls under the bar, so it is off.
+ * ([showDivider]); inside [WaiveraBottomActionLayout] the fade marks that edge instead, so it is off.
  */
 @Composable
 fun WaiveraBottomActionBar(
@@ -60,14 +69,20 @@ fun WaiveraBottomActionBar(
 }
 
 /**
- * A [content] column with [actions] under it, in one scroll.
+ * A [content] column with [actions] under it.
  *
- * When everything fits, a flexible spacer pushes the actions to the bottom of the screen, in
- * thumb reach, so they look pinned. When it does not fit (a small phone, a banner, 200% font,
- * the keyboard), the actions flow after the content instead of covering it, so no line is ever
- * cut under a bar. While more content is below the viewport edge, a fade shows that the screen
- * scrolls. [insets] shrink the viewport (navigation bar, keyboard) when the screen does not own
- * them already. Text fields inside bring themselves into view when focused or in error (see
+ * Up to [LARGE_FONT_SCALE] the actions are pinned at the bottom of the screen, in thumb reach,
+ * and the content scrolls in the space above them. While more content is below, a fade at the
+ * bottom of that scrolling area (never over a button) shows that it scrolls; scrolled to the
+ * end, the last line sits fully above the bar.
+ *
+ * Above [LARGE_FONT_SCALE] a pinned bar of two large buttons would leave too little room to
+ * read, so the actions flow after the content in one scroll instead. A flexible spacer still
+ * pushes them to the bottom when everything fits. The fade then shows only while the actions
+ * are entirely below the viewport edge, so it never covers one.
+ *
+ * [insets] shrink the viewport (navigation bar, keyboard) when the screen does not own them
+ * already. Text fields inside bring themselves into view when focused or in error (see
  * [WaiveraTextField]).
  */
 @Composable
@@ -79,10 +94,73 @@ fun WaiveraBottomActionLayout(
     insets: WindowInsets = WindowInsets(0),
     content: @Composable ColumnScope.() -> Unit,
 ) {
+    val frame = modifier
+        .fillMaxSize()
+        .windowInsetsPadding(insets)
+    if (bottomActionMode(isLargeFontScale()) == BottomActionMode.Pinned) {
+        PinnedActionLayout(frame, scrollState, contentArrangement, actions, content)
+    } else {
+        InlineActionLayout(frame, scrollState, contentArrangement, actions, content)
+    }
+}
+
+/** How [WaiveraBottomActionLayout] places its actions. */
+internal enum class BottomActionMode {
+    /** In a bar under the scrolling content. */
+    Pinned,
+
+    /** After the content, in the same scroll. */
+    Inline,
+}
+
+/** Pinned up to [LARGE_FONT_SCALE]; inline above it, where a pinned bar would crowd the content out. */
+internal fun bottomActionMode(largeFont: Boolean): BottomActionMode =
+    if (largeFont) BottomActionMode.Inline else BottomActionMode.Pinned
+
+@Composable
+private fun PinnedActionLayout(
+    modifier: Modifier,
+    scrollState: ScrollState,
+    contentArrangement: Arrangement.Vertical,
+    actions: @Composable ColumnScope.() -> Unit,
+    content: @Composable ColumnScope.() -> Unit,
+) {
+    Column(modifier = modifier) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .weight(1f),
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .verticalScroll(scrollState)
+                    .padding(vertical = WaiveraSpacing.Large),
+                verticalArrangement = contentArrangement,
+                content = content,
+            )
+            // Inside the scrolling area, so it fades content into the bar and never a button.
+            WaiveraScrollFadeEdge(
+                visible = scrollState.canScrollForward,
+                modifier = Modifier.align(Alignment.BottomCenter),
+            )
+        }
+        WaiveraBottomActionBar(showDivider = false, content = actions)
+    }
+}
+
+@Composable
+private fun InlineActionLayout(
+    modifier: Modifier,
+    scrollState: ScrollState,
+    contentArrangement: Arrangement.Vertical,
+    actions: @Composable ColumnScope.() -> Unit,
+    content: @Composable ColumnScope.() -> Unit,
+) {
+    var viewportBottom by remember { mutableFloatStateOf(0f) }
+    var actionsTop by remember { mutableFloatStateOf(0f) }
     BoxWithConstraints(
-        modifier = modifier
-            .fillMaxSize()
-            .windowInsetsPadding(insets),
+        modifier = modifier.onGloballyPositioned { viewportBottom = it.boundsInRoot().bottom },
     ) {
         val viewportHeight = maxHeight
         Column(
@@ -101,10 +179,14 @@ fun WaiveraBottomActionLayout(
             // Weight inside a scrolling column fills up to the min height only: it pins the
             // actions to the bottom when the content is short and collapses to 0 otherwise.
             Spacer(modifier = Modifier.weight(1f))
-            WaiveraBottomActionBar(showDivider = false, content = actions)
+            WaiveraBottomActionBar(
+                showDivider = false,
+                modifier = Modifier.onGloballyPositioned { actionsTop = it.positionInRoot().y },
+                content = actions,
+            )
         }
         WaiveraScrollFadeEdge(
-            visible = scrollState.canScrollForward,
+            visible = scrollState.canScrollForward && actionsTop >= viewportBottom,
             modifier = Modifier.align(Alignment.BottomCenter),
         )
     }

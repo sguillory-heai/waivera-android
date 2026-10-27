@@ -8,7 +8,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.WindowInsets
@@ -25,6 +25,8 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -55,9 +57,10 @@ import com.waivera.waivera.core.designsystem.theme.WaiveraTheme
  * without the top side. Content is width-capped so the form stays readable on tablets and in
  * landscape.
  *
- * [bottomBar] holds the screen's primary actions in a [WaiveraBottomActionLayout]: at the bottom
- * of the screen, in thumb reach, when everything fits; after the content when it does not (a
- * small phone, a banner, 200% font), so nothing is cut under a pinned bar.
+ * [bottomBar] holds the screen's primary actions in a [WaiveraBottomActionLayout]: pinned at the
+ * bottom of the screen, in thumb reach, with the content scrolling above them; after the content
+ * at large font. [LocalCompactAuthWindow] tells the content when the window is short, so it can
+ * drop optional copy.
  */
 @Composable
 internal fun AuthScaffold(
@@ -66,7 +69,7 @@ internal fun AuthScaffold(
     bottomBar: (@Composable ColumnScope.() -> Unit)? = null,
     content: @Composable ColumnScope.() -> Unit,
 ) {
-    Box(
+    BoxWithConstraints(
         modifier = modifier
             .fillMaxSize()
             .background(WaiveraTheme.colors.background)
@@ -76,19 +79,24 @@ internal fun AuthScaffold(
         val frame = Modifier
             .widthIn(max = WaiveraSizes.SheetMaxWidth)
             .fillMaxSize()
-        if (bottomBar != null) {
-            WaiveraBottomActionLayout(actions = bottomBar, modifier = frame, content = content)
-        } else {
-            Column(
-                modifier = frame
-                    .verticalScroll(rememberScrollState())
-                    .padding(vertical = WaiveraSpacing.Large),
-                verticalArrangement = Arrangement.spacedBy(WaiveraSpacing.Medium),
-                content = content,
-            )
+        CompositionLocalProvider(LocalCompactAuthWindow provides (maxHeight < WaiveraSizes.CompactWindowHeight)) {
+            if (bottomBar != null) {
+                WaiveraBottomActionLayout(actions = bottomBar, modifier = frame, content = content)
+            } else {
+                Column(
+                    modifier = frame
+                        .verticalScroll(rememberScrollState())
+                        .padding(vertical = WaiveraSpacing.Large),
+                    verticalArrangement = Arrangement.spacedBy(WaiveraSpacing.Medium),
+                    content = content,
+                )
+            }
         }
     }
 }
+
+/** True inside an [AuthScaffold] shorter than [WaiveraSizes.CompactWindowHeight]. */
+internal val LocalCompactAuthWindow = compositionLocalOf { false }
 
 /** Gutter padding for scaffold children that are not full-width banners. */
 internal val GutterPadding = Modifier.padding(horizontal = WaiveraSpacing.Gutter)

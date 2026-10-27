@@ -133,11 +133,13 @@ internal fun NotificationPrimerContent(
             message = stringResource(R.string.feature_auth_primer_message),
             icon = WaiveraIcons.Notifications,
         )
+        // Tighter on a short window so the kinds and the control note fit above the pinned actions.
+        val gap = if (LocalCompactAuthWindow.current) WaiveraSpacing.MediumSmall else WaiveraSpacing.Medium
         Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .then(GutterPadding),
-            verticalArrangement = Arrangement.spacedBy(WaiveraSpacing.Medium),
+            verticalArrangement = Arrangement.spacedBy(gap),
         ) {
             SampleNotification()
             PrimerKinds.forEach { item -> PrimerKindRow(item) }
