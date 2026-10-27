@@ -5,6 +5,8 @@ The feature code already works without them; the notes say what is missing until
 
 ## 1. App gate: route the two new gate screens (`:app`)
 
+**Status: Done.** `AppGate.OnboardingRequired` added; both gates route to the feature screens; the app's private screen and string are deleted.
+
 `:feature:auth` now has `BootstrapFailedScreen(onSignOut, modifier)` and
 `OnboardingRequiredScreen(onSignOut, modifier)`.
 
@@ -23,6 +25,8 @@ Until this lands, a pending-signup account reaches the tabs (01 acceptance check
 
 ## 2. App gate: keep the sign-in screen up while signing in (`:app`)
 
+**Status: Done.** `ShellState.onGate` keeps `SignIn` when the next gate is `Loading`.
+
 `LiveSessionRepository.signIn` sets `SessionState.Initializing` while Firebase and the backend
 bootstrap run, and `AppGate.from` maps `Initializing` to `Loading`, so the sign-in screen is
 replaced by the full-screen loader the moment the person taps Sign in. Spec 01 §8 check 1 wants
@@ -35,6 +39,8 @@ the next gate. (Alternative in `:core:data`: a `SessionState.SigningIn` state; h
 
 ## 3. Settings: voluntary password change (`:app` + `:feature:settings`)
 
+**Status: Done.** `ChangePasswordRoute` plus a Security, Change password row in Settings.
+
 `PasswordChangeScreen(onSignOut, modifier, onBack = null, onChanged = {})`: with `onBack` set it
 is the voluntary flow (top bar with back, no sign-out). Needs:
 
@@ -44,6 +50,8 @@ is the voluntary flow (top bar with back, no sign-out). Needs:
   `SettingsScreen` would need an `onOpenChangePassword` lambda with a default).
 
 ## 4. `SessionRepository.changePassword` (`:core:data`)
+
+**Status: Done.** A voluntary change refreshes without `Initializing`, and a retry after a failed confirm only repeats the confirm call.
 
 1. **Do not re-bootstrap through `Initializing` for a voluntary change.** `changePassword` ends
    with `refresh()`, and `bootstrap` publishes `Initializing` first, so the shell drops to the
@@ -57,6 +65,8 @@ is the voluntary flow (top bar with back, no sign-out). Needs:
 
 ## 5. Design system: autofill hints on `WaiveraTextField` (`:core:designsystem`)
 
+**Status: Done.** `contentType` is applied on the inner field; sign-in and password change pass their hints.
+
 Add `contentType: ContentType? = null` to `WaiveraTextField` and apply it with
 `Modifier.semantics { contentType = it }` on the inner `OutlinedTextField` (not the outer
 column, which is what a feature can reach today). Sign-in would pass
@@ -65,6 +75,8 @@ change screen `ContentType.NewPassword`. Without it, password managers do not of
 save Waivera credentials.
 
 ## 6. Design system: visibility icons (`:core:designsystem`, optional)
+
+**Status: Declined.** Only auth uses the visibility icons, so they stay; the lock icon moved because chat and settings use it too.
 
 `:feature:auth` ships private `feature_auth_ic_visibility`, `_visibility_off` and `_lock`
 drawables. If another module needs them, move them to `WaiveraIcons`.

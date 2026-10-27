@@ -5,6 +5,8 @@ feature uses today, so the stand-in can be deleted when the core change lands.
 
 ## 1. `CalendarRepository.observeEvent(id)` (core/data)
 
+**Status: Done.** `observeEvent`/`refreshEvent` over `GetEventbyId` (404 is `data = null` with a sync time; answers patch every cached copy); `EventLookup` and `ScheduleEventStore` are deleted.
+
 **Need.** The event screen is routed with an id only (`CalendarEventRoute(eventId)`), and it is
 opened from push and deep links as well as from the schedule. `CalendarRepository` can only
 observe feed ranges, so a cold id has nowhere to come from.
@@ -28,6 +30,8 @@ months opened from a push shows "not found" until this lands.
 
 ## 2. Holiday description on the `Holiday` model (core/data)
 
+**Status: Done.** `Holiday.description` is mapped; the agenda card shows it and falls back to "Company holiday".
+
 **Need.** 07 §3 shows a holiday's description under its title. `HolidayDto.description` is
 decoded, but `CalendarMath.feed` drops it when it builds `Holiday(id, title, start, endInclusive)`.
 
@@ -37,6 +41,8 @@ through in `CalendarMath.feed`.
 **Stand-in.** The agenda card's subtitle is always "Company holiday".
 
 ## 3. Milestone avatar and calendar tokens (core/designsystem)
+
+**Status: Done.** `WaiveraMilestoneAvatar`, `MilestoneKind.Multiple`, the `multipleContainer` pair, the badge sizes and the icons are in the design system; grid-only sizes stay in `CalendarSizes`.
 
 **Need.** Profile, the chat list and conversation headers will want the same birthday/anniversary
 badge on avatars (07 §4). The feature has private copies:
@@ -56,6 +62,8 @@ badge on avatars (07 §4). The feature has private copies:
 
 ## 4. The signed-in user's name and avatar for the top bar account button (app or core/data)
 
+**Status: Done.** The app provides `LocalSignedInAccount`; `rememberTopBarAccount(onClick)` fills the account button with no signature change.
+
 **Need.** `WaiveraTopBar` takes `TopBarAccount(name, onClick, painter)`. The Schedule entry
 composable's signature (`ScheduleScreen(onAccountClick, onOpenEvent, modifier)`) carries no user,
 so the feature passes a generic "Account" label and no picture.
@@ -65,6 +73,8 @@ that reads `SessionRepository` and `PeopleRepository.avatar`, or app-level injec
 into every tab's top bar. Either keeps the entry signature unchanged.
 
 ## 5. Spec conflict to settle (docs, not code)
+
+**Status: Done.** Settled as `America/Chicago` (the contract, `data-layer.md` and the timezone standard); the code already follows it. Spec 07 lives in the shared spec folder outside this repo and still needs that one-line fix by its owner.
 
 07-calendar says to fall back to the **device** zone when the employee has no saved zone;
 `contract/dates.md`, `docs/architecture/data-layer.md` and `sprout_api/docs/timezone-standard.md`

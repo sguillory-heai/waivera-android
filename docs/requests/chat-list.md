@@ -15,24 +15,34 @@ change to `feature/chat/build.gradle.kts` or the version catalog is needed.
      call" instead).
    - Replace `CallLobby` with a call to this method once it lands.
 
+   **Status: Done.** Joins the live room or meeting room, else creates one; `list/CallLobby.kt` is deleted.
+
 2. **Sort fallback timestamps on `Conversation`.** Spec 02 orders by last activity, then
    `modifiedDate`, then `createDate`. The model only exposes `activityAt`, so the list falls back
    to the epoch and then to id descending (`ConversationPresentation.Order`). Add
    `modifiedAt: Instant?` and `createdAt: Instant?` (or make `activityAt` apply that fallback in the
    mapper).
 
+   **Status: Moved to sprout-api.md** (§3). The DTOs send none of those dates; `activityAt` now falls back to the live call and meeting start.
+
 3. **`MessagePreview.isBot` (or `botId`).** Bot detection relies on `ConversationKind.BOT`, a
    `bot:` participant or author id, or a conversation whose only participant is me. A flag from the
    DTO would replace the heuristics in `ConversationPresentation.isBot`.
+
+   **Status: Done.** `isBot` and `botId` are mapped; the `bot:` author check stays for previews cached before the flag.
 
 4. **`ConversationRepository.observeAllTyping(): Flow<Map<Long, Set<String>>>`.** The list combines
    one `observeTyping(id)` flow per row (`flatMapLatest` + `combine`). A single map flow from the
    realtime layer would be cheaper for long inboxes.
 
+   **Status: Done.** The list collects the single map flow.
+
 5. **Rich-text format on `MessagePreview`** (`contentFormat` and/or the parsed doc). The list
    sniffs TipTap JSON, double-encoded JSON and simple HTML in `list/RichTextPlain.kt`. Knowing the
    format from the DTO would let it skip guessing and share one converter with the conversation
    screen.
+
+   **Status: Done.** `contentFormat` and the server's `plainText` are mapped; the list prefers `plainText` and keeps `RichTextPlain` only as the fallback.
 
 ## core:designsystem
 
@@ -40,10 +50,16 @@ change to `feature/chat/build.gradle.kts` or the version catalog is needed.
    archive, bot, video, attachment, lock (read only), more, mark read. Move them into
    `WaiveraIcons` so the conversation screens and iOS naming stay aligned.
 
+   **Status: Done.** All eight are in `WaiveraIcons`; the module drawables are deleted.
+
 ## Contract notes (no change made)
 
 - `MeetingHandoff.State.relatedChatConversationId` is a `Long`; spec 02/the web lobby state
   describe it as a string. The list passes the `Long` through unchanged. Confirm against the
   sprout_api DTO.
+
+  **Status: Declined (no change).** The C# DTO declares it `int?`, so `Long` is right (sprout-api.md, checked).
 - There is no per-conversation mute in the API (spec 11, drift 56), so the list shows no muted
   indicator.
+
+  **Status: Moved to sprout-api.md** (§6).
