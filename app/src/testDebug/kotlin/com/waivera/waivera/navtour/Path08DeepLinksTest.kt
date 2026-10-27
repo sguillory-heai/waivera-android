@@ -1,5 +1,6 @@
 package com.waivera.waivera.navtour
 
+import androidx.compose.ui.test.hasText
 import com.waivera.waivera.core.data.model.SessionState
 import com.waivera.waivera.core.demo.DemoData
 import com.waivera.waivera.core.notifications.deeplink.DeepLinkTarget
@@ -225,7 +226,7 @@ class Path08DeepLinksTest : NavTourHarness() {
     fun path08_pushForTheOpenConversation_isSuppressedAndTapKeepsTheScreen() {
         launch()
         clickTab("Chat")
-        click(hasClickLabel("Open conversation") and textOrDescription("Priya Raman", substring = true))
+        click(hasClickLabel("Open conversation") and hasText("Priya Raman"))
         expectStack(TodayRoute, ChatListRoute, ConversationRoute(DemoData.DM_PRIYA))
         val before = postedNotificationCount()
 

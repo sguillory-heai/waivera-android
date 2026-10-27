@@ -105,7 +105,8 @@ class Path05TodayTest : NavTourHarness() {
         expectScreen("You haven't responded yet.")
         shot("path_05_today_08_invitation_event")
 
-        click(textOrDescription("Accept"))
+        // The RSVP choice reads "Going" / "Not going" since the event screen fix.
+        click(textOrDescription("Going"))
         expectScreen("You accepted the invitation")
         shot("path_05_today_09_invitation_accepted_undo")
 

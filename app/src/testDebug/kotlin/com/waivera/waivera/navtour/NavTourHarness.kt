@@ -18,12 +18,14 @@ import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasScrollToNodeAction
 import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.isRoot
 import androidx.compose.ui.test.junit4.createEmptyComposeRule
 import androidx.compose.ui.test.onFirst
 import androidx.compose.ui.test.onLast
 import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.test.performTextReplacement
+import androidx.compose.ui.test.printToString
 import androidx.lifecycle.ViewModelProvider
 import androidx.test.core.app.ActivityScenario
 import androidx.test.core.app.ApplicationProvider
@@ -94,6 +96,7 @@ abstract class NavTourHarness {
     val compose = createEmptyComposeRule()
 
     private var scenario: ActivityScenario<MainActivity>? = null
+    private var launchIntent: Intent? = null
     private val originalZone: TimeZone = TimeZone.getDefault()
     private val originalLocale: Locale = Locale.getDefault()
 
@@ -123,8 +126,18 @@ abstract class NavTourHarness {
 
     @After
     fun tearDownTour() {
+        // After a back press that left the app, the activity is finishing but Robolectric never
+        // destroys it, and close() would wait forever for DESTROYED. Clearing the flag lets
+        // close() finish it again and drive it through onDestroy.
+        scenario?.onActivity { activity ->
+            if (activity.isFinishing) shadowOf(activity).resetIsFinishing()
+            // ActivityScenario follows the lifecycle only of the activity whose intent matches the
+            // one it launched; MainActivity.onNewIntent calls setIntent, so put the launch intent back.
+            launchIntent?.let { activity.intent = it }
+        }
         scenario?.close()
         scenario = null
+        launchIntent = null
         TimeZone.setDefault(originalZone)
         Locale.setDefault(originalLocale)
     }
@@ -144,6 +157,7 @@ abstract class NavTourHarness {
     protected fun launch(intent: Intent) {
         check(scenario == null) { "The app is already running in this test" }
         scenario = ActivityScenario.launch(intent)
+        launchIntent = onActivity { it.intent }
         settle()
     }
 
@@ -157,7 +171,9 @@ abstract class NavTourHarness {
     }
 
     protected fun deliver(intent: Intent) {
-        onActivity { activity -> InstrumentationRegistry.getInstrumentation().callActivityOnNewIntent(activity, intent) }
+        onActivity { activity ->
+            InstrumentationRegistry.getInstrumentation().callActivityOnNewIntent(activity, intent)
+        }
         settle()
     }
 
@@ -206,7 +222,9 @@ abstract class NavTourHarness {
     // Shell state -------------------------------------------------------------------------------
 
     protected val shell: ShellState
-        get() = onActivity { activity -> ViewModelProvider(activity)[AppShellViewModel::class.java].uiState.value.shell }
+        get() = onActivity { activity ->
+            ViewModelProvider(activity)[AppShellViewModel::class.java].uiState.value.shell
+        }
 
     protected val nav: NavState get() = shell.nav
 
@@ -217,12 +235,19 @@ abstract class NavTourHarness {
             "pending=${state.pendingDeepLink}"
     }.getOrElse { "shell unavailable: ${it.message}" }
 
+    // The semantics tree at the moment a wait times out, so a failure says what was on screen instead.
+    private fun screenSummary(): String = runCatching {
+        compose.onAllNodes(isRoot()).printToString(maxDepth = Int.MAX_VALUE)
+    }.getOrElse { "screen unavailable: ${it.message}" }
+
     protected fun expectGate(gate: AppGate) = waitUntil("gate $gate") { shell.gate == gate }
 
     /** The visible back stack (Today's stack plus the selected tab's), compared by screen identity. */
     protected fun expectStack(vararg routes: AppRoute) {
         val wanted = routes.map { it.contentKey }
-        waitUntil("stack $wanted") { shell.gate == AppGate.Main && nav.visibleBackStack.map { it.contentKey } == wanted }
+        waitUntil("stack $wanted") {
+            shell.gate == AppGate.Main && nav.visibleBackStack.map { it.contentKey } == wanted
+        }
     }
 
     protected fun expectSelected(tab: TopLevelTab) = waitUntil("tab $tab selected") { nav.selected == tab }
@@ -239,8 +264,18 @@ abstract class NavTourHarness {
 
     // Finding and acting ------------------------------------------------------------------------
 
+    // Ignores case because section headings render their string resource in capitals ("NEEDS YOU").
     protected fun textOrDescription(value: String, substring: Boolean = false): SemanticsMatcher =
-        hasText(value, substring = substring) or hasContentDescription(value, substring = substring)
+        hasText(value, substring = substring, ignoreCase = true) or
+            hasContentDescription(value, substring = substring) or
+            hasStateDescription(value, substring)
+
+    // A busy button ("Connecting to Waivera…") carries its visible progress label as its state description.
+    private fun hasStateDescription(value: String, substring: Boolean): SemanticsMatcher =
+        SemanticsMatcher("stateDescription ${if (substring) "contains" else "is"} '$value'") { node ->
+            val state = node.config.getOrNull(SemanticsProperties.StateDescription) ?: return@SemanticsMatcher false
+            if (substring) value in state else state == value
+        }
 
     protected fun hasClickLabel(label: String): SemanticsMatcher = SemanticsMatcher("click label '$label'") { node ->
         node.config.getOrNull(SemanticsActions.OnClick)?.label == label
@@ -387,7 +422,7 @@ abstract class NavTourHarness {
             compose.waitForIdle()
             if (condition()) return
             if (System.currentTimeMillis() > deadline) {
-                throw AssertionError("Timed out waiting for $what. ${navSummary()}")
+                throw AssertionError("Timed out waiting for $what. ${navSummary()}\n${screenSummary()}")
             }
             shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMillis(FRAME_MILLIS))
             Thread.sleep(BACKGROUND_SLICE_MILLIS)

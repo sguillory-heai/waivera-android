@@ -117,7 +117,9 @@ class Path04ChatTest : NavTourHarness() {
         click("Open chat")
         expectGone("New chat")
         waitUntil("a conversation on the Chat tab") {
-            nav.selected == TopLevelTab.Chat && nav.top is ConversationRoute && nav.visibleBackStack.size == STACK_TO_CONVERSATION
+            nav.selected == TopLevelTab.Chat &&
+                nav.top is ConversationRoute &&
+                nav.visibleBackStack.size == STACK_TO_CONVERSATION
         }
         val opened = nav.visibleBackStack
         assertEquals(listOf<AppRoute>(TodayRoute, ChatListRoute), opened.take(2))
@@ -162,7 +164,7 @@ class Path04ChatTest : NavTourHarness() {
     }
 
     private fun openPriya() {
-        click(hasClickLabel("Open conversation") and textOrDescription(PRIYA, substring = true))
+        click(hasClickLabel("Open conversation") and hasText(PRIYA))
         expectStack(TodayRoute, ChatListRoute, ConversationRoute(DemoData.DM_PRIYA))
         expectScreen(PRIYA)
     }

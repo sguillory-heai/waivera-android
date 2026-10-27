@@ -1,5 +1,6 @@
 package com.waivera.waivera.navtour
 
+import androidx.compose.ui.test.hasText
 import com.waivera.waivera.core.demo.DemoData
 import com.waivera.waivera.navigation.CalendarEventRoute
 import com.waivera.waivera.navigation.ChatListRoute
@@ -32,7 +33,8 @@ class Path03TabsTest : NavTourHarness() {
         clickTab("Schedule")
         expectSelected(TopLevelTab.Schedule)
         expectStack(TodayRoute, ScheduleRoute)
-        expectScreen("Events, time off, holidays, and team celebrations.")
+        // The subtitle this used to check was removed by the schedule layout fix; the view switcher is Schedule-only.
+        expectScreen("Month")
         shot("path_03_tabs_03_schedule")
         shotDark("path_03_tabs_03_schedule")
 
@@ -99,7 +101,7 @@ class Path03TabsTest : NavTourHarness() {
     fun path03_eachTabKeepsItsOwnStack() {
         launch()
         clickTab("Chat")
-        click(hasClickLabel(OPEN_CONVERSATION) and textOrDescription(PRIYA, substring = true))
+        click(hasClickLabel(OPEN_CONVERSATION) and hasText(PRIYA))
         expectStack(TodayRoute, ChatListRoute, ConversationRoute(DemoData.DM_PRIYA))
         shot("path_03_tabs_08_chat_conversation")
 
