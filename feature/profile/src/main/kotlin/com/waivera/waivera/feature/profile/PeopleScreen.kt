@@ -171,10 +171,12 @@ private fun PeopleList(state: PeopleUiState, onOpenPerson: (String) -> Unit) {
 
 @Composable
 private fun PersonListRow(row: PersonRow, onClick: () -> Unit) {
-    val supporting = listOfNotNull(row.celebration?.compactLabel(), row.detail).joinToString(" · ")
+    // The milestone gets its own line and the email one unbroken line, so an address never
+    // splits at a dot next to "5-year anniversary" (UI3-14).
     WaiveraListRow(
         headline = row.name,
-        supporting = supporting.takeIf(String::isNotEmpty),
+        supporting = row.celebration?.compactLabel(),
+        detail = row.detail,
         onClick = onClick,
         onClickLabel = stringResource(R.string.feature_profile_open_person),
         showChevron = true,

@@ -130,6 +130,13 @@ class DesignSystemScreenshotTest {
             trailing = { WaiveraCountBadge(count = 3) },
         )
         WaiveraListRow(headline = "Disabled row", supporting = "Turn on push notifications first", enabled = false)
+        WaiveraListRow(
+            headline = "Jordan Lee",
+            supporting = "5-year anniversary",
+            detail = "jordan.castellanos-whitaker@example.com",
+            onClick = {},
+            showChevron = true,
+        )
     }
 
     @Test

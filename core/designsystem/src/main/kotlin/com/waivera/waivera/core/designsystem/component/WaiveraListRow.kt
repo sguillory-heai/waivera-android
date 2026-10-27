@@ -26,6 +26,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.style.TextOverflow
 import com.waivera.waivera.core.designsystem.feedback.rememberHaptics
 import com.waivera.waivera.core.designsystem.icon.WaiveraIcons
 import com.waivera.waivera.core.designsystem.preview.WaiveraPreviews
@@ -38,7 +39,9 @@ import com.waivera.waivera.core.designsystem.theme.WaiveraTheme
 /**
  * A list row: optional leading slot, a headline and supporting text that wrap at large font
  * scales, an optional trailing slot and an optional chevron. Clickable rows get the shared
- * press scale and read as one element to TalkBack.
+ * press scale and read as one element to TalkBack. [detail] is one more line for a single long
+ * token (an email, an id): it never wraps, so it can't break at a dot mid-address, and it
+ * ellipsizes instead (UI3-14).
  */
 @Composable
 fun WaiveraListRow(
@@ -52,6 +55,7 @@ fun WaiveraListRow(
     enabled: Boolean = true,
     leading: (@Composable () -> Unit)? = null,
     trailing: (@Composable RowScope.() -> Unit)? = null,
+    detail: String? = null,
 ) {
     val body: @Composable () -> Unit = {
         Row(
@@ -70,6 +74,7 @@ fun WaiveraListRow(
                 subtitle = supporting,
                 enabled = enabled,
                 modifier = Modifier.weight(1f),
+                detail = detail,
             )
             if (trailing != null) trailing()
             if (showChevron) {
@@ -153,8 +158,21 @@ fun WaiveraSwitchRow(
  * supporting text slightly lighter) instead of fading the whole row to near-invisible.
  */
 @Composable
-private fun RowText(title: String, subtitle: String?, enabled: Boolean, modifier: Modifier = Modifier) {
+private fun RowText(
+    title: String,
+    subtitle: String?,
+    enabled: Boolean,
+    modifier: Modifier = Modifier,
+    detail: String? = null,
+) {
     val colors = WaiveraTheme.colors
+    val subtitleColor = if (enabled) {
+        colors.textSecondary
+    } else {
+        colors.textSecondary.copy(
+            alpha = DISABLED_SUPPORTING_ALPHA,
+        )
+    }
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(WaiveraSpacing.XxSmall)) {
         Text(
             text = title,
@@ -162,12 +180,17 @@ private fun RowText(title: String, subtitle: String?, enabled: Boolean, modifier
             color = if (enabled) colors.text else colors.textSecondary,
         )
         if (subtitle != null) {
-            val subtitleColor = if (enabled) {
-                colors.textSecondary
-            } else {
-                colors.textSecondary.copy(alpha = DISABLED_SUPPORTING_ALPHA)
-            }
             Text(text = subtitle, style = MaterialTheme.typography.bodySmall, color = subtitleColor)
+        }
+        if (detail != null) {
+            Text(
+                text = detail,
+                style = MaterialTheme.typography.bodySmall,
+                color = subtitleColor,
+                maxLines = 1,
+                softWrap = false,
+                overflow = TextOverflow.Ellipsis,
+            )
         }
     }
 }
@@ -231,6 +254,14 @@ private fun WaiveraListRowPreview() {
                 onClick = {},
                 showChevron = true,
                 leading = { WaiveraIconTile(icon = WaiveraIcons.Notifications) },
+            )
+            WaiveraDivider()
+            WaiveraListRow(
+                headline = "Jordan Lee",
+                supporting = "5-year anniversary",
+                detail = "jordan.lee@example.com",
+                onClick = {},
+                showChevron = true,
             )
             WaiveraDivider()
             WaiveraSwitchRow(
