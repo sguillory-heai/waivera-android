@@ -12,6 +12,7 @@ import com.waivera.waivera.navigation.SettingsRoute
 import com.waivera.waivera.navigation.ThreadRoute
 import com.waivera.waivera.navigation.TodayRoute
 import dagger.hilt.android.testing.HiltAndroidTest
+import java.time.Instant
 import org.junit.Before
 import org.junit.Test
 import org.robolectric.RuntimeEnvironment
@@ -95,6 +96,8 @@ class NavigationPathVariantsTest : NavTourHarness() {
 
     @Test
     fun font200_scheduleEvent() {
+        // Same moment as Path06's default shot, so the 200% image shows the open Join button too (UI3-16).
+        world.clock().set(Instant.parse("2026-11-01T19:45:00Z"))
         launch("waivera://calendar/demo_supervision")
         expectStack(TodayRoute, ScheduleRoute, CalendarEventRoute("demo_supervision"))
         expectScreen("Event")

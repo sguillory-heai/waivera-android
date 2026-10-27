@@ -61,8 +61,18 @@ class ChatListScreenshotTest {
         return state
     }
 
-    private fun list(name: String, state: ChatListUiState) = captureScreenshots("chat_list_$name") {
-        ChatListContent(state = state, avatars = emptyMap(), actions = ChatListActions(), skeletonDelayMillis = 0)
+    private fun list(
+        name: String,
+        state: ChatListUiState,
+        connectingPillDelayMillis: Long = CONNECTING_PILL_DELAY_MILLIS,
+    ) = captureScreenshots("chat_list_$name") {
+        ChatListContent(
+            state = state,
+            avatars = emptyMap(),
+            actions = ChatListActions(),
+            skeletonDelayMillis = 0,
+            connectingPillDelayMillis = connectingPillDelayMillis,
+        )
     }
 
     @Test
@@ -114,9 +124,17 @@ class ChatListScreenshotTest {
         ),
     )
 
-    /** Start-up: the "Connecting" pill waits out a normal connect, so nothing shows yet. */
+    /** Start-up within a normal connect: the "Connecting" pill waits, so nothing shows yet. */
     @Test
     fun connecting() = list("connecting", sample.copy(connection = ConnectionUi.Connecting))
+
+    /** A slow start-up, past the pill's wait: the quiet "Connecting" pill above search (UI3-16). */
+    @Test
+    fun connectingSlow() = list(
+        "connecting_slow",
+        sample.copy(connection = ConnectionUi.Connecting),
+        connectingPillDelayMillis = 0,
+    )
 
     @Test
     fun reconnecting() = list("reconnecting", sample.copy(connection = ConnectionUi.Reconnecting))

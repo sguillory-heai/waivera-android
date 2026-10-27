@@ -249,8 +249,7 @@ class Path08DeepLinksTest : NavTourHarness() {
 
     /**
      * The same rule when the conversation was opened from Today's "Needs you": it is on screen, so
-     * a tap for it must leave it there. `NavState.open` only treats the target as "on top" when its
-     * tab is selected, so it rebuilds the Chat tab and moves the person off Today instead.
+     * a tap for it leaves it there, on the Today tab, instead of rebuilding the Chat tab (NAV-01).
      */
     @Test
     fun path08_pushTapForConversationAlreadyOpenFromToday_staysOnSameScreen() {

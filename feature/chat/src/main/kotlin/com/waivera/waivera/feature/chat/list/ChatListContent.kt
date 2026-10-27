@@ -65,7 +65,8 @@ class ChatListActions(
  * item, so when someone is reading at the top a realtime reorder keeps them at the top, and
  * when they have scrolled down the first visible row stays put: no scroll jump either way.
  * Rows move with the layout motion token. [skeletonDelayMillis] overrides the ~300 ms skeleton
- * delay, for screenshot tests only.
+ * delay and [connectingPillDelayMillis] the wait before the "Connecting" pill, for screenshot
+ * tests only, so a capture can show the pill a slow start-up shows (UI3-16).
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -77,6 +78,7 @@ fun ChatListContent(
     snackbarHostState: SnackbarHostState = remember { SnackbarHostState() },
     listState: LazyListState = rememberLazyListState(),
     skeletonDelayMillis: Long? = null,
+    connectingPillDelayMillis: Long = CONNECTING_PILL_DELAY_MILLIS,
 ) {
     val colors = WaiveraTheme.colors
     val motion = WaiveraTheme.motion
@@ -108,7 +110,9 @@ fun ChatListContent(
                 modifier = Modifier.weight(1f),
             ) {
                 LazyColumn(state = listState, modifier = Modifier.fillMaxSize()) {
-                    item(key = HEADER_KEY, contentType = HEADER_KEY) { Header(state, actions) }
+                    item(key = HEADER_KEY, contentType = HEADER_KEY) {
+                        Header(state, actions, connectingPillDelayMillis)
+                    }
                     when {
                         showSkeleton -> item(key = SKELETON_KEY, contentType = SKELETON_KEY) { ChatListSkeleton() }
                         state.content is ChatListContent.Error -> item(key = STATE_KEY, contentType = STATE_KEY) {
@@ -162,7 +166,7 @@ fun ChatListContent(
  * owns the message on its own.
  */
 @Composable
-private fun Header(state: ChatListUiState, actions: ChatListActions) {
+private fun Header(state: ChatListUiState, actions: ChatListActions, connectingPillDelayMillis: Long) {
     val filters = ChatListFilter.entries
     val bannerState = connectionBannerState(state)
     Column(
@@ -172,7 +176,11 @@ private fun Header(state: ChatListUiState, actions: ChatListActions) {
         verticalArrangement = Arrangement.spacedBy(WaiveraSpacing.MediumSmall),
     ) {
         if (showsConnectingPill(state, bannerState)) {
-            ConnectionStatus(state.connection, Modifier.padding(horizontal = WaiveraSpacing.Gutter))
+            ConnectionStatus(
+                connection = state.connection,
+                delayMillis = connectingPillDelayMillis,
+                modifier = Modifier.padding(horizontal = WaiveraSpacing.Gutter),
+            )
         }
         ConnectionBanner(
             state = bannerState,
@@ -216,10 +224,12 @@ internal fun showsConnectingPill(state: ChatListUiState, bannerState: Connection
 
 /** The "Connecting" pill, after it has waited out a normal start-up. */
 @Composable
-private fun ConnectionStatus(connection: ConnectionUi, modifier: Modifier = Modifier) {
-    val slowStart by produceState(initialValue = false, connection) {
-        value = false
-        delay(CONNECTING_PILL_DELAY_MILLIS)
+private fun ConnectionStatus(connection: ConnectionUi, delayMillis: Long, modifier: Modifier = Modifier) {
+    val slowStart by produceState(initialValue = delayMillis <= 0, connection, delayMillis) {
+        if (delayMillis > 0) {
+            value = false
+            delay(delayMillis)
+        }
         value = true
     }
     if (slowStart) ConnectionPill(connection, modifier)
@@ -263,7 +273,7 @@ private fun ChatListFilter.labelRes(): Int = when (this) {
     ChatListFilter.Channels -> R.string.feature_chat_list_filter_channels
 }
 
-private const val CONNECTING_PILL_DELAY_MILLIS = 2_000L
+internal const val CONNECTING_PILL_DELAY_MILLIS = 2_000L
 private const val HEADER_KEY = "header"
 private const val SKELETON_KEY = "skeleton"
 private const val STATE_KEY = "state"

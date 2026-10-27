@@ -102,6 +102,9 @@ Open chat → Today ▸ Chat list ▸ the new conversation, back → Chat list (
 (+ `_dark`), `_10_new_chat_selected`, `_11_new_chat_conversation`); the failed demo send shows
 "Failed", Retry sends it and the screen stays (`path_04_chat_12_failed_send`, `_13_retried`).
 
+The reaction pill is one TalkBack element that still offers both actions: tap toggles my
+reaction and long press shows who reacted (`path04_reactionPill_offersItsActionsToTalkBack`).
+
 ## 5. Today rows (`Path05TodayTest`)
 
 Rows push onto the Today tab, so back returns to Today; "See schedule" switches tab.
@@ -176,6 +179,7 @@ Chat (`path_07_account_17_people_over_chat`).
 | Push `legacy-meeting.json` tapped (cold) | Today ▸ Schedule ▸ Event `evt_8f2b19c4` | Schedule | `path_08_push_03_legacy_meeting` |
 | Push `unknown-type.json` tapped | Today ▸ Chat list | — | `path_08_push_04_unknown_type` |
 | Push for the conversation open on the Chat tab | suppressed (`ChatOnScreen`), no notification; a tap only moves the highlight | — | `path_08_push_05_already_open` |
+| Tap for the conversation opened from Today's "Needs you" | stays on the Today tab, Today ▸ Conversation 7; only the highlight moves | Today | — |
 
 Pushes go through the real `PushMessageHandler`, the real notifier and the real tap
 `PendingIntent`; the payloads are copies of `docs/push-test-payloads/` in
@@ -206,17 +210,3 @@ A predictive back swipe held halfway (`_swipe`), then committed:
 Sheets close on back before anything under them moves: the account menu
 (`path_09_back_16_account_menu_open`, `path_09_back_17_account_menu_closed`), the message
 actions sheet and the sign-out confirmation.
-
-## Tests that record a gap
-
-These assert documented behaviour the app does not have yet. They fail until the app is fixed;
-do not loosen them.
-
-- `Path08DeepLinksTest.path08_pushTapForConversationAlreadyOpenFromToday_staysOnSameScreen`:
-  app-shell.md says a link to the screen already on top changes nothing. A conversation opened
-  from Today's "Needs you" sits on the Today tab, and `NavState.open` only treats a target as on
-  top when its tab is selected, so the tap rebuilds the Chat tab and moves the person.
-- `Path04ChatTest.path04_reactionPill_offersItsActionsToTalkBack`: the reaction pill sets its
-  label with `clearAndSetSemantics` ahead of `WaiveraPressable`'s click handling, which drops the
-  toggle and "Show who reacted" actions for TalkBack (AGENTS.md: every control works with TalkBack).
-  The tour long-presses the pill by touch so the path itself still runs.

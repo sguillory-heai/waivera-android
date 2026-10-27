@@ -46,7 +46,7 @@ class Path04ChatTest : NavTourHarness() {
         click("Close message actions")
         expectGone("MESSAGE PREVIEW")
 
-        // Long-press the 🎉 pill by touch: see path04_reactionPill_offersItsActionsToTalkBack.
+        // By touch, as a person would; path04_reactionPill_offersItsActionsToTalkBack covers TalkBack.
         node(hasContentDescription(PARTY_PILL)).performTouchInput { longClick() }
         settle()
         expectScreen("Reactions")
@@ -148,9 +148,9 @@ class Path04ChatTest : NavTourHarness() {
     }
 
     /**
-     * Every control has to work with TalkBack (AGENTS.md). The reaction pill clears its own
-     * semantics after setting the label, which also drops the toggle and "Show who reacted"
-     * actions that WaiveraPressable adds further in, so TalkBack can read the pill but not use it.
+     * Every control has to work with TalkBack (AGENTS.md). The reaction pill clears its children's
+     * semantics to read as one label, so it has to set the toggle and "Show who reacted" actions
+     * again itself (NAV-02).
      */
     @Test
     fun path04_reactionPill_offersItsActionsToTalkBack() {
