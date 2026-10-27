@@ -1,5 +1,6 @@
 package com.waivera.waivera.core.screenshottesting
 
+import android.provider.Settings
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -74,6 +75,13 @@ fun captureScreenshots(
     variants: List<ScreenshotVariant> = ScreenshotMatrix.Default,
     content: @Composable () -> Unit,
 ) {
+    // Animator scale 0 is the system "Remove animations" setting: Compose then stops infinite
+    // animations (spinners, skeleton shimmer) instead of waiting on them before every capture.
+    Settings.Global.putFloat(
+        RuntimeEnvironment.getApplication().contentResolver,
+        Settings.Global.ANIMATOR_DURATION_SCALE,
+        0f,
+    )
     variants.forEach { variant ->
         RuntimeEnvironment.setQualifiers(variant.device.qualifiers(variant.darkTheme))
         captureRoboImage(filePath = "${ScreenshotMatrix.outputDirectory}/${name}_${variant.suffix}.png") {
