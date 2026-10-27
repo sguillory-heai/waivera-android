@@ -1,38 +1,372 @@
 package com.waivera.waivera.feature.profile
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.windowInsetsBottomHeight
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
-import com.waivera.waivera.core.designsystem.component.WaiveraPlaceholderScreen
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.waivera.waivera.core.data.model.CurrentUser
+import com.waivera.waivera.core.data.model.EmployeeProfile
+import com.waivera.waivera.core.designsystem.component.BannerTone
+import com.waivera.waivera.core.designsystem.component.ConnectionBanner
+import com.waivera.waivera.core.designsystem.component.ConnectionBannerState
+import com.waivera.waivera.core.designsystem.component.TopBarAction
+import com.waivera.waivera.core.designsystem.component.WaiveraAvatar
+import com.waivera.waivera.core.designsystem.component.WaiveraBanner
+import com.waivera.waivera.core.designsystem.component.WaiveraButton
+import com.waivera.waivera.core.designsystem.component.WaiveraButtonVariant
+import com.waivera.waivera.core.designsystem.component.WaiveraEmptyState
+import com.waivera.waivera.core.designsystem.component.WaiveraErrorState
+import com.waivera.waivera.core.designsystem.component.WaiveraIconTile
+import com.waivera.waivera.core.designsystem.component.WaiveraListRow
+import com.waivera.waivera.core.designsystem.component.WaiveraTopBar
 import com.waivera.waivera.core.designsystem.icon.WaiveraIcons
 import com.waivera.waivera.core.designsystem.preview.WaiveraPreviews
+import com.waivera.waivera.core.designsystem.theme.WaiveraShapes
+import com.waivera.waivera.core.designsystem.theme.WaiveraSizes
+import com.waivera.waivera.core.designsystem.theme.WaiveraSpacing
+import com.waivera.waivera.core.designsystem.theme.WaiveraTextStyles
 import com.waivera.waivera.core.designsystem.theme.WaiveraTheme
+import com.waivera.waivera.core.network.error.WaiveraError
 
 /**
  * Entry point for the profile screen. Owned by `:feature:profile`; routed by `:app`.
  *
- * Every navigation lambda is part of the routed contract, even before the screen body uses it.
+ * [onOpenSettings] adds a Settings row at the end; the router does not pass it yet
+ * (docs/requests/feature-profile.md), so the row stays hidden until it does.
  */
-@Suppress("UnusedParameter")
 @Composable
 fun ProfileScreen(
     onBack: () -> Unit,
     onOpenPerson: (userId: String) -> Unit,
     modifier: Modifier = Modifier,
+    onOpenSettings: (() -> Unit)? = null,
 ) {
-    WaiveraPlaceholderScreen(
-        title = stringResource(R.string.feature_profile_profile_title),
-        message = stringResource(R.string.feature_profile_profile_placeholder),
-        icon = WaiveraIcons.Person,
-        onBack = onBack,
-        modifier = modifier,
+    val viewModel: ProfileViewModel = hiltViewModel()
+    val state by viewModel.uiState.collectAsStateWithLifecycle()
+    CompositionLocalProvider(LocalAvatarLoader provides viewModel.avatarLoader) {
+        ProfileContent(
+            state = state,
+            onBack = onBack,
+            onRefresh = viewModel::refresh,
+            onRetryConnection = viewModel::retryConnection,
+            onOpenPerson = onOpenPerson,
+            onOpenSettings = onOpenSettings,
+            modifier = modifier,
+        )
+    }
+}
+
+@Composable
+internal fun ProfileContent(
+    state: ProfileUiState,
+    onBack: () -> Unit,
+    onRefresh: () -> Unit,
+    onRetryConnection: () -> Unit,
+    onOpenPerson: (String) -> Unit,
+    onOpenSettings: (() -> Unit)?,
+    modifier: Modifier = Modifier,
+) {
+    val colors = WaiveraTheme.colors
+    val ready = state as? ProfileUiState.Ready
+    val refreshing = ready?.isRefreshing == true
+    val refreshLabel = stringResource(
+        if (refreshing) R.string.feature_profile_refreshing else R.string.feature_profile_refresh,
     )
+    Column(modifier = modifier.fillMaxSize().background(colors.background)) {
+        WaiveraTopBar(
+            title = stringResource(R.string.feature_profile_profile_title),
+            onBack = onBack,
+            actions = if (ready != null) {
+                listOf(TopBarAction(WaiveraIcons.Refresh, refreshLabel, { if (!refreshing) onRefresh() }))
+            } else {
+                emptyList()
+            },
+        )
+        if (refreshing) {
+            LinearProgressIndicator(
+                modifier = Modifier.fillMaxWidth().semantics { contentDescription = refreshLabel },
+                color = colors.accent,
+                trackColor = colors.surfaceMuted,
+            )
+        }
+        when (state) {
+            ProfileUiState.Unavailable -> WaiveraEmptyState(
+                title = stringResource(R.string.feature_profile_unavailable_title),
+                message = stringResource(R.string.feature_profile_unavailable_message),
+                icon = WaiveraIcons.Person,
+                modifier = Modifier.padding(top = WaiveraSpacing.Large),
+            )
+            is ProfileUiState.Ready -> {
+                ConnectionBanner(state = state.connection, onRetry = onRetryConnection)
+                val details = state.details
+                if (details is Section.Failed) {
+                    WaiveraErrorState(
+                        title = stringResource(R.string.feature_profile_error_title),
+                        message = stringResource(details.error.messageRes),
+                        onRetry = onRefresh,
+                        modifier = Modifier.padding(top = WaiveraSpacing.Large),
+                    )
+                } else {
+                    ProfileBody(state, onRefresh, onOpenPerson, onOpenSettings)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ProfileBody(
+    state: ProfileUiState.Ready,
+    onRefresh: () -> Unit,
+    onOpenPerson: (String) -> Unit,
+    onOpenSettings: (() -> Unit)?,
+) {
+    val profile = (state.details as? Section.Ready)?.value
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(top = WaiveraSpacing.MediumSmall),
+        verticalArrangement = Arrangement.spacedBy(WaiveraSpacing.MediumSmall),
+    ) {
+        if (state.detailsRefreshError != null) {
+            WaiveraBanner(
+                message = stringResource(R.string.feature_profile_refresh_failed),
+                tone = BannerTone.Error,
+                actionLabel = stringResource(R.string.feature_profile_try_again),
+                onAction = onRefresh,
+            )
+        }
+        IdentityCard(user = state.user, profile = profile, celebration = state.celebration)
+        DetailsSections(profile = profile, state = state, onOpenPerson = onOpenPerson)
+        TimeOffSection(section = state.timeOff, onRetry = onRefresh)
+        FilesSection(section = state.files, zone = state.zone, onRetry = onRefresh)
+        OrganizationSection(section = state.organization, onRetry = onRefresh)
+        if (onOpenSettings != null) {
+            ProfileCard {
+                WaiveraListRow(
+                    headline = stringResource(R.string.feature_profile_settings_row),
+                    supporting = stringResource(R.string.feature_profile_settings_row_detail),
+                    onClick = onOpenSettings,
+                    showChevron = true,
+                    leading = { WaiveraIconTile(icon = WaiveraIcons.Settings) },
+                )
+            }
+        }
+        Spacer(Modifier.windowInsetsBottomHeight(WindowInsets.navigationBars))
+    }
+}
+
+@Composable
+private fun IdentityCard(user: CurrentUser, profile: EmployeeProfile?, celebration: Celebration?) {
+    val colors = WaiveraTheme.colors
+    val name = profile?.displayName?.takeIf(String::isNotBlank)
+        ?: listOfNotNull(profile?.firstName, profile?.lastName).joinToString(" ").takeIf(String::isNotBlank)
+        ?: user.displayName?.takeIf(String::isNotBlank)
+        ?: listOfNotNull(user.firstName, user.lastName).joinToString(" ")
+    val jobTitle = profile?.positions?.firstOrNull { it.isNotBlank() } ?: user.roles.firstOrNull()
+    val email = profile?.email ?: user.email
+    ProfileCard {
+        Row(
+            modifier = Modifier.padding(horizontal = WaiveraSpacing.Medium),
+            horizontalArrangement = Arrangement.spacedBy(WaiveraSpacing.Medium),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            WaiveraAvatar(
+                name = name,
+                painter = rememberAvatarPainter(user.userId),
+                size = WaiveraSizes.AvatarLarge,
+                milestone = celebration?.milestoneKind,
+                contentDescription = null,
+            )
+            Column(
+                modifier = Modifier.weight(1f).semantics(mergeDescendants = true) {},
+                verticalArrangement = Arrangement.spacedBy(WaiveraSpacing.XxSmall),
+            ) {
+                Text(text = name, style = MaterialTheme.typography.headlineSmall, color = colors.text)
+                if (jobTitle != null) {
+                    Text(text = jobTitle, style = MaterialTheme.typography.bodyMedium, color = colors.textSecondary)
+                }
+                if (!email.isNullOrBlank()) {
+                    Text(text = email, style = MaterialTheme.typography.bodyMedium, color = colors.textSecondary)
+                }
+            }
+        }
+        if (celebration != null) {
+            Text(
+                text = celebration.fullLabel(name),
+                style = MaterialTheme.typography.bodyMedium,
+                color = colors.onAccentSoft,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = WaiveraSpacing.Medium)
+                    .background(colors.accentSoft, WaiveraShapes.Chip)
+                    .padding(horizontal = WaiveraSpacing.MediumSmall, vertical = WaiveraSpacing.Small),
+            )
+        }
+    }
+}
+
+@Composable
+private fun DetailsSections(profile: EmployeeProfile?, state: ProfileUiState.Ready, onOpenPerson: (String) -> Unit) {
+    val skeleton = rememberDelayedSkeleton(loading = profile == null)
+    ProfileCard(title = stringResource(R.string.feature_profile_personal_title)) {
+        if (profile == null) {
+            if (skeleton) SectionSkeleton(lines = 4)
+        } else {
+            InfoRow(stringResource(R.string.feature_profile_email), profile.email ?: state.user.email)
+            InfoRow(stringResource(R.string.feature_profile_phone), profile.phoneNumber ?: state.user.phoneNumber)
+            InfoRow(stringResource(R.string.feature_profile_address), profile.address)
+            InfoRow(
+                stringResource(R.string.feature_profile_time_zone),
+                stringResource(
+                    R.string.feature_profile_time_zone_value,
+                    ProfileFormat.zoneName(state.zone),
+                    state.zone.id,
+                ),
+            )
+        }
+    }
+    ProfileCard(title = stringResource(R.string.feature_profile_professional_title)) {
+        if (profile == null) {
+            if (skeleton) SectionSkeleton(lines = 5)
+        } else {
+            InfoRow(
+                stringResource(R.string.feature_profile_hire_date),
+                profile.hireDate?.let { ProfileFormat.date(it) },
+            )
+            InfoRow(stringResource(R.string.feature_profile_positions), profile.positions.joinedOrNull())
+            InfoRow(stringResource(R.string.feature_profile_office_locations), profile.regions.joinedOrNull())
+            InfoRow(stringResource(R.string.feature_profile_agencies), profile.agencies.joinedOrNull())
+            InfoRow(
+                stringResource(R.string.feature_profile_birthday),
+                profile.birthday?.let { ProfileFormat.birthday(it) },
+            )
+            if (profile.managers.isNotEmpty()) {
+                Text(
+                    text = stringResource(R.string.feature_profile_reports_to).uppercase(),
+                    style = WaiveraTextStyles.Eyebrow,
+                    color = WaiveraTheme.colors.textSecondary,
+                    modifier = Modifier.padding(
+                        horizontal = WaiveraSpacing.Medium,
+                        vertical = WaiveraSpacing.ExtraSmall,
+                    ),
+                )
+                profile.managers.forEach { manager ->
+                    WaiveraListRow(
+                        headline = manager.name.ifBlank {
+                            stringResource(R.string.feature_profile_celebration_someone)
+                        },
+                        onClick = { onOpenPerson(manager.id) },
+                        onClickLabel = stringResource(R.string.feature_profile_open_person),
+                        showChevron = true,
+                        leading = {
+                            WaiveraAvatar(
+                                name = manager.name,
+                                painter = rememberAvatarPainter(manager.id),
+                                size = WaiveraSizes.AvatarSmall,
+                                contentDescription = null,
+                            )
+                        },
+                    )
+                }
+            }
+        }
+    }
+}
+
+/** Small error inside one section; the rest of the profile stays usable. */
+@Composable
+internal fun SectionError(error: WaiveraError, onRetry: () -> Unit, modifier: Modifier = Modifier) {
+    Column(
+        modifier = modifier.fillMaxWidth().padding(horizontal = WaiveraSpacing.Medium),
+        verticalArrangement = Arrangement.spacedBy(WaiveraSpacing.ExtraSmall),
+    ) {
+        Text(
+            text = stringResource(error.messageRes),
+            style = MaterialTheme.typography.bodyMedium,
+            color = WaiveraTheme.colors.dangerText,
+        )
+        WaiveraButton(
+            text = stringResource(R.string.feature_profile_try_again),
+            onClick = onRetry,
+            variant = WaiveraButtonVariant.Text,
+        )
+    }
 }
 
 @WaiveraPreviews
 @Composable
 private fun ProfileScreenPreview() {
     WaiveraTheme {
-        ProfileScreen(onBack = {}, onOpenPerson = { _ -> })
+        ProfileContent(
+            state = ProfilePreviewData.ready(),
+            onBack = {},
+            onRefresh = {},
+            onRetryConnection = {},
+            onOpenPerson = {},
+            onOpenSettings = {},
+        )
     }
+}
+
+@WaiveraPreviews
+@Composable
+private fun ProfileUnavailablePreview() {
+    WaiveraTheme {
+        ProfileContent(
+            state = ProfileUiState.Unavailable,
+            onBack = {},
+            onRefresh = {},
+            onRetryConnection = {},
+            onOpenPerson = {},
+            onOpenSettings = null,
+        )
+    }
+}
+
+/** Sample state for previews only; screenshot tests build theirs from the demo fixtures. */
+internal object ProfilePreviewData {
+    fun ready(): ProfileUiState.Ready = ProfileUiState.Ready(
+        user = CurrentUser(userId = "preview", displayName = "Alex Rivera", email = "alex.rivera@example.com"),
+        details = Section.Ready(
+            EmployeeProfile(
+                employeeId = "preview",
+                displayName = "Alex Rivera",
+                email = "alex.rivera@example.com",
+                positions = listOf("Support coordinator"),
+                hireDate = java.time.LocalDate.parse("2022-03-14"),
+                birthday = java.time.LocalDate.parse("1990-04-02"),
+            ),
+        ),
+        detailsRefreshError = null,
+        timeOff = Section.Ready(com.waivera.waivera.core.data.model.TimeOffSummary()),
+        files = Section.Ready(emptyList()),
+        organization = Section.Ready(OrganizationInfo(id = 1, name = "Waivera Care")),
+        celebration = Celebration(birthday = true, anniversaryYears = null),
+        isRefreshing = false,
+        connection = ConnectionBannerState.Connected,
+    )
 }

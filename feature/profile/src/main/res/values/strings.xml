@@ -1,12 +1,143 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <!-- Shared -->
+    <string name="feature_profile_value_missing">—</string>
+    <string name="feature_profile_value_missing_a11y">not provided</string>
+    <string name="feature_profile_loading_section">Loading</string>
+    <string name="feature_profile_try_again">Try again</string>
+    <string name="feature_profile_undo">Undo</string>
+    <string name="feature_profile_clear_search">Clear search</string>
+    <string name="feature_profile_open_person">open profile</string>
+
+    <!-- Celebrations (spec 07 §4) -->
+    <string name="feature_profile_celebration_someone">This employee</string>
+    <string name="feature_profile_celebration_birthday">It\'s %1$s\'s birthday today!</string>
+    <plurals name="feature_profile_celebration_anniversary">
+        <item quantity="one">Celebrating %1$s\'s %2$d-year work anniversary!</item>
+        <item quantity="other">Celebrating %1$s\'s %2$d-year work anniversary!</item>
+    </plurals>
+    <plurals name="feature_profile_celebration_both">
+        <item quantity="one">It\'s %1$s\'s birthday and %2$d-year work anniversary!</item>
+        <item quantity="other">It\'s %1$s\'s birthday and %2$d-year work anniversary!</item>
+    </plurals>
+    <string name="feature_profile_celebration_birthday_compact">Birthday today</string>
+    <plurals name="feature_profile_celebration_anniversary_compact">
+        <item quantity="one">%1$d-year anniversary</item>
+        <item quantity="other">%1$d-year anniversary</item>
+    </plurals>
+    <plurals name="feature_profile_celebration_both_compact">
+        <item quantity="one">Birthday + %1$d-year anniversary</item>
+        <item quantity="other">Birthday + %1$d-year anniversary</item>
+    </plurals>
+
+    <!-- Profile -->
     <string name="feature_profile_profile_title">Profile</string>
-    <string name="feature_profile_profile_placeholder">Your profile will appear here.</string>
+    <string name="feature_profile_refresh">Refresh profile</string>
+    <string name="feature_profile_refreshing">Refreshing profile</string>
+    <string name="feature_profile_refresh_failed">Couldn\'t refresh your profile. Showing your saved details.</string>
+    <string name="feature_profile_error_title">Profile could not load</string>
+    <string name="feature_profile_unavailable_title">Profile unavailable</string>
+    <string name="feature_profile_unavailable_message">We couldn\'t find your employee record. Sign out and sign back in, or ask your administrator to check your account.</string>
+    <string name="feature_profile_personal_title">Personal information</string>
+    <string name="feature_profile_professional_title">Professional details</string>
+    <string name="feature_profile_email">Email</string>
+    <string name="feature_profile_phone">Phone</string>
+    <string name="feature_profile_address">Address</string>
+    <string name="feature_profile_time_zone">Time zone</string>
+    <string name="feature_profile_time_zone_value">%1$s (%2$s)</string>
+    <string name="feature_profile_hire_date">Hire date</string>
+    <string name="feature_profile_positions">Positions</string>
+    <string name="feature_profile_office_locations">Office locations</string>
+    <string name="feature_profile_agencies">Agencies</string>
+    <string name="feature_profile_birthday">Birthday</string>
+    <string name="feature_profile_reports_to">Reports to</string>
+    <string name="feature_profile_settings_row">Settings</string>
+    <string name="feature_profile_settings_row_detail">Notifications, appearance and account</string>
+
+    <!-- Time off -->
+    <string name="feature_profile_time_off_title">Time off balances</string>
+    <string name="feature_profile_time_off_remaining">Days left</string>
+    <string name="feature_profile_time_off_allocated">Allocated</string>
+    <string name="feature_profile_time_off_used">Used</string>
+    <string name="feature_profile_time_off_pending_count">Pending</string>
+    <string name="feature_profile_time_off_progress_a11y">%1$d%% of your time off remains</string>
+    <string name="feature_profile_time_off_default_type">Time off</string>
+    <string name="feature_profile_time_off_cancellation_pending">Cancellation pending</string>
+    <string name="feature_profile_time_off_rejected">Rejected</string>
+    <string name="feature_profile_time_off_approved">Approved</string>
+    <string name="feature_profile_time_off_pending">Pending</string>
+    <plurals name="feature_profile_time_off_more">
+        <item quantity="one">+%1$d more request</item>
+        <item quantity="other">+%1$d more requests</item>
+    </plurals>
+
+    <!-- Files -->
+    <string name="feature_profile_files_title">Employee files</string>
+    <string name="feature_profile_files_empty">No files yet.</string>
+    <string name="feature_profile_files_untitled">Untitled file</string>
+    <string name="feature_profile_files_added">Added %1$s</string>
+
+    <!-- Organization -->
+    <string name="feature_profile_organization_title">Organization</string>
+    <string name="feature_profile_organization_unavailable">Organization details are unavailable right now.</string>
+    <string name="feature_profile_organization_name">Name</string>
+    <string name="feature_profile_organization_legal_name">Legal name</string>
+    <string name="feature_profile_organization_address">Address</string>
+    <string name="feature_profile_organization_contact">Contact</string>
+
+    <!-- People -->
     <string name="feature_profile_people_title">People</string>
-    <string name="feature_profile_people_placeholder">Everyone you can message will appear here.</string>
-    <string name="feature_profile_person_detail_title">Person</string>
-    <string name="feature_profile_person_detail_placeholder">This person\'s profile will appear here.</string>
-    <string name="feature_profile_person_detail_reference">Reference %1$s</string>
+    <string name="feature_profile_people_refresh">Refresh people</string>
+    <string name="feature_profile_people_refreshing">Refreshing people</string>
+    <string name="feature_profile_people_search">Search people</string>
+    <string name="feature_profile_people_search_clear">Clear people search</string>
+    <string name="feature_profile_people_refresh_failed">Couldn\'t refresh the directory. Showing the last list.</string>
+    <string name="feature_profile_people_error_title">Unable to load the people directory</string>
+    <string name="feature_profile_people_empty_title">No one here yet</string>
+    <string name="feature_profile_people_empty_message">No coworkers were returned by the directory.</string>
+    <string name="feature_profile_people_no_match_title">No people match</string>
+    <string name="feature_profile_people_no_match_message">Try another name or email.</string>
+    <plurals name="feature_profile_people_count">
+        <item quantity="one">%1$d person</item>
+        <item quantity="other">%1$d people</item>
+    </plurals>
+    <string name="feature_profile_people_count_filtered">%1$d of %2$d people</string>
+
+    <!-- Person detail -->
+    <string name="feature_profile_person_detail_title">Profile</string>
+    <string name="feature_profile_person_message">Message</string>
+    <string name="feature_profile_person_message_failed">Unable to open the chat. %1$s</string>
+    <string name="feature_profile_person_roles">Roles</string>
+    <string name="feature_profile_person_error_title">Unable to load this profile</string>
+
+    <!-- Bookmarks -->
     <string name="feature_profile_bookmarks_title">Bookmarks</string>
-    <string name="feature_profile_bookmarks_placeholder">Messages you bookmark will appear here.</string>
+    <string name="feature_profile_bookmarks_search">Search saved messages or people</string>
+    <string name="feature_profile_bookmarks_search_clear">Clear bookmark search</string>
+    <string name="feature_profile_bookmarks_refresh_failed">Couldn\'t refresh your bookmarks. Showing the last list.</string>
+    <string name="feature_profile_bookmarks_error_title">Unable to load bookmarks</string>
+    <string name="feature_profile_bookmarks_error_message">Please try again in a moment.</string>
+    <string name="feature_profile_bookmarks_empty_title">No saved messages yet</string>
+    <string name="feature_profile_bookmarks_empty_message">Long-press a chat message and save it for quick access here.</string>
+    <string name="feature_profile_bookmarks_no_match_title">No saved messages match</string>
+    <string name="feature_profile_bookmarks_no_match_message">Try another keyword, message phrase, or person.</string>
+    <plurals name="feature_profile_bookmarks_count">
+        <item quantity="one">%1$d saved message</item>
+        <item quantity="other">%1$d saved messages</item>
+    </plurals>
+    <string name="feature_profile_bookmarks_count_filtered">%1$d of %2$d saved messages</string>
+    <string name="feature_profile_bookmarks_open">Open saved message from %1$s</string>
+    <string name="feature_profile_bookmarks_remove">Remove bookmark from %1$s</string>
+    <string name="feature_profile_bookmarks_removed">Bookmark removed</string>
+    <string name="feature_profile_bookmarks_remove_failed">Couldn\'t remove the bookmark.</string>
+    <string name="feature_profile_bookmarks_restore_failed">Couldn\'t save the message again.</string>
+    <string name="feature_profile_bookmarks_thread_reply">Thread reply</string>
+    <string name="feature_profile_bookmarks_saved">Saved</string>
+    <string name="feature_profile_bookmarks_photo">Photo</string>
+    <string name="feature_profile_bookmarks_file">File attachment</string>
+    <string name="feature_profile_bookmarks_file_named">File: %1$s</string>
+    <string name="feature_profile_bookmarks_saved_message">Saved message</string>
+    <string name="feature_profile_bookmarks_unknown_author">Someone</string>
+    <string name="feature_profile_bookmarks_search_word_message">message</string>
+    <string name="feature_profile_bookmarks_search_word_file">file</string>
 </resources>
