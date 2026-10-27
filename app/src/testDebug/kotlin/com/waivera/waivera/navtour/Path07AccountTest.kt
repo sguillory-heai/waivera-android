@@ -159,6 +159,7 @@ class Path07AccountTest : NavTourHarness() {
         click("Sign out", last = true)
         expectGate(AppGate.SignIn())
         expectScreen("Welcome back.")
+        expectScreen("You're signed out")
         // Signing out discards every back stack (app-shell.md "Auth gate").
         assertEquals(NavState(), nav)
         shot("path_07_account_15_signed_out")

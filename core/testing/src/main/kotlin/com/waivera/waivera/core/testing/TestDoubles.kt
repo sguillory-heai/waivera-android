@@ -138,7 +138,7 @@ class TestSessionRepository(
     override suspend fun signIn(email: String, password: String): Result<Unit> = Result.success(Unit)
 
     override suspend fun signOut(): Result<Unit> {
-        mutableState.value = SessionState.SignedOut()
+        mutableState.value = SessionState.SignedOut(byUser = true)
         return Result.success(Unit)
     }
 

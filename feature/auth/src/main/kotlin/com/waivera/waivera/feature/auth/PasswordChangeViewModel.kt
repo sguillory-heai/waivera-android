@@ -18,7 +18,8 @@ import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
-enum class PasswordChangePhase { Editing, Saving, Done }
+/** [Continuing]: the password is saved and the required flow is reloading the session to move on. */
+enum class PasswordChangePhase { Editing, Saving, Done, Continuing }
 
 @Immutable
 data class PasswordChangeUiState(
@@ -111,4 +112,22 @@ class PasswordChangeViewModel @Inject constructor(private val session: SessionRe
     }
 
     fun dismissMessage() = _state.update { it.copy(errorMessage = null) }
+
+    /**
+     * The required flow's "Continue": the gate normally moves on by itself once the session
+     * refreshes, so this re-runs that refresh when it has not happened (offline, slow API).
+     * A failure keeps the success screen and says why, so Continue can be tried again.
+     */
+    fun continueToApp() {
+        if (_state.value.phase != PasswordChangePhase.Done) return
+        _state.update { it.copy(phase = PasswordChangePhase.Continuing, errorMessage = null) }
+        viewModelScope.launch {
+            session.refresh().onFailure { failure ->
+                _state.update {
+                    it.copy(phase = PasswordChangePhase.Done, errorMessage = WaiveraError.from(failure).messageRes)
+                }
+                _effects.trySend(AuthEffect.Error)
+            }
+        }
+    }
 }

@@ -182,7 +182,7 @@ class LiveSessionRepository @Inject constructor(
 
     /** Unregisters while the Firebase token is still valid, then signs Firebase out. */
     override suspend fun signOut(): Result<Unit> = catchingWaivera {
-        endSession(reason = null, force = true)
+        endSession(reason = null, force = true, byUser = true)
         gateway.signOut()
     }
 
@@ -191,14 +191,15 @@ class LiveSessionRepository @Inject constructor(
      * (or always, with [force]), then the state becomes [SessionState.SignedOut]. A reason
      * already published is kept when a later call has none (the Firebase sign-out that follows).
      */
-    private suspend fun endSession(reason: WaiveraError?, force: Boolean = false) = endLock.withLock {
-        val current = _state.value
-        if (force || current.currentUserId != null || secureStore.get(SecureStore.CACHED_SESSION) != null) {
-            ender.end()
+    private suspend fun endSession(reason: WaiveraError?, force: Boolean = false, byUser: Boolean = false) =
+        endLock.withLock {
+            val current = _state.value
+            if (force || current.currentUserId != null || secureStore.get(SecureStore.CACHED_SESSION) != null) {
+                ender.end()
+            }
+            val keepReason = current is SessionState.SignedOut && reason == null
+            _state.value = if (keepReason) current else SessionState.SignedOut(reason, byUser)
         }
-        val keepReason = current is SessionState.SignedOut && reason == null
-        _state.value = if (keepReason) current else SessionState.SignedOut(reason)
-    }
 
     /** Firebase switched straight to another user: the previous account's data goes first. */
     private suspend fun endPreviousAccount(uid: String) = endLock.withLock {

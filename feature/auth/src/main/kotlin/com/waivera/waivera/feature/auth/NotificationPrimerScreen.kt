@@ -6,6 +6,8 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.DrawableRes
 import androidx.annotation.StringRes
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -24,12 +26,15 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import com.waivera.waivera.core.data.model.NotificationCategory
 import com.waivera.waivera.core.designsystem.component.WaiveraButton
 import com.waivera.waivera.core.designsystem.component.WaiveraButtonVariant
 import com.waivera.waivera.core.designsystem.icon.WaiveraIcons
 import com.waivera.waivera.core.designsystem.preview.WaiveraPreviews
+import com.waivera.waivera.core.designsystem.theme.WaiveraShapes
 import com.waivera.waivera.core.designsystem.theme.WaiveraSizes
 import com.waivera.waivera.core.designsystem.theme.WaiveraSpacing
 import com.waivera.waivera.core.designsystem.theme.WaiveraTheme
@@ -65,48 +70,38 @@ fun NotificationPrimerScreen(onFinished: (granted: Boolean) -> Unit, modifier: M
     )
 }
 
-/** What each notification category is for, in the order Settings lists them. */
-internal data class PrimerCategory(
-    val category: NotificationCategory,
+/**
+ * One kind of notification the primer explains. The primer groups the five channels into the
+ * three kinds people recognise (messages, schedule, digest) so it fits a small phone without
+ * scrolling; Settings lists each channel separately.
+ */
+internal data class PrimerKind(
+    val categories: List<NotificationCategory>,
     @DrawableRes val icon: Int,
     @StringRes val title: Int,
     @StringRes val body: Int,
 )
 
-internal val PrimerCategories: List<PrimerCategory> = NotificationCategory.entries.map { category ->
-    when (category) {
-        NotificationCategory.MESSAGES -> PrimerCategory(
-            category,
-            WaiveraIcons.Chat,
-            R.string.feature_auth_primer_messages_title,
-            R.string.feature_auth_primer_messages_body,
-        )
-        NotificationCategory.GROUP_ACTIVITY -> PrimerCategory(
-            category,
-            WaiveraIcons.People,
-            R.string.feature_auth_primer_group_title,
-            R.string.feature_auth_primer_group_body,
-        )
-        NotificationCategory.SCHEDULE_REMINDERS -> PrimerCategory(
-            category,
-            WaiveraIcons.Schedule,
-            R.string.feature_auth_primer_reminders_title,
-            R.string.feature_auth_primer_reminders_body,
-        )
-        NotificationCategory.SCHEDULE_CHANGES -> PrimerCategory(
-            category,
-            WaiveraIcons.Calendar,
-            R.string.feature_auth_primer_changes_title,
-            R.string.feature_auth_primer_changes_body,
-        )
-        NotificationCategory.DIGEST -> PrimerCategory(
-            category,
-            WaiveraIcons.Today,
-            R.string.feature_auth_primer_digest_title,
-            R.string.feature_auth_primer_digest_body,
-        )
-    }
-}
+internal val PrimerKinds: List<PrimerKind> = listOf(
+    PrimerKind(
+        categories = listOf(NotificationCategory.MESSAGES, NotificationCategory.GROUP_ACTIVITY),
+        icon = WaiveraIcons.Chat,
+        title = R.string.feature_auth_primer_messages_title,
+        body = R.string.feature_auth_primer_messages_body,
+    ),
+    PrimerKind(
+        categories = listOf(NotificationCategory.SCHEDULE_REMINDERS, NotificationCategory.SCHEDULE_CHANGES),
+        icon = WaiveraIcons.Calendar,
+        title = R.string.feature_auth_primer_schedule_title,
+        body = R.string.feature_auth_primer_schedule_body,
+    ),
+    PrimerKind(
+        categories = listOf(NotificationCategory.DIGEST),
+        icon = WaiveraIcons.Announcement,
+        title = R.string.feature_auth_primer_digest_title,
+        body = R.string.feature_auth_primer_digest_body,
+    ),
+)
 
 @Composable
 internal fun NotificationPrimerContent(
@@ -122,6 +117,7 @@ internal fun NotificationPrimerContent(
                 text = stringResource(R.string.feature_auth_primer_enable),
                 onClick = onEnable,
                 loading = requesting,
+                loadingText = stringResource(R.string.feature_auth_primer_requesting),
                 fullWidth = true,
             )
             WaiveraButton(
@@ -144,7 +140,8 @@ internal fun NotificationPrimerContent(
                 .then(GutterPadding),
             verticalArrangement = Arrangement.spacedBy(WaiveraSpacing.Medium),
         ) {
-            PrimerCategories.forEach { item -> PrimerCategoryRow(item) }
+            SampleNotification()
+            PrimerKinds.forEach { item -> PrimerKindRow(item) }
             Text(
                 text = stringResource(R.string.feature_auth_primer_control),
                 style = MaterialTheme.typography.bodyMedium,
@@ -155,11 +152,58 @@ internal fun NotificationPrimerContent(
     }
 }
 
+/**
+ * A mocked notification, so the person sees what they are agreeing to. TalkBack reads it as one
+ * example ("Example notification: …") rather than as a real alert.
+ */
 @Composable
-private fun PrimerCategoryRow(item: PrimerCategory) {
+private fun SampleNotification() {
+    val colors = WaiveraTheme.colors
+    val description = stringResource(R.string.feature_auth_primer_sample_description)
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(colors.surface, WaiveraShapes.Card)
+            .border(WaiveraSpacing.Hairline, colors.border, WaiveraShapes.Card)
+            .padding(WaiveraSpacing.MediumSmall)
+            .clearAndSetSemantics { contentDescription = description },
+        horizontalArrangement = Arrangement.spacedBy(WaiveraSpacing.MediumSmall),
+        verticalAlignment = Alignment.Top,
+    ) {
+        Icon(
+            painter = painterResource(WaiveraIcons.WaiveraMark),
+            contentDescription = null,
+            tint = colors.accent,
+            modifier = Modifier.size(WaiveraSizes.Icon),
+        )
+        Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(WaiveraSpacing.XxSmall),
+        ) {
+            Text(
+                text = stringResource(R.string.feature_auth_primer_sample_app),
+                style = MaterialTheme.typography.labelMedium,
+                color = colors.textSecondary,
+            )
+            Text(
+                text = stringResource(R.string.feature_auth_primer_sample_title),
+                style = MaterialTheme.typography.titleSmall,
+                color = colors.text,
+            )
+            Text(
+                text = stringResource(R.string.feature_auth_primer_sample_body),
+                style = MaterialTheme.typography.bodyMedium,
+                color = colors.text,
+            )
+        }
+    }
+}
+
+@Composable
+private fun PrimerKindRow(item: PrimerKind) {
     val colors = WaiveraTheme.colors
     Row(
-        // One TalkBack stop per category: title and explanation read together.
+        // One TalkBack stop per kind: title and explanation read together.
         modifier = Modifier
             .fillMaxWidth()
             .semantics(mergeDescendants = true) {},
@@ -191,5 +235,13 @@ private fun PrimerCategoryRow(item: PrimerCategory) {
 private fun NotificationPrimerPreview() {
     WaiveraTheme {
         NotificationPrimerContent(onEnable = {}, onNotNow = {})
+    }
+}
+
+@WaiveraPreviews
+@Composable
+private fun NotificationPrimerRequestingPreview() {
+    WaiveraTheme {
+        NotificationPrimerContent(onEnable = {}, onNotNow = {}, requesting = true)
     }
 }

@@ -5,6 +5,9 @@ import com.waivera.waivera.core.data.model.SessionState
 import com.waivera.waivera.core.network.R as NetworkR
 import com.waivera.waivera.core.network.error.WaiveraError
 import com.waivera.waivera.core.testing.MainDispatcherRule
+import java.time.Clock
+import java.time.Instant
+import java.time.ZoneOffset
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNull
@@ -18,10 +21,13 @@ class BootstrapFailedViewModelTest {
     @get:Rule
     val main = MainDispatcherRule()
 
+    private val now = Instant.parse("2026-10-27T15:31:00Z")
+    private val clock = Clock.fixed(now, ZoneOffset.UTC)
+
     @Test
     fun `error - shows the mapped reason for the failed bootstrap`() {
         val session = FakeSessionRepository(SessionState.BootstrapFailed(WaiveraError.Server(500)))
-        val vm = BootstrapFailedViewModel(session)
+        val vm = BootstrapFailedViewModel(session, clock)
         assertEquals(NetworkR.string.core_network_error_server, vm.state.value.message)
         assertFalse(vm.state.value.isOffline)
     }
@@ -29,7 +35,7 @@ class BootstrapFailedViewModelTest {
     @Test
     fun `offline failures say so`() {
         val session = FakeSessionRepository(SessionState.BootstrapFailed(WaiveraError.Timeout()))
-        val vm = BootstrapFailedViewModel(session)
+        val vm = BootstrapFailedViewModel(session, clock)
         assertTrue(vm.state.value.isOffline)
         assertEquals(NetworkR.string.core_network_error_timeout, vm.state.value.message)
     }
@@ -39,7 +45,7 @@ class BootstrapFailedViewModelTest {
         val session = FakeSessionRepository(SessionState.BootstrapFailed(WaiveraError.Network()))
         val gate = CompletableDeferred<Unit>()
         session.gate = gate
-        val vm = BootstrapFailedViewModel(session)
+        val vm = BootstrapFailedViewModel(session, clock)
         vm.retry()
         vm.retry()
         assertTrue(vm.state.value.retrying)
@@ -52,20 +58,27 @@ class BootstrapFailedViewModelTest {
     fun `reconnect - a retry that fails again updates the reason and buzzes`() = runTest {
         val session = FakeSessionRepository(SessionState.BootstrapFailed(WaiveraError.Network()))
         session.nextRefresh = Result.failure(WaiveraError.Server(503))
-        val vm = BootstrapFailedViewModel(session)
+        val vm = BootstrapFailedViewModel(session, clock)
         vm.effects.test {
             vm.retry()
             assertEquals(AuthEffect.Error, awaitItem())
         }
         assertEquals(NetworkR.string.core_network_error_server, vm.state.value.message)
         assertFalse(vm.state.value.isOffline)
+        assertEquals(now, vm.state.value.lastFailedRetryAt, "a failed retry is visibly different")
+    }
+
+    @Test
+    fun `the first failure has no retry time`() {
+        val session = FakeSessionRepository(SessionState.BootstrapFailed(WaiveraError.Network()))
+        assertNull(BootstrapFailedViewModel(session, clock).state.value.lastFailedRetryAt)
     }
 
     @Test
     fun `reconnect - a retry that works leaves it to the gate`() {
         val session = FakeSessionRepository(SessionState.BootstrapFailed(WaiveraError.Network()))
         session.stateAfterRefresh = SessionState.SignedIn(FakeSessionRepository.USER)
-        val vm = BootstrapFailedViewModel(session)
+        val vm = BootstrapFailedViewModel(session, clock)
         vm.retry()
         assertFalse(vm.state.value.retrying)
         assertEquals(1, session.refreshes)

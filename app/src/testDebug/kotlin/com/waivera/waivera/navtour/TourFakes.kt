@@ -84,7 +84,7 @@ class TourSessionRepository @Inject constructor(private val backend: DemoBackend
 
     override suspend fun signOut(): Result<Unit> {
         backend.user.value = null
-        mutableState.value = SessionState.SignedOut()
+        mutableState.value = SessionState.SignedOut(byUser = true)
         return Result.success(Unit)
     }
 

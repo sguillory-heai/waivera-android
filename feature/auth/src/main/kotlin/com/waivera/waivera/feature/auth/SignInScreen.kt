@@ -44,6 +44,7 @@ import com.waivera.waivera.core.designsystem.preview.WaiveraPreviews
 import com.waivera.waivera.core.designsystem.theme.WaiveraSizes
 import com.waivera.waivera.core.designsystem.theme.WaiveraSpacing
 import com.waivera.waivera.core.designsystem.theme.WaiveraTheme
+import com.waivera.waivera.core.designsystem.theme.isLargeFontScale
 import com.waivera.waivera.core.network.R as NetworkR
 import kotlinx.coroutines.flow.Flow
 
@@ -136,6 +137,14 @@ private fun SignInBanners(state: SignInUiState, onDismiss: () -> Unit) {
                 onDismiss = onDismiss,
             )
         }
+    }
+    AuthAnimatedVisibility(visible = state.signedOutNotice && state.errorMessage == null) {
+        WaiveraBanner(
+            title = stringResource(R.string.feature_auth_signed_out_title),
+            message = stringResource(R.string.feature_auth_signed_out_message),
+            tone = BannerTone.Info,
+            onDismiss = onDismiss,
+        )
     }
     AuthAnimatedVisibility(visible = state.resetSentTo != null) {
         state.resetSentTo?.let { email ->
@@ -245,11 +254,14 @@ private fun SignInHero() {
             color = colors.text,
             modifier = Modifier.semantics { heading() },
         )
-        Text(
-            text = stringResource(R.string.feature_auth_sign_in_subtitle),
-            style = MaterialTheme.typography.bodyLarge,
-            color = colors.textSecondary,
-        )
+        // At large text the form has to start on the first screen; the tagline is the first to go.
+        if (!isLargeFontScale()) {
+            Text(
+                text = stringResource(R.string.feature_auth_sign_in_subtitle),
+                style = MaterialTheme.typography.bodyLarge,
+                color = colors.textSecondary,
+            )
+        }
     }
 }
 
@@ -263,11 +275,13 @@ private fun SignInCardHeading() {
             color = colors.text,
             modifier = Modifier.semantics { heading() },
         )
-        Text(
-            text = stringResource(R.string.feature_auth_sign_in_card_subtitle),
-            style = MaterialTheme.typography.bodyMedium,
-            color = colors.textSecondary,
-        )
+        if (!isLargeFontScale()) {
+            Text(
+                text = stringResource(R.string.feature_auth_sign_in_card_subtitle),
+                style = MaterialTheme.typography.bodyMedium,
+                color = colors.textSecondary,
+            )
+        }
     }
 }
 
@@ -319,6 +333,14 @@ private fun SignInErrorPreview() {
             ),
             actions = SignInActions(),
         )
+    }
+}
+
+@WaiveraPreviews
+@Composable
+private fun SignInSignedOutPreview() {
+    WaiveraTheme {
+        SignInContent(state = SignInUiState(signedOutNotice = true), actions = SignInActions())
     }
 }
 

@@ -30,8 +30,11 @@ sealed interface SessionState {
     /** Firebase is restoring its persisted user, or the backend bootstrap is running. */
     data object Initializing : SessionState
 
-    /** [reason] explains why a session ended (for example the account is not provisioned). */
-    data class SignedOut(val reason: WaiveraError? = null) : SessionState
+    /**
+     * [reason] explains why a session ended (for example the account is not provisioned).
+     * [byUser] is true when the person tapped Sign out, so sign-in can confirm it.
+     */
+    data class SignedOut(val reason: WaiveraError? = null, val byUser: Boolean = false) : SessionState
 
     /** Firebase values are missing from the build; the app should offer demo mode. */
     data class ConfigurationMissing(val missingKeys: List<String>) : SessionState

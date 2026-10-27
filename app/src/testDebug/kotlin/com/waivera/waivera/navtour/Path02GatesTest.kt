@@ -79,6 +79,7 @@ class Path02GatesTest : NavTourHarness() {
         click("Try again")
         expectGate(AppGate.BootstrapFailed)
         expectScreen("We couldn't reach Waivera")
+        expectScreen("Still can't reach Waivera")
         shot("path_02_bootstrap_02_retry_failed")
 
         click("Try again")

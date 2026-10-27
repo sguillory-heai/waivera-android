@@ -136,6 +136,33 @@ class PasswordChangeViewModelTest {
     }
 
     @Test
+    fun `continue after a required change reloads the session once`() {
+        val vm = PasswordChangeViewModel(session)
+        vm.continueToApp()
+        assertEquals(0, session.refreshes, "nothing to continue from before the change is saved")
+        vm.fill()
+        vm.submit()
+        val gate = CompletableDeferred<Unit>()
+        session.gate = gate
+        vm.continueToApp()
+        assertEquals(PasswordChangePhase.Continuing, vm.state.value.phase)
+        vm.continueToApp()
+        gate.complete(Unit)
+        assertEquals(1, session.refreshes)
+    }
+
+    @Test
+    fun `continue offline keeps the success screen and says why`() {
+        val vm = PasswordChangeViewModel(session)
+        vm.fill()
+        vm.submit()
+        session.nextRefresh = Result.failure(WaiveraError.Network())
+        vm.continueToApp()
+        assertEquals(PasswordChangePhase.Done, vm.state.value.phase)
+        assertEquals(NetworkR.string.core_network_error_network, vm.state.value.errorMessage)
+    }
+
+    @Test
     fun `state toString never prints a password`() {
         val vm = PasswordChangeViewModel(session)
         vm.fill(current = "old-secret-1", new = "new-secret-22")

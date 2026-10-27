@@ -10,6 +10,8 @@ import com.waivera.waivera.core.data.repository.SessionRepository
 import com.waivera.waivera.core.network.R as NetworkR
 import com.waivera.waivera.core.network.error.WaiveraError
 import dagger.hilt.android.lifecycle.HiltViewModel
+import java.time.Clock
+import java.time.Instant
 import javax.inject.Inject
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
@@ -26,6 +28,12 @@ data class BootstrapFailedUiState(
     /** Network or timeout: the title says "offline" and the icon is the cloud. */
     val isOffline: Boolean = false,
     val retrying: Boolean = false,
+    /**
+     * When the person's last Retry failed; null until they have retried. The screen then says
+     * "Still can't reach Waivera · tried at 10:31 AM", so a failed retry never looks like nothing
+     * happened.
+     */
+    val lastFailedRetryAt: Instant? = null,
 )
 
 /**
@@ -33,7 +41,8 @@ data class BootstrapFailedUiState(
  * reason, retries once per tap, and leaves a way out through sign-out.
  */
 @HiltViewModel
-class BootstrapFailedViewModel @Inject constructor(private val session: SessionRepository) : ViewModel() {
+class BootstrapFailedViewModel @Inject constructor(private val session: SessionRepository, private val clock: Clock) :
+    ViewModel() {
     private val _state = MutableStateFlow(BootstrapFailedUiState())
     val state: StateFlow<BootstrapFailedUiState> = _state.asStateFlow()
 
@@ -58,7 +67,13 @@ class BootstrapFailedViewModel @Inject constructor(private val session: SessionR
             _state.update { it.copy(retrying = false) }
             result.onFailure { failure ->
                 val error = WaiveraError.from(failure)
-                _state.update { it.copy(message = error.messageRes, isOffline = error.isOffline()) }
+                _state.update {
+                    it.copy(
+                        message = error.messageRes,
+                        isOffline = error.isOffline(),
+                        lastFailedRetryAt = clock.instant(),
+                    )
+                }
                 _effects.trySend(AuthEffect.Error)
             }
         }

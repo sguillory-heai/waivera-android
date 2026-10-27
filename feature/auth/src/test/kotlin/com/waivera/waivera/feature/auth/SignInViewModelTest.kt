@@ -29,6 +29,26 @@ class SignInViewModelTest {
     }
 
     @Test
+    fun `signing out confirms it on the form, a cold start does not`() {
+        val vm = viewModel()
+        assertFalse(vm.state.value.signedOutNotice, "nothing to confirm on a cold start")
+        session.mutableState.value = SessionState.SignedIn(FakeSessionRepository.USER)
+        session.mutableState.value = SessionState.SignedOut(byUser = true)
+        assertTrue(vm.state.value.signedOutNotice)
+        vm.onEmailChange("a")
+        assertFalse(vm.state.value.signedOutNotice, "typing dismisses the notice")
+    }
+
+    @Test
+    fun `a session that ended on its own shows the reason, not the sign-out notice`() {
+        val vm = viewModel()
+        session.mutableState.value = SessionState.SignedIn(FakeSessionRepository.USER)
+        session.mutableState.value = SessionState.SignedOut(WaiveraError.SessionExpired())
+        assertFalse(vm.state.value.signedOutNotice)
+        assertEquals(NetworkR.string.core_network_error_session_expired, vm.state.value.errorMessage)
+    }
+
+    @Test
     fun `empty form cannot submit and makes no call`() {
         val vm = viewModel()
         assertFalse(vm.state.value.canSubmit)

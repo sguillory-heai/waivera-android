@@ -60,7 +60,7 @@ class DemoSessionRepository @Inject constructor(private val backend: DemoBackend
 
     override suspend fun signOut(): Result<Unit> {
         backend.user.value = null
-        _state.value = SessionState.SignedOut()
+        _state.value = SessionState.SignedOut(byUser = true)
         return Result.success(Unit)
     }
 

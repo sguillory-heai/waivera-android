@@ -15,6 +15,8 @@
     <string name="feature_auth_connecting">Connecting to Waivera…</string>
     <string name="feature_auth_forgot_password">Forgot password?</string>
     <string name="feature_auth_footer">Protected by Waivera sign-in and your organization\'s access policies.</string>
+    <string name="feature_auth_signed_out_title">You\'re signed out</string>
+    <string name="feature_auth_signed_out_message">This device won\'t get Waivera notifications until you sign in again.</string>
     <string name="feature_auth_sign_in_failed_title">Couldn\'t sign in</string>
     <string name="feature_auth_reset_sent_title">Check your email</string>
     <string name="feature_auth_reset_sent_message">If %1$s has a Waivera account, we\'ve sent it a link to reset the password.</string>
@@ -48,6 +50,9 @@
     <string name="feature_auth_password_change_done_title">Password updated</string>
     <string name="feature_auth_password_change_done_message">Use your new password the next time you sign in.</string>
     <string name="feature_auth_password_change_done_action">Done</string>
+    <string name="feature_auth_password_change_continue">Continue</string>
+    <string name="feature_auth_password_change_continuing">Opening Waivera…</string>
+    <string name="feature_auth_password_change_continue_failed_title">Your password is saved, but Waivera didn\'t open</string>
     <string name="feature_auth_sign_out">Sign out</string>
 
     <!-- Onboarding required -->
@@ -62,22 +67,27 @@
     <!-- Bootstrap failed -->
     <string name="feature_auth_bootstrap_title">We couldn\'t reach Waivera</string>
     <string name="feature_auth_bootstrap_offline_title">You\'re offline</string>
+    <string name="feature_auth_bootstrap_offline_message">Check your connection and try again.</string>
+    <string name="feature_auth_bootstrap_still_failing_title">Still can\'t reach Waivera</string>
+    <string name="feature_auth_bootstrap_still_failing_message">Tried again at %1$s. We\'ll keep your place; try once more in a moment.</string>
     <string name="feature_auth_bootstrap_help">You\'re signed in. We just need to finish loading your account.</string>
     <string name="feature_auth_try_again">Try again</string>
 
     <!-- Notification primer -->
     <string name="feature_auth_primer_title">Stay in the loop</string>
     <string name="feature_auth_primer_message">Turn on notifications so you know when something needs you. Here\'s what each kind is for.</string>
-    <string name="feature_auth_primer_messages_title">Direct messages and mentions</string>
-    <string name="feature_auth_primer_messages_body">When someone messages you or mentions you. These can make a sound.</string>
-    <string name="feature_auth_primer_group_title">Group chat activity</string>
-    <string name="feature_auth_primer_group_body">New messages in your group chats and channels.</string>
-    <string name="feature_auth_primer_reminders_title">Schedule reminders</string>
-    <string name="feature_auth_primer_reminders_body">Shifts and events that are about to start. These can make a sound.</string>
-    <string name="feature_auth_primer_changes_title">Schedule changes</string>
-    <string name="feature_auth_primer_changes_body">Events that were added, moved or cancelled.</string>
+    <string name="feature_auth_primer_messages_title">Messages and mentions</string>
+    <string name="feature_auth_primer_messages_body">Direct messages and mentions can make a sound. Group chats arrive quietly.</string>
+    <string name="feature_auth_primer_schedule_title">Your schedule</string>
+    <string name="feature_auth_primer_schedule_body">Reminders before a shift or event starts, and changes when one is added, moved or cancelled.</string>
     <string name="feature_auth_primer_digest_title">Digest and announcements</string>
     <string name="feature_auth_primer_digest_body">Milestones and other low-priority updates, delivered quietly.</string>
+    <string name="feature_auth_primer_requesting">Asking Android…</string>
+    <!-- Example notification on the primer. Sample copy, shown as an example only. -->
+    <string name="feature_auth_primer_sample_app">Waivera · now</string>
+    <string name="feature_auth_primer_sample_title">Priya Raman</string>
+    <string name="feature_auth_primer_sample_body">Can you cover Friday?</string>
+    <string name="feature_auth_primer_sample_description">Example notification: Priya Raman, Can you cover Friday?</string>
     <string name="feature_auth_primer_control">You can turn each kind on or off at any time in Settings.</string>
     <string name="feature_auth_primer_enable">Turn on notifications</string>
     <string name="feature_auth_primer_not_now">Not now</string>

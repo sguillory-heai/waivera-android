@@ -5,6 +5,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -18,6 +19,10 @@ import com.waivera.waivera.core.designsystem.icon.WaiveraIcons
 import com.waivera.waivera.core.designsystem.preview.WaiveraPreviews
 import com.waivera.waivera.core.designsystem.theme.WaiveraTheme
 import com.waivera.waivera.core.network.R as NetworkR
+import java.time.Instant
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
+import java.time.format.FormatStyle
 
 /**
  * Gate shown when Firebase restored a user but the backend bootstrap failed and nothing is
@@ -58,11 +63,29 @@ internal fun BootstrapFailedContent(
                     R.string.feature_auth_bootstrap_title
                 },
             ),
-            message = stringResource(state.message),
+            // The title already says "offline"; the body says what to do instead of repeating it.
+            message = stringResource(
+                if (state.isOffline) R.string.feature_auth_bootstrap_offline_message else state.message,
+            ),
             icon = if (state.isOffline) WaiveraIcons.CloudOff else WaiveraIcons.Error,
         )
+        AuthAnimatedVisibility(visible = state.lastFailedRetryAt != null && !state.retrying) {
+            state.lastFailedRetryAt?.let { RetryFailedBanner(it) }
+        }
         GateHelp(stringResource(R.string.feature_auth_bootstrap_help))
     }
+}
+
+/** "Still can't reach Waivera · tried at 10:31 AM": a failed retry must look different from the first failure. */
+@Composable
+private fun RetryFailedBanner(at: Instant) {
+    val formatter = remember { DateTimeFormatter.ofLocalizedTime(FormatStyle.SHORT) }
+    val time = remember(at, formatter) { formatter.format(at.atZone(ZoneId.systemDefault())) }
+    WaiveraBanner(
+        title = stringResource(R.string.feature_auth_bootstrap_still_failing_title),
+        message = stringResource(R.string.feature_auth_bootstrap_still_failing_message, time),
+        tone = BannerTone.Warning,
+    )
 }
 
 /**
@@ -163,6 +186,21 @@ private fun BootstrapFailedPreview() {
     WaiveraTheme {
         BootstrapFailedContent(
             state = BootstrapFailedUiState(message = NetworkR.string.core_network_error_network, isOffline = true),
+            onRetry = {},
+            onSignOut = {},
+        )
+    }
+}
+
+@WaiveraPreviews
+@Composable
+private fun BootstrapRetryFailedPreview() {
+    WaiveraTheme {
+        BootstrapFailedContent(
+            state = BootstrapFailedUiState(
+                message = NetworkR.string.core_network_error_server,
+                lastFailedRetryAt = Instant.parse("2026-10-27T15:31:00Z"),
+            ),
             onRetry = {},
             onSignOut = {},
         )

@@ -40,7 +40,7 @@ class FakeSessionRepository(initial: SessionState = SessionState.SignedOut()) : 
     }
 
     override suspend fun signOut(): Result<Unit> {
-        mutableState.value = SessionState.SignedOut()
+        mutableState.value = SessionState.SignedOut(byUser = true)
         return Result.success(Unit)
     }
 

@@ -37,6 +37,8 @@ data class SignInUiState(
     val resetSentTo: String? = null,
     /** Non-null when the build has no server or Firebase settings; sign-in is then disabled. */
     val missingConfiguration: List<String>? = null,
+    /** The person just signed out on this device: confirm it instead of showing a bare form. */
+    val signedOutNotice: Boolean = false,
 ) {
     val isConfigured: Boolean get() = missingConfiguration == null
     val fieldsEnabled: Boolean get() = isConfigured && phase == SignInPhase.Idle
@@ -47,7 +49,8 @@ data class SignInUiState(
     override fun toString(): String =
         "SignInUiState(emailSet=${email.isNotEmpty()}, passwordSet=${password.isNotEmpty()}, phase=$phase, " +
             "emailError=$emailError, passwordError=$passwordError, errorMessage=$errorMessage, " +
-            "resetSent=${resetSentTo != null}, missingConfiguration=$missingConfiguration)"
+            "resetSent=${resetSentTo != null}, missingConfiguration=$missingConfiguration, " +
+            "signedOutNotice=$signedOutNotice)"
 }
 
 enum class AuthEffect { Error, Success }
@@ -83,6 +86,8 @@ class SignInViewModel @Inject constructor(
                 val reason = session.reason
                 if (reason != null && _state.value.phase == SignInPhase.Idle) {
                     _state.update { it.copy(errorMessage = reason.messageRes, resetSentTo = null) }
+                } else if (session.byUser) {
+                    _state.update { it.copy(signedOutNotice = true) }
                 }
             }
             // Signed in: forget the credentials. This ViewModel outlives the screen, and the next
@@ -97,7 +102,9 @@ class SignInViewModel @Inject constructor(
 
     fun onEmailChange(value: String) {
         savedState[KEY_EMAIL] = value
-        _state.update { it.copy(email = value, emailError = null, errorMessage = null, resetSentTo = null) }
+        _state.update {
+            it.copy(email = value, emailError = null, errorMessage = null, resetSentTo = null, signedOutNotice = false)
+        }
     }
 
     fun onPasswordChange(value: String) {
@@ -114,7 +121,9 @@ class SignInViewModel @Inject constructor(
             _effects.trySend(AuthEffect.Error)
             return
         }
-        _state.update { it.copy(phase = SignInPhase.SigningIn, errorMessage = null, resetSentTo = null) }
+        _state.update {
+            it.copy(phase = SignInPhase.SigningIn, errorMessage = null, resetSentTo = null, signedOutNotice = false)
+        }
         viewModelScope.launch {
             session.signIn(AuthValidation.normalizeEmail(current.email), current.password)
                 .onSuccess {
@@ -154,7 +163,7 @@ class SignInViewModel @Inject constructor(
     }
 
     fun dismissMessage() {
-        _state.update { it.copy(errorMessage = null, resetSentTo = null) }
+        _state.update { it.copy(errorMessage = null, resetSentTo = null, signedOutNotice = false) }
     }
 
     private fun WaiveraError.hidesAccountExistence(): Boolean =

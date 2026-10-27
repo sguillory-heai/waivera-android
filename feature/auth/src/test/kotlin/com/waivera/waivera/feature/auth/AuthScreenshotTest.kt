@@ -68,6 +68,9 @@ class AuthScreenshotTest {
     )
 
     @Test
+    fun signInSignedOut() = signIn("signed_out", SignInUiState(signedOutNotice = true))
+
+    @Test
     fun signInResetSent() = signIn("reset_sent", SignInUiState(email = email, resetSentTo = email))
 
     @Test
@@ -134,6 +137,28 @@ class AuthScreenshotTest {
 
     @Test
     fun passwordChangeDone() = passwordChange("done", PasswordChangeUiState(phase = PasswordChangePhase.Done))
+
+    @Test
+    fun passwordChangeContinuing() = passwordChange(
+        "continuing",
+        PasswordChangeUiState(phase = PasswordChangePhase.Continuing),
+    )
+
+    @Test
+    fun passwordChangeContinueFailed() = passwordChange(
+        "continue_failed",
+        PasswordChangeUiState(
+            phase = PasswordChangePhase.Done,
+            errorMessage = NetworkR.string.core_network_error_network,
+        ),
+    )
+
+    @Test
+    fun passwordChangeDoneVoluntary() = passwordChange(
+        "done_voluntary",
+        PasswordChangeUiState(phase = PasswordChangePhase.Done),
+        required = false,
+    )
 
     @Test
     fun passwordChangeVoluntary() = passwordChange("voluntary", PasswordChangeUiState(), required = false)

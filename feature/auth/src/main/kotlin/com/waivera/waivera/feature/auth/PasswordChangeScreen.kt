@@ -81,6 +81,7 @@ fun PasswordChangeScreen(
             onNewChange = viewModel::onNewChange,
             onConfirmChange = viewModel::onConfirmChange,
             onSubmit = viewModel::submit,
+            onContinue = viewModel::continueToApp,
             onDismissMessage = viewModel::dismissMessage,
             onSignOut = onSignOut,
             onBack = onBack,
@@ -99,6 +100,7 @@ internal class PasswordChangeActions(
     val onNewChange: (String) -> Unit = {},
     val onConfirmChange: (String) -> Unit = {},
     val onSubmit: () -> Unit = {},
+    val onContinue: () -> Unit = {},
     val onDismissMessage: () -> Unit = {},
     val onSignOut: () -> Unit = {},
     val onBack: (() -> Unit)? = null,
@@ -111,16 +113,16 @@ internal fun PasswordChangeContent(
     actions: PasswordChangeActions,
     modifier: Modifier = Modifier,
 ) {
-    val done = state.phase == PasswordChangePhase.Done
-    val bottomBar: (@Composable ColumnScope.() -> Unit)? = if (done) {
-        null
+    val done = state.phase == PasswordChangePhase.Done || state.phase == PasswordChangePhase.Continuing
+    val bottomBar: @Composable ColumnScope.() -> Unit = if (done) {
+        { PasswordChangeDoneButton(state = state, required = required, actions = actions) }
     } else {
         { PasswordChangeButtons(state = state, actions = actions, showSignOut = required) }
     }
     if (required) {
         AuthScaffold(modifier = modifier, bottomBar = bottomBar) {
             if (done) {
-                PasswordChangeDone(onDone = null)
+                PasswordChangeDone(state = state, onDismiss = actions.onDismissMessage)
             } else {
                 AuthHeader(
                     title = stringResource(R.string.feature_auth_password_change_required_title),
@@ -144,7 +146,7 @@ internal fun PasswordChangeContent(
             )
             AuthScaffold(insets = BelowTopBarInsets, bottomBar = bottomBar) {
                 if (done) {
-                    PasswordChangeDone(onDone = actions.onBack)
+                    PasswordChangeDone(state = state, onDismiss = actions.onDismissMessage)
                 } else {
                     Text(
                         text = stringResource(R.string.feature_auth_password_change_voluntary_message),
@@ -161,20 +163,49 @@ internal fun PasswordChangeContent(
     }
 }
 
-/**
- * The confirm step: the form is replaced by a success block. The required flow has no button,
- * because the gate moves on by itself as soon as the session refreshes.
- */
+/** The confirm step: the form is replaced by a success block, with the way forward in the bar. */
 @Composable
-private fun PasswordChangeDone(onDone: (() -> Unit)?) {
+private fun PasswordChangeDone(state: PasswordChangeUiState, onDismiss: () -> Unit) {
     WaiveraEmptyState(
         title = stringResource(R.string.feature_auth_password_change_done_title),
         message = stringResource(R.string.feature_auth_password_change_done_message),
         icon = WaiveraIcons.Check,
-        actionLabel = onDone?.let { stringResource(R.string.feature_auth_password_change_done_action) },
-        onAction = onDone,
         modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
     )
+    // The password is saved either way; only the move into the app failed.
+    AuthAnimatedVisibility(visible = state.errorMessage != null) {
+        state.errorMessage?.let { message ->
+            WaiveraBanner(
+                title = stringResource(R.string.feature_auth_password_change_continue_failed_title),
+                message = stringResource(message),
+                tone = BannerTone.Warning,
+                onDismiss = onDismiss,
+            )
+        }
+    }
+}
+
+/**
+ * "Continue" on the required flow (reloads the session so the gate moves on, busy while it
+ * does) and "Done" on the voluntary one (back to Settings).
+ */
+@Composable
+private fun PasswordChangeDoneButton(state: PasswordChangeUiState, required: Boolean, actions: PasswordChangeActions) {
+    if (required) {
+        WaiveraButton(
+            text = stringResource(R.string.feature_auth_password_change_continue),
+            onClick = actions.onContinue,
+            loading = state.phase == PasswordChangePhase.Continuing,
+            loadingText = stringResource(R.string.feature_auth_password_change_continuing),
+            fullWidth = true,
+        )
+    } else {
+        WaiveraButton(
+            text = stringResource(R.string.feature_auth_password_change_done_action),
+            onClick = { actions.onBack?.invoke() },
+            fullWidth = true,
+        )
+    }
 }
 
 @Composable

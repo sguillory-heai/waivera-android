@@ -43,7 +43,8 @@ class AuthValidationTest {
 
     @Test
     fun `the primer explains every notification category once, in order`() {
-        assertEquals(NotificationCategory.entries.toList(), PrimerCategories.map { it.category })
-        assertEquals(PrimerCategories.size, PrimerCategories.map { it.title }.toSet().size)
+        assertEquals(NotificationCategory.entries.toList(), PrimerKinds.flatMap { it.categories })
+        assertEquals(PrimerKinds.size, PrimerKinds.map { it.title }.toSet().size)
+        assertEquals(3, PrimerKinds.size, "messages, schedule and digest")
     }
 }

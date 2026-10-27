@@ -20,6 +20,7 @@ import com.waivera.waivera.core.testing.eventually
 import kotlin.test.AfterTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertIs
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
@@ -251,7 +252,7 @@ class SessionRepositoryTest {
         repo.signOut().getOrThrow()
         assertEquals(listOf("realtime-stop", "unregister", "clear", "revoke-token"), calls)
         assertEquals(1, gateway.signOuts)
-        assertIs<SessionState.SignedOut>(repo.state.value)
+        assertTrue(assertIs<SessionState.SignedOut>(repo.state.value).byUser, "sign-in confirms the sign-out")
         assertEquals("device-1", graph.secureStore.values[SecureStore.DEVICE_ID], "the device id survives")
         assertNull(graph.secureStore.values[SecureStore.CACHED_SESSION])
     }
@@ -330,7 +331,7 @@ class SessionRepositoryTest {
 
         gateway.signOut() // a revoked or disabled account: the auth-state listener reports null
         runCurrent()
-        assertIs<SessionState.SignedOut>(repo.state.value)
+        assertFalse(assertIs<SessionState.SignedOut>(repo.state.value).byUser)
         assertEquals("realtime-stop", calls.first())
         assertUserDataGone()
     }
