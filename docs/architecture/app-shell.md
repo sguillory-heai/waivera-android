@@ -69,8 +69,11 @@ All routes are `@Serializable` and implement `AppRoute : NavKey`. Arguments are 
 | `AppearanceRoute` | none | `AppearanceScreen(onBack, modifier)` | `:feature:settings` |
 
 Gate screens (not routes): `SignInScreen(configurationMissing, modifier)`,
-`PasswordChangeScreen(onSignOut, modifier)` and `NotificationPrimerScreen(onFinished(granted), modifier)`,
-all in `:feature:auth`.
+`PasswordChangeScreen(onSignOut, modifier, onBack = null, onChanged = {})` and
+`NotificationPrimerScreen(onFinished(granted), modifier)`, all in `:feature:auth`. The module also
+offers `BootstrapFailedScreen(onSignOut, modifier)` and `OnboardingRequiredScreen(onSignOut, modifier)`
+for gates the shell does not route yet, and `PasswordChangeScreen` with `onBack` set is the
+voluntary change from Settings; see `docs/requests/feature-auth.md`.
 
 Rules for feature agents:
 
