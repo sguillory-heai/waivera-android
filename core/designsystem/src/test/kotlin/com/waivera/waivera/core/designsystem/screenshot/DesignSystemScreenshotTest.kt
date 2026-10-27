@@ -81,8 +81,7 @@ class DesignSystemScreenshotTest {
     @Test
     fun buttons() = capture("Buttons") {
         WaiveraButton(text = "Send", onClick = {}, fullWidth = true)
-        WaiveraButton(text = "Send", onClick = {}, loading = true, fullWidth = true)
-        WaiveraButton(text = "Sign out", onClick = {}, loading = true, loadingText = "Signing out…", fullWidth = true)
+        WaiveraButton(text = "Sign out", onClick = {}, loadingText = "Signing out…", fullWidth = true)
         WaiveraButton(text = "Sign in", onClick = {}, enabled = false, fullWidth = true)
         WaiveraButton(text = "Cancel", onClick = {}, variant = WaiveraButtonVariant.Secondary, fullWidth = true)
         WaiveraButton(text = "Join on web", onClick = {}, variant = WaiveraButtonVariant.Tonal)
@@ -417,7 +416,6 @@ class DesignSystemScreenshotTest {
             WaiveraButton(
                 text = "Update password",
                 onClick = {},
-                loading = true,
                 loadingText = "Updating your password…",
                 fullWidth = true,
             )

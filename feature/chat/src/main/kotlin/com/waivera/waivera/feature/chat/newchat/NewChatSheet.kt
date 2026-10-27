@@ -199,13 +199,12 @@ fun ColumnScope.NewChatSheetContent(
             onClick = onSubmit,
             // Enabled while busy so the progress label is not dimmed; taps are ignored while loading.
             enabled = state.canSubmit || state.isCreating,
-            loading = state.isCreating,
             loadingText = stringResource(
                 when (state.action) {
                     NewChatAction.OpenChat -> R.string.feature_chat_newchat_opening
                     NewChatAction.CreateGroup -> R.string.feature_chat_newchat_creating
                 },
-            ),
+            ).takeIf { state.isCreating },
             fullWidth = true,
             modifier = Modifier.padding(bottom = WaiveraSpacing.Small),
         )

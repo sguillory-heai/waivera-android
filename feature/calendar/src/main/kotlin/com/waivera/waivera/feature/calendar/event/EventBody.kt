@@ -153,7 +153,7 @@ internal fun EventBody(
                     ),
                     onClick = actions.onOpenChat,
                     variant = WaiveraButtonVariant.Secondary,
-                    loading = chat.isBusy,
+                    loadingText = stringResource(R.string.feature_calendar_opening_chat).takeIf { chat.isBusy },
                     fullWidth = true,
                     leadingIcon = WaiveraIcons.Chat,
                     modifier = sectionModifier,
@@ -284,7 +284,7 @@ private fun JoinBlock(join: JoinUi, details: EventDetails, actions: EventActions
                 onClick = actions.onJoin,
                 variant = if (open) WaiveraButtonVariant.Primary else WaiveraButtonVariant.Secondary,
                 enabled = open,
-                loading = join.isBusy,
+                loadingText = stringResource(R.string.feature_calendar_joining).takeIf { join.isBusy },
                 fullWidth = true,
                 leadingIcon = WaiveraIcons.OpenExternal,
             )
@@ -409,7 +409,7 @@ private fun ResponseChoice(
         onClick = onClick,
         variant = if (chosen) WaiveraButtonVariant.Tonal else WaiveraButtonVariant.Secondary,
         enabled = !saving,
-        loading = saving && chosen,
+        loadingText = stringResource(R.string.feature_calendar_response_saving).takeIf { saving && chosen },
         leadingIcon = if (chosen && showCheck) WaiveraIcons.Check else null,
         modifier = modifier.semantics { selected = chosen },
     )

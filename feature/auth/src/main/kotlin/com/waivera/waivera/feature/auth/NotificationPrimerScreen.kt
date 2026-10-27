@@ -116,8 +116,7 @@ internal fun NotificationPrimerContent(
             WaiveraButton(
                 text = stringResource(R.string.feature_auth_primer_enable),
                 onClick = onEnable,
-                loading = requesting,
-                loadingText = stringResource(R.string.feature_auth_primer_requesting),
+                loadingText = stringResource(R.string.feature_auth_primer_requesting).takeIf { requesting },
                 fullWidth = true,
             )
             WaiveraButton(

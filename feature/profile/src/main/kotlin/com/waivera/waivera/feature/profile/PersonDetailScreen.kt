@@ -125,8 +125,8 @@ internal fun PersonDetailContent(
                     WaiveraButton(
                         text = stringResource(R.string.feature_profile_person_message),
                         onClick = onMessage,
-                        loading = state.isOpeningChat,
-                        loadingText = stringResource(R.string.feature_profile_person_opening_chat),
+                        loadingText = stringResource(R.string.feature_profile_person_opening_chat)
+                            .takeIf { state.isOpeningChat },
                         fullWidth = true,
                         leadingIcon = WaiveraIcons.Chat,
                         modifier = Modifier.padding(horizontal = WaiveraSpacing.Gutter),

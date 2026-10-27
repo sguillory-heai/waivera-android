@@ -107,6 +107,7 @@
     <string name="feature_chat_undo">Undo</string>
     <string name="feature_chat_delete_title">Delete message?</string>
     <string name="feature_chat_delete_message">This removes the message for everyone in the conversation.</string>
+    <string name="feature_chat_delete_in_progress">Deleting…</string>
     <string name="feature_chat_delete_confirm">Delete</string>
     <string name="feature_chat_delete_failed">Delete failed</string>
     <string name="feature_chat_edit_failed">Edit failed</string>

@@ -195,8 +195,8 @@ private fun PasswordChangeDoneButton(state: PasswordChangeUiState, required: Boo
         WaiveraButton(
             text = stringResource(R.string.feature_auth_password_change_continue),
             onClick = actions.onContinue,
-            loading = state.phase == PasswordChangePhase.Continuing,
-            loadingText = stringResource(R.string.feature_auth_password_change_continuing),
+            loadingText = stringResource(R.string.feature_auth_password_change_continuing)
+                .takeIf { state.phase == PasswordChangePhase.Continuing },
             fullWidth = true,
         )
     } else {
@@ -229,8 +229,7 @@ private fun PasswordChangeButtons(state: PasswordChangeUiState, actions: Passwor
         text = stringResource(R.string.feature_auth_password_change_save),
         onClick = actions.onSubmit,
         enabled = state.fieldsEnabled || saving,
-        loading = saving,
-        loadingText = stringResource(R.string.feature_auth_password_change_saving),
+        loadingText = stringResource(R.string.feature_auth_password_change_saving).takeIf { saving },
         fullWidth = true,
     )
     if (showSignOut) {

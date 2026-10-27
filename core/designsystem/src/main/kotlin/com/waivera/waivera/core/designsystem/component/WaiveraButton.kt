@@ -54,9 +54,10 @@ enum class WaiveraButtonVariant { Primary, Secondary, Tonal, Destructive, Destru
  *
  * Disabled buttons keep a readable label (`textSecondary` on `surfaceMuted` with a hairline
  * border, the Material on-surface pattern) instead of fading the accent, so the person can
- * still read what the button does. Loading keeps the size, shows a small spinner next to
- * [loadingText] ("Signing out…") when given, ignores taps and announces the progress label
- * (never a blocking overlay).
+ * still read what the button does. A non-null [loadingText] ("Signing out…") is the loading
+ * state: the button keeps its size, shows a small spinner next to the text, ignores taps and
+ * announces it (never a blocking overlay). Loading has no other switch, so a busy button
+ * always says what it is doing (UI2-21).
  */
 @Composable
 fun WaiveraButton(
@@ -65,7 +66,6 @@ fun WaiveraButton(
     modifier: Modifier = Modifier,
     variant: WaiveraButtonVariant = WaiveraButtonVariant.Primary,
     enabled: Boolean = true,
-    loading: Boolean = false,
     fullWidth: Boolean = false,
     @DrawableRes leadingIcon: Int? = null,
     loadingText: String? = null,
@@ -74,7 +74,7 @@ fun WaiveraButton(
     val style = variant.styleFrom(colors)
     val interactionSource = remember { MutableInteractionSource() }
     val scale by animatePressScale(interactionSource)
-    val progressLabel = loadingText ?: stringResource(R.string.core_designsystem_loading)
+    val loading = loadingText != null
     Button(
         onClick = { if (!loading) onClick() },
         modifier = modifier
@@ -84,7 +84,7 @@ fun WaiveraButton(
             }
             .heightIn(min = WaiveraSizes.ButtonMinHeight)
             .then(if (fullWidth) Modifier.fillMaxWidth() else Modifier)
-            .semantics { if (loading) stateDescription = progressLabel },
+            .semantics { if (loadingText != null) stateDescription = loadingText },
         enabled = enabled,
         shape = WaiveraShapes.Button,
         colors = ButtonDefaults.buttonColors(
@@ -99,7 +99,7 @@ fun WaiveraButton(
     ) {
         Box(contentAlignment = Alignment.Center) {
             ButtonLabel(text = text, leadingIcon = leadingIcon, modifier = Modifier.alpha(if (loading) 0f else 1f))
-            if (loading) {
+            if (loadingText != null) {
                 ButtonProgress(label = loadingText, color = if (enabled) style.content else colors.textSecondary)
             }
         }
@@ -120,9 +120,9 @@ private fun ButtonLabel(text: String, @DrawableRes leadingIcon: Int?, modifier: 
     }
 }
 
-/** Spinner, plus the progress label when there is one. The button's semantics announce it. */
+/** Spinner and the progress label. The button's semantics announce it. */
 @Composable
-private fun ButtonProgress(label: String?, color: Color) {
+private fun ButtonProgress(label: String, color: Color) {
     Row(
         modifier = Modifier.clearAndSetSemantics { },
         horizontalArrangement = Arrangement.spacedBy(WaiveraSpacing.Small),
@@ -133,9 +133,7 @@ private fun ButtonProgress(label: String?, color: Color) {
             color = color,
             strokeWidth = WaiveraSizes.ProgressStroke,
         )
-        if (label != null) {
-            Text(text = label, style = MaterialTheme.typography.labelLarge, color = color, textAlign = TextAlign.Center)
-        }
+        Text(text = label, style = MaterialTheme.typography.labelLarge, color = color, textAlign = TextAlign.Center)
     }
 }
 
@@ -167,8 +165,7 @@ private fun WaiveraButtonPreview() {
             verticalArrangement = Arrangement.spacedBy(WaiveraSpacing.Small),
         ) {
             WaiveraButton(text = "Send", onClick = {}, fullWidth = true)
-            WaiveraButton(text = "Send", onClick = {}, loading = true, fullWidth = true)
-            WaiveraButton(text = "Sign out", onClick = {}, loading = true, loadingText = "Signing out…")
+            WaiveraButton(text = "Sign out", onClick = {}, loadingText = "Signing out…")
             WaiveraButton(text = "Cancel", onClick = {}, variant = WaiveraButtonVariant.Secondary)
             WaiveraButton(text = "Join on web", onClick = {}, variant = WaiveraButtonVariant.Tonal)
             WaiveraButton(text = "Delete message", onClick = {}, variant = WaiveraButtonVariant.Destructive)

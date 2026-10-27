@@ -18,6 +18,7 @@
     <string name="feature_auth_signed_out_title">You\'re signed out</string>
     <string name="feature_auth_signed_out_message">This device won\'t get Waivera notifications until you sign in again.</string>
     <string name="feature_auth_sign_in_failed_title">Couldn\'t sign in</string>
+    <string name="feature_auth_reset_sending">Sending link…</string>
     <string name="feature_auth_reset_sent_title">Check your email</string>
     <string name="feature_auth_reset_sent_message">If %1$s has a Waivera account, we\'ve sent it a link to reset the password.</string>
     <string name="feature_auth_configuration_title">This build isn\'t set up yet</string>

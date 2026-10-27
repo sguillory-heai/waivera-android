@@ -167,8 +167,7 @@ private fun GateActions(
     WaiveraButton(
         text = primaryLabel,
         onClick = onPrimary,
-        loading = primaryLoading,
-        loadingText = primaryLoadingLabel,
+        loadingText = primaryLoadingLabel.takeIf { primaryLoading },
         fullWidth = true,
     )
     WaiveraButton(

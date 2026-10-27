@@ -93,6 +93,8 @@
     <string name="feature_calendar_response_accepted">You\'re going.</string>
     <string name="feature_calendar_response_declined">You declined.</string>
     <string name="feature_calendar_response_tentative">You said maybe.</string>
+    <string name="feature_calendar_opening_chat">Opening chat…</string>
+    <string name="feature_calendar_joining">Opening the meeting…</string>
     <string name="feature_calendar_response_saving">Saving your response…</string>
     <string name="feature_calendar_response_started">This event has started, so the invitation can no longer be answered.</string>
     <string name="feature_calendar_accept">Going</string>

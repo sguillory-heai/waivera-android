@@ -40,6 +40,7 @@
     <string name="feature_today_invitation_decline">Decline</string>
     <string name="feature_today_invitation_accept_a11y">Accept invitation to %1$s</string>
     <string name="feature_today_invitation_decline_a11y">Decline invitation to %1$s</string>
+    <string name="feature_today_marking_all_read">Marking as read…</string>
     <string name="feature_today_open_conversation">Open conversation</string>
     <string name="feature_today_activity_show_all">Show all activity</string>
     <string name="feature_today_offline_saved_at">Showing what you had at %1$s.</string>

@@ -19,7 +19,7 @@ import com.waivera.waivera.core.designsystem.theme.WaiveraTheme
  * The styled confirmation that replaces `AlertDialog` everywhere (sign out, delete message,
  * leave conversation). Prefer an Undo snackbar where the action can be reversed.
  * A destructive confirm fires the warning haptic. While [confirmInProgress], the confirm button
- * shows [confirmInProgressLabel] ("Signing out…") beside its spinner.
+ * shows [confirmInProgressLabel] ("Signing out…"), or else its own label, beside its spinner.
  */
 @Composable
 fun WaiveraConfirmationSheet(
@@ -78,8 +78,8 @@ internal fun ConfirmationContent(
                     onConfirm()
                 },
                 variant = if (destructive) WaiveraButtonVariant.Destructive else WaiveraButtonVariant.Primary,
-                loading = confirmInProgress,
-                loadingText = confirmInProgressLabel,
+                // Never a bare spinner: without its own progress copy the confirm label stays beside it.
+                loadingText = (confirmInProgressLabel ?: confirmLabel).takeIf { confirmInProgress },
                 fullWidth = true,
             )
             WaiveraButton(

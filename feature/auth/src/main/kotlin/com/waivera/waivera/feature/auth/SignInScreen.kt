@@ -208,8 +208,7 @@ private fun SignInButtons(state: SignInUiState, onSubmit: () -> Unit, onForgotPa
         // Enabled with empty fields so a tap explains what is missing (field errors) instead of
         // a dimmed button that says nothing; enabled while busy so the spinner is not dimmed.
         enabled = state.fieldsEnabled || state.isSigningIn,
-        loading = state.isSigningIn,
-        loadingText = stringResource(R.string.feature_auth_connecting),
+        loadingText = stringResource(R.string.feature_auth_connecting).takeIf { state.isSigningIn },
         fullWidth = true,
     )
     WaiveraButton(
@@ -217,7 +216,8 @@ private fun SignInButtons(state: SignInUiState, onSubmit: () -> Unit, onForgotPa
         onClick = onForgotPassword,
         variant = WaiveraButtonVariant.Text,
         enabled = state.fieldsEnabled || state.phase == SignInPhase.SendingReset,
-        loading = state.phase == SignInPhase.SendingReset,
+        loadingText = stringResource(R.string.feature_auth_reset_sending)
+            .takeIf { state.phase == SignInPhase.SendingReset },
         fullWidth = true,
     )
 }

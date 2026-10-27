@@ -51,7 +51,8 @@ internal fun ActivityHeader(section: ActivitySection, onMarkAllRead: () -> Unit,
                     text = stringResource(R.string.feature_today_mark_all_read),
                     onClick = onMarkAllRead,
                     variant = WaiveraButtonVariant.Text,
-                    loading = section.isMarkingAllRead,
+                    loadingText = stringResource(R.string.feature_today_marking_all_read)
+                        .takeIf { section.isMarkingAllRead },
                     leadingIcon = WaiveraIcons.MarkRead,
                 )
             }

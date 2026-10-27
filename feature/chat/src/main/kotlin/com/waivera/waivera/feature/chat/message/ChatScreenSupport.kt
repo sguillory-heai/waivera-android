@@ -268,6 +268,7 @@ fun ChatSheetHost(
             onDismiss = callbacks.onDismiss,
             destructive = true,
             confirmInProgress = sheet.inProgress,
+            confirmInProgressLabel = stringResource(R.string.feature_chat_delete_in_progress),
         )
     }
 }
