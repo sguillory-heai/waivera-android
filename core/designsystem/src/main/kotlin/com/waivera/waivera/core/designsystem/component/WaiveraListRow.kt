@@ -1,0 +1,221 @@
+package com.waivera.waivera.core.designsystem.component
+
+import androidx.annotation.DrawableRes
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.selection.toggleable
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Switch
+import androidx.compose.material3.SwitchDefaults
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
+import com.waivera.waivera.core.designsystem.feedback.rememberHaptics
+import com.waivera.waivera.core.designsystem.icon.WaiveraIcons
+import com.waivera.waivera.core.designsystem.preview.WaiveraPreviews
+import com.waivera.waivera.core.designsystem.theme.WaiveraShapes
+import com.waivera.waivera.core.designsystem.theme.WaiveraSizes
+import com.waivera.waivera.core.designsystem.theme.WaiveraSpacing
+import com.waivera.waivera.core.designsystem.theme.WaiveraTextStyles
+import com.waivera.waivera.core.designsystem.theme.WaiveraTheme
+
+/**
+ * A list row: optional leading slot, a headline and supporting text that wrap at large font
+ * scales, an optional trailing slot and an optional chevron. Clickable rows get the shared
+ * press scale and read as one element to TalkBack.
+ */
+@Composable
+fun WaiveraListRow(
+    headline: String,
+    modifier: Modifier = Modifier,
+    supporting: String? = null,
+    onClick: (() -> Unit)? = null,
+    onLongClick: (() -> Unit)? = null,
+    onClickLabel: String? = null,
+    showChevron: Boolean = false,
+    enabled: Boolean = true,
+    leading: (@Composable () -> Unit)? = null,
+    trailing: (@Composable RowScope.() -> Unit)? = null,
+) {
+    val body: @Composable () -> Unit = {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(min = WaiveraSizes.ListRowMinHeight)
+                .padding(horizontal = WaiveraSpacing.Gutter, vertical = WaiveraSpacing.MediumSmall)
+                .alpha(if (enabled) 1f else DISABLED_ALPHA),
+            horizontalArrangement = Arrangement.spacedBy(WaiveraSpacing.MediumSmall),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            if (leading != null) leading()
+            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(WaiveraSpacing.XxSmall)) {
+                Text(text = headline, style = MaterialTheme.typography.titleSmall, color = WaiveraTheme.colors.text)
+                if (supporting != null) {
+                    Text(
+                        text = supporting,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = WaiveraTheme.colors.textSecondary,
+                    )
+                }
+            }
+            if (trailing != null) trailing()
+            if (showChevron) {
+                Icon(
+                    painter = painterResource(WaiveraIcons.ChevronRight),
+                    contentDescription = null,
+                    tint = WaiveraTheme.colors.textSecondary,
+                    modifier = Modifier.size(WaiveraSizes.Icon),
+                )
+            }
+        }
+    }
+    if (onClick != null) {
+        WaiveraPressable(
+            onClick = onClick,
+            modifier = modifier.fillMaxWidth(),
+            enabled = enabled,
+            onClickLabel = onClickLabel,
+            onLongClick = onLongClick,
+        ) { body() }
+    } else {
+        Box(modifier = modifier.fillMaxWidth().semantics(mergeDescendants = true) {}) { body() }
+    }
+}
+
+/** A switch row for settings. The whole row toggles, and toggling fires the toggle haptic. */
+@Composable
+fun WaiveraSwitchRow(
+    title: String,
+    checked: Boolean,
+    onCheckedChange: (Boolean) -> Unit,
+    modifier: Modifier = Modifier,
+    subtitle: String? = null,
+    enabled: Boolean = true,
+) {
+    val haptics = rememberHaptics()
+    val colors = WaiveraTheme.colors
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .heightIn(min = WaiveraSizes.ListRowMinHeight)
+            .toggleable(
+                value = checked,
+                enabled = enabled,
+                role = Role.Switch,
+                onValueChange = { value ->
+                    haptics.toggle(value)
+                    onCheckedChange(value)
+                },
+            )
+            .padding(horizontal = WaiveraSpacing.Gutter, vertical = WaiveraSpacing.MediumSmall)
+            .alpha(if (enabled) 1f else DISABLED_ALPHA),
+        horizontalArrangement = Arrangement.spacedBy(WaiveraSpacing.MediumSmall),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(WaiveraSpacing.XxSmall)) {
+            Text(text = title, style = MaterialTheme.typography.titleSmall, color = colors.text)
+            if (subtitle != null) {
+                Text(text = subtitle, style = MaterialTheme.typography.bodySmall, color = colors.textSecondary)
+            }
+        }
+        // The row owns the toggle semantics, so the switch itself is not separately focusable.
+        Switch(
+            checked = checked,
+            onCheckedChange = null,
+            enabled = enabled,
+            colors = SwitchDefaults.colors(
+                checkedThumbColor = colors.onAccent,
+                checkedTrackColor = colors.accent,
+                uncheckedThumbColor = colors.borderStrong,
+                uncheckedTrackColor = colors.surfaceMuted,
+                uncheckedBorderColor = colors.borderStrong,
+            ),
+        )
+    }
+}
+
+/** A rounded tile holding a leading icon, as on settings and account rows. */
+@Composable
+fun WaiveraIconTile(@DrawableRes icon: Int, modifier: Modifier = Modifier) {
+    Box(
+        modifier = modifier
+            .size(WaiveraSizes.IconTile)
+            .background(WaiveraTheme.colors.accentSoft, WaiveraShapes.Button),
+        contentAlignment = Alignment.Center,
+    ) {
+        Icon(
+            painter = painterResource(icon),
+            contentDescription = null,
+            tint = WaiveraTheme.colors.onAccentSoft,
+            modifier = Modifier.size(WaiveraSizes.Icon),
+        )
+    }
+}
+
+/** Section label above a group of rows. Marked as a heading for TalkBack navigation. */
+@Composable
+fun WaiveraSectionHeader(text: String, modifier: Modifier = Modifier) {
+    Text(
+        text = text.uppercase(),
+        style = WaiveraTextStyles.Eyebrow,
+        color = WaiveraTheme.colors.textSecondary,
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(
+                start = WaiveraSpacing.Gutter,
+                end = WaiveraSpacing.Gutter,
+                top = WaiveraSpacing.Medium,
+                bottom = WaiveraSpacing.ExtraSmall,
+            )
+            .semantics { heading() },
+    )
+}
+
+/** Hairline divider in the border colour. */
+@Composable
+fun WaiveraDivider(modifier: Modifier = Modifier) {
+    HorizontalDivider(modifier = modifier, thickness = WaiveraSpacing.Hairline, color = WaiveraTheme.colors.border)
+}
+
+private const val DISABLED_ALPHA = 0.5f
+
+@WaiveraPreviews
+@Composable
+private fun WaiveraListRowPreview() {
+    WaiveraTheme {
+        Column(Modifier.background(WaiveraTheme.colors.surface)) {
+            WaiveraSectionHeader(text = "Settings")
+            WaiveraListRow(
+                headline = "Notifications",
+                supporting = "Messages, schedule and reminders",
+                onClick = {},
+                showChevron = true,
+                leading = { WaiveraIconTile(icon = WaiveraIcons.Notifications) },
+            )
+            WaiveraDivider()
+            WaiveraSwitchRow(
+                title = "Haptics",
+                subtitle = "Vibrate for sends, errors and toggles",
+                checked = true,
+                onCheckedChange = {},
+            )
+            WaiveraSwitchRow(title = "Mentions", checked = false, onCheckedChange = {}, enabled = false)
+        }
+    }
+}

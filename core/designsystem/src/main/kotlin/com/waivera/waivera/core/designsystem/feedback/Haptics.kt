@@ -1,53 +1,130 @@
 package com.waivera.waivera.core.designsystem.feedback
 
-import android.os.Build
-import android.view.HapticFeedbackConstants
-import android.view.View
+import android.os.SystemClock
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
-import androidx.compose.ui.platform.LocalView
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.staticCompositionLocalOf
+import androidx.compose.ui.hapticfeedback.HapticFeedback
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 
 /**
- * The only way screens trigger haptics. Each method names an outcome, so the
- * same moment feels the same everywhere. Uses view haptic constants, which
- * respect the user's system haptic settings, never raw vibration.
+ * Moments that earn a haptic, from the UX research "Waivera feedback map". Plain taps on
+ * buttons and rows have no haptic on purpose (the press scale is the feedback), and incoming
+ * messages never buzz while the app is open.
  */
-class Haptics internal constructor(private val view: View) {
-    /** A message sent, a task completed, a toggle switched on. */
-    fun confirm() {
-        view.performHapticFeedback(
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-                HapticFeedbackConstants.CONFIRM
-            } else {
-                HapticFeedbackConstants.VIRTUAL_KEY
-            },
-        )
+enum class HapticMoment {
+    /** A switch turned on. */
+    ToggleOn,
+
+    /** A switch turned off. */
+    ToggleOff,
+
+    /** Picking from chips, a segmented control or a time picker. */
+    Selection,
+
+    /** A swipe action crossing its threshold. */
+    SwipeThreshold,
+
+    /** Task done, message sent after a retry, invitation accepted, copied. */
+    Success,
+
+    /** Validation or send failure. */
+    Error,
+
+    /** Confirming a destructive action, or the app going offline. */
+    Warning,
+
+    /** A long press that opens a menu. */
+    LongPress,
+}
+
+/** Platform-neutral haptic signal; one per meaning so each moment feels the same everywhere. */
+internal enum class HapticSignal {
+    ToggleOn,
+    ToggleOff,
+    SegmentTick,
+    GestureThresholdActivate,
+    Confirm,
+    Reject,
+    LongPress,
+}
+
+internal fun HapticMoment.signal(): HapticSignal = when (this) {
+    HapticMoment.ToggleOn -> HapticSignal.ToggleOn
+    HapticMoment.ToggleOff -> HapticSignal.ToggleOff
+    HapticMoment.Selection -> HapticSignal.SegmentTick
+    HapticMoment.SwipeThreshold -> HapticSignal.GestureThresholdActivate
+    HapticMoment.Success -> HapticSignal.Confirm
+    HapticMoment.Error -> HapticSignal.Reject
+    HapticMoment.Warning -> HapticSignal.Reject
+    HapticMoment.LongPress -> HapticSignal.LongPress
+}
+
+private fun HapticSignal.feedbackType(): HapticFeedbackType = when (this) {
+    HapticSignal.ToggleOn -> HapticFeedbackType.ToggleOn
+    HapticSignal.ToggleOff -> HapticFeedbackType.ToggleOff
+    HapticSignal.SegmentTick -> HapticFeedbackType.SegmentTick
+    HapticSignal.GestureThresholdActivate -> HapticFeedbackType.GestureThresholdActivate
+    HapticSignal.Confirm -> HapticFeedbackType.Confirm
+    HapticSignal.Reject -> HapticFeedbackType.Reject
+    HapticSignal.LongPress -> HapticFeedbackType.LongPress
+}
+
+/**
+ * The only way screens trigger haptics. Uses Compose's semantic haptic types, which map to
+ * `View.performHapticFeedback` constants, respect the system haptic setting and need no
+ * VIBRATE permission. Honours the in-app Haptics switch, and drops repeats of the same moment
+ * inside [MIN_REPEAT_MILLIS] so a burst of sends does not stack into a buzz.
+ */
+class Haptics internal constructor(
+    private val performSignal: (HapticSignal) -> Unit,
+    private val isEnabled: () -> Boolean,
+    private val clock: () -> Long = SystemClock::uptimeMillis,
+) {
+    private var lastMoment: HapticMoment? = null
+    private var lastAtMillis: Long = Long.MIN_VALUE
+
+    fun perform(moment: HapticMoment) {
+        if (!isEnabled()) return
+        val now = clock()
+        if (moment == lastMoment && lastAtMillis != Long.MIN_VALUE && now - lastAtMillis < MIN_REPEAT_MILLIS) return
+        lastMoment = moment
+        lastAtMillis = now
+        performSignal(moment.signal())
     }
 
-    /** A failed action or a rejected input. */
-    fun reject() {
-        view.performHapticFeedback(
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-                HapticFeedbackConstants.REJECT
-            } else {
-                HapticFeedbackConstants.LONG_PRESS
-            },
-        )
-    }
+    fun toggle(on: Boolean) = perform(if (on) HapticMoment.ToggleOn else HapticMoment.ToggleOff)
 
-    /** A value changed by the user, such as a picker or segmented control. */
-    fun selection() {
-        view.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
-    }
+    fun selection() = perform(HapticMoment.Selection)
 
-    /** Long-press menus. */
-    fun longPress() {
-        view.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
+    fun swipeThreshold() = perform(HapticMoment.SwipeThreshold)
+
+    fun success() = perform(HapticMoment.Success)
+
+    fun error() = perform(HapticMoment.Error)
+
+    fun warning() = perform(HapticMoment.Warning)
+
+    fun longPress() = perform(HapticMoment.LongPress)
+
+    companion object {
+        const val MIN_REPEAT_MILLIS = 150L
     }
 }
 
+/** The Settings "Haptics" switch, provided by `WaiveraTheme`. */
+val LocalHapticsEnabled = staticCompositionLocalOf { true }
+
 @Composable
 fun rememberHaptics(): Haptics {
-    val view = LocalView.current
-    return remember(view) { Haptics(view) }
+    val feedback: HapticFeedback = LocalHapticFeedback.current
+    val enabled = rememberUpdatedState(LocalHapticsEnabled.current)
+    return remember(feedback) {
+        Haptics(
+            performSignal = { signal -> feedback.performHapticFeedback(signal.feedbackType()) },
+            isEnabled = { enabled.value },
+        )
+    }
 }
