@@ -48,6 +48,7 @@ object ChatHubContract {
         /** Lower-case on the wire; register verbatim. */
         const val RECEIVE_NOTIFICATION_WEB = "receivenotification_web"
 
+        @Suppress("MagicNumber")
         val argumentCounts: Map<String, Int> = mapOf(
             RECEIVE_MESSAGE to 1,
             RECEIVE_CONVERSATION_LIST_MESSAGE to 1,

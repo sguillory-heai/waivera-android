@@ -26,6 +26,7 @@ object LenientBooleanSerializer : KSerializer<Boolean> {
     override val descriptor: SerialDescriptor =
         PrimitiveSerialDescriptor("waivera.LenientBoolean", PrimitiveKind.BOOLEAN)
 
+    @Suppress("ReturnCount")
     override fun deserialize(decoder: Decoder): Boolean {
         val json = decoder as? JsonDecoder ?: return decoder.decodeBoolean()
         val primitive = json.decodeJsonElement() as? JsonPrimitive ?: return false
@@ -91,6 +92,7 @@ abstract class LenientEnumSerializer<E : Enum<E>>(
 ) : KSerializer<E> {
     override val descriptor: SerialDescriptor = PrimitiveSerialDescriptor(serialName, PrimitiveKind.STRING)
 
+    @Suppress("ReturnCount")
     override fun deserialize(decoder: Decoder): E {
         val json = decoder as? JsonDecoder ?: return fromName(decoder.decodeString())
         val primitive = json.decodeJsonElement() as? JsonPrimitive ?: return unknown

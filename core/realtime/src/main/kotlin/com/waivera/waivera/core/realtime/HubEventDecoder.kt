@@ -109,18 +109,21 @@ object HubEventDecoder {
             AttentionReason.entries.firstOrNull { it != AttentionReason.UNKNOWN && it.wireName.equals(raw, true) }
         } ?: AttentionReason.UNKNOWN
 
+    @Suppress("ReturnCount")
     private fun typing(args: List<JsonElement>): HubEvent? {
         val conversationId = args.longAt(0) ?: return null
         val userId = args.stringAt(1) ?: return null
         return HubEvent.TypingStatus(conversationId, userId, args.boolAt(2) ?: false)
     }
 
+    @Suppress("ReturnCount")
     private fun readReceipt(args: List<JsonElement>): HubEvent? {
         val conversationId = args.longAt(0) ?: return null
         val userId = args.stringAt(1) ?: return null
         return HubEvent.ReadReceipt(conversationId, userId, WaiveraTime.parseInstant(args.stringAt(2)))
     }
 
+    @Suppress("ReturnCount", "MagicNumber")
     private fun reaction(args: List<JsonElement>): HubEvent? {
         val conversationId = args.longAt(0) ?: return null
         val messageId = args.longAt(1) ?: return null

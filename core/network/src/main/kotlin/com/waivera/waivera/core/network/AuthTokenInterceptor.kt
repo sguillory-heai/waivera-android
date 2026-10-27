@@ -28,6 +28,7 @@ class AuthTokenInterceptor(
     private val tokens: AuthTokenProvider,
     private val apiBaseUrl: HttpUrl? = null,
 ) : Interceptor {
+    @Suppress("ReturnCount")
     override fun intercept(chain: Interceptor.Chain): Response {
         val request = chain.request()
         if (!request.isForApi()) return chain.proceed(request)
