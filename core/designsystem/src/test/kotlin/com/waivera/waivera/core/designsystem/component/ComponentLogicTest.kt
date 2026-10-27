@@ -84,4 +84,16 @@ class ComponentLogicTest {
         assertTrue(segmentsNeedScroll(count = 3, segmentWidthPx = 301, availableWidthPx = 900))
         assertFalse(segmentsNeedScroll(count = 0, segmentWidthPx = 301, availableWidthPx = 900))
     }
+
+    @Test
+    fun `segments that cannot share equally but fit side by side fill the row by label width`() {
+        // "All", "Unread", "Channels" at 200% font: the widest is over a third, the sum fits.
+        assertEquals(SegmentFit.Equal, segmentFit(listOf(200, 300, 250), availableWidthPx = 900))
+        assertEquals(
+            SegmentFit.Proportional(listOf(150f, 300f, 400f)),
+            segmentFit(listOf(150, 300, 400), availableWidthPx = 900),
+        )
+        assertEquals(SegmentFit.Scroll, segmentFit(listOf(250, 300, 400), availableWidthPx = 900))
+        assertEquals(SegmentFit.Equal, segmentFit(emptyList(), availableWidthPx = 900))
+    }
 }

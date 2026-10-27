@@ -94,9 +94,10 @@ fun WaiveraFilterChip(
  * Segmented control (Day | Week | Month, All | Unread | Channels). Each segment is a radio-style
  * selectable with a 48dp minimum height; the selected wash animates with the state token.
  *
- * Labels are always one line. When equal-width segments cannot fit the longest label (large
- * font scales), the segments size to their labels and the row scrolls sideways instead of
- * breaking a word.
+ * Labels are always one line. Segments share the width equally while the longest label fits.
+ * When it does not (large font) but all labels fit side by side, each segment's share follows
+ * its label, so the row still fills edge to edge (UI2-25). Only when even that overflows do the
+ * segments size to their labels and the row scroll sideways instead of breaking a word.
  */
 @Composable
 fun WaiveraSegmentedControl(
@@ -107,7 +108,8 @@ fun WaiveraSegmentedControl(
 ) {
     val colors = WaiveraTheme.colors
     BoxWithConstraints(modifier = modifier.fillMaxWidth()) {
-        val scrolls = rememberSegmentsScroll(options, constraints.maxWidth)
+        val fit = rememberSegmentFit(options, constraints.maxWidth)
+        val scrolls = fit is SegmentFit.Scroll
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -123,7 +125,11 @@ fun WaiveraSegmentedControl(
                     label = option,
                     selected = index == selectedIndex,
                     onSelect = { onSelect(index) },
-                    modifier = if (scrolls) Modifier else Modifier.weight(1f),
+                    modifier = when (fit) {
+                        SegmentFit.Equal -> Modifier.weight(1f)
+                        is SegmentFit.Proportional -> Modifier.weight(fit.weights[index])
+                        SegmentFit.Scroll -> Modifier
+                    },
                 )
             }
         }
@@ -168,18 +174,38 @@ private fun Segment(label: String, selected: Boolean, onSelect: () -> Unit, modi
     }
 }
 
-/** Measures the labels once per option set, style and density, then applies [segmentsNeedScroll]. */
+/** Measures the labels once per option set, style and density, then applies [segmentFit]. */
 @Composable
-private fun rememberSegmentsScroll(options: List<String>, availableWidthPx: Int): Boolean {
+private fun rememberSegmentFit(options: List<String>, availableWidthPx: Int): SegmentFit {
     val measurer = rememberTextMeasurer()
     val style = MaterialTheme.typography.labelLarge
     val density = LocalDensity.current
-    val widestLabelPx = remember(options, style, density) {
-        options.maxOfOrNull { measurer.measure(text = it, style = style).size.width } ?: 0
+    val labelWidthsPx = remember(options, style, density) {
+        options.map { measurer.measure(text = it, style = style).size.width }
     }
     val segmentPaddingPx = with(density) { (WaiveraSpacing.Small * 2).roundToPx() }
     val chromePx = with(density) { (WaiveraSpacing.ExtraSmall * (options.size + 1)).roundToPx() }
-    return segmentsNeedScroll(options.size, widestLabelPx + segmentPaddingPx, availableWidthPx - chromePx)
+    return segmentFit(labelWidthsPx.map { it + segmentPaddingPx }, availableWidthPx - chromePx)
+}
+
+/** How the segments share the row; [Proportional] weights follow each segment's own width. */
+internal sealed interface SegmentFit {
+    data object Equal : SegmentFit
+
+    data class Proportional(val weights: List<Float>) : SegmentFit
+
+    data object Scroll : SegmentFit
+}
+
+/** Equal while the widest segment fits its equal share, proportional while all fit, else scroll. */
+internal fun segmentFit(segmentWidthsPx: List<Int>, availableWidthPx: Int): SegmentFit {
+    val widest = segmentWidthsPx.maxOrNull() ?: return SegmentFit.Equal
+    return when {
+        !segmentsNeedScroll(segmentWidthsPx.size, widest, availableWidthPx) -> SegmentFit.Equal
+        segmentWidthsPx.sumOf(Int::toLong) <= availableWidthPx ->
+            SegmentFit.Proportional(segmentWidthsPx.map { it.coerceAtLeast(1).toFloat() })
+        else -> SegmentFit.Scroll
+    }
 }
 
 /** True when [count] equal segments of [segmentWidthPx] do not fit in [availableWidthPx]. */
