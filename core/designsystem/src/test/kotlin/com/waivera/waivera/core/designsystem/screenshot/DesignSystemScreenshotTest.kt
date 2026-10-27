@@ -13,6 +13,7 @@ import com.waivera.waivera.core.designsystem.component.BannerTone
 import com.waivera.waivera.core.designsystem.component.ConfirmationContent
 import com.waivera.waivera.core.designsystem.component.ConnectionBanner
 import com.waivera.waivera.core.designsystem.component.ConnectionBannerState
+import com.waivera.waivera.core.designsystem.component.MilestoneBadge
 import com.waivera.waivera.core.designsystem.component.MilestoneKind
 import com.waivera.waivera.core.designsystem.component.NavigationBarItemModel
 import com.waivera.waivera.core.designsystem.component.PresenceStatus
@@ -34,6 +35,7 @@ import com.waivera.waivera.core.designsystem.component.WaiveraIconTile
 import com.waivera.waivera.core.designsystem.component.WaiveraListRow
 import com.waivera.waivera.core.designsystem.component.WaiveraLoadingScreen
 import com.waivera.waivera.core.designsystem.component.WaiveraLoadingState
+import com.waivera.waivera.core.designsystem.component.WaiveraMilestoneAvatar
 import com.waivera.waivera.core.designsystem.component.WaiveraNavigationBar
 import com.waivera.waivera.core.designsystem.component.WaiveraPlaceholderScreen
 import com.waivera.waivera.core.designsystem.component.WaiveraSectionHeader
@@ -133,6 +135,27 @@ class DesignSystemScreenshotTest {
             WaiveraAvatar(name = "Sam Lee", milestone = MilestoneKind.WorkAnniversary, presence = PresenceStatus.Away)
             WaiveraAvatar(name = "Jo", milestone = MilestoneKind.NewHire, size = WaiveraSizes.AvatarSmall)
             WaiveraAvatar(name = "", size = WaiveraSizes.AvatarLarge, presence = PresenceStatus.Offline)
+        }
+    }
+
+    @Test
+    fun milestoneAvatars() = capture("MilestoneAvatars") {
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(WaiveraSpacing.Large),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            WaiveraMilestoneAvatar("Priya Raman", MilestoneBadge(MilestoneKind.Birthday), WaiveraSizes.AvatarMedium)
+            WaiveraMilestoneAvatar(
+                "Jordan Lee",
+                MilestoneBadge(MilestoneKind.WorkAnniversary, years = 5),
+                WaiveraSizes.AvatarMedium,
+            )
+            WaiveraMilestoneAvatar(
+                "Jordan Lee",
+                MilestoneBadge(MilestoneKind.WorkAnniversary, years = 5),
+                WaiveraSizes.AvatarSmall,
+            )
+            WaiveraMilestoneAvatar("Sam Ortiz", MilestoneBadge(MilestoneKind.Multiple), WaiveraSizes.AvatarMedium)
         }
     }
 

@@ -18,6 +18,7 @@
     <string name="core_designsystem_milestone_birthday">Birthday today</string>
     <string name="core_designsystem_milestone_anniversary">Work anniversary today</string>
     <string name="core_designsystem_milestone_new_hire">New to the team</string>
+    <string name="core_designsystem_milestone_multiple">Celebrating today</string>
     <string name="core_designsystem_connection_connecting">Connecting…</string>
     <string name="core_designsystem_connection_reconnecting">Reconnecting…</string>
     <string name="core_designsystem_connection_reconnecting_detail">Messages may be delayed. We\'ll keep trying.</string>

@@ -36,6 +36,13 @@ object WaiveraSizes {
     val AvatarHero: Dp = 96.dp
     val AvatarRing: Dp = 2.dp
     val PresenceDot: Dp = 12.dp
+
+    /** Milestone corner badge (07 §4): at least this big, scaled with the avatar above it. */
+    val MilestoneBadgeMin: Dp = 17.dp
+    val MilestoneBadgeBorder: Dp = 2.dp
+
+    /** Anniversary badges show the year count only on avatars at least this big. */
+    val MilestoneYearsMinAvatar: Dp = 40.dp
     val BadgeMin: Dp = 20.dp
     val ProgressSmall: Dp = 20.dp
     val ProgressStroke: Dp = 2.dp

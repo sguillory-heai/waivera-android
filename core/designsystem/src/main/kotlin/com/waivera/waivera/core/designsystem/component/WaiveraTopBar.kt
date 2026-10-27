@@ -23,6 +23,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
+import androidx.compose.runtime.compositionLocalOf
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.painter.Painter
@@ -48,9 +50,42 @@ data class TopBarAction(
     val badgeCount: Int = 0,
 )
 
-/** The signed-in person's avatar at the end of the Today and Chat top bars; opens the account menu. */
+/**
+ * The signed-in person's avatar at the end of the tab top bars; opens the account menu.
+ * [imageModel] is a Coil model, as for [WaiveraAvatar]. Tabs usually build it with
+ * [rememberTopBarAccount].
+ */
 @Immutable
-data class TopBarAccount(val name: String, val onClick: () -> Unit, val painter: Painter? = null)
+data class TopBarAccount(
+    val name: String,
+    val onClick: () -> Unit,
+    val painter: Painter? = null,
+    val imageModel: Any? = null,
+)
+
+/** The signed-in person as the app shell knows them; [imageModel] is a Coil model for their picture. */
+@Immutable
+data class SignedInAccount(val name: String, val imageModel: Any? = null)
+
+/** Provided once by the app shell, so every tab's top bar shows the same person without plumbing. */
+val LocalSignedInAccount = compositionLocalOf<SignedInAccount?> { null }
+
+/**
+ * The top bar account for the signed-in person from [LocalSignedInAccount], with [fallbackName]
+ * while the shell has no name yet (signed out previews, the first frame).
+ */
+@Composable
+fun rememberTopBarAccount(onClick: () -> Unit, fallbackName: String, painter: Painter? = null): TopBarAccount {
+    val account = LocalSignedInAccount.current
+    return remember(account, onClick, fallbackName, painter) {
+        TopBarAccount(
+            name = account?.name?.takeIf(String::isNotBlank) ?: fallbackName,
+            onClick = onClick,
+            painter = painter,
+            imageModel = account?.imageModel,
+        )
+    }
+}
 
 /**
  * Screen top bar. It owns the status bar and horizontal cutout insets for the screen, so
@@ -139,6 +174,7 @@ fun WaiveraTopBar(
                         WaiveraAvatar(
                             name = account.name,
                             painter = account.painter,
+                            imageModel = account.imageModel,
                             size = WaiveraSizes.AvatarSmall,
                             contentDescription = stringResource(R.string.core_designsystem_account_menu),
                             modifier = Modifier.align(Alignment.Center),

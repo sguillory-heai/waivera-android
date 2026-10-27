@@ -11,7 +11,10 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -25,6 +28,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
+import coil3.compose.AsyncImage
 import com.waivera.waivera.core.designsystem.R
 import com.waivera.waivera.core.designsystem.icon.WaiveraIcons
 import com.waivera.waivera.core.designsystem.preview.WaiveraPreviews
@@ -36,15 +40,17 @@ import com.waivera.waivera.core.designsystem.theme.WaiveraTheme
 
 enum class PresenceStatus { Online, Away, Offline }
 
-enum class MilestoneKind { Birthday, WorkAnniversary, NewHire }
+enum class MilestoneKind { Birthday, WorkAnniversary, NewHire, Multiple }
 
 /**
  * Avatar with an initials fallback (person icon when there are no initials), an optional
  * presence dot and an optional milestone ring. Presence and milestone are also announced in
  * the content description so they are never colour-only.
  *
- * @param painter the loaded image, for example from Coil with the auth-aware avatar fetcher.
- *   While null the fallback shows; callers keep the last painter during reloads to avoid flashing.
+ * @param painter an already loaded image; wins over [imageModel].
+ * @param imageModel a Coil model (for example `AvatarModel(userId)` from core:data) loaded through
+ *   the app's singleton image loader, which carries the auth-aware avatar fetcher. The fallback
+ *   shows until it loads and stays when there is no picture.
  * @param contentDescription null when the avatar sits next to the person's name and is decorative.
  */
 @Composable
@@ -52,6 +58,7 @@ fun WaiveraAvatar(
     name: String,
     modifier: Modifier = Modifier,
     painter: Painter? = null,
+    imageModel: Any? = null,
     size: Dp = WaiveraSizes.AvatarMedium,
     rounded: Boolean = true,
     presence: PresenceStatus? = null,
@@ -84,6 +91,8 @@ fun WaiveraAvatar(
                 .background(if (initials.isEmpty()) colors.surfaceMuted else colors.accentSoft),
             contentAlignment = Alignment.Center,
         ) {
+            // Reset per model so a recycled row never shows the previous person's picture.
+            var loaded by remember(imageModel) { mutableStateOf(false) }
             when {
                 painter != null -> Image(
                     painter = painter,
@@ -91,6 +100,7 @@ fun WaiveraAvatar(
                     contentScale = ContentScale.Crop,
                     modifier = Modifier.size(size),
                 )
+                loaded -> Unit
                 initials.isNotEmpty() -> {
                     // Sized from the avatar, not the font scale: the avatar is a fixed-size image.
                     val fontSize = with(LocalDensity.current) { (size * INITIALS_RATIO).toSp() }
@@ -107,6 +117,16 @@ fun WaiveraAvatar(
                     contentDescription = null,
                     tint = colors.textSecondary,
                     modifier = Modifier.size(size * FALLBACK_ICON_RATIO),
+                )
+            }
+            if (painter == null && imageModel != null) {
+                AsyncImage(
+                    model = imageModel,
+                    contentDescription = null,
+                    modifier = Modifier.size(size),
+                    contentScale = ContentScale.Crop,
+                    onSuccess = { loaded = true },
+                    onError = { loaded = false },
                 )
             }
         }
@@ -155,12 +175,14 @@ private fun MilestoneKind.labelRes(): Int = when (this) {
     MilestoneKind.Birthday -> R.string.core_designsystem_milestone_birthday
     MilestoneKind.WorkAnniversary -> R.string.core_designsystem_milestone_anniversary
     MilestoneKind.NewHire -> R.string.core_designsystem_milestone_new_hire
+    MilestoneKind.Multiple -> R.string.core_designsystem_milestone_multiple
 }
 
 private fun MilestoneKind.ringColor(colors: WaiveraColors): Color = when (this) {
     MilestoneKind.Birthday -> colors.milestoneDot
     MilestoneKind.WorkAnniversary -> colors.onAnniversaryContainer
     MilestoneKind.NewHire -> colors.onNewHireContainer
+    MilestoneKind.Multiple -> colors.onMultipleContainer
 }
 
 @WaiveraPreviews

@@ -12,8 +12,10 @@ import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.autofill.ContentType
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.contentType
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -27,6 +29,10 @@ import com.waivera.waivera.core.designsystem.theme.WaiveraTheme
 /**
  * Labelled text field: label above, outlined input, error text below in the danger text colour
  * (announced politely when it appears). The label is also the field's accessible name.
+ *
+ * @param contentType autofill hint for password managers, set on the input itself (for example
+ *   `ContentType.EmailAddress + ContentType.Username`, `ContentType.Password` or
+ *   `ContentType.NewPassword`).
  */
 @Composable
 fun WaiveraTextField(
@@ -43,6 +49,7 @@ fun WaiveraTextField(
     visualTransformation: VisualTransformation = VisualTransformation.None,
     leadingIcon: (@Composable () -> Unit)? = null,
     trailingIcon: (@Composable () -> Unit)? = null,
+    contentType: ContentType? = null,
 ) {
     val colors = WaiveraTheme.colors
     Column(
@@ -55,7 +62,10 @@ fun WaiveraTextField(
             onValueChange = onValueChange,
             modifier = Modifier
                 .fillMaxWidth()
-                .semantics { contentDescription = label },
+                .semantics {
+                    contentDescription = label
+                    if (contentType != null) this.contentType = contentType
+                },
             enabled = enabled,
             textStyle = MaterialTheme.typography.bodyLarge,
             placeholder = if (placeholder != null) {
