@@ -56,6 +56,7 @@ import com.waivera.waivera.core.designsystem.theme.WaiveraShapes
 import com.waivera.waivera.core.designsystem.theme.WaiveraSizes
 import com.waivera.waivera.core.designsystem.theme.WaiveraSpacing
 import com.waivera.waivera.core.designsystem.theme.WaiveraTheme
+import com.waivera.waivera.core.designsystem.theme.isLargeFontScale
 import com.waivera.waivera.feature.chat.R
 import kotlinx.coroutines.flow.distinctUntilChanged
 
@@ -99,6 +100,11 @@ fun NewChatSheet(
  * Sheet body: subtitle, staff search (names only, spec 02 §7), the selection count, the people
  * list with checkboxes, the error and the primary button. [WaiveraBottomSheet] owns the
  * keyboard and navigation bar insets, so nothing here pads for them again.
+ *
+ * At large font the subtitle is left out: the search field's label already says what to do, and
+ * its four lines pushed the list and the load error's "Try again" below the sheet's edge on a
+ * small phone (UI6-05). When the people list failed to load there is nothing to search, so the
+ * search field goes too and the error gets the space.
  */
 @Composable
 fun ColumnScope.NewChatSheetContent(
@@ -122,29 +128,19 @@ fun ColumnScope.NewChatSheetContent(
             .distinctUntilChanged()
             .collect { visible -> if (visible.isNotEmpty()) requestAvatars(visible) }
     }
+    val loadFailed = state.loadErrorRes != null
     Column(
         modifier = modifier.weight(1f, fill = false),
         verticalArrangement = Arrangement.spacedBy(WaiveraSpacing.MediumSmall),
     ) {
-        Text(
-            text = stringResource(R.string.feature_chat_newchat_subtitle),
-            style = MaterialTheme.typography.bodyMedium,
-            color = colors.textSecondary,
-        )
-        WaiveraTextField(
-            value = state.query,
-            onValueChange = onQueryChange,
-            label = stringResource(R.string.feature_chat_newchat_search_label),
-            placeholder = stringResource(R.string.feature_chat_newchat_search_placeholder),
-            leadingIcon = {
-                Icon(
-                    painter = painterResource(WaiveraIcons.Search),
-                    contentDescription = null,
-                    tint = colors.textSecondary,
-                    modifier = Modifier.size(WaiveraSizes.Icon),
-                )
-            },
-        )
+        if (!isLargeFontScale()) {
+            Text(
+                text = stringResource(R.string.feature_chat_newchat_subtitle),
+                style = MaterialTheme.typography.bodyMedium,
+                color = colors.textSecondary,
+            )
+        }
+        if (!loadFailed) SearchField(query = state.query, onQueryChange = onQueryChange)
         if (state.selectedCount > 0) {
             Text(
                 text = pluralStringResource(
@@ -163,13 +159,14 @@ fun ColumnScope.NewChatSheetContent(
                     val pulse = rememberSkeletonPulse()
                     Column { repeat(SKELETON_ROWS) { SkeletonListRow(pulse = pulse) } }
                 }
-                // At 200% the space under the header is a couple of lines tall, so the empty and
-                // error states scroll instead of clipping their message and "Try again" (UI5-07).
+                // If the space under the header is still too short, the empty and error states
+                // scroll instead of clipping their message and "Try again" (UI5-07).
                 state.loadErrorRes != null -> Box(Modifier.verticalScroll(rememberScrollState())) {
                     WaiveraErrorState(
                         title = stringResource(R.string.feature_chat_newchat_load_error_title),
                         message = stringResource(state.loadErrorRes),
                         onRetry = onRetryLoad,
+                        dense = true,
                     )
                 }
                 !state.isLoading && state.people.isEmpty() -> Box(Modifier.verticalScroll(rememberScrollState())) {
@@ -199,7 +196,7 @@ fun ColumnScope.NewChatSheetContent(
             )
         }
         // With no coworkers loaded there is nobody to pick, so the error state gets the space (UI2-01).
-        if (state.loadErrorRes == null) {
+        if (!loadFailed) {
             WaiveraButton(
                 text = stringResource(
                     when (state.action) {
@@ -221,6 +218,25 @@ fun ColumnScope.NewChatSheetContent(
             )
         }
     }
+}
+
+@Composable
+private fun SearchField(query: String, onQueryChange: (String) -> Unit) {
+    val colors = WaiveraTheme.colors
+    WaiveraTextField(
+        value = query,
+        onValueChange = onQueryChange,
+        label = stringResource(R.string.feature_chat_newchat_search_label),
+        placeholder = stringResource(R.string.feature_chat_newchat_search_placeholder),
+        leadingIcon = {
+            Icon(
+                painter = painterResource(WaiveraIcons.Search),
+                contentDescription = null,
+                tint = colors.textSecondary,
+                modifier = Modifier.size(WaiveraSizes.Icon),
+            )
+        },
+    )
 }
 
 @Composable

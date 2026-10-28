@@ -54,6 +54,10 @@ fun WaiveraEmptyState(
 /**
  * Error state with a user-facing message (never raw server text) and a retry action. The icon
  * sits on the danger container, so an error never looks like an empty state at a glance.
+ *
+ * [dense] trims the block's own top and bottom space, for a state inside a sheet that is
+ * already padded: at 200% on a small phone the full space pushed "Try again" past the sheet's
+ * edge (UI6-05).
  */
 @Composable
 fun WaiveraErrorState(
@@ -61,6 +65,7 @@ fun WaiveraErrorState(
     onRetry: () -> Unit,
     modifier: Modifier = Modifier,
     title: String = stringResource(R.string.core_designsystem_error_title),
+    dense: Boolean = false,
 ) {
     StateBlock(
         title = title,
@@ -70,6 +75,7 @@ fun WaiveraErrorState(
         actionLabel = stringResource(R.string.core_designsystem_try_again),
         onAction = onRetry,
         tone = StateTone.Error,
+        dense = dense,
     )
 }
 
@@ -117,6 +123,7 @@ private fun StateBlock(
     actionLabel: String?,
     onAction: (() -> Unit)?,
     tone: StateTone = StateTone.Neutral,
+    dense: Boolean = false,
 ) {
     val colors = WaiveraTheme.colors
     val tileContainer = if (tone == StateTone.Error) colors.dangerContainer else colors.accentSoft
@@ -124,7 +131,10 @@ private fun StateBlock(
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = WaiveraSpacing.Large, vertical = WaiveraSpacing.ExtraLarge),
+            .padding(
+                horizontal = WaiveraSpacing.Large,
+                vertical = if (dense) WaiveraSpacing.Small else WaiveraSpacing.ExtraLarge,
+            ),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(WaiveraSpacing.MediumSmall),
     ) {

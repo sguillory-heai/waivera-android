@@ -6,6 +6,8 @@ import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.SemanticsNodeInteraction
 import androidx.compose.ui.test.assertHasClickAction
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.getBoundsInRoot
+import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performScrollTo
@@ -17,6 +19,7 @@ import com.waivera.waivera.core.designsystem.theme.WaiveraMotionScheme
 import com.waivera.waivera.core.designsystem.theme.WaiveraTheme
 import com.waivera.waivera.core.network.error.WaiveraError
 import com.waivera.waivera.core.screenshottesting.ScreenshotSdk
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Rule
 import org.junit.Test
@@ -26,8 +29,9 @@ import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
 /**
- * The new-chat sheet at 200% on the small phone: the empty and load-error states scroll in the
- * space under the header, so their message is whole and "Try again" can be reached (UI5-07).
+ * The new-chat sheet at 200% on the small phone. The subtitle is left out, so the load error
+ * fits with "Try again" in view (UI6-05). The empty state still scrolls in the space under the
+ * header, so its message is whole (UI5-07).
  */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
@@ -59,10 +63,31 @@ class NewChatSheetLayoutTest {
         compose.waitForIdle()
     }
 
+    /**
+     * The load error fits whole at a glance (UI6-05): "Try again" and every line of the message
+     * are inside the sheet without scrolling. A node cut by the sheet's edge has clipped bounds
+     * smaller than its unclipped ones.
+     */
     @Test
-    fun loadErrorCanReachTryAgain() {
+    fun loadErrorShowsTryAgainWithoutScrolling() {
         render(NewChatUiState(isLoading = false, loadErrorRes = WaiveraError.Network().messageRes))
-        compose.onNodeWithText(TRY_AGAIN).performScrollTo().assertIsDisplayed().assertHasClickAction()
+        val tryAgain = compose.onNodeWithText(TRY_AGAIN).assertIsDisplayed().assertHasClickAction()
+        assertWhollyVisible(TRY_AGAIN, tryAgain)
+        assertWhollyVisible(OFFLINE_MESSAGE, compose.onNodeWithText(OFFLINE_MESSAGE, useUnmergedTree = true))
+    }
+
+    @Test
+    fun atLargeFontTheSubtitleMakesRoomForThePeopleList() {
+        render(NewChatUiState(isLoading = false, people = listOf(PersonOptionUi("usr_mei_chen", "Mei Chen", false))))
+        compose.onNodeWithText(SUBTITLE).assertDoesNotExist()
+        compose.onNodeWithText("Mei Chen", useUnmergedTree = true).assertIsDisplayed()
+    }
+
+    private fun assertWhollyVisible(label: String, node: SemanticsNodeInteraction) {
+        val clipped = node.getBoundsInRoot()
+        val whole = node.getUnclippedBoundsInRoot()
+        assertEquals("\"$label\" is cut at the bottom", whole.bottom.value, clipped.bottom.value, BOUNDS_TOLERANCE)
+        assertEquals("\"$label\" is cut at the top", whole.top.value, clipped.top.value, BOUNDS_TOLERANCE)
     }
 
     @Test
@@ -85,5 +110,8 @@ class NewChatSheetLayoutTest {
         const val LARGE_FONT = 2f
         const val TRY_AGAIN = "Try again"
         const val EMPTY_MESSAGE = "No staff members match."
+        const val OFFLINE_MESSAGE = "You appear to be offline. Check your connection and try again."
+        const val SUBTITLE = "Select one person for a direct message or several for a group."
+        const val BOUNDS_TOLERANCE = 0.5f
     }
 }
