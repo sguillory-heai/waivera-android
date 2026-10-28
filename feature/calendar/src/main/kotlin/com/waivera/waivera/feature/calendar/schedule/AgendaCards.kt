@@ -5,7 +5,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.PaddingValues
@@ -21,12 +20,17 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
@@ -166,8 +170,16 @@ private fun MilestoneCard(
     val sentence = CelebrationText.self(item.celebration)?.takeIf { !showWishes }?.resolve()
         ?: CelebrationText.full(item.celebration, fallbackName).resolve()
     val emoji = CelebrationText.emoji(item.celebration).resolve()
-    BoxWithConstraints(modifier = modifier.fillMaxWidth()) {
-        val narrow = maxWidth < CalendarSizes.CelebrationNarrowCard
+    // Not BoxWithConstraints: the Day rail sizes its row with IntrinsicSize.Min, and a
+    // SubcomposeLayout throws when asked for intrinsics. The card is always full width, so its
+    // measured width settles in one frame and never depends on the narrow choice.
+    val narrowBelowPx = with(LocalDensity.current) { CalendarSizes.CelebrationNarrowCard.roundToPx() }
+    var narrow by remember { mutableStateOf(false) }
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .onSizeChanged { narrow = it.width < narrowBelowPx },
+    ) {
         // Today's celebration card, so a celebration looks the same wherever it shows (concept A, 22dp).
         WaiveraBrandSurface(
             modifier = Modifier.heightIn(min = WaiveraSizes.ListRowMinHeight),
