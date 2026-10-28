@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
@@ -19,8 +20,11 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalResources
@@ -36,6 +40,7 @@ import com.waivera.waivera.core.designsystem.component.ConnectionBannerState
 import com.waivera.waivera.core.designsystem.component.WaiveraAddressText
 import com.waivera.waivera.core.designsystem.component.WaiveraAvatar
 import com.waivera.waivera.core.designsystem.component.WaiveraButton
+import com.waivera.waivera.core.designsystem.component.WaiveraButtonVariant
 import com.waivera.waivera.core.designsystem.component.WaiveraHeroCelebration
 import com.waivera.waivera.core.designsystem.component.WaiveraSnackbarHost
 import com.waivera.waivera.core.designsystem.component.WaiveraTopBar
@@ -125,20 +130,10 @@ internal fun PersonDetailContent(
             )
             Column(verticalArrangement = Arrangement.spacedBy(WaiveraSpacing.MediumSmall)) {
                 if (state.canMessage) {
-                    // On their birthday or anniversary the same chat is the easy "Send wishes" (UI8-09).
-                    WaiveraButton(
-                        text = stringResource(
-                            if (state.celebration != null) {
-                                R.string.feature_profile_person_send_wishes
-                            } else {
-                                R.string.feature_profile_person_message
-                            },
-                        ),
-                        onClick = onMessage,
-                        loadingText = stringResource(R.string.feature_profile_person_opening_chat)
-                            .takeIf { state.isOpeningChat },
-                        fullWidth = true,
-                        leadingIcon = WaiveraIcons.Chat,
+                    PersonActions(
+                        celebrating = state.celebration != null,
+                        openingChat = state.isOpeningChat,
+                        onMessage = onMessage,
                         modifier = Modifier.padding(horizontal = WaiveraSpacing.Gutter),
                     )
                 }
@@ -152,6 +147,66 @@ internal fun PersonDetailContent(
                 .align(Alignment.BottomCenter)
                 .padding(bottom = WaiveraSpacing.Medium),
         )
+    }
+}
+
+/**
+ * Message, always the primary, so the screen's action is the same whether or not it is their
+ * day (and the same as while it loads). On their birthday or anniversary "Send wishes" sits beside
+ * it as the raised secondary, as on the v5 board; both open the same direct chat (UI8-09), and
+ * the one tapped shows the busy label. At large font the two stack, so neither label wraps.
+ */
+@Composable
+private fun PersonActions(
+    celebrating: Boolean,
+    openingChat: Boolean,
+    onMessage: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    var wishesTapped by rememberSaveable { mutableStateOf(false) }
+    val busy = stringResource(R.string.feature_profile_person_opening_chat)
+    val message = @Composable { buttonModifier: Modifier ->
+        WaiveraButton(
+            text = stringResource(R.string.feature_profile_person_message),
+            onClick = {
+                wishesTapped = false
+                onMessage()
+            },
+            loadingText = busy.takeIf { openingChat && !wishesTapped },
+            enabled = !(openingChat && wishesTapped),
+            fullWidth = true,
+            leadingIcon = WaiveraIcons.Chat,
+            modifier = buttonModifier,
+        )
+    }
+    if (!celebrating) {
+        message(modifier)
+        return
+    }
+    val wishes = @Composable { buttonModifier: Modifier ->
+        WaiveraButton(
+            text = stringResource(R.string.feature_profile_person_send_wishes),
+            onClick = {
+                wishesTapped = true
+                onMessage()
+            },
+            variant = WaiveraButtonVariant.Secondary,
+            loadingText = busy.takeIf { openingChat && wishesTapped },
+            enabled = !(openingChat && !wishesTapped),
+            fullWidth = true,
+            modifier = buttonModifier,
+        )
+    }
+    if (isLargeFontScale()) {
+        Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(WaiveraSpacing.Small)) {
+            message(Modifier)
+            wishes(Modifier)
+        }
+    } else {
+        Row(modifier = modifier, horizontalArrangement = Arrangement.spacedBy(WaiveraSpacing.Small)) {
+            message(Modifier.weight(1f))
+            wishes(Modifier.weight(1f))
+        }
     }
 }
 
