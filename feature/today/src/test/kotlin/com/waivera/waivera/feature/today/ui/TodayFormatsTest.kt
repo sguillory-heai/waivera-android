@@ -25,4 +25,17 @@ class TodayFormatsTest {
     fun longDayKeepsMonthAndDayTogether() {
         assertEquals("Sunday, November\u00A01", formats.longDay(LocalDate.of(2026, 11, 1)))
     }
+
+    @Test
+    fun heroEyebrowIsTheLongDayInCapitals() {
+        assertEquals("SUNDAY, NOVEMBER\u00A01", formats.eyebrowDay(LocalDate.of(2026, 11, 1)))
+    }
+
+    @Test
+    fun dayTrackHoursNameTheirPeriodOnlyWhereAsked() {
+        assertEquals("8\u00A0AM", formats.hour(LocalTime.of(8, 0), withPeriod = true))
+        assertEquals("10", formats.hour(LocalTime.of(10, 0), withPeriod = false))
+        assertEquals("12\u00A0PM", formats.hour(LocalTime.NOON, withPeriod = true))
+        assertEquals("2", formats.hour(LocalTime.of(14, 0), withPeriod = false))
+    }
 }
