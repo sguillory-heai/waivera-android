@@ -1,7 +1,6 @@
 package com.waivera.waivera.core.designsystem.screenshot
 
 import android.graphics.BitmapFactory
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -22,7 +21,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.painter.BitmapPainter
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import com.waivera.waivera.core.designsystem.component.BadgeTone
@@ -57,6 +55,7 @@ import com.waivera.waivera.core.designsystem.component.WaiveraFilterChip
 import com.waivera.waivera.core.designsystem.component.WaiveraIconButton
 import com.waivera.waivera.core.designsystem.component.WaiveraIconTile
 import com.waivera.waivera.core.designsystem.component.WaiveraIllustration
+import com.waivera.waivera.core.designsystem.component.WaiveraIllustrationArt
 import com.waivera.waivera.core.designsystem.component.WaiveraListRow
 import com.waivera.waivera.core.designsystem.component.WaiveraLoadingScreen
 import com.waivera.waivera.core.designsystem.component.WaiveraLoadingState
@@ -226,7 +225,7 @@ class DesignSystemScreenshotTest {
         )
     }
 
-    /** Empty states with their brand illustrations and an inviting action. */
+    /** Empty states with their solid violet illustrations on the lilac disc (v5) and an inviting action. */
     @Test
     fun illustratedEmptyStates() = capture("EmptyStatesIllustrated") {
         WaiveraEmptyState(
@@ -238,11 +237,7 @@ class DesignSystemScreenshotTest {
         )
         Row(horizontalArrangement = Arrangement.spacedBy(WaiveraSpacing.Small)) {
             WaiveraIllustration.entries.forEach { art ->
-                Image(
-                    painter = painterResource(art.drawable),
-                    contentDescription = null,
-                    modifier = Modifier.size(WaiveraSizes.IconTile),
-                )
+                WaiveraIllustrationArt(art = art, size = WaiveraSizes.IconTile)
             }
         }
     }

@@ -1,7 +1,6 @@
 package com.waivera.waivera.core.designsystem.component
 
 import androidx.annotation.DrawableRes
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -10,16 +9,19 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Dp
 import com.waivera.waivera.core.designsystem.R
 import com.waivera.waivera.core.designsystem.icon.WaiveraIcons
 import com.waivera.waivera.core.designsystem.preview.WaiveraPreviews
@@ -27,7 +29,11 @@ import com.waivera.waivera.core.designsystem.theme.WaiveraSizes
 import com.waivera.waivera.core.designsystem.theme.WaiveraSpacing
 import com.waivera.waivera.core.designsystem.theme.WaiveraTheme
 
-/** Small brand illustrations for empty states: abstract, in the brand gradient, no people. */
+/**
+ * Small brand illustrations for empty states: abstract, no people. v5 decision 8 keeps the
+ * drawings and drops the gradient: each is one ink, drawn solid violet on a lilac disc
+ * ([WaiveraIllustrationArt]), at 5.7 / 6.3:1 against the disc.
+ */
 enum class WaiveraIllustration(@param:DrawableRes internal val drawable: Int) {
     /** No conversations yet. */
     Chats(R.drawable.core_designsystem_illustration_chats),
@@ -54,7 +60,7 @@ enum class WaiveraIllustration(@param:DrawableRes internal val drawable: Int) {
 /**
  * The shared empty-state block: a small brand illustration (or an icon tile), title, message
  * and one clear action that invites the next step. In concept A's type: the title is the sheet's
- * 18 / 800 heading and the action is the CTA gradient. Every screen uses this so copy and spacing
+ * 18 / 800 heading and the action is the solid violet primary. Every screen uses this so copy and spacing
  * stay consistent. [illustration] wins over [icon] when both are set.
  */
 @Composable
@@ -141,6 +147,36 @@ fun WaiveraLoadingScreen(modifier: Modifier = Modifier) {
 
 private enum class StateTone { Neutral, Error }
 
+/**
+ * An empty-state drawing: the lilac tonal disc with the art over it in the accent violet (the
+ * pastel lilac in dark). The drawable is one white ink with its own alpha steps, so tinting it
+ * keeps the duotone (solid strokes over softer fills) without any gradient. Decorative.
+ */
+@Composable
+internal fun WaiveraIllustrationArt(
+    art: WaiveraIllustration,
+    modifier: Modifier = Modifier,
+    size: Dp = WaiveraSizes.Illustration,
+) {
+    val colors = WaiveraTheme.colors
+    val disc = colors.accentSoft
+    Box(
+        modifier = modifier
+            .size(size)
+            .drawBehind { drawCircle(color = disc, radius = this.size.minDimension * ILLUSTRATION_DISC_SHARE) },
+    ) {
+        Icon(
+            painter = painterResource(art.drawable),
+            contentDescription = null,
+            tint = colors.accent,
+            modifier = Modifier.matchParentSize(),
+        )
+    }
+}
+
+/** The disc's radius as a share of the art's box: v5 draws a 58 radius on a 120 frame. */
+private const val ILLUSTRATION_DISC_SHARE = 58f / 120f
+
 @Composable
 private fun StateBlock(
     title: String,
@@ -165,11 +201,7 @@ private fun StateBlock(
         verticalArrangement = Arrangement.spacedBy(WaiveraSpacing.MediumSmall),
     ) {
         if (illustration != null) {
-            Image(
-                painter = painterResource(illustration.drawable),
-                contentDescription = null,
-                modifier = Modifier.size(WaiveraSizes.Illustration),
-            )
+            WaiveraIllustrationArt(art = illustration)
         } else if (icon != null) {
             WaiveraIconTile(
                 icon = icon,
