@@ -31,7 +31,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.style.TextOverflow
-import com.waivera.waivera.core.designsystem.component.SkeletonCircle
+import com.waivera.waivera.core.designsystem.component.SkeletonAvatar
 import com.waivera.waivera.core.designsystem.component.SkeletonLine
 import com.waivera.waivera.core.designsystem.component.WaiveraDivider
 import com.waivera.waivera.core.designsystem.component.WaiveraIconButton
@@ -153,7 +153,7 @@ fun ChatListSkeleton(modifier: Modifier = Modifier, rows: Int = SKELETON_ROWS) {
                 horizontalArrangement = Arrangement.spacedBy(WaiveraSpacing.MediumSmall),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                SkeletonCircle(size = WaiveraSizes.IconTile, pulse = pulse)
+                SkeletonAvatar(size = WaiveraSizes.IconTile, pulse = pulse)
                 Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(WaiveraSpacing.Small)) {
                     SkeletonLine(widthFraction = TITLE_WIDTHS[index % TITLE_WIDTHS.size], pulse = pulse)
                     SkeletonLine(widthFraction = PREVIEW_WIDTHS[index % PREVIEW_WIDTHS.size], pulse = pulse)

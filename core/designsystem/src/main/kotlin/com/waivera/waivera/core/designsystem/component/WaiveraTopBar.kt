@@ -175,7 +175,7 @@ fun WaiveraTopBar(
                         modifier = Modifier.size(WaiveraSizes.IconButton),
                         onClickLabel = stringResource(R.string.core_designsystem_account_menu),
                         role = Role.Button,
-                        shape = WaiveraShapes.Circle,
+                        shape = WaiveraShapes.avatar(WaiveraSizes.AvatarSmall),
                     ) {
                         WaiveraAvatar(
                             name = account.name,

@@ -87,9 +87,10 @@ fun SkeletonLine(modifier: Modifier = Modifier, widthFraction: Float = 1f, pulse
     )
 }
 
+/** An avatar's bone, in the one avatar shape, so loading rows match what lands. */
 @Composable
-fun SkeletonCircle(size: Dp, modifier: Modifier = Modifier, pulse: Float = rememberSkeletonPulse()) {
-    SkeletonBlock(modifier = modifier.size(size), shape = WaiveraShapes.Circle, pulse = pulse)
+fun SkeletonAvatar(size: Dp, modifier: Modifier = Modifier, pulse: Float = rememberSkeletonPulse()) {
+    SkeletonBlock(modifier = modifier.size(size), shape = WaiveraShapes.avatar(size), pulse = pulse)
 }
 
 /** A list row skeleton (avatar, two lines), matching [WaiveraListRow] with a leading avatar. */
@@ -103,7 +104,7 @@ fun SkeletonListRow(modifier: Modifier = Modifier, pulse: Float = rememberSkelet
         horizontalArrangement = Arrangement.spacedBy(WaiveraSpacing.MediumSmall),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        SkeletonCircle(size = WaiveraSizes.AvatarMedium, pulse = pulse)
+        SkeletonAvatar(size = WaiveraSizes.AvatarMedium, pulse = pulse)
         Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(WaiveraSpacing.Small)) {
             SkeletonLine(widthFraction = HEADLINE_FRACTION, pulse = pulse)
             SkeletonLine(widthFraction = SUPPORTING_FRACTION, pulse = pulse)

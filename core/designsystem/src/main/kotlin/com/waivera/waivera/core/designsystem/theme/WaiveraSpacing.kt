@@ -31,6 +31,10 @@ object WaiveraSizes {
     val IconButton: Dp = 48.dp
     val IconTile: Dp = 40.dp
 
+    /** A quiet inline tile, such as a section's "didn't load" line, and the glyph inside it. */
+    val IconTileSmall: Dp = 32.dp
+    val IconTileSmallGlyph: Dp = 20.dp
+
     /** An emoji inside an icon tile: icon size, fixed so the tile never overflows at 200%. */
     val EmojiInTile: Dp = 22.dp
     val StateIconTile: Dp = 48.dp
@@ -86,8 +90,17 @@ object WaiveraSizes {
     /** Width of the brand-gradient ring around the tab's unread count. */
     val NavBadgeRing: Dp = 1.5.dp
 
-    /** The selected tab's indicator pill (the Material 3 active indicator size). */
-    val NavIndicatorWidth: Dp = 64.dp
+    /**
+     * How far the tab's unread count overlaps the icon's top-end corner, on each axis. The
+     * badge grows outward from there.
+     */
+    val NavBadgeOverlap: Dp = 8.dp
+
+    /**
+     * The selected tab's one pill, drawn by the nav bar itself (Material's indicator is hidden).
+     * 56dp is Material's own indicator and press-ripple width in this BOM, so a press lines up.
+     */
+    val NavIndicatorWidth: Dp = 56.dp
     val NavIndicatorHeight: Dp = 32.dp
     val ProgressSmall: Dp = 20.dp
     val ProgressStroke: Dp = 2.dp

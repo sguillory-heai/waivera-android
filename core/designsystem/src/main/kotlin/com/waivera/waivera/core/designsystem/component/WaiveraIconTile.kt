@@ -29,14 +29,16 @@ import com.waivera.waivera.core.designsystem.theme.WaiveraTheme
 import com.waivera.waivera.core.designsystem.theme.WaiveraTileTint
 
 /**
- * Category tint of an icon tile. One meaning per tint, the same on every screen:
+ * Category tint of an icon tile. One meaning per tint, the same on every screen (UI8-11):
  *
- * - [Brand]: conversations, people and the app itself (settings, account).
- * - [Rose]: things about you: mentions, reactions, bookmarks.
+ * - [Brand]: conversations, people and the app itself (settings, account, theme). A call inside
+ *   a chat stays Brand, because chat is Brand.
+ * - [Rose]: things about you: mentions, reactions, bookmarks, and how the app feels (haptics).
  * - [Amber]: celebrations, announcements and notifications.
- * - [Teal]: time: schedule items, events, invitations.
- * - [Neutral]: read, past or inactive items, and files.
- * - [Danger]: something that went wrong (a message that wasn't sent).
+ * - [Teal]: the schedule, whatever the timing: schedule items, events, invitations, time off.
+ *   "Starting soon" is said by the accent time label, never by the tile.
+ * - [Neutral]: read, past or inactive items, files, and a quiet "didn't load" line.
+ * - [Danger]: something that went wrong that you can act on (a message that wasn't sent).
  */
 enum class WaiveraTileTone { Brand, Rose, Amber, Teal, Neutral, Danger }
 
@@ -61,6 +63,7 @@ fun WaiveraIconTile(
     modifier: Modifier = Modifier,
     tone: WaiveraTileTone = WaiveraTileTone.Brand,
     size: Dp = WaiveraSizes.IconTile,
+    iconSize: Dp = WaiveraSizes.Icon,
 ) {
     val tint = tone.tint(WaiveraTheme.colors)
     TileFrame(tint = tint, size = size, modifier = modifier) {
@@ -68,13 +71,15 @@ fun WaiveraIconTile(
             painter = painterResource(icon),
             contentDescription = null,
             tint = tint.content,
-            modifier = Modifier.size(WaiveraSizes.Icon),
+            modifier = Modifier.size(iconSize),
         )
     }
 }
 
 /**
- * The same tile holding a real emoji instead of a glyph (a reaction, a celebration). The emoji
+ * The same tile holding a real emoji instead of a glyph: for celebrations only (a birthday, an
+ * anniversary, a new hire). Everything else takes an outlined glyph in [WaiveraIconTile]
+ * (`docs/design/voice.md`, "Emoji"). The emoji
  * is drawn at icon size whatever the font scale, because the tile itself does not grow; the
  * text next to it carries the meaning for TalkBack.
  */
@@ -92,6 +97,22 @@ fun WaiveraEmojiTile(
             text = emoji,
             style = TextStyle(fontSize = emojiSize, lineHeight = emojiSize, textAlign = TextAlign.Center),
         )
+    }
+}
+
+/**
+ * The Waivera mark in a Brand tile: the leading image for the Waivera bot, which is the app
+ * itself talking, so it wears the logo rather than a generic robot (UI8-08). Decorative; the
+ * caller names it for TalkBack.
+ */
+@Composable
+fun WaiveraLogoTile(
+    modifier: Modifier = Modifier,
+    size: Dp = WaiveraSizes.IconTile,
+    logoHeight: Dp = WaiveraSizes.Icon,
+) {
+    TileFrame(tint = WaiveraTileTone.Brand.tint(WaiveraTheme.colors), size = size, modifier = modifier) {
+        WaiveraLogo(variant = WaiveraLogoVariant.Mark, height = logoHeight)
     }
 }
 
@@ -124,11 +145,12 @@ private fun WaiveraIconTilePreview() {
                 WaiveraIconTile(icon = WaiveraIcons.Schedule, tone = WaiveraTileTone.Teal)
                 WaiveraIconTile(icon = WaiveraIcons.Check, tone = WaiveraTileTone.Neutral)
                 WaiveraIconTile(icon = WaiveraIcons.Error, tone = WaiveraTileTone.Danger)
+                WaiveraLogoTile()
             }
             Row(horizontalArrangement = Arrangement.spacedBy(WaiveraSpacing.Small)) {
                 WaiveraEmojiTile(emoji = "🎂")
                 WaiveraEmojiTile(emoji = "🎉", tone = WaiveraTileTone.Brand)
-                WaiveraEmojiTile(emoji = "👍", tone = WaiveraTileTone.Rose)
+                WaiveraEmojiTile(emoji = "👋", tone = WaiveraTileTone.Brand)
             }
         }
     }

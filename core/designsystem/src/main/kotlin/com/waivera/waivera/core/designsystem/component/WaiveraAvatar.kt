@@ -43,17 +43,20 @@ enum class PresenceStatus { Online, Away, Offline }
 enum class MilestoneKind { Birthday, WorkAnniversary, NewHire, Multiple }
 
 /**
- * Avatar with an initials fallback (person icon when there are no initials), an optional
- * presence dot and an optional milestone ring. Presence and milestone are also announced in
- * the content description so they are never colour-only.
+ * Avatar with an initials fallback (person icon when there are no initials) and an optional
+ * presence dot. Every avatar is the same soft rounded square ([WaiveraShapes.avatar]) with no
+ * border, ring or outline: the owner's rule. The fallback's [WaiveraColors.avatarFill] alone sets
+ * it apart from every surface and the brand wash. Presence and a milestone are announced in the
+ * content description; a milestone's visible marker is the caller's one badge or emoji tile.
  *
  * @param painter an already loaded image; wins over [imageModel].
  * @param imageModel a Coil model (for example `AvatarModel(userId)` from core:data) loaded through
  *   the app's singleton image loader, which carries the auth-aware avatar fetcher. The fallback
  *   shows until it loads and stays when there is no picture.
+ * @param milestone announced only; it draws nothing on the avatar.
  * @param contentDescription null when the avatar sits next to the person's name and is decorative.
  */
-// Image, initials fallback, presence and milestone badges are layered in one Box.
+// Image, initials fallback and presence dot are layered in one Box.
 @Suppress("LongMethod")
 @Composable
 fun WaiveraAvatar(
@@ -62,13 +65,12 @@ fun WaiveraAvatar(
     painter: Painter? = null,
     imageModel: Any? = null,
     size: Dp = WaiveraSizes.AvatarMedium,
-    rounded: Boolean = true,
     presence: PresenceStatus? = null,
     milestone: MilestoneKind? = null,
     contentDescription: String? = name,
 ) {
     val colors = WaiveraTheme.colors
-    val shape = WaiveraShapes.avatar(size, rounded)
+    val shape = WaiveraShapes.avatar(size)
     val initials = remember(name) { initialsFor(name) }
     val presenceLabel = presence?.let { stringResource(it.labelRes()) }
     val milestoneLabel = milestone?.let { stringResource(it.labelRes()) }
@@ -79,18 +81,11 @@ fun WaiveraAvatar(
         Modifier
     }
     Box(modifier = modifier.then(semanticsModifier)) {
-        val ringModifier = if (milestone != null) {
-            Modifier
-                .border(WaiveraSizes.AvatarRing, milestone.ringColor(colors), shape)
-                .padding(WaiveraSizes.AvatarRing * 2)
-        } else {
-            Modifier
-        }
         Box(
-            modifier = ringModifier
+            modifier = Modifier
                 .size(size)
                 .clip(shape)
-                .background(if (initials.isEmpty()) colors.surfaceMuted else colors.accentSoft),
+                .background(colors.avatarFill),
             contentAlignment = Alignment.Center,
         ) {
             // Reset per model so a recycled row never shows the previous person's picture.
@@ -120,7 +115,7 @@ fun WaiveraAvatar(
                 else -> Icon(
                     painter = painterResource(WaiveraIcons.Person),
                     contentDescription = null,
-                    tint = colors.textSecondary,
+                    tint = colors.onAccentSoft,
                     modifier = Modifier.size(size * FALLBACK_ICON_RATIO),
                 )
             }
@@ -204,13 +199,6 @@ private fun MilestoneKind.labelRes(): Int = when (this) {
     MilestoneKind.Multiple -> R.string.core_designsystem_milestone_multiple
 }
 
-private fun MilestoneKind.ringColor(colors: WaiveraColors): Color = when (this) {
-    MilestoneKind.Birthday -> colors.milestoneDot
-    MilestoneKind.WorkAnniversary -> colors.onAnniversaryContainer
-    MilestoneKind.NewHire -> colors.onNewHireContainer
-    MilestoneKind.Multiple -> colors.onMultipleContainer
-}
-
 @WaiveraPreviews
 @Composable
 private fun WaiveraAvatarPreview() {
@@ -220,7 +208,7 @@ private fun WaiveraAvatarPreview() {
             horizontalArrangement = Arrangement.spacedBy(WaiveraSpacing.MediumSmall),
         ) {
             WaiveraAvatar(name = "Alex Rivera", presence = PresenceStatus.Online)
-            WaiveraAvatar(name = "Priya Raman", milestone = MilestoneKind.Birthday, rounded = false)
+            WaiveraAvatar(name = "Priya Raman", milestone = MilestoneKind.Birthday)
             WaiveraAvatar(name = "", size = WaiveraSizes.AvatarLarge)
             WaiveraAvatar(name = "Sam", size = WaiveraSizes.AvatarSmall, presence = PresenceStatus.Away)
         }

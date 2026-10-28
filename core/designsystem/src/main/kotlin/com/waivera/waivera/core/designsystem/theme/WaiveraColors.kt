@@ -72,10 +72,20 @@ data class WaiveraColors(
      * soft accent in dark (a darker surface step there read as the unselected one).
      */
     val segmentSelected: Color,
+    /**
+     * Fill behind an avatar's initials or fallback glyph. Avatars have no border, so the fill
+     * alone sets them apart from every surface and the brand wash (at least 1.3:1).
+     */
+    val avatarFill: Color,
     /** Category tints for [com.waivera.waivera.core.designsystem.component.WaiveraIconTile]. */
     val tiles: WaiveraTileColors,
     /** Opacity of the brand gradient when it washes a surface (celebration cards, sign-in hero). */
     val brandWashAlpha: Float,
+    /**
+     * The wash's last stop, alpha included: the logo's gold in light. In dark it is a peach at a
+     * lower alpha, because gold over plum composited to an off-family khaki (UI8-04).
+     */
+    val brandWashEnd: Color,
 )
 
 /** One tile tint: the soft container and the outlined glyph on it (at least 4.5:1). */
@@ -143,6 +153,7 @@ internal val LightWaiveraColors = WaiveraColors(
     secondaryContainer = WaiveraPalette.SurfaceLight,
     secondaryBorder = WaiveraPalette.BorderStrongLight,
     segmentSelected = WaiveraPalette.SurfaceLight,
+    avatarFill = WaiveraPalette.AvatarFillLight,
     tiles = WaiveraTileColors(
         brand = WaiveraTileTint(WaiveraPalette.AccentSoftLight, WaiveraPalette.PurpleDeep),
         rose = WaiveraTileTint(WaiveraPalette.TileRoseLight, WaiveraPalette.OnTileRoseLight),
@@ -152,6 +163,7 @@ internal val LightWaiveraColors = WaiveraColors(
         danger = WaiveraTileTint(WaiveraPalette.TileDangerLight, WaiveraPalette.OnTileDangerLight),
     ),
     brandWashAlpha = WaiveraPalette.BRAND_WASH_ALPHA_LIGHT,
+    brandWashEnd = WaiveraPalette.BrandGold.copy(alpha = WaiveraPalette.BRAND_WASH_ALPHA_LIGHT),
 )
 
 internal val DarkWaiveraColors = WaiveraColors(
@@ -204,6 +216,7 @@ internal val DarkWaiveraColors = WaiveraColors(
     secondaryContainer = WaiveraPalette.SurfaceMutedDark,
     secondaryBorder = WaiveraPalette.BorderDark,
     segmentSelected = WaiveraPalette.AccentSoftDark,
+    avatarFill = WaiveraPalette.AvatarFillDark,
     tiles = WaiveraTileColors(
         brand = WaiveraTileTint(WaiveraPalette.AccentSoftDark, WaiveraPalette.OnAccentSoftDark),
         rose = WaiveraTileTint(WaiveraPalette.TileRoseDark, WaiveraPalette.OnTileRoseDark),
@@ -213,6 +226,7 @@ internal val DarkWaiveraColors = WaiveraColors(
         danger = WaiveraTileTint(WaiveraPalette.DangerContainerDark, WaiveraPalette.OnDangerContainerDark),
     ),
     brandWashAlpha = WaiveraPalette.BRAND_WASH_ALPHA_DARK,
+    brandWashEnd = WaiveraPalette.BrandPeach.copy(alpha = WaiveraPalette.BRAND_WASH_END_ALPHA_DARK),
 )
 
 /** Resolves the colour set for a theme. Exposed for screenshot tests and the app's window colours. */

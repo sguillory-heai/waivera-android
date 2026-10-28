@@ -87,7 +87,11 @@ fun WaiveraFilterChip(
             enabled = enabled,
             selected = selected,
             borderColor = colors.border,
-            selectedBorderColor = colors.accentBorderStrong,
+            // The selected edge is the accent at the heavier outline (3:1 on the soft fill), so a
+            // single-choice chip never reads as selected by a faint fill alone (UI8-13). Toggle
+            // chips keep their check as the extra mark.
+            selectedBorderColor = colors.accent,
+            selectedBorderWidth = WaiveraSizes.SelectedOutline,
         ),
     )
 }

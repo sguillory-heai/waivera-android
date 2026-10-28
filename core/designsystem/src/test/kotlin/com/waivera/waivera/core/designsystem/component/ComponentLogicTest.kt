@@ -1,9 +1,13 @@
 package com.waivera.waivera.core.designsystem.component
 
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.unit.dp
+import com.waivera.waivera.core.designsystem.theme.WaiveraShapes
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
+import kotlin.test.assertNotEquals
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
@@ -45,6 +49,22 @@ class ComponentLogicTest {
         assertEquals("99", formatBadgeCount(99))
         assertEquals("99+", formatBadgeCount(100))
         assertEquals("9+", formatBadgeCount(12, max = 9))
+    }
+
+    @Test
+    fun `every avatar is the one soft rounded square, never a circle`() {
+        assertEquals(RoundedCornerShape(8.dp), WaiveraShapes.avatar(24.dp))
+        assertEquals(RoundedCornerShape(10.dp), WaiveraShapes.avatar(40.dp))
+        assertEquals(RoundedCornerShape(23.dp), WaiveraShapes.avatar(96.dp))
+        assertNotEquals(CircleShape, WaiveraShapes.avatar(40.dp))
+    }
+
+    @Test
+    fun `tab badge text follows the font scale up to its cap`() {
+        assertEquals(1f, navBadgeTextScale(1f))
+        assertEquals(1.15f, navBadgeTextScale(1.15f))
+        assertEquals(NAV_BADGE_MAX_TEXT_SCALE, navBadgeTextScale(1.3f))
+        assertEquals(NAV_BADGE_MAX_TEXT_SCALE, navBadgeTextScale(2f))
     }
 
     @Test

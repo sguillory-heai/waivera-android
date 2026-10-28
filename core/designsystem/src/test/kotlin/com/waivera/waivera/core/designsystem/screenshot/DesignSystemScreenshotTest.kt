@@ -61,6 +61,7 @@ import com.waivera.waivera.core.designsystem.component.WaiveraListRow
 import com.waivera.waivera.core.designsystem.component.WaiveraLoadingScreen
 import com.waivera.waivera.core.designsystem.component.WaiveraLoadingState
 import com.waivera.waivera.core.designsystem.component.WaiveraLogo
+import com.waivera.waivera.core.designsystem.component.WaiveraLogoTile
 import com.waivera.waivera.core.designsystem.component.WaiveraLogoVariant
 import com.waivera.waivera.core.designsystem.component.WaiveraMilestoneAvatar
 import com.waivera.waivera.core.designsystem.component.WaiveraNavigationBar
@@ -206,7 +207,15 @@ class DesignSystemScreenshotTest {
             WaiveraIconTile(icon = WaiveraIcons.Error, tone = WaiveraTileTone.Danger)
             WaiveraEmojiTile(emoji = "🎂")
             WaiveraEmojiTile(emoji = "🎉", tone = WaiveraTileTone.Brand)
-            WaiveraEmojiTile(emoji = "👍", tone = WaiveraTileTone.Rose)
+            WaiveraEmojiTile(emoji = "👋", tone = WaiveraTileTone.Brand)
+            WaiveraLogoTile()
+            WaiveraLogoTile(size = WaiveraSizes.AvatarSmall, logoHeight = WaiveraSizes.IconSmall)
+            WaiveraIconTile(
+                icon = WaiveraIcons.Error,
+                tone = WaiveraTileTone.Neutral,
+                size = WaiveraSizes.IconTileSmall,
+                iconSize = WaiveraSizes.IconTileSmallGlyph,
+            )
         }
         WaiveraListRow(
             headline = "Bookmarks",
@@ -274,6 +283,25 @@ class DesignSystemScreenshotTest {
         )
     }
 
+    /**
+     * Initials and fallback avatars on the brand wash (UI8-05): the fill alone sets each one
+     * apart, with no border or ring, in the one rounded-square shape at every size.
+     */
+    @Test
+    fun avatarsOnTheWash() = capture("AvatarsOnWash") {
+        WaiveraBrandSurface {
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(WaiveraSpacing.MediumSmall),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                WaiveraAvatar(name = "Alex Rivera", size = WaiveraSizes.AvatarLarge)
+                WaiveraAvatar(name = "Jordan Lee")
+                WaiveraAvatar(name = "Sam Ortiz", size = WaiveraSizes.AvatarSmall)
+                WaiveraAvatar(name = "")
+            }
+        }
+    }
+
     @Test
     fun switchRows() = capture("SwitchRows") {
         WaiveraSwitchRow(
@@ -305,7 +333,7 @@ class DesignSystemScreenshotTest {
             itemVerticalAlignment = Alignment.CenterVertically,
         ) {
             WaiveraAvatar(name = "Alex Rivera", presence = PresenceStatus.Online)
-            WaiveraAvatar(name = "Priya Raman", milestone = MilestoneKind.Birthday, rounded = false)
+            WaiveraAvatar(name = "Priya Raman", milestone = MilestoneKind.Birthday)
             WaiveraAvatar(name = "Sam Lee", milestone = MilestoneKind.WorkAnniversary, presence = PresenceStatus.Away)
             WaiveraAvatar(name = "Jo", milestone = MilestoneKind.NewHire, size = WaiveraSizes.AvatarSmall)
             WaiveraAvatar(name = "", size = WaiveraSizes.AvatarLarge, presence = PresenceStatus.Offline)
@@ -313,7 +341,7 @@ class DesignSystemScreenshotTest {
         }
     }
 
-    /** The photo path: crop, presence and milestone rings over a real image, beside an initials fallback. */
+    /** The photo path: crop and presence over a real image in the one rounded-square shape, beside initials. */
     @OptIn(ExperimentalLayoutApi::class)
     @Test
     fun avatarsWithPhoto() = capture("AvatarsPhoto") {
@@ -326,7 +354,7 @@ class DesignSystemScreenshotTest {
         ) {
             WaiveraAvatar(name = "Priya Raman", painter = photo, presence = PresenceStatus.Online)
             WaiveraAvatar(name = "Priya Raman", painter = photo, milestone = MilestoneKind.Birthday)
-            WaiveraAvatar(name = "Priya Raman", painter = photo, rounded = false, size = WaiveraSizes.AvatarLarge)
+            WaiveraAvatar(name = "Priya Raman", painter = photo, size = WaiveraSizes.AvatarLarge)
             WaiveraAvatar(name = "Priya Raman", painter = photo, size = WaiveraSizes.AvatarSmall)
             WaiveraMilestoneAvatar(
                 "Priya Raman",

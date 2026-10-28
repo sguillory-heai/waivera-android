@@ -20,6 +20,9 @@ internal object WaiveraPalette {
     val BrandPink = Color(0xFFFF6FBC)
     val BrandGold = Color(0xFFFFD45C)
 
+    /** The dark wash's warm end: gold over plum turned khaki, peach stays in the plum family. */
+    val BrandPeach = Color(0xFFFFB38A)
+
     // Light: warm lilac neutrals
     val BackgroundLight = Color(0xFFFAF8FC)
     val SurfaceLight = Color(0xFFFFFFFF)
@@ -48,6 +51,11 @@ internal object WaiveraPalette {
     val SkeletonBaseLight = Color(0xFFDAD3E3)
     val SkeletonHighlightLight = Color(0xFFE9E4EF)
 
+    // An avatar's fallback fill. Accent-soft was about 1.0:1 against the brand wash's violet end,
+    // so the avatar vanished on a hero (UI8-05). This lilac keeps 1.3:1 on every surface and wash
+    // point by its fill alone: avatars carry no border or ring.
+    val AvatarFillLight = Color(0xFFD4C5EC)
+
     // Dark: one plum family, stepping by lightness only
     val BackgroundDark = Color(0xFF151219)
     val SurfaceDark = Color(0xFF1D1924)
@@ -67,6 +75,7 @@ internal object WaiveraPalette {
     val PurpleDarkFill = Color(0xFF9478E0)
     val OnAccentDark = Color(0xFF1A1226)
     val AccentSoftDark = Color(0xFF2F2643)
+    val AvatarFillDark = Color(0xFF4D3F6A)
     val OnAccentSoftDark = Color(0xFFD9CCFF)
     val DangerDark = Color(0xFFF87171)
     val OnDangerFillDark = Color(0xFF1F0A0A)
@@ -120,4 +129,5 @@ internal object WaiveraPalette {
     /** The brand gradient laid over a surface as a soft wash (celebration cards, the sign-in hero). */
     const val BRAND_WASH_ALPHA_LIGHT = 0.14f
     const val BRAND_WASH_ALPHA_DARK = 0.18f
+    const val BRAND_WASH_END_ALPHA_DARK = 0.12f
 }

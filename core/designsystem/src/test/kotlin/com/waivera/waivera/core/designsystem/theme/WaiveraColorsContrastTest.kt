@@ -61,20 +61,52 @@ class WaiveraColorsContrastTest {
 
     @Test
     fun brandWash_keepsTextReadable() = forEachTheme { colors ->
-        for (stop in WaiveraBrand.Colors) {
-            val wash = stop.copy(alpha = colors.brandWashAlpha).compositeOver(colors.surface)
+        for (stop in WaiveraBrand.washColors(colors)) {
+            val wash = stop.compositeOver(colors.surface)
             text("text on wash $stop", colors.text, wash)
             text("textSecondary on wash $stop", colors.textSecondary, wash)
         }
     }
 
-    /** The selected tab's indicator: the brand gradient over the soft accent, glyph at 3:1 or more. */
+    /** Dark gold over plum composited to khaki (UI8-04): every wash point keeps blue at least level with green. */
+    @Test
+    fun darkBrandWash_staysInThePlumFamily() {
+        val dark = waiveraColors(darkTheme = true)
+        for (stop in WaiveraBrand.washColors(dark)) {
+            val wash = stop.compositeOver(dark.surface)
+            assertTrue(wash.blue >= wash.green, "dark wash point $wash leans olive")
+            assertTrue(wash.red >= wash.green, "dark wash point $wash leans green")
+        }
+    }
+
+    /** The selected tab's pill: violet to pink over the soft accent, glyph at 3:1 or more. */
     @Test
     fun selectedTab_glyphReadsOnTheBrandWash() = forEachTheme { colors ->
-        for (stop in WaiveraBrand.Colors) {
+        for (stop in WaiveraBrand.TabColors) {
             val wash = stop.copy(alpha = WaiveraBrand.ACCENT_WASH_ALPHA).compositeOver(colors.accentSoft)
             ui("selected tab glyph on wash $stop", colors.onAccentSoft, wash)
         }
+    }
+
+    /** The tab pill ends on pink: gold on a 32dp pill read as a smear (UI8-01). */
+    @Test
+    fun selectedTab_hasNoGoldEnd() {
+        assertTrue(WaiveraBrand.Gold !in WaiveraBrand.TabColors, "the tab pill still ends on gold")
+        assertTrue(WaiveraBrand.TabColors.last() == WaiveraBrand.Pink, "the tab pill should end on pink")
+    }
+
+    /**
+     * Avatars carry no border or ring, so a fallback avatar's fill alone sets it apart from every
+     * page surface and every point of the brand wash (UI8-05), and its initials stay readable.
+     */
+    @Test
+    fun avatarFill_standsApartFromSurfacesAndTheWash() = forEachTheme { colors ->
+        val backdrops = pageSurfaces(colors) +
+            WaiveraBrand.washColors(colors).map { "wash $it" to it.compositeOver(colors.surface) }
+        for ((name, backdrop) in backdrops) {
+            check("avatar fill on $name", colors.avatarFill, backdrop, AVATAR_FILL_MIN)
+        }
+        text("initials on avatarFill", colors.onAccentSoft, colors.avatarFill)
     }
 
     @Test
@@ -129,6 +161,7 @@ class WaiveraColorsContrastTest {
         const val TEXT_MIN = 4.5
         const val UI_MIN = 3.0
         const val SKELETON_MIN = 1.3
+        const val AVATAR_FILL_MIN = 1.3
         const val PLUM_MAX_BLUE_LEAD = 0.07f
 
         fun contrast(a: Color, b: Color): Double {
