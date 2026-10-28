@@ -5,6 +5,7 @@ import com.waivera.waivera.core.data.model.Attendee
 import com.waivera.waivera.core.data.model.Milestone
 import com.waivera.waivera.core.data.model.MyInvitation
 import com.waivera.waivera.core.data.model.ScheduleEvent
+import com.waivera.waivera.core.designsystem.component.WaiveraButtonVariant
 import com.waivera.waivera.core.network.dto.AttendeeResponseDto
 import com.waivera.waivera.core.network.dto.AttendeeType
 import com.waivera.waivera.core.network.dto.CalendarEventResponseDto
@@ -261,5 +262,14 @@ class EventRulesTest {
         assertNotNull(details.zoneNotice)
         assertEquals(2026, details.currentYear)
         assertFalse(details.isOrganizer)
+    }
+
+    @Test
+    fun goingLeadsUntilAnsweredThenTheChoiceIsHeavier() {
+        // UI10-15: the same invitation offers a gradient Accept on Today.
+        assertEquals(WaiveraButtonVariant.Primary, responseVariant(answered = false, chosen = false, primary = true))
+        assertEquals(WaiveraButtonVariant.Tonal, responseVariant(answered = false, chosen = false, primary = false))
+        assertEquals(WaiveraButtonVariant.Selected, responseVariant(answered = true, chosen = true, primary = false))
+        assertEquals(WaiveraButtonVariant.Unselected, responseVariant(answered = true, chosen = false, primary = true))
     }
 }

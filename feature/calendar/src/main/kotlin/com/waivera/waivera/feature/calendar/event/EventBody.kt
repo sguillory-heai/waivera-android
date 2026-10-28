@@ -17,7 +17,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.material3.Icon
@@ -47,12 +47,15 @@ import com.waivera.waivera.core.designsystem.component.WaiveraBanner
 import com.waivera.waivera.core.designsystem.component.WaiveraBrandSurface
 import com.waivera.waivera.core.designsystem.component.WaiveraButton
 import com.waivera.waivera.core.designsystem.component.WaiveraButtonVariant
+import com.waivera.waivera.core.designsystem.component.WaiveraCardGroup
 import com.waivera.waivera.core.designsystem.component.WaiveraIconTile
+import com.waivera.waivera.core.designsystem.component.WaiveraInsetDivider
 import com.waivera.waivera.core.designsystem.component.WaiveraListRow
 import com.waivera.waivera.core.designsystem.component.WaiveraSectionHeader
 import com.waivera.waivera.core.designsystem.component.WaiveraTileTone
 import com.waivera.waivera.core.designsystem.component.rememberSkeletonPulse
 import com.waivera.waivera.core.designsystem.component.rememberSkeletonVisible
+import com.waivera.waivera.core.designsystem.component.waiveraCardGroupItem
 import com.waivera.waivera.core.designsystem.icon.WaiveraIcons
 import com.waivera.waivera.core.designsystem.text.asAddressDisplay
 import com.waivera.waivera.core.designsystem.theme.WaiveraElevation
@@ -191,8 +194,18 @@ internal fun EventBody(
                 )
             }
         } else {
-            items(details.attendees, key = { "attendee:${it.id}" }) { attendee ->
-                AttendeeItem(attendee, actions)
+            // The attendees share one card, as Profile and People group rows (UI10-15).
+            itemsIndexed(details.attendees, key = { _, row -> "attendee:${row.id}" }) { index, attendee ->
+                Column(
+                    modifier = Modifier.waiveraCardGroupItem(
+                        index = index,
+                        count = details.attendees.size,
+                        surface = WaiveraTheme.colors.surface,
+                    ),
+                ) {
+                    AttendeeItem(attendee, actions)
+                    if (index < details.attendees.lastIndex) WaiveraInsetDivider()
+                }
             }
         }
     }
@@ -411,8 +424,9 @@ private fun InvitationBlock(invitation: InvitationUi, actions: EventActions, mod
  * "Not going" and "Going" as one single-choice group: the chosen answer has the accent-soft fill,
  * an accent outline and a check, and is announced as selected; the other has a subtle outline and
  * regular-weight text, so the chosen one is always the heavier, in dark mode too (UI4-04). The
- * pair reads as a state rather than two calls to action. Before an answer both are soft tonal
- * buttons, an invitation to choose, never two stark outlined blocks. Above 130% font the pair
+ * pair reads as a state rather than two calls to action. Before an answer Going is the gradient
+ * primary and Not going a soft tonal choice, as Today's invitation offers Accept (UI10-15); never
+ * two stark outlined blocks. Above 130% font the pair
  * stacks and the check is dropped so labels stay whole.
  */
 @Composable
@@ -423,6 +437,7 @@ private fun ResponseChoices(saving: Boolean, accepted: Boolean, declined: Boolea
             text = stringResource(R.string.feature_calendar_decline),
             chosen = declined,
             answered = accepted || declined,
+            primary = false,
             saving = saving,
             showCheck = !large,
             onClick = actions.onDecline,
@@ -434,6 +449,7 @@ private fun ResponseChoices(saving: Boolean, accepted: Boolean, declined: Boolea
             text = stringResource(R.string.feature_calendar_accept),
             chosen = accepted,
             answered = accepted || declined,
+            primary = true,
             saving = saving,
             showCheck = !large,
             onClick = actions.onAccept,
@@ -465,6 +481,7 @@ private fun ResponseChoice(
     text: String,
     chosen: Boolean,
     answered: Boolean,
+    primary: Boolean,
     saving: Boolean,
     showCheck: Boolean,
     onClick: () -> Unit,
@@ -473,17 +490,20 @@ private fun ResponseChoice(
     WaiveraButton(
         text = text,
         onClick = onClick,
-        // Before an answer both are soft tonal choices; after one, the chosen side is the heavier.
-        variant = when {
-            !answered -> WaiveraButtonVariant.Tonal
-            chosen -> WaiveraButtonVariant.Selected
-            else -> WaiveraButtonVariant.Unselected
-        },
+        variant = responseVariant(answered = answered, chosen = chosen, primary = primary),
         enabled = !saving,
         loadingText = stringResource(R.string.feature_calendar_response_saving).takeIf { saving && chosen },
         leadingIcon = if (chosen && showCheck) WaiveraIcons.Check else null,
         modifier = modifier.semantics { selected = chosen },
     )
+}
+
+/** Before an answer Going leads; after one, the chosen side is the heavier, whichever it is. */
+internal fun responseVariant(answered: Boolean, chosen: Boolean, primary: Boolean): WaiveraButtonVariant = when {
+    !answered && primary -> WaiveraButtonVariant.Primary
+    !answered -> WaiveraButtonVariant.Tonal
+    chosen -> WaiveraButtonVariant.Selected
+    else -> WaiveraButtonVariant.Unselected
 }
 
 @Composable
@@ -496,9 +516,9 @@ private fun responseText(response: MyInvitation): String = when (response) {
 
 /**
  * Who organizes the event. When it is me, one plain line says so; the attendee list already has
- * "(you)", so a card with my own name would repeat it. Otherwise a plain row under an eyebrow,
- * like the attendee rows below, that opens the person when there is someone to open. The tinted
- * card it replaces looked like a tonal button (UI3-15).
+ * "(you)", so a card with my own name would repeat it. Otherwise one row on a grouped card under
+ * its header, like the attendee card below and Profile's sections (UI10-15), that opens the person
+ * when there is someone to open. The tinted card before it looked like a tonal button (UI3-15).
  */
 @Composable
 private fun OrganizerBlock(organizer: PersonRow, isMine: Boolean, actions: EventActions, modifier: Modifier) {
@@ -516,15 +536,17 @@ private fun OrganizerBlock(organizer: PersonRow, isMine: Boolean, actions: Event
     val userId = organizer.userId
     Column {
         WaiveraSectionHeader(text = stringResource(R.string.feature_calendar_event_organized_by))
-        WaiveraListRow(
-            headline = name,
-            onClick = userId?.let { { actions.onOpenPerson(it) } },
-            onClickLabel = userId?.let { stringResource(R.string.feature_calendar_open_profile) },
-            showChevron = userId != null,
-            leading = {
-                MilestoneAvatar(name, organizer.celebration, CalendarSizes.OrganizerAvatar, userId = userId)
-            },
-        )
+        WaiveraCardGroup {
+            WaiveraListRow(
+                headline = name,
+                onClick = userId?.let { { actions.onOpenPerson(it) } },
+                onClickLabel = userId?.let { stringResource(R.string.feature_calendar_open_profile) },
+                showChevron = userId != null,
+                leading = {
+                    MilestoneAvatar(name, organizer.celebration, CalendarSizes.OrganizerAvatar, userId = userId)
+                },
+            )
+        }
     }
 }
 
