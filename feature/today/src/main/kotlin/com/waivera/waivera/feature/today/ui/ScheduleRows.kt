@@ -31,6 +31,7 @@ import com.waivera.waivera.core.designsystem.theme.WaiveraShapes
 import com.waivera.waivera.core.designsystem.theme.WaiveraSpacing
 import com.waivera.waivera.core.designsystem.theme.WaiveraTextStyles
 import com.waivera.waivera.core.designsystem.theme.WaiveraTheme
+import com.waivera.waivera.core.designsystem.theme.isExtraLargeFontScale
 import com.waivera.waivera.feature.today.R
 import com.waivera.waivera.feature.today.model.NextUpItem
 import com.waivera.waivera.feature.today.model.UpcomingLabel
@@ -82,6 +83,22 @@ internal fun UpNextCard(item: NextUpItem, onClick: () -> Unit, modifier: Modifie
     val showChip = item.isHappeningNow || item.time is UpcomingLabel.InMinutes || item.time is UpcomingLabel.InHours
     val spokenNow = if (item.isHappeningNow) stringResource(R.string.feature_today_happening_now_a11y) else null
     val description = joined(joined(joined(time, title), range?.let { joined(it, place) } ?: place), spokenNow)
+    // From 150% the chip goes under the address, so the title and the place keep the row's
+    // width instead of breaking beside "in 30 min" (UI11-06), as on the hero's Next line.
+    val chipBelow = isExtraLargeFontScale()
+    val chip: @Composable (Modifier) -> Unit = { chipModifier ->
+        Text(
+            text = time,
+            style = WaiveraTextStyles.Chip,
+            color = teal.content,
+            maxLines = 1,
+            softWrap = false,
+            modifier = chipModifier
+                .background(teal.container, WaiveraShapes.CountBadge)
+                .padding(horizontal = WaiveraSpacing.MediumSmall - WaiveraSpacing.XxSmall)
+                .padding(vertical = WaiveraSpacing.ExtraSmall),
+        )
+    }
     Box(
         modifier = modifier
             .fillMaxWidth()
@@ -130,27 +147,15 @@ internal fun UpNextCard(item: NextUpItem, onClick: () -> Unit, modifier: Modifie
                                 overflow = TextOverflow.Ellipsis,
                             )
                         }
+                        if (showChip && chipBelow) chip(Modifier.padding(top = WaiveraSpacing.ExtraSmall))
                     }
-                    if (showChip) {
-                        Text(
-                            text = time,
-                            style = WaiveraTextStyles.Chip,
-                            color = teal.content,
-                            maxLines = 1,
-                            softWrap = false,
-                            modifier = Modifier
-                                .background(teal.container, WaiveraShapes.CountBadge)
-                                .padding(horizontal = WaiveraSpacing.MediumSmall - WaiveraSpacing.XxSmall)
-                                .padding(vertical = WaiveraSpacing.ExtraSmall),
-                        )
-                    }
+                    if (showChip && !chipBelow) chip(Modifier)
                 }
                 val start = item.start
                 if (start != null) {
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(WaiveraSpacing.Small),
-                        verticalAlignment = Alignment.Bottom,
-                    ) {
+                    // No gap between "AM" and the end time: the end time's own text starts with the
+                    // space before its dash, so the dash has the same space on either side (UI11-06).
+                    Row(verticalAlignment = Alignment.Bottom) {
                         // "11:00" large with a small "AM", as concept A sets it (UI10-10).
                         Row(
                             horizontalArrangement = Arrangement.spacedBy(WaiveraSpacing.ExtraSmall),
