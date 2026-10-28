@@ -11,13 +11,21 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
 import com.waivera.waivera.core.data.image.AvatarModel
 import com.waivera.waivera.core.designsystem.component.WaiveraAvatar
 import com.waivera.waivera.core.designsystem.component.WaiveraButton
@@ -32,6 +40,7 @@ import com.waivera.waivera.core.designsystem.theme.WaiveraShapes
 import com.waivera.waivera.core.designsystem.theme.WaiveraSizes
 import com.waivera.waivera.core.designsystem.theme.WaiveraSpacing
 import com.waivera.waivera.core.designsystem.theme.WaiveraTheme
+import com.waivera.waivera.core.designsystem.theme.isExtraLargeFontScale
 import com.waivera.waivera.feature.today.R
 import com.waivera.waivera.feature.today.model.CelebrationItem
 import com.waivera.waivera.feature.today.model.DayPart
@@ -70,6 +79,12 @@ internal fun CelebrationCard(
     val sentence = celebrationText(item)
     val name = item.name ?: stringResource(R.string.feature_today_celebration_name_fallback)
     val label = stringResource(celebrationLabel(item))
+    // At large font, or on a narrow card, indenting Send wishes under the sentence leaves too
+    // little for its two words; it then starts at the card's content start, as on the Day
+    // card (UI11-03). The card is always full width, so its width settles in one frame.
+    val indentMinPx = with(LocalDensity.current) { WishesIndentMinCardWidth.roundToPx() }
+    var narrow by remember { mutableStateOf(false) }
+    val indentWishes = !narrow && !isExtraLargeFontScale()
     Box(
         modifier = modifier
             .fillMaxWidth()
@@ -81,6 +96,7 @@ internal fun CelebrationCard(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
+                .onSizeChanged { narrow = it.width < indentMinPx }
                 .clip(WaiveraShapes.UpNextCard)
                 .background(colors.surface)
                 .background(WaiveraBrand.wash()),
@@ -124,9 +140,14 @@ internal fun CelebrationCard(
                     onClick = onSendWishes,
                     variant = WaiveraButtonVariant.TonalOnWash,
                     leadingIcon = WaiveraIcons.Chat,
+                    maxLines = 1,
                     modifier = Modifier
                         .padding(
-                            start = WaiveraSpacing.Medium + WaiveraSizes.AvatarMedium + WaiveraSpacing.MediumSmall,
+                            start = if (indentWishes) {
+                                WaiveraSpacing.Medium + WaiveraSizes.AvatarMedium + WaiveraSpacing.MediumSmall
+                            } else {
+                                WaiveraSpacing.Medium
+                            },
                             end = WaiveraSpacing.Medium,
                             bottom = WaiveraSpacing.Medium,
                         )
@@ -137,6 +158,9 @@ internal fun CelebrationCard(
         WaiveraCelebrationBurst(trigger = item.userId, seed = burstSeed, modifier = Modifier.matchParentSize())
     }
 }
+
+/** Below this card width Send wishes starts at the card's content start, not under the sentence. */
+private val WishesIndentMinCardWidth: Dp = 300.dp
 
 @StringRes
 private fun celebrationEmoji(item: CelebrationItem): Int = when {
