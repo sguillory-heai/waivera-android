@@ -135,8 +135,8 @@ internal fun SignInContent(
     // The button follows the password field into view, so with the keyboard up it stays reachable.
     val actionsInView = remember { BringIntoViewRequester() }
     var passwordFocused by remember { mutableStateOf(false) }
-    KeepInViewAboveKeyboard(requester = actionsInView, active = passwordFocused)
     val scrollState = rememberScrollState()
+    KeepInViewAboveKeyboard(requester = actionsInView, scrollState = scrollState, active = passwordFocused)
     KeepInViewWhileBannerShows(requester = actionsInView, scrollState = scrollState, banner = state.bannerKey())
     SignInFrame(
         modifier = modifier,

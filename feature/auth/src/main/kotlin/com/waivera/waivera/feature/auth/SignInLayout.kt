@@ -83,18 +83,25 @@ internal fun rememberImeVisible(): Boolean {
 
 /**
  * Keeps [requester] in view while the keyboard slides up and [active] (a field just above it has
- * focus). It follows the keyboard's inset outside composition, so the screen does not recompose
- * on each frame of the slide, and the last call wins once the keyboard settles.
+ * focus). It follows the keyboard's inset and the scroll's viewport outside composition, so the
+ * screen does not recompose on each frame of the slide, and the last call wins once the keyboard
+ * settles.
+ *
+ * The viewport is part of the key because the inset reaches this effect before the frame has
+ * padded for it: a request made on the inset alone ran against the old, taller viewport, found
+ * Sign in already visible and did nothing, and the padding then pushed Sign in under the keyboard
+ * with no second request (wave 13). The viewport shrinks once the padding is laid out, and that
+ * change makes the request that counts.
  */
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-internal fun KeepInViewAboveKeyboard(requester: BringIntoViewRequester, active: Boolean) {
+internal fun KeepInViewAboveKeyboard(requester: BringIntoViewRequester, scrollState: ScrollState, active: Boolean) {
     val ime = WindowInsets.ime
     val density = LocalDensity.current
-    LaunchedEffect(requester, active, ime, density) {
+    LaunchedEffect(requester, scrollState, active, ime, density) {
         if (!active) return@LaunchedEffect
-        snapshotFlow { ime.getBottom(density) }
-            .filter { it > 0 }
+        snapshotFlow { ime.getBottom(density) to scrollState.viewportSize }
+            .filter { (keyboard, _) -> keyboard > 0 }
             .collectLatest { requester.bringIntoView() }
     }
 }
