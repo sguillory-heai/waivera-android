@@ -19,6 +19,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import com.waivera.waivera.core.designsystem.preview.WaiveraPreviews
+import com.waivera.waivera.core.designsystem.text.withBreaksAfterHyphens
 import com.waivera.waivera.core.designsystem.theme.WaiveraShapes
 import com.waivera.waivera.core.designsystem.theme.WaiveraSizes
 import com.waivera.waivera.core.designsystem.theme.WaiveraSpacing
@@ -67,8 +68,9 @@ internal fun WaiveraSheetContent(
         verticalArrangement = Arrangement.spacedBy(WaiveraSpacing.MediumSmall),
     ) {
         if (title != null) {
+            // Sheet titles often name a person or channel: wrap after a hyphen, never mid-word (UI5-05).
             Text(
-                text = title,
+                text = title.withBreaksAfterHyphens(),
                 style = MaterialTheme.typography.titleLarge,
                 color = WaiveraTheme.colors.text,
                 modifier = Modifier.semantics { heading() },

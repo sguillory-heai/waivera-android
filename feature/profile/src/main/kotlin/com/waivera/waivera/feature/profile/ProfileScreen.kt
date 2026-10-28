@@ -48,6 +48,7 @@ import com.waivera.waivera.core.designsystem.component.WaiveraListRow
 import com.waivera.waivera.core.designsystem.component.WaiveraTopBar
 import com.waivera.waivera.core.designsystem.icon.WaiveraIcons
 import com.waivera.waivera.core.designsystem.preview.WaiveraPreviews
+import com.waivera.waivera.core.designsystem.text.withBreaksAfterHyphens
 import com.waivera.waivera.core.designsystem.theme.WaiveraShapes
 import com.waivera.waivera.core.designsystem.theme.WaiveraSizes
 import com.waivera.waivera.core.designsystem.theme.WaiveraSpacing
@@ -206,7 +207,12 @@ private fun IdentityCard(user: CurrentUser, profile: EmployeeProfile?, celebrati
             modifier = textModifier.semantics(mergeDescendants = true) {},
             verticalArrangement = Arrangement.spacedBy(WaiveraSpacing.XxSmall),
         ) {
-            Text(text = name, style = MaterialTheme.typography.headlineSmall, color = colors.text)
+            // Hyphenated names wrap after a hyphen, never mid-word (UI5-05).
+            Text(
+                text = name.withBreaksAfterHyphens(),
+                style = MaterialTheme.typography.headlineSmall,
+                color = colors.text,
+            )
             if (jobTitle != null) {
                 Text(text = jobTitle, style = MaterialTheme.typography.bodyMedium, color = colors.textSecondary)
             }

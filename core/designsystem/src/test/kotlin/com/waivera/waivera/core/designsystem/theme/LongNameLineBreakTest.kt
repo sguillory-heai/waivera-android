@@ -11,6 +11,7 @@ import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.waivera.waivera.core.designsystem.text.withBreaksAfterHyphens
 import com.waivera.waivera.core.screenshottesting.ScreenshotSdk
@@ -24,7 +25,7 @@ import org.robolectric.annotation.GraphicsMode
 
 /**
  * Long hyphenated names and channel names wrap only at a space or after a hyphen, never
- * mid-word, in the title styles rows use, at 100% and 200% (UI4-02).
+ * mid-word, in the title styles rows and headers use, at 100% and 200% (UI4-02, UI5-05).
  */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
@@ -38,6 +39,7 @@ class LongNameLineBreakTest {
         fontScale: Float,
         style: (Typography) -> TextStyle,
         maxLines: Int,
+        width: Dp,
     ): TextLayoutResult {
         var result: TextLayoutResult? = null
         compose.setContent {
@@ -45,7 +47,7 @@ class LongNameLineBreakTest {
             CompositionLocalProvider(LocalDensity provides Density(density.density, fontScale)) {
                 WaiveraTheme(darkTheme = false, motion = WaiveraMotionScheme.Reduced, hapticsEnabled = false) {
                     val measurer = rememberTextMeasurer()
-                    val widthPx = with(LocalDensity.current) { ROW_TEXT_WIDTH.roundToPx() }
+                    val widthPx = with(LocalDensity.current) { width.roundToPx() }
                     result = measurer.measure(
                         text = text,
                         style = style(MaterialTheme.typography),
@@ -60,9 +62,15 @@ class LongNameLineBreakTest {
         return checkNotNull(result)
     }
 
-    private fun assertBreaksBetweenWords(name: String, fontScale: Float, maxLines: Int = Int.MAX_VALUE) {
+    private fun assertBreaksBetweenWords(
+        name: String,
+        fontScale: Float,
+        maxLines: Int = Int.MAX_VALUE,
+        style: (Typography) -> TextStyle = { it.titleSmall },
+        width: Dp = ROW_TEXT_WIDTH,
+    ) {
         val text = name.withBreaksAfterHyphens()
-        val layout = layout(text = text, fontScale = fontScale, style = { it.titleSmall }, maxLines = maxLines)
+        val layout = layout(text = text, fontScale = fontScale, style = style, maxLines = maxLines, width = width)
         for (line in 0 until layout.lineCount - 1) {
             val end = layout.getLineEnd(line)
             val before = text[end - 1]
@@ -92,10 +100,31 @@ class LongNameLineBreakTest {
     fun notSentHeadlineAtLargeSize() =
         assertBreaksBetweenWords(name = "Your message to $PERSON", fontScale = 2f, maxLines = 2)
 
+    /** The profile and person headers and the top bar title use headlineSmall (UI5-05). */
+    @Test
+    fun profileHeaderNameAtLargeSize() = assertBreaksBetweenWords(
+        name = HEADER_PERSON,
+        fontScale = 2f,
+        style = { it.headlineSmall },
+        width = HEADER_TEXT_WIDTH,
+    )
+
+    @Test
+    fun profileHeaderNameAtDefaultSize() = assertBreaksBetweenWords(
+        name = HEADER_PERSON,
+        fontScale = 1f,
+        style = { it.headlineSmall },
+        width = HEADER_TEXT_WIDTH,
+    )
+
     private companion object {
         const val CHANNEL = "old-pilot-program-coordination-and-scheduling"
         const val PERSON = "Maria-Fernanda Castellanos-Whitaker de la Cruz"
         const val ZERO_WIDTH_SPACE = '\u200B'
+        const val HEADER_PERSON = "Alexandria Catherine Rivera-Montgomery"
+
+        /** The profile header's text column at large font: the card's width less its padding. */
+        val HEADER_TEXT_WIDTH = 296.dp
 
         /** A row's text column on a 360dp phone: gutter, avatar and gaps taken off. */
         val ROW_TEXT_WIDTH = 312.dp

@@ -30,6 +30,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import com.waivera.waivera.core.designsystem.feedback.rememberHaptics
 import com.waivera.waivera.core.designsystem.icon.WaiveraIcons
 import com.waivera.waivera.core.designsystem.preview.WaiveraPreviews
+import com.waivera.waivera.core.designsystem.text.withBreaksAfterHyphens
 import com.waivera.waivera.core.designsystem.theme.WaiveraShapes
 import com.waivera.waivera.core.designsystem.theme.WaiveraSizes
 import com.waivera.waivera.core.designsystem.theme.WaiveraSpacing
@@ -174,8 +175,9 @@ private fun RowText(
         )
     }
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(WaiveraSpacing.XxSmall)) {
+        // Hyphenated names wrap after a hyphen, never mid-word, in every row (UI5-05).
         Text(
-            text = title,
+            text = title.withBreaksAfterHyphens(),
             style = MaterialTheme.typography.titleSmall,
             color = if (enabled) colors.text else colors.textSecondary,
         )

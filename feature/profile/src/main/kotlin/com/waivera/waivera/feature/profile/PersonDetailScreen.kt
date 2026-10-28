@@ -40,6 +40,7 @@ import com.waivera.waivera.core.designsystem.component.WaiveraTopBar
 import com.waivera.waivera.core.designsystem.feedback.rememberHaptics
 import com.waivera.waivera.core.designsystem.icon.WaiveraIcons
 import com.waivera.waivera.core.designsystem.preview.WaiveraPreviews
+import com.waivera.waivera.core.designsystem.text.withBreaksAfterHyphens
 import com.waivera.waivera.core.designsystem.theme.WaiveraShapes
 import com.waivera.waivera.core.designsystem.theme.WaiveraSizes
 import com.waivera.waivera.core.designsystem.theme.WaiveraSpacing
@@ -159,8 +160,9 @@ private fun PersonHero(state: PersonDetailUiState) {
             contentDescription = null,
         )
         if (state.name.isNotBlank()) {
+            // Hyphenated names wrap after a hyphen, never mid-word (UI5-05).
             Text(
-                text = state.name,
+                text = state.name.withBreaksAfterHyphens(),
                 style = MaterialTheme.typography.headlineSmall,
                 color = colors.text,
                 textAlign = TextAlign.Center,
