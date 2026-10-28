@@ -30,7 +30,8 @@
     <string name="feature_today_brand_needs_you_none">Nothing needs you right now</string>
     <string name="feature_today_brand_handled_since" tools:ignore="PluralsCandidate">%1$d handled since this morning.</string>
     <string name="feature_today_brand_handled_none">Each one you clear counts here.</string>
-    <string name="feature_today_brand_next">Next · %1$s</string>
+    <!-- No-break spaces, so at 200% the kicker never breaks as "NEXT ·" over its time (UI11-01). -->
+    <string name="feature_today_brand_next">Next\u00A0·\u00A0%1$s</string>
     <string name="feature_today_brand_next_a11y">Next: %1$s, %2$s</string>
     <string name="feature_today_brand_now">Now · %1$s</string>
     <string name="feature_today_brand_loading_summary">Loading what needs you</string>

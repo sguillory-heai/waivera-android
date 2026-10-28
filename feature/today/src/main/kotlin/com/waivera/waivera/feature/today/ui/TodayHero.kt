@@ -15,7 +15,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
@@ -25,11 +24,9 @@ import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.text.withStyle
 import com.waivera.waivera.core.designsystem.component.WaiveraCelebrationBurst
 import com.waivera.waivera.core.designsystem.component.WaiveraHeroCard
 import com.waivera.waivera.core.designsystem.component.WaiveraHeroSection
@@ -241,7 +238,6 @@ private fun NextRow(item: NextUpItem, compact: Boolean, onClick: () -> Unit) {
         else -> stringResource(R.string.feature_today_brand_next, upcoming)
     }
     val description = stringResource(R.string.feature_today_brand_next_a11y, title, upcoming)
-    val inline = isExtraLargeFontScale()
     Column(modifier = Modifier.fillMaxWidth()) {
         Box(
             modifier = Modifier
@@ -257,70 +253,75 @@ private fun NextRow(item: NextUpItem, compact: Boolean, onClick: () -> Unit) {
                 .fillMaxWidth()
                 .semantics { contentDescription = description },
         ) {
-            Row(
+            NextLine(
+                kicker = kicker,
+                title = title,
+                countdown = upcoming.takeIf { countdown },
                 modifier = Modifier
-                    .fillMaxWidth()
                     .padding(top = if (compact) WaiveraSpacing.Small else WaiveraSpacing.MediumSmall)
                     .clearAndSetSemantics { },
-                horizontalArrangement = Arrangement.spacedBy(WaiveraSpacing.Small),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Icon(
-                    painter = painterResource(WaiveraIcons.Schedule),
-                    contentDescription = null,
-                    tint = hero.nextIcon,
-                    modifier = Modifier.size(WaiveraSizes.IconTileSmallGlyph),
-                )
-                if (inline) {
-                    // One wrapping line at 150% and up: "NEXT · 11:00 AM Client home visit" (UI10-08).
-                    val kickerStyle = WaiveraTextStyles.HeroEyebrow.toSpanStyle().copy(color = hero.onHeaderSecondary)
-                    val line = remember(kicker, title, kickerStyle, formats) {
-                        buildAnnotatedString {
-                            withStyle(kickerStyle) { append(formats.upper(kicker)) }
-                            append(' ')
-                            append(title)
-                        }
-                    }
-                    Text(
-                        text = line,
-                        style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.Bold,
-                        color = hero.onHeader,
-                        maxLines = INLINE_NEXT_LINES,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.weight(1f),
-                    )
-                } else {
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            text = formats.upper(kicker),
-                            style = WaiveraTextStyles.HeroEyebrow,
-                            color = hero.onHeaderSecondary,
-                        )
-                        Text(
-                            text = title,
-                            style = MaterialTheme.typography.titleSmall,
-                            fontWeight = FontWeight.Bold,
-                            color = hero.onHeader,
-                            maxLines = 2,
-                            overflow = TextOverflow.Ellipsis,
-                        )
-                    }
-                }
-                if (countdown) {
-                    Text(
-                        text = upcoming,
-                        style = WaiveraTextStyles.Chip,
-                        color = hero.onChip,
-                        maxLines = 1,
-                        softWrap = false,
-                        modifier = Modifier
-                            .background(hero.chip, WaiveraShapes.CountBadge)
-                            .padding(horizontal = WaiveraSpacing.Small, vertical = WaiveraSpacing.XxSmall),
-                    )
-                }
-            }
+            )
         }
+    }
+}
+
+/**
+ * The Next row's clock icon, kicker, title and [countdown] chip, drawn without semantics of
+ * their own: the row around it speaks for them. Below 150% the chip sits at the row's end.
+ *
+ * From 150% the chip moves under the title, so the kicker and the title get the whole width
+ * beside the icon (UI11-01). The kicker is one unbreakable unit ("NEXT · 11:00 AM": the string
+ * and the time join their parts with no-break spaces), on its own line, and the title starts
+ * on the next line with up to two lines of its own, so a tall font never spends the lines on
+ * the kicker and cuts the title short.
+ */
+@Composable
+internal fun NextLine(kicker: String, title: String, countdown: String?, modifier: Modifier = Modifier) {
+    val formats = rememberTodayFormats()
+    val hero = WaiveraHero.colors
+    val stacked = isExtraLargeFontScale()
+    val chip: @Composable (Modifier) -> Unit = { chipModifier ->
+        if (countdown != null) {
+            Text(
+                text = countdown,
+                style = WaiveraTextStyles.Chip,
+                color = hero.onChip,
+                maxLines = 1,
+                softWrap = false,
+                modifier = chipModifier
+                    .background(hero.chip, WaiveraShapes.CountBadge)
+                    .padding(horizontal = WaiveraSpacing.Small, vertical = WaiveraSpacing.XxSmall),
+            )
+        }
+    }
+    Row(
+        modifier = modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(WaiveraSpacing.Small),
+        verticalAlignment = if (stacked) Alignment.Top else Alignment.CenterVertically,
+    ) {
+        Icon(
+            painter = painterResource(WaiveraIcons.Schedule),
+            contentDescription = null,
+            tint = hero.nextIcon,
+            modifier = Modifier.size(WaiveraSizes.IconTileSmallGlyph),
+        )
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = formats.upper(kicker),
+                style = WaiveraTextStyles.HeroEyebrow,
+                color = hero.onHeaderSecondary,
+            )
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.Bold,
+                color = hero.onHeader,
+                maxLines = NEXT_TITLE_LINES,
+                overflow = TextOverflow.Ellipsis,
+            )
+            if (stacked) chip(Modifier.padding(top = WaiveraSpacing.ExtraSmall))
+        }
+        if (!stacked) chip(Modifier)
     }
 }
 
@@ -446,7 +447,7 @@ private fun handledStat(progress: TodayProgress?): WaiveraStat {
 }
 
 private const val PLACEHOLDER_TITLE = 0.8f
-private const val INLINE_NEXT_LINES = 3
+private const val NEXT_TITLE_LINES = 2
 private const val PLACEHOLDER_BODY = 0.55f
 
 @WaiveraPreviews
