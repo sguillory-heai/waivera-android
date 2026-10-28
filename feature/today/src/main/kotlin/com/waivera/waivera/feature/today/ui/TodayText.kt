@@ -5,6 +5,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import com.waivera.waivera.core.designsystem.text.CelebrationCopy
+import com.waivera.waivera.core.designsystem.text.resolve
 import com.waivera.waivera.core.network.dto.ChatActivityType
 import com.waivera.waivera.feature.today.R
 import com.waivera.waivera.feature.today.model.ActivitySummary
@@ -101,8 +103,19 @@ internal fun activityKindText(type: ChatActivityType): String = stringResource(
     },
 )
 
+/**
+ * The celebration sentence. Your own card speaks to you by first name, through the shared
+ * [CelebrationCopy] rule, as Profile and Schedule do (UI9-05); a teammate's names them in full.
+ */
 @Composable
 internal fun celebrationText(item: CelebrationItem): String {
+    if (item.isMe) {
+        CelebrationCopy.self(
+            birthday = item.isBirthday,
+            anniversaryYears = item.anniversaryYears,
+            firstName = CelebrationCopy.firstName(item.name),
+        )?.let { return it.resolve() }
+    }
     val name = item.name ?: stringResource(R.string.feature_today_celebration_name_fallback)
     val years = item.anniversaryYears
     return when {

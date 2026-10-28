@@ -1,10 +1,15 @@
 package com.waivera.waivera.feature.today.ui
 
 import android.content.Context
+import androidx.compose.ui.test.junit4.createComposeRule
+import com.waivera.waivera.core.designsystem.theme.WaiveraMotionScheme
+import com.waivera.waivera.core.designsystem.theme.WaiveraTheme
 import com.waivera.waivera.core.screenshottesting.ScreenshotSdk
 import com.waivera.waivera.feature.today.R
+import com.waivera.waivera.feature.today.model.CelebrationItem
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
+import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
@@ -15,7 +20,47 @@ import org.robolectric.annotation.Config
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [ScreenshotSdk.VALUE])
 class TodayCopyRobolectricTest {
+    @get:Rule
+    val compose = createComposeRule()
+
     private val context: Context = RuntimeEnvironment.getApplication()
+
+    private fun sentence(item: CelebrationItem): String {
+        var text = ""
+        compose.setContent {
+            WaiveraTheme(darkTheme = false, motion = WaiveraMotionScheme.Reduced, hapticsEnabled = false) {
+                text = celebrationText(item)
+            }
+        }
+        compose.waitForIdle()
+        return text
+    }
+
+    /** Your own card speaks to you by first name, as Today's greeting does (UI9-05). */
+    @Test
+    fun yourOwnCelebrationIsInTheSecondPersonByFirstName() {
+        assertEquals(
+            "Happy birthday and work anniversary, Alex!",
+            sentence(CelebrationItem("me", "Alex Rivera", isBirthday = true, anniversaryYears = 3, isMe = true)),
+        )
+    }
+
+    @Test
+    fun yourOwnAnniversaryKeepsTheYears() {
+        assertEquals(
+            "Happy 3-year work anniversary, Alex!",
+            sentence(CelebrationItem("me", "Alex Rivera", isBirthday = false, anniversaryYears = 3, isMe = true)),
+        )
+    }
+
+    /** A teammate's card still names them in full. */
+    @Test
+    fun aTeammatesCelebrationNamesThemInFull() {
+        assertEquals(
+            "Happy birthday and 3-year work anniversary, Jordan Lee!",
+            sentence(CelebrationItem("u2", "Jordan Lee", isBirthday = true, anniversaryYears = 3)),
+        )
+    }
 
     /** The reward shows its 🎉 once, held to the last word by a no-break space (UI8-02). */
     @Test

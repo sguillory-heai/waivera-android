@@ -41,6 +41,7 @@ import com.waivera.waivera.core.designsystem.component.WaiveraIconTile
 import com.waivera.waivera.core.designsystem.component.WaiveraPressable
 import com.waivera.waivera.core.designsystem.component.WaiveraTileTone
 import com.waivera.waivera.core.designsystem.icon.WaiveraIcons
+import com.waivera.waivera.core.designsystem.text.resolve
 import com.waivera.waivera.core.designsystem.theme.WaiveraBrand
 import com.waivera.waivera.core.designsystem.theme.WaiveraShapes
 import com.waivera.waivera.core.designsystem.theme.WaiveraSizes
@@ -155,7 +156,9 @@ private fun MilestoneCard(
     val fallbackName = stringResource(R.string.feature_calendar_celebration_name_fallback)
     val milestone = item.occurrence.milestone
     val name = milestone.displayName?.takeIf(String::isNotBlank) ?: fallbackName
-    val sentence = CelebrationText.full(item.celebration, fallbackName).resolve()
+    // Your own card speaks to you (UI9-05); there is no Send wishes on it either.
+    val sentence = CelebrationText.self(item.celebration)?.takeIf { !showWishes }?.resolve()
+        ?: CelebrationText.full(item.celebration, fallbackName).resolve()
     WaiveraBrandSurface(
         modifier = modifier.heightIn(min = WaiveraSizes.ListRowMinHeight),
         shape = WaiveraShapes.ListCard,

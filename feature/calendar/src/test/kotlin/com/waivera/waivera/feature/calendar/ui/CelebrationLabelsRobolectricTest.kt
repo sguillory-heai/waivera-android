@@ -68,4 +68,20 @@ class CelebrationLabelsRobolectricTest {
                 .resolve(context),
         )
     }
+
+    /** Your own card speaks to you by first name, as on Profile and Today (UI9-05). */
+    @Test
+    fun yourOwnCardIsInTheSecondPersonByFirstName() {
+        fun self(celebration: Celebration) = checkNotNull(CelebrationText.self(celebration)).resolve(context.resources)
+        assertEquals(
+            "Happy birthday and work anniversary, Alex!",
+            self(Celebration(CelebrationType.MULTIPLE, 3, "Alex Rivera")),
+        )
+        assertEquals("Happy birthday, Alex!", self(Celebration(CelebrationType.BIRTHDAY, null, "Alex Rivera")))
+        assertEquals(
+            "Happy 3-year work anniversary, Alex!",
+            self(Celebration(CelebrationType.WORK_ANNIVERSARY, 3, "Alex Rivera")),
+        )
+        assertEquals("Happy birthday!", self(Celebration(CelebrationType.BIRTHDAY, null, " ")))
+    }
 }

@@ -5,6 +5,8 @@ import androidx.annotation.StringRes
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
 import androidx.compose.ui.res.stringResource
+import com.waivera.waivera.core.designsystem.text.CelebrationCopy
+import com.waivera.waivera.core.designsystem.text.CelebrationCopySpec
 import com.waivera.waivera.feature.calendar.R
 import com.waivera.waivera.feature.calendar.model.Celebration
 import com.waivera.waivera.feature.calendar.model.CelebrationType
@@ -48,6 +50,16 @@ object CelebrationText {
             )
         }
     }
+
+    /**
+     * Your own card: to you by first name, in the second person, through the shared
+     * [CelebrationCopy] rule that Profile and Today use too (UI9-05).
+     */
+    fun self(celebration: Celebration): CelebrationCopySpec? = CelebrationCopy.self(
+        birthday = celebration.type != CelebrationType.WORK_ANNIVERSARY,
+        anniversaryYears = celebration.years.takeIf { celebration.type != CelebrationType.BIRTHDAY },
+        firstName = CelebrationCopy.firstName(celebration.displayName),
+    )
 
     /** The emoji for the card's tile; the sentence from [full] carries none. */
     fun emoji(celebration: Celebration): TextSpec = TextSpec(

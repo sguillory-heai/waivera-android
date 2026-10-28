@@ -21,6 +21,19 @@
     <string name="core_designsystem_milestone_anniversary">Work anniversary today</string>
     <string name="core_designsystem_milestone_new_hire">New to the team</string>
     <string name="core_designsystem_milestone_multiple">Celebrating today</string>
+    <!-- Your own celebration, wherever it shows: first name, second person, no emoji (the tile has it). -->
+    <string name="core_designsystem_celebration_self_birthday">Happy birthday, %1$s!</string>
+    <plurals name="core_designsystem_celebration_self_anniversary">
+        <item quantity="one">Happy %2$d-year work anniversary, %1$s!</item>
+        <item quantity="other">Happy %2$d-year work anniversary, %1$s!</item>
+    </plurals>
+    <string name="core_designsystem_celebration_self_both">Happy birthday and work anniversary, %1$s!</string>
+    <string name="core_designsystem_celebration_self_unnamed_birthday">Happy birthday!</string>
+    <plurals name="core_designsystem_celebration_self_unnamed_anniversary">
+        <item quantity="one">Happy %1$d-year work anniversary!</item>
+        <item quantity="other">Happy %1$d-year work anniversary!</item>
+    </plurals>
+    <string name="core_designsystem_celebration_self_unnamed_both">Happy birthday and work anniversary!</string>
     <string name="core_designsystem_connection_connecting">Connecting…</string>
     <string name="core_designsystem_connection_reconnecting">Reconnecting…</string>
     <string name="core_designsystem_connection_reconnecting_detail">Messages may be a little delayed. We\'ll keep trying.</string>
