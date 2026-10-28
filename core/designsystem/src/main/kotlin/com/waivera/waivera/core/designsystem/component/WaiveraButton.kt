@@ -38,6 +38,7 @@ import com.waivera.waivera.core.designsystem.theme.WaiveraShapes
 import com.waivera.waivera.core.designsystem.theme.WaiveraSizes
 import com.waivera.waivera.core.designsystem.theme.WaiveraSpacing
 import com.waivera.waivera.core.designsystem.theme.WaiveraTheme
+import com.waivera.waivera.core.designsystem.theme.isLargeFontScale
 
 /**
  * [Tonal] is the quiet filled style (accent-soft fill) for an action that matters but should not
@@ -146,16 +147,34 @@ private fun ButtonLabel(
     }
 }
 
-/** Spinner and the progress label. The button's semantics announce it. */
+/**
+ * Spinner and the progress label. The button's semantics announce it. At large font the label
+ * can wrap, and a wrapped label fills the row, so a spinner beside it sat at the button's edge
+ * away from the centred lines; there the spinner goes above the label instead (UI5-10).
+ */
 @Composable
 private fun ButtonProgress(label: String, color: Color) {
-    Row(
-        modifier = Modifier.clearAndSetSemantics { },
-        horizontalArrangement = Arrangement.spacedBy(WaiveraSpacing.Small),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        WaiveraBusyIndicator(color = color, size = WaiveraSizes.IconSmall)
+    val text: @Composable () -> Unit = {
         Text(text = label, style = MaterialTheme.typography.labelLarge, color = color, textAlign = TextAlign.Center)
+    }
+    if (isLargeFontScale()) {
+        Column(
+            modifier = Modifier.clearAndSetSemantics { },
+            verticalArrangement = Arrangement.spacedBy(WaiveraSpacing.ExtraSmall),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            WaiveraBusyIndicator(color = color, size = WaiveraSizes.IconSmall)
+            text()
+        }
+    } else {
+        Row(
+            modifier = Modifier.clearAndSetSemantics { },
+            horizontalArrangement = Arrangement.spacedBy(WaiveraSpacing.Small),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            WaiveraBusyIndicator(color = color, size = WaiveraSizes.IconSmall)
+            text()
+        }
     }
 }
 
@@ -179,7 +198,9 @@ private fun WaiveraButtonVariant.styleFrom(colors: WaiveraColors): ButtonStyle =
     WaiveraButtonVariant.DestructiveOutline -> ButtonStyle(colors.surface, colors.dangerText, colors.surfaceMuted)
     WaiveraButtonVariant.Text -> ButtonStyle(Color.Transparent, colors.accent, Color.Transparent)
     WaiveraButtonVariant.Selected -> ButtonStyle(colors.accentSoft, colors.onAccentSoft, colors.surfaceMuted)
-    WaiveraButtonVariant.Unselected -> ButtonStyle(colors.surface, colors.textSecondary, colors.surface)
+    // Primary text, not secondary: in dark mode the secondary grey matched a disabled button and
+    // the other answer no longer read as tappable (UI5-13).
+    WaiveraButtonVariant.Unselected -> ButtonStyle(colors.surface, colors.text, colors.surface)
 }
 
 @WaiveraPreviews
