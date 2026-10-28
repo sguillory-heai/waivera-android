@@ -112,10 +112,10 @@ fun Composer(
                 placeholder = {
                     Text(
                         text = stringResource(
-                            if (config.isReply) {
-                                R.string.feature_chat_composer_reply_placeholder
-                            } else {
-                                R.string.feature_chat_composer_placeholder
+                            when {
+                                config.isEditing -> R.string.feature_chat_composer_edit_placeholder
+                                config.isReply -> R.string.feature_chat_composer_reply_placeholder
+                                else -> R.string.feature_chat_composer_placeholder
                             },
                         ),
                         color = colors.textSecondary,

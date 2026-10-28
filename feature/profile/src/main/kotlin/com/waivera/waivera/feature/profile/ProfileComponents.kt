@@ -26,6 +26,7 @@ import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
+import androidx.compose.ui.text.style.TextOverflow
 import com.waivera.waivera.core.designsystem.component.SKELETON_DELAY_MILLIS
 import com.waivera.waivera.core.designsystem.component.SkeletonLine
 import com.waivera.waivera.core.designsystem.component.WaiveraAddressText
@@ -153,7 +154,10 @@ internal fun ProfileSearchField(
             .semantics { contentDescription = placeholder },
         singleLine = true,
         textStyle = MaterialTheme.typography.bodyLarge,
-        placeholder = { Text(text = placeholder, color = colors.textSecondary) },
+        // One line like the query that replaces it, so the field keeps its height at 200%.
+        placeholder = {
+            Text(text = placeholder, color = colors.textSecondary, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        },
         leadingIcon = {
             Icon(
                 painter = painterResource(WaiveraIcons.Search),
@@ -204,7 +208,7 @@ private fun ProfileComponentsPreview() {
             ProfileSearchField(
                 value = "pri",
                 onValueChange = {},
-                placeholder = "Search people",
+                placeholder = "Search by name or email",
                 clearDescription = "Clear",
             )
             ProfileCard(title = "Personal information") {

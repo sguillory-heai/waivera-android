@@ -30,6 +30,7 @@ import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
+import androidx.compose.ui.text.style.TextOverflow
 import com.waivera.waivera.core.designsystem.component.SkeletonCircle
 import com.waivera.waivera.core.designsystem.component.SkeletonLine
 import com.waivera.waivera.core.designsystem.component.WaiveraDivider
@@ -88,7 +89,16 @@ fun ChatSearchField(query: String, onQueryChange: (String) -> Unit, modifier: Mo
             .heightIn(min = WaiveraSpacing.MinTouchTarget)
             .semantics { contentDescription = label },
         textStyle = MaterialTheme.typography.bodyMedium,
-        placeholder = { Text(text = label, color = colors.textSecondary, style = MaterialTheme.typography.bodyMedium) },
+        placeholder = {
+            Text(
+                text = stringResource(R.string.feature_chat_list_search_placeholder),
+                color = colors.textSecondary,
+                style = MaterialTheme.typography.bodyMedium,
+                // One line like the query that replaces it, so the field keeps its height at 200%.
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        },
         leadingIcon = {
             Icon(
                 painter = painterResource(WaiveraIcons.Search),
