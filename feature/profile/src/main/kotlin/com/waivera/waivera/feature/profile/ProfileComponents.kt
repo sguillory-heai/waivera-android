@@ -28,6 +28,7 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import com.waivera.waivera.core.designsystem.component.SKELETON_DELAY_MILLIS
 import com.waivera.waivera.core.designsystem.component.SkeletonLine
+import com.waivera.waivera.core.designsystem.component.WaiveraAddressText
 import com.waivera.waivera.core.designsystem.component.WaiveraIconButton
 import com.waivera.waivera.core.designsystem.component.rememberSkeletonPulse
 import com.waivera.waivera.core.designsystem.component.rememberSkeletonVisible
@@ -72,10 +73,11 @@ internal fun ProfileCard(
 
 /**
  * A read-only label and value. Missing values show an em dash so every row keeps its place,
- * and TalkBack reads the pair as one item ("Phone, not provided").
+ * and TalkBack reads the pair as one item ("Phone, not provided"). An [address] value (an email)
+ * is shown whole, wrapping only after its "@" ([WaiveraAddressText]).
  */
 @Composable
-internal fun InfoRow(label: String, value: String?, modifier: Modifier = Modifier) {
+internal fun InfoRow(label: String, value: String?, modifier: Modifier = Modifier, address: Boolean = false) {
     val colors = WaiveraTheme.colors
     val shown = value?.takeIf { it.isNotBlank() }
     val missing = stringResource(R.string.feature_profile_value_missing)
@@ -90,7 +92,11 @@ internal fun InfoRow(label: String, value: String?, modifier: Modifier = Modifie
         verticalArrangement = Arrangement.spacedBy(WaiveraSpacing.XxSmall),
     ) {
         Text(text = label.uppercase(), style = WaiveraTextStyles.Eyebrow, color = colors.textSecondary)
-        Text(text = shown ?: missing, style = MaterialTheme.typography.bodyLarge, color = colors.text)
+        if (address && shown != null) {
+            WaiveraAddressText(address = shown, style = MaterialTheme.typography.bodyLarge, color = colors.text)
+        } else {
+            Text(text = shown ?: missing, style = MaterialTheme.typography.bodyLarge, color = colors.text)
+        }
     }
 }
 

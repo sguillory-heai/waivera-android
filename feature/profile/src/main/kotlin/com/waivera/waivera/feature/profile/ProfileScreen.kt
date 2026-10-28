@@ -37,6 +37,7 @@ import com.waivera.waivera.core.data.model.EmployeeProfile
 import com.waivera.waivera.core.designsystem.component.BannerTone
 import com.waivera.waivera.core.designsystem.component.ConnectionBanner
 import com.waivera.waivera.core.designsystem.component.ConnectionBannerState
+import com.waivera.waivera.core.designsystem.component.WaiveraAddressText
 import com.waivera.waivera.core.designsystem.component.WaiveraAvatar
 import com.waivera.waivera.core.designsystem.component.WaiveraBanner
 import com.waivera.waivera.core.designsystem.component.WaiveraButton
@@ -219,7 +220,11 @@ private fun IdentityCard(user: CurrentUser, profile: EmployeeProfile?, celebrati
                 Text(text = jobTitle, style = MaterialTheme.typography.bodyMedium, color = colors.textSecondary)
             }
             if (!email.isNullOrBlank()) {
-                Text(text = email, style = MaterialTheme.typography.bodyMedium, color = colors.textSecondary)
+                WaiveraAddressText(
+                    address = email,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = colors.textSecondary,
+                )
             }
         }
     }
@@ -264,7 +269,7 @@ private fun DetailsSections(profile: EmployeeProfile?, state: ProfileUiState.Rea
         if (profile == null) {
             if (skeleton) SectionSkeleton(lines = 4)
         } else {
-            InfoRow(stringResource(R.string.feature_profile_email), profile.email ?: state.user.email)
+            InfoRow(stringResource(R.string.feature_profile_email), profile.email ?: state.user.email, address = true)
             InfoRow(stringResource(R.string.feature_profile_phone), profile.phoneNumber ?: state.user.phoneNumber)
             InfoRow(stringResource(R.string.feature_profile_address), profile.address)
             InfoRow(

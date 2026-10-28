@@ -175,23 +175,32 @@ class CompactBannerLayoutTest {
         assertBreaksOnlyBetweenWords(banner.message, message.fetchTextLayoutResult())
         // An icon action is named by its description, a text action by its label.
         banner.actionLabel?.let { compose.onNode(hasContentDescription(it) or hasText(it)).assertHasClickAction() }
-        banner.detail?.let { assertDetailOnOneLine(it) }
+        banner.detail?.let { assertDetailWhole(it) }
     }
 
     /**
-     * The detail (an email address) is one line that stays inside the banner: never broken at its
-     * dots, and cut in the middle rather than running off the edge when it is too wide. Its
-     * semantics keep the whole value, so TalkBack reads all of it.
+     * The detail (an email address) is shown whole inside the banner (UI6-03): every character
+     * laid out, nothing ellipsized, no line past the edge, and when it wraps, only after its "@"
+     * ("alex.rivera@" / "example.org"). Its semantics hold the plain address, so TalkBack reads
+     * all of it.
      */
-    private fun assertDetailOnOneLine(detail: String) {
+    private fun assertDetailWhole(detail: String) {
         val node = compose.onNodeWithTag(BANNER_DETAIL_TAG, useUnmergedTree = true).assertIsDisplayed()
         compose.onNodeWithText(detail).assertIsDisplayed()
         val layout = node.fetchTextLayoutResult()
-        assertEquals("\"$detail\" is on ${layout.lineCount} lines", 1, layout.lineCount)
-        assertTrue(
-            "\"$detail\" runs to ${layout.getLineRight(0)} past ${layout.size.width}",
-            layout.getLineRight(0) <= layout.size.width,
-        )
+        val shown = layout.layoutInput.text.text
+        assertEquals("\"$detail\" is not fully laid out", shown.length, layout.getLineEnd(layout.lineCount - 1))
+        for (line in 0 until layout.lineCount) {
+            assertFalse("\"$detail\" line $line is ellipsized", layout.isLineEllipsized(line))
+            assertTrue(
+                "\"$detail\" line $line runs to ${layout.getLineRight(line)} past ${layout.size.width}",
+                layout.getLineRight(line) <= layout.size.width,
+            )
+        }
+        for (line in 0 until layout.lineCount - 1) {
+            val visible = shown.substring(0, layout.getLineEnd(line)).filterNot { it == '\u2060' || it == '\u200B' }
+            assertTrue("\"$detail\" breaks after \"$visible\"", visible.endsWith("@"))
+        }
     }
 
     /**
@@ -264,7 +273,7 @@ class CompactBannerLayoutTest {
             message = "If this address has a Waivera account, we've sent it a link to reset the password.",
             tone = BannerTone.Info,
             dismissible = true,
-            // Longer than the small phone's banner at 200%, so it has to stay one line and fit.
+            // Longer than the small phone's banner at 200%, so it has to wrap after the "@", whole.
             detail = "alex.rivera@example.org",
         )
         val CONFIGURATION_MISSING = InAppBanner(

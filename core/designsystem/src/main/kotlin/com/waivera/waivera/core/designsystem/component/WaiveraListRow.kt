@@ -26,7 +26,6 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.style.TextOverflow
 import com.waivera.waivera.core.designsystem.feedback.rememberHaptics
 import com.waivera.waivera.core.designsystem.icon.WaiveraIcons
 import com.waivera.waivera.core.designsystem.preview.WaiveraPreviews
@@ -40,9 +39,9 @@ import com.waivera.waivera.core.designsystem.theme.WaiveraTheme
 /**
  * A list row: optional leading slot, a headline and supporting text that wrap at large font
  * scales, an optional trailing slot and an optional chevron. Clickable rows get the shared
- * press scale and read as one element to TalkBack. [detail] is one more line for a single long
- * token (an email, an id): it never wraps, so it can't break at a dot mid-address, and it
- * ellipsizes instead (UI3-14).
+ * press scale and read as one element to TalkBack. [detail] is one more line for an email
+ * address or handle, shown whole as a [WaiveraAddressText]: it can't break at a dot mid-address
+ * (UI3-14), and it isn't cut either (UI6-02).
  */
 @Composable
 fun WaiveraListRow(
@@ -185,14 +184,7 @@ private fun RowText(
             Text(text = subtitle, style = MaterialTheme.typography.bodySmall, color = subtitleColor)
         }
         if (detail != null) {
-            Text(
-                text = detail,
-                style = MaterialTheme.typography.bodySmall,
-                color = subtitleColor,
-                maxLines = 1,
-                softWrap = false,
-                overflow = TextOverflow.Ellipsis,
-            )
+            WaiveraAddressText(address = detail, style = MaterialTheme.typography.bodySmall, color = subtitleColor)
         }
     }
 }

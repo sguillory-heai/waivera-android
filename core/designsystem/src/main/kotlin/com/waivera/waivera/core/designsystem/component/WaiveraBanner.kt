@@ -44,7 +44,6 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.testTag
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.rememberTextMeasurer
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.dp
 import com.waivera.waivera.core.designsystem.R
@@ -84,9 +83,9 @@ enum class BannerTone { Info, Warning, Error, Offline }
  * padded, so the banner lines up with the buttons around it instead of sitting narrower (UI3-15).
  *
  * [detail] is one value the message is about, such as an email address, on its own line between
- * the title and the message. It never wraps: inside a sentence the paragraph line breaker splits
- * an address at its dots ("alex / .rivera@example / .org"). When it is wider than the banner it
- * is cut in the middle, so both ends stay readable, and TalkBack still reads all of it.
+ * the title and the message. It is shown whole as a [WaiveraAddressText]: one line when it fits,
+ * otherwise wrapped after its "@", never cut, because it is the fact the banner confirms
+ * (UI6-03). Inside a sentence the paragraph breaker split an address at its dots.
  */
 @Composable
 fun WaiveraBanner(
@@ -281,7 +280,8 @@ private fun CompactBannerText(
         ) {
             Column(verticalArrangement = Arrangement.spacedBy(WaiveraSpacing.XxSmall)) {
                 if (detail != null) {
-                    BannerDetail(detail = detail, color = color, modifier = Modifier.clearAndSetSemantics {})
+                    // The column's description already reads the detail.
+                    Box(modifier = Modifier.clearAndSetSemantics {}) { BannerDetail(detail = detail, color = color) }
                 }
                 Text(
                     text = message,
@@ -298,7 +298,7 @@ private fun CompactBannerText(
 internal const val BANNER_COMPACT_TITLE_TAG = "waivera_banner_compact_title"
 internal const val BANNER_CHEVRON_TAG = "waivera_banner_chevron"
 
-/** Test tag for the banner's one-line detail. */
+/** Test tag for the banner's detail. */
 internal const val BANNER_DETAIL_TAG = "waivera_banner_detail"
 
 @Immutable
@@ -349,16 +349,13 @@ private fun BannerIcon(@DrawableRes icon: Int, color: Color, firstLineStyle: Tex
     }
 }
 
-/** The banner's [detail] line: one line, never wrapped, cut in the middle only when it can't fit. */
+/** The banner's [detail]: the whole address, wrapping only where an address may wrap. */
 @Composable
 private fun BannerDetail(detail: String, color: Color, modifier: Modifier = Modifier) {
-    Text(
-        text = detail,
+    WaiveraAddressText(
+        address = detail,
         style = MaterialTheme.typography.bodySmall,
         color = color,
-        // One line, as the attachment name does: Android cuts a single line in the middle.
-        maxLines = 1,
-        overflow = TextOverflow.MiddleEllipsis,
         modifier = modifier.semantics { testTag = BANNER_DETAIL_TAG },
     )
 }

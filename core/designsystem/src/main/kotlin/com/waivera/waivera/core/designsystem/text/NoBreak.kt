@@ -40,6 +40,66 @@ fun String.withUnbreakableExtension(): String {
     return substring(0, dot) + WORD_JOINER + DOT + WORD_JOINER + substring(dot + 1)
 }
 
+/**
+ * Where an email address or handle may wrap besides after its "@" ("alex.rivera@" /
+ * "example.org"). Each extra set of break points is turned on only when the part it splits is
+ * wider than the line ([addressBreaksFor]).
+ */
+data class AddressBreaks(
+    /** After a dot in the domain, for a domain wider than the line. */
+    val domainDots: Boolean = false,
+    /**
+     * After a ".", "-", "_" or "+" in the local part, for a local part wider than the line.
+     * Without them the platform would cut the local part at an arbitrary letter.
+     */
+    val localPart: Boolean = false,
+)
+
+/**
+ * The same email address or handle with its break points set for display (UI6-02). It stays
+ * whole when it fits and otherwise wraps only where [breaks] allows, so no line starts with "."
+ * or "-". Every other punctuation mark is held to its neighbours by word joiners (U+2060):
+ * the platform breaker would otherwise split at a hyphen or, inside a long token, before a dot
+ * ("alexandria.rivera" / "-montgomery@example" / ".com"). Visible text only: spoken text keeps
+ * the plain address. With the default [breaks] it wraps after the "@" only.
+ */
+fun String.asAddressDisplay(breaks: AddressBreaks = AddressBreaks()): String {
+    val at = lastIndexOf(AT)
+    val out = StringBuilder(length * 2)
+    forEachIndexed { index, char ->
+        val last = index == length - 1
+        val breakAfter = !last && when {
+            index == at -> true
+            at in 0 until index -> char == DOT && breaks.domainDots
+            else -> char in LOCAL_PART_BREAKS && breaks.localPart
+        }
+        val guarded = !char.isLetterOrDigit()
+        if (guarded && out.isNotEmpty() && out.last().isLetterOrDigit()) out.append(WORD_JOINER)
+        out.append(char)
+        when {
+            breakAfter -> out.append(ZERO_WIDTH_SPACE)
+            guarded && !last -> out.append(WORD_JOINER)
+        }
+    }
+    return out.toString()
+}
+
+/**
+ * The fewest break points that let an address fit [maxWidth], from the one-line widths of its
+ * local part with the "@" ([localWidth]) and of its domain ([domainWidth]). A handle without an
+ * "@" has a [domainWidth] of 0.
+ */
+internal fun addressBreaksFor(localWidth: Int, domainWidth: Int, maxWidth: Int): AddressBreaks =
+    AddressBreaks(domainDots = domainWidth > maxWidth, localPart = localWidth > maxWidth)
+
+/** The local part with its "@", and the domain, as [addressBreaksFor] measures them. */
+internal fun String.addressParts(): Pair<String, String> {
+    val at = lastIndexOf(AT)
+    return if (at < 0) this to "" else substring(0, at + 1) to substring(at + 1)
+}
+
+private const val AT = '@'
+private const val LOCAL_PART_BREAKS = ".-_+"
 private const val DOT = '.'
 private const val WORD_JOINER = '\u2060'
 private const val HYPHEN = '-'

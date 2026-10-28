@@ -50,6 +50,7 @@ import com.waivera.waivera.core.designsystem.component.WaiveraSectionHeader
 import com.waivera.waivera.core.designsystem.component.rememberSkeletonPulse
 import com.waivera.waivera.core.designsystem.component.rememberSkeletonVisible
 import com.waivera.waivera.core.designsystem.icon.WaiveraIcons
+import com.waivera.waivera.core.designsystem.text.asAddressDisplay
 import com.waivera.waivera.core.designsystem.theme.WaiveraShapes
 import com.waivera.waivera.core.designsystem.theme.WaiveraSizes
 import com.waivera.waivera.core.designsystem.theme.WaiveraSpacing
@@ -547,7 +548,9 @@ private fun AttendeesHeader(count: Int) {
 private fun AttendeeItem(attendee: AttendeeRow, actions: EventActions) {
     val guest = stringResource(R.string.feature_calendar_event_guest)
     val baseName = attendee.name ?: attendee.email ?: guest
-    val name = if (attendee.isMe) stringResource(R.string.feature_calendar_event_you, baseName) else baseName
+    // A guest known only by email shows the address, which may wrap only after its "@".
+    val shownName = attendee.name ?: attendee.email?.asAddressDisplay() ?: guest
+    val name = if (attendee.isMe) stringResource(R.string.feature_calendar_event_you, shownName) else shownName
     val userId = attendee.userId
     WaiveraListRow(
         headline = name,

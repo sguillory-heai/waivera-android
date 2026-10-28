@@ -29,6 +29,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.semantics
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.waivera.waivera.core.designsystem.component.WaiveraAddressText
 import com.waivera.waivera.core.designsystem.component.WaiveraAvatar
 import com.waivera.waivera.core.designsystem.component.WaiveraButton
 import com.waivera.waivera.core.designsystem.component.WaiveraButtonVariant
@@ -187,7 +188,11 @@ private fun AccountCard(account: AccountInfo?, signingOut: Boolean, onSignOut: (
                 ) {
                     Text(text = account.name, style = MaterialTheme.typography.titleMedium, color = colors.text)
                     account.email?.let {
-                        Text(text = it, style = MaterialTheme.typography.bodyMedium, color = colors.textSecondary)
+                        WaiveraAddressText(
+                            address = it,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = colors.textSecondary,
+                        )
                     }
                     account.organization?.let {
                         Text(text = it, style = MaterialTheme.typography.bodySmall, color = colors.textSecondary)
