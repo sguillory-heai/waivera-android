@@ -11,11 +11,15 @@
     <string name="feature_auth_sign_in_button">Sign in</string>
     <string name="feature_auth_connecting">Signing you in…</string>
     <string name="feature_auth_forgot_password">Forgot password?</string>
-    <!-- Footer: "By continuing, you agree to our Terms of Service and Privacy Policy." Each name is its own link. -->
-    <string name="feature_auth_legal_lead">By continuing, you agree to our</string>
+    <!-- Footer, one sentence in this order: lead, terms lead + Terms of Service (one link), "and",
+         Privacy Policy + end. "By continuing, you agree to our Terms of Service and Privacy Policy."
+         The lead wraps word by word; the terms lead travels with its link so it never sits alone. -->
+    <string name="feature_auth_legal_lead">By continuing, you agree to</string>
+    <string name="feature_auth_legal_terms_lead">our</string>
     <string name="feature_auth_legal_terms">Terms of Service</string>
     <string name="feature_auth_legal_and">and</string>
     <string name="feature_auth_legal_privacy">Privacy Policy</string>
+    <string name="feature_auth_legal_end">.</string>
     <!-- TalkBack: "Double tap to open in your browser". -->
     <string name="feature_auth_legal_open">open in your browser</string>
     <string name="feature_auth_link_failed_title">Couldn\'t open that page</string>
@@ -30,9 +34,10 @@
     <string name="feature_auth_configuration_message">This version of the app is missing settings it needs, so sign-in is off. Ask your administrator for the right version of Waivera.</string>
     <string name="feature_auth_configuration_details">Missing settings: %1$s</string>
 
-    <!-- Validation -->
+    <!-- Validation. Word joiners (U+2060) hold the example address together, so it never wraps
+         at its dot ("Try name@organization" / ".com.", UI9-10). -->
     <string name="feature_auth_error_email_required">Enter your email.</string>
-    <string name="feature_auth_error_email_invalid">That doesn\'t look like an email. Try name@organization.com.</string>
+    <string name="feature_auth_error_email_invalid">That doesn\'t look like an email. Try name&#x2060;@&#x2060;organization&#x2060;.&#x2060;com.</string>
     <string name="feature_auth_error_password_required">Enter your password.</string>
     <string name="feature_auth_error_current_password_required">Enter your current password.</string>
     <string name="feature_auth_error_current_password_wrong">That\'s not your current password. Try again.</string>

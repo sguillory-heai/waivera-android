@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.asPaddingValues
@@ -43,9 +44,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.layout.layout
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.coerceAtLeast
@@ -250,67 +255,108 @@ private fun rememberSignInEntrance(): SignInEntrance {
 }
 
 /**
- * "By continuing, you agree to our Terms of Service and Privacy Policy." Each name is a link with
- * a full 48dp target that opens the page in a Custom Tab (the app's link handler). Hidden when
- * the build has no web base.
+ * "By continuing, you agree to our Terms of Service and Privacy Policy." as one typeset sentence
+ * (UI9-03): every word is its own item in one flow, spaced by a real space, so it wraps where
+ * text would. "our" travels with the Terms link and the full stop with Privacy Policy, so neither
+ * is ever left alone on a line. Each name is a link with a full 48dp target that opens the page
+ * in a Custom Tab (the app's link handler); the targets overlap the lines above and below
+ * instead of spreading the sentence apart. Hidden when the build has no web base.
  */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 internal fun LegalFooter(links: LegalLinks, onOpen: (String) -> Unit, modifier: Modifier = Modifier) {
-    val colors = WaiveraTheme.colors
-    val style = MaterialTheme.typography.bodySmall
-    Column(
+    val style = MaterialTheme.typography.bodySmall.copy(color = WaiveraTheme.colors.textSecondary)
+    val space = rememberWordSpace(style)
+    val lead = stringResource(R.string.feature_auth_legal_lead)
+    val leadWords = remember(lead) { lead.split(' ').filter(String::isNotEmpty) }
+    FlowRow(
         modifier = modifier
             .fillMaxWidth()
-            .then(GutterPadding),
-        horizontalAlignment = Alignment.CenterHorizontally,
+            .then(GutterPadding)
+            // Room for the last line's link target, which reaches below the line.
+            .padding(bottom = WaiveraSpacing.ExtraSmall),
+        horizontalArrangement = Arrangement.spacedBy(space, Alignment.CenterHorizontally),
+        itemVerticalAlignment = Alignment.CenterVertically,
     ) {
-        Text(
-            text = stringResource(R.string.feature_auth_legal_lead),
-            style = style,
-            color = colors.textSecondary,
-            textAlign = TextAlign.Center,
-        )
-        FlowRow(
-            horizontalArrangement = Arrangement.Center,
-            verticalArrangement = Arrangement.Center,
-            itemVerticalAlignment = Alignment.CenterVertically,
-        ) {
-            LegalLink(text = stringResource(R.string.feature_auth_legal_terms), onClick = {
-                onOpen(links.termsOfService)
-            })
+        // TalkBack reads the lead once, as a sentence, not word by word.
+        leadWords.forEachIndexed { index, word ->
             Text(
-                text = stringResource(R.string.feature_auth_legal_and),
+                text = word,
                 style = style,
-                color = colors.textSecondary,
+                modifier = Modifier.clearAndSetSemantics { if (index == 0) contentDescription = lead },
             )
-            LegalLink(text = stringResource(R.string.feature_auth_legal_privacy), onClick = {
-                onOpen(links.privacyPolicy)
-            })
+        }
+        LegalLink(
+            text = stringResource(R.string.feature_auth_legal_terms),
+            lead = stringResource(R.string.feature_auth_legal_terms_lead),
+            style = style,
+            space = space,
+            onClick = { onOpen(links.termsOfService) },
+        )
+        Text(text = stringResource(R.string.feature_auth_legal_and), style = style)
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            LegalLink(
+                text = stringResource(R.string.feature_auth_legal_privacy),
+                style = style,
+                space = space,
+                onClick = { onOpen(links.privacyPolicy) },
+            )
+            Text(
+                text = stringResource(R.string.feature_auth_legal_end),
+                style = style,
+                modifier = Modifier.clearAndSetSemantics { },
+            )
         }
     }
 }
 
+/**
+ * One legal link: [lead] (plain, "our") and the underlined accent name. Its target is a full
+ * 48dp tall, but it reports the text's line height to the sentence around it, so the lines stay
+ * at body spacing and the target overlaps them, which Compose allows.
+ */
 @Composable
-private fun LegalLink(text: String, onClick: () -> Unit) {
+private fun LegalLink(text: String, style: TextStyle, space: Dp, onClick: () -> Unit, lead: String? = null) {
+    val lineHeight = with(LocalDensity.current) {
+        if (style.lineHeight.isSp) style.lineHeight.toDp() else WaiveraSpacing.MinTouchTarget
+    }
     WaiveraPressable(
         onClick = onClick,
         onClickLabel = stringResource(R.string.feature_auth_legal_open),
         shape = WaiveraShapes.Chip,
+        modifier = Modifier.reportHeightAtMost(lineHeight),
     ) {
-        Box(
-            modifier = Modifier
-                .heightIn(min = WaiveraSpacing.MinTouchTarget)
-                .padding(horizontal = WaiveraSpacing.Small),
-            contentAlignment = Alignment.Center,
+        Row(
+            modifier = Modifier.heightIn(min = WaiveraSpacing.MinTouchTarget),
+            horizontalArrangement = Arrangement.spacedBy(space),
+            verticalAlignment = Alignment.CenterVertically,
         ) {
+            if (lead != null) Text(text = lead, style = style)
             Text(
                 text = text,
-                style = MaterialTheme.typography.bodySmall,
+                style = style,
                 color = WaiveraTheme.colors.accent,
                 textDecoration = TextDecoration.Underline,
-                textAlign = TextAlign.Center,
             )
         }
+    }
+}
+
+/** Lays the content out at its own size but tells the parent it is at most [height] tall, centred. */
+private fun Modifier.reportHeightAtMost(height: Dp): Modifier = layout { measurable, constraints ->
+    val placeable = measurable.measure(constraints.copy(minHeight = 0))
+    val reported = minOf(placeable.height, height.roundToPx()).coerceIn(constraints.minHeight, constraints.maxHeight)
+    layout(placeable.width, reported) { placeable.place(x = 0, y = (reported - placeable.height) / 2) }
+}
+
+/** The width of one space in [style], so words set as separate items sit as they would in text. */
+@Composable
+private fun rememberWordSpace(style: TextStyle): Dp {
+    val measurer = rememberTextMeasurer()
+    val density = LocalDensity.current
+    return remember(style, measurer, density) {
+        val spaced = measurer.measure(text = "a a", style = style).size.width
+        val joined = measurer.measure(text = "aa", style = style).size.width
+        with(density) { (spaced - joined).coerceAtLeast(0).toDp() }
     }
 }
