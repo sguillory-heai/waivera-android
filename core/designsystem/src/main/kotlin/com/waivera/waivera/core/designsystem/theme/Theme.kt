@@ -2,12 +2,14 @@ package com.waivera.waivera.core.designsystem.theme
 
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.ColorScheme
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.ReadOnlyComposable
+import androidx.compose.ui.graphics.Color
 import com.waivera.waivera.core.designsystem.feedback.LocalHapticsEnabled
 
 /**
@@ -36,10 +38,16 @@ fun WaiveraTheme(
             colorScheme = colors.toMaterialColorScheme(),
             typography = WaiveraMaterialTypography,
             shapes = WaiveraMaterialShapes,
-            content = content,
-        )
+        ) {
+            // Compose's own default ink is black, which a Text or Icon with no colour of its own
+            // drew on the dark sheet cards (SheetPieces). The theme sets the token ink instead.
+            CompositionLocalProvider(LocalContentColor provides colors.defaultContentColor(), content = content)
+        }
     }
 }
+
+/** The ink for text and icons that set no colour of their own: the [WaiveraColors.text] token. */
+internal fun WaiveraColors.defaultContentColor(): Color = text
 
 /** Token accessors, mirroring `MaterialTheme.colorScheme` style. */
 object WaiveraTheme {

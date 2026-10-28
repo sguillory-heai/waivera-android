@@ -28,6 +28,18 @@ class WaiveraColorsContrastTest {
     }
 
     /**
+     * Text and icons that set no colour of their own take the theme's default content ink. It was
+     * Compose's black, unreadable on the dark sheet card (SheetPieces), so it is checked on every
+     * page surface in both themes.
+     */
+    @Test
+    fun defaultContentColor_onEveryPageSurface() = forEachTheme { colors ->
+        for ((surfaceName, surface) in pageSurfaces(colors)) {
+            text("default content colour on $surfaceName", colors.defaultContentColor(), surface)
+        }
+    }
+
+    /**
      * Tertiary text (the other month's dates) is quieter than secondary but still meets the 3:1
      * non-text minimum on every page surface (UI10-16).
      */
