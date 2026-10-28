@@ -18,8 +18,10 @@ import androidx.compose.ui.res.stringResource
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.waivera.waivera.core.data.model.ThemePreference
+import com.waivera.waivera.core.designsystem.component.WaiveraIconTile
 import com.waivera.waivera.core.designsystem.component.WaiveraSectionHeader
 import com.waivera.waivera.core.designsystem.component.WaiveraSwitchRow
+import com.waivera.waivera.core.designsystem.component.WaiveraTileTone
 import com.waivera.waivera.core.designsystem.component.WaiveraTopBar
 import com.waivera.waivera.core.designsystem.preview.WaiveraPreviews
 import com.waivera.waivera.core.designsystem.theme.WaiveraTheme
@@ -69,6 +71,13 @@ internal fun AppearanceContent(
                     subtitle = stringResource(R.string.feature_settings_haptics_subtitle),
                     checked = state.hapticsEnabled,
                     onCheckedChange = onHapticsChange,
+                    // The Notifications rows' tile language (UI8-11); it goes Neutral when off, as there.
+                    leading = {
+                        WaiveraIconTile(
+                            icon = R.drawable.feature_settings_ic_haptics,
+                            tone = if (state.hapticsEnabled) WaiveraTileTone.Rose else WaiveraTileTone.Neutral,
+                        )
+                    },
                 )
             }
             Spacer(Modifier.windowInsetsBottomHeight(WindowInsets.navigationBars))
