@@ -19,6 +19,7 @@ import com.waivera.waivera.feature.chat.newchat.NewChatPreviewData
 import com.waivera.waivera.feature.chat.newchat.NewChatSheetContent
 import com.waivera.waivera.feature.chat.newchat.NewChatUiState
 import com.waivera.waivera.feature.chat.newchat.createErrorRes
+import com.waivera.waivera.feature.chat.screenshot.DemoChatAvatars
 import java.util.Locale
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.flowOf
@@ -68,7 +69,7 @@ class ChatListScreenshotTest {
     ) = captureScreenshots("chat_list_$name") {
         ChatListContent(
             state = state,
-            avatars = emptyMap(),
+            avatars = DemoChatAvatars.chatListAvatars,
             actions = ChatListActions(),
             skeletonDelayMillis = 0,
             connectingPillDelayMillis = connectingPillDelayMillis,

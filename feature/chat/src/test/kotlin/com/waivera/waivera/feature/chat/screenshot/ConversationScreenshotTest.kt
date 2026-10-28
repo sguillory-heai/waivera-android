@@ -85,15 +85,17 @@ class ConversationScreenshotTest {
         draft: String = "",
         listState: LazyListState = rememberLazyListState(),
     ) {
-        ConversationScreenContent(
-            state = state,
-            draft = draft,
-            onDraftChange = {},
-            time = time,
-            actions = ConversationActions.None,
-            listState = listState,
-            skeletonDelayMillis = 0,
-        )
+        WithDemoChatAvatars {
+            ConversationScreenContent(
+                state = state,
+                draft = draft,
+                onDraftChange = {},
+                time = time,
+                actions = ConversationActions.None,
+                listState = listState,
+                skeletonDelayMillis = 0,
+            )
+        }
     }
 
     @Test
@@ -394,14 +396,16 @@ class ConversationScreenshotTest {
 
     @Composable
     private fun ThreadView(state: ThreadUiState, draft: String = "") {
-        ThreadScreenContent(
-            state = state,
-            draft = draft,
-            onDraftChange = {},
-            time = time,
-            actions = ThreadActions.None,
-            skeletonDelayMillis = 0,
-        )
+        WithDemoChatAvatars {
+            ThreadScreenContent(
+                state = state,
+                draft = draft,
+                onDraftChange = {},
+                time = time,
+                actions = ThreadActions.None,
+                skeletonDelayMillis = 0,
+            )
+        }
     }
 
     private fun richMessage(): Message = messages.first { it.id == RICH_MESSAGE }
