@@ -26,7 +26,7 @@ All copy lives in `strings.xml` resources. Brand-only additions go in `strings_b
 | --- | --- | --- |
 | Empty, first time | What will appear + how to get it | "Press and hold any message, then tap Bookmark to keep it here for later." |
 | Empty, filtered | What's missing + one way out | "No matches" · "Try a different name or word." · Clear search |
-| Celebration | Name the person, one emoji | "Happy birthday, Priya! 🎂" |
+| Celebration | Name the person, one emoji (in the tile when the card has one) | "Happy birthday, Priya! 🎂" |
 | Success | Confirm it landed, briefly | "Saved to your bookmarks" · "Accepted. See you there!" |
 | Error | What failed + what to do | "You're offline. Reconnect, then try sending again." |
 | Busy | What's happening now, with an ellipsis | "Signing you in…" · "Saving your new password…" |
@@ -52,6 +52,9 @@ All copy lives in `strings.xml` resources. Brand-only additions go in `strings_b
 - **Only for celebrations and success moments.** Birthdays 🎂, work anniversaries and other wins
   🎉. "All caught up" 🎉 is the one empty state that earns one, because it is a reward.
 - **One per string, at the end**, so the words still lead and TalkBack reads the meaning first.
+- **Once per moment.** When a celebration card or note shows the emoji in its own tile (Today,
+  the schedule, a profile), the sentence beside it carries none, so the emoji never shows twice.
+  The tile is decorative; TalkBack reads the sentence.
 - **Never** in errors, warnings, security, sign-in, password or permission copy, or in
   accessibility-only labels (`*_a11y`, content descriptions). TalkBack reads emoji names aloud,
   and "party popper" adds nothing to a label.
