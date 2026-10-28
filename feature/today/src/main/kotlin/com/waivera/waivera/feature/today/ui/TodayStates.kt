@@ -13,14 +13,15 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
-import com.waivera.waivera.core.designsystem.component.SkeletonLine
-import com.waivera.waivera.core.designsystem.component.SkeletonListRow
+import com.waivera.waivera.core.designsystem.component.SkeletonAvatar
+import com.waivera.waivera.core.designsystem.component.SkeletonText
 import com.waivera.waivera.core.designsystem.component.WaiveraButton
 import com.waivera.waivera.core.designsystem.component.WaiveraButtonVariant
 import com.waivera.waivera.core.designsystem.component.WaiveraIconTile
@@ -28,10 +29,13 @@ import com.waivera.waivera.core.designsystem.component.WaiveraTileTone
 import com.waivera.waivera.core.designsystem.component.rememberSkeletonPulse
 import com.waivera.waivera.core.designsystem.icon.WaiveraIcons
 import com.waivera.waivera.core.designsystem.preview.WaiveraPreviews
+import com.waivera.waivera.core.designsystem.theme.WaiveraElevation
 import com.waivera.waivera.core.designsystem.theme.WaiveraShapes
 import com.waivera.waivera.core.designsystem.theme.WaiveraSizes
 import com.waivera.waivera.core.designsystem.theme.WaiveraSpacing
+import com.waivera.waivera.core.designsystem.theme.WaiveraTextStyles
 import com.waivera.waivera.core.designsystem.theme.WaiveraTheme
+import com.waivera.waivera.core.designsystem.theme.isShortWindow
 import com.waivera.waivera.feature.today.R
 
 /**
@@ -99,15 +103,25 @@ internal fun TodaySkeleton(modifier: Modifier = Modifier) {
             .clearAndSetSemantics { contentDescription = loading },
     ) {
         repeat(SKELETON_SECTIONS) { section ->
-            SkeletonLine(
-                widthFraction = SKELETON_HEADER_FRACTION,
-                pulse = pulse,
-                modifier = Modifier.padding(
-                    start = WaiveraSpacing.Gutter + WaiveraSpacing.ExtraSmall,
-                    top = if (section == 0) WaiveraSpacing.MediumSmall else WaiveraSpacing.Large,
-                    bottom = WaiveraSpacing.MediumSmall,
-                ),
-            )
+            // The section header's row: its title line, held to the Show all button's height.
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(
+                        start = WaiveraSpacing.Gutter + WaiveraSpacing.ExtraSmall,
+                        end = WaiveraSpacing.Gutter,
+                        top = if (section == 0) WaiveraSpacing.MediumSmall else WaiveraSpacing.Large,
+                        bottom = WaiveraSpacing.XxSmall,
+                    )
+                    .heightIn(min = WaiveraSpacing.MinTouchTarget),
+                contentAlignment = Alignment.CenterStart,
+            ) {
+                SkeletonText(
+                    style = MaterialTheme.typography.titleMedium,
+                    widthFraction = SKELETON_HEADER_FRACTION,
+                    pulse = pulse,
+                )
+            }
             repeat(SKELETON_ROWS) { SkeletonCard(pulse = pulse) }
         }
     }
@@ -123,22 +137,59 @@ internal fun SectionSkeleton(modifier: Modifier = Modifier) {
     }
 }
 
-/** A skeleton row inside the same card as a loaded Today card. */
+/**
+ * A skeleton [TodayRow]: the same lifted card, padding, tile and gap, with bones for the eyebrow,
+ * a two-line headline and the supporting line, each at its text style's height.
+ */
 @Composable
 private fun SkeletonCard(pulse: Float) {
-    Box(
+    val inset = if (isShortWindow()) WaiveraSpacing.ExtraSmall else WaiveraSpacing.ExtraSmall + WaiveraSpacing.Hairline
+    Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = WaiveraSpacing.Gutter, vertical = WaiveraSpacing.ExtraSmall + WaiveraSpacing.Hairline)
-            .background(WaiveraTheme.colors.surface, WaiveraShapes.SheetCard),
+            .padding(horizontal = WaiveraSpacing.Gutter, vertical = inset)
+            .shadow(elevation = WaiveraElevation.Card, shape = WaiveraShapes.SheetCard, clip = false)
+            .background(WaiveraTheme.colors.surface, WaiveraShapes.SheetCard)
+            .heightIn(min = WaiveraSizes.ListRowMinHeight)
+            .padding(CardPadding),
+        horizontalArrangement = Arrangement.spacedBy(CardGap),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
-        SkeletonListRow(pulse = pulse, modifier = Modifier.padding(vertical = WaiveraSpacing.XxSmall))
+        SkeletonAvatar(size = WaiveraSizes.CardTile, pulse = pulse)
+        Column(modifier = Modifier.weight(1f)) {
+            SkeletonText(
+                style = WaiveraTextStyles.Kicker,
+                widthFraction = SKELETON_EYEBROW_FRACTION,
+                pulse = pulse,
+                modifier = Modifier.padding(bottom = WaiveraSpacing.XxSmall),
+            )
+            SkeletonText(
+                style = MaterialTheme.typography.titleSmall,
+                widthFraction = SKELETON_TITLE_FRACTION,
+                pulse = pulse,
+            )
+            SkeletonText(
+                style = MaterialTheme.typography.titleSmall,
+                widthFraction = SKELETON_TITLE_END_FRACTION,
+                pulse = pulse,
+            )
+            SkeletonText(
+                style = MaterialTheme.typography.bodySmall,
+                widthFraction = SKELETON_SUPPORTING_FRACTION,
+                pulse = pulse,
+                modifier = Modifier.padding(top = WaiveraSpacing.XxSmall),
+            )
+        }
     }
 }
 
 private const val SKELETON_SECTIONS = 2
 private const val SKELETON_ROWS = 3
-private const val SKELETON_HEADER_FRACTION = 0.3f
+private const val SKELETON_HEADER_FRACTION = 0.35f
+private const val SKELETON_EYEBROW_FRACTION = 0.3f
+private const val SKELETON_TITLE_FRACTION = 0.9f
+private const val SKELETON_TITLE_END_FRACTION = 0.5f
+private const val SKELETON_SUPPORTING_FRACTION = 0.65f
 
 @WaiveraPreviews
 @Composable

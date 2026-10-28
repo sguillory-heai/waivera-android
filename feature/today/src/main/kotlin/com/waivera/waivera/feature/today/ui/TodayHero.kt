@@ -24,6 +24,7 @@ import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -38,6 +39,7 @@ import com.waivera.waivera.core.designsystem.component.WaiveraRewardRing
 import com.waivera.waivera.core.designsystem.component.WaiveraStat
 import com.waivera.waivera.core.designsystem.component.WaiveraStatGroup
 import com.waivera.waivera.core.designsystem.component.rememberTopBarAccount
+import com.waivera.waivera.core.designsystem.component.skeletonLineHeight
 import com.waivera.waivera.core.designsystem.icon.WaiveraIcons
 import com.waivera.waivera.core.designsystem.preview.WaiveraPreviews
 import com.waivera.waivera.core.designsystem.theme.WaiveraHero
@@ -325,7 +327,11 @@ internal fun NextLine(kicker: String, title: String, countdown: String?, modifie
     }
 }
 
-/** The card's shape while Needs you loads: the ring's track and two faint lines, without numbers. */
+/**
+ * The card's shape while Needs you loads: the ring's track, the headline and handled lines, and
+ * the Next row under its hairline, without numbers. Each line reserves its text style's height,
+ * so the card is as tall as the summary that replaces it.
+ */
 @Composable
 private fun SummaryPlaceholder(modifier: Modifier = Modifier, compact: Boolean = false) {
     val hero = WaiveraHero.colors
@@ -340,25 +346,59 @@ private fun SummaryPlaceholder(modifier: Modifier = Modifier, compact: Boolean =
                     .size(if (compact && !isLargeFontScale()) WaiveraSizes.RingCompact else WaiveraSizes.Ring)
                     .background(hero.tile, WaiveraShapes.Circle),
             )
-            Column(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(WaiveraSpacing.Small),
+            Column(modifier = Modifier.weight(1f)) {
+                PlaceholderLine(fraction = PLACEHOLDER_TITLE, style = WaiveraTextStyles.HeroTitle)
+                PlaceholderLine(
+                    fraction = PLACEHOLDER_BODY,
+                    style = WaiveraTextStyles.HeroBody,
+                    modifier = Modifier.padding(top = WaiveraSpacing.ExtraSmall),
+                )
+            }
+        }
+        Column(modifier = Modifier.fillMaxWidth()) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(WaiveraSpacing.Hairline)
+                    .background(hero.cardBorder),
+            )
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = if (compact) WaiveraSpacing.Small else WaiveraSpacing.MediumSmall),
+                horizontalArrangement = Arrangement.spacedBy(WaiveraSpacing.Small),
+                verticalAlignment = Alignment.CenterVertically,
             ) {
-                PlaceholderLine(fraction = PLACEHOLDER_TITLE)
-                PlaceholderLine(fraction = PLACEHOLDER_BODY)
+                Box(
+                    modifier = Modifier
+                        .size(WaiveraSizes.IconTileSmallGlyph)
+                        .background(hero.tile, WaiveraShapes.Circle),
+                )
+                Column(modifier = Modifier.weight(1f)) {
+                    PlaceholderLine(fraction = PLACEHOLDER_KICKER, style = WaiveraTextStyles.HeroEyebrow)
+                    PlaceholderLine(fraction = PLACEHOLDER_NEXT, style = MaterialTheme.typography.titleSmall)
+                }
             }
         }
     }
 }
 
+/** One line of [style]'s height with a glass bar through it. */
 @Composable
-private fun PlaceholderLine(fraction: Float) {
+private fun PlaceholderLine(fraction: Float, style: TextStyle, modifier: Modifier = Modifier) {
     Box(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth(fraction)
-            .height(WaiveraSizes.SkeletonLine)
-            .background(WaiveraHero.colors.tile, WaiveraShapes.CountBadge),
-    )
+            .height(skeletonLineHeight(style)),
+        contentAlignment = Alignment.CenterStart,
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(WaiveraSizes.SkeletonLine)
+                .background(WaiveraHero.colors.tile, WaiveraShapes.CountBadge),
+        )
+    }
 }
 
 /** A stat for a count; a dash (and "still loading" for TalkBack) until its source loads. */
@@ -449,6 +489,8 @@ private fun handledStat(progress: TodayProgress?): WaiveraStat {
 private const val PLACEHOLDER_TITLE = 0.8f
 private const val NEXT_TITLE_LINES = 2
 private const val PLACEHOLDER_BODY = 0.55f
+private const val PLACEHOLDER_KICKER = 0.35f
+private const val PLACEHOLDER_NEXT = 0.6f
 
 @WaiveraPreviews
 @Composable

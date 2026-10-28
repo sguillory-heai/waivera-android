@@ -34,6 +34,8 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.style.TextOverflow
 import com.waivera.waivera.core.data.image.AvatarModel
+import com.waivera.waivera.core.designsystem.component.SkeletonAvatar
+import com.waivera.waivera.core.designsystem.component.SkeletonText
 import com.waivera.waivera.core.designsystem.component.WaiveraAvatar
 import com.waivera.waivera.core.designsystem.component.WaiveraBrandSurface
 import com.waivera.waivera.core.designsystem.component.WaiveraButton
@@ -344,6 +346,38 @@ private fun EventCard(
         }
     }
 }
+
+/**
+ * A loading agenda card: an event card's lifted surface, minimum height, padding and tile, with
+ * title and time bones at their text styles' heights.
+ */
+@Composable
+internal fun AgendaCardSkeleton(pulse: Float, modifier: Modifier = Modifier, titleFraction: Float = 0.7f) {
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .shadow(elevation = WaiveraElevation.Card, shape = WaiveraShapes.SheetCard, clip = false)
+            .clip(WaiveraShapes.SheetCard)
+            .background(WaiveraTheme.colors.surface)
+            .heightIn(min = CalendarSizes.EventCardMinHeight)
+            .padding(start = CalendarSizes.EventAccentBar)
+            .padding(WaiveraSpacing.MediumSmall),
+        horizontalArrangement = Arrangement.spacedBy(WaiveraSpacing.MediumSmall),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        SkeletonAvatar(size = WaiveraSizes.CardTile, pulse = pulse)
+        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(WaiveraSpacing.XxSmall)) {
+            SkeletonText(style = MaterialTheme.typography.titleSmall, widthFraction = titleFraction, pulse = pulse)
+            SkeletonText(
+                style = MaterialTheme.typography.labelMedium,
+                widthFraction = TIME_BONE_FRACTION,
+                pulse = pulse,
+            )
+        }
+    }
+}
+
+private const val TIME_BONE_FRACTION = 0.5f
 
 @Composable
 private fun CardSurface(modifier: Modifier = Modifier, content: @Composable RowScope.() -> Unit) {

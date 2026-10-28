@@ -48,7 +48,6 @@ import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.waivera.waivera.core.designsystem.component.BadgeTone
 import com.waivera.waivera.core.designsystem.component.BannerTone
-import com.waivera.waivera.core.designsystem.component.SkeletonListRow
 import com.waivera.waivera.core.designsystem.component.TopBarAction
 import com.waivera.waivera.core.designsystem.component.WaiveraBanner
 import com.waivera.waivera.core.designsystem.component.WaiveraBrandSurface
@@ -75,6 +74,7 @@ import com.waivera.waivera.feature.calendar.model.AgendaNow
 import com.waivera.waivera.feature.calendar.model.ScheduleText
 import com.waivera.waivera.feature.calendar.model.ScheduleView
 import com.waivera.waivera.feature.calendar.schedule.AgendaCard
+import com.waivera.waivera.feature.calendar.schedule.AgendaCardSkeleton
 import com.waivera.waivera.feature.calendar.schedule.AgendaRailEntry
 import com.waivera.waivera.feature.calendar.schedule.AgendaState
 import com.waivera.waivera.feature.calendar.schedule.NowDivider
@@ -563,8 +563,15 @@ private fun AgendaSkeleton() {
     val caption = stringResource(R.string.feature_calendar_loading)
     if (!visible) return
     val pulse = rememberSkeletonPulse()
+    // The cards' own inset, so the bones sit exactly where the loaded cards land.
     Column(modifier = Modifier.clearAndSetSemantics { contentDescription = caption }) {
-        repeat(SKELETON_ROWS) { SkeletonListRow(pulse = pulse) }
+        repeat(SKELETON_ROWS) { index ->
+            AgendaCardSkeleton(
+                pulse = pulse,
+                titleFraction = SKELETON_TITLE_FRACTIONS[index % SKELETON_TITLE_FRACTIONS.size],
+                modifier = Modifier.padding(horizontal = WaiveraSpacing.Gutter, vertical = WaiveraSpacing.ExtraSmall),
+            )
+        }
     }
 }
 
@@ -575,6 +582,7 @@ private fun ScheduleView.labelRes(): Int = when (this) {
 }
 
 private const val SKELETON_ROWS = 3
+private val SKELETON_TITLE_FRACTIONS = listOf(0.7f, 0.55f, 0.8f)
 private const val NOW_TICK_MILLIS = 60_000L
 
 @WaiveraPreviews
