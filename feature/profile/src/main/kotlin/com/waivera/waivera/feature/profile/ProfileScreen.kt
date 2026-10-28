@@ -122,7 +122,9 @@ internal fun ProfileContent(
                     )
                 } else {
                     PullToRefreshBox(
-                        isRefreshing = state.isRefreshing,
+                        // Skeletons already show the first load; the pull indicator is for a
+                        // pull, and over the skeletons it covered the header text (UI5-12).
+                        isRefreshing = state.isRefreshing && details !is Section.Loading,
                         onRefresh = onRefresh,
                         modifier = Modifier.fillMaxSize(),
                     ) {
