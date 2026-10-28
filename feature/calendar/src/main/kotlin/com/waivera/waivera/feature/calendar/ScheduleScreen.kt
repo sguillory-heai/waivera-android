@@ -1,7 +1,9 @@
 package com.waivera.waivera.feature.calendar
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -12,6 +14,8 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Text
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
@@ -19,10 +23,13 @@ import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.CustomAccessibilityAction
@@ -48,6 +55,7 @@ import com.waivera.waivera.core.designsystem.component.WaiveraIconButton
 import com.waivera.waivera.core.designsystem.component.WaiveraIconTile
 import com.waivera.waivera.core.designsystem.component.WaiveraIllustration
 import com.waivera.waivera.core.designsystem.component.WaiveraSegmentedControl
+import com.waivera.waivera.core.designsystem.component.WaiveraSnackbarHost
 import com.waivera.waivera.core.designsystem.component.WaiveraStatusBadge
 import com.waivera.waivera.core.designsystem.component.WaiveraTileTone
 import com.waivera.waivera.core.designsystem.component.WaiveraTopBar
@@ -66,6 +74,7 @@ import com.waivera.waivera.feature.calendar.model.ScheduleView
 import com.waivera.waivera.feature.calendar.schedule.AgendaCard
 import com.waivera.waivera.feature.calendar.schedule.AgendaState
 import com.waivera.waivera.feature.calendar.schedule.NowDivider
+import com.waivera.waivera.feature.calendar.schedule.ScheduleEffect
 import com.waivera.waivera.feature.calendar.schedule.ScheduleGrid
 import com.waivera.waivera.feature.calendar.schedule.SchedulePreviewData
 import com.waivera.waivera.feature.calendar.schedule.ScheduleUiState
@@ -77,14 +86,24 @@ import com.waivera.waivera.feature.calendar.ui.periodTitleText
 import com.waivera.waivera.feature.calendar.ui.zoneNoticeText
 import java.time.LocalDate
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 /**
  * Entry point for the schedule tab. Owned by `:feature:calendar`; routed by `:app`.
  */
 @Composable
-fun ScheduleScreen(onAccountClick: () -> Unit, onOpenEvent: (eventId: String) -> Unit, modifier: Modifier = Modifier) {
+fun ScheduleScreen(
+    onAccountClick: () -> Unit,
+    onOpenEvent: (eventId: String) -> Unit,
+    onOpenConversation: (conversationId: Long) -> Unit,
+    modifier: Modifier = Modifier,
+) {
     val viewModel: ScheduleViewModel = hiltViewModel()
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val snackbarHost = remember { SnackbarHostState() }
+    val openConversation by rememberUpdatedState(onOpenConversation)
+    val wishesFailed = stringResource(R.string.feature_calendar_wishes_failed)
+    val retry = stringResource(R.string.feature_calendar_retry)
     LifecycleResumeEffect(viewModel) {
         viewModel.onResume()
         onPauseOrDispose { }
@@ -96,22 +115,37 @@ fun ScheduleScreen(onAccountClick: () -> Unit, onOpenEvent: (eventId: String) ->
             viewModel.onResume()
         }
     }
+    LaunchedEffect(viewModel) {
+        viewModel.effects.collect { effect ->
+            when (effect) {
+                is ScheduleEffect.OpenConversation -> openConversation(effect.conversationId)
+                is ScheduleEffect.WishesFailed -> launch {
+                    snackbarHost.currentSnackbarData?.dismiss()
+                    val result = snackbarHost.showSnackbar(message = wishesFailed, actionLabel = retry)
+                    if (result == SnackbarResult.ActionPerformed) viewModel.sendWishes(effect.userId)
+                }
+            }
+        }
+    }
     PreferWeekAtLargeFont(view = state.view, onSelectView = viewModel::selectView)
-    ScheduleContent(
-        state = state,
-        actions = ScheduleActions(
-            onAccountClick = onAccountClick,
-            onOpenEvent = onOpenEvent,
-            onSelectView = viewModel::selectView,
-            onSelectDate = viewModel::selectDate,
-            onStep = viewModel::step,
-            onToday = viewModel::goToToday,
-            onRefresh = viewModel::refresh,
-            onRetry = viewModel::retry,
-            onRetryMilestones = viewModel::retryMilestones,
-        ),
-        modifier = modifier,
-    )
+    Box(modifier = modifier) {
+        ScheduleContent(
+            state = state,
+            actions = ScheduleActions(
+                onAccountClick = onAccountClick,
+                onOpenEvent = onOpenEvent,
+                onSelectView = viewModel::selectView,
+                onSelectDate = viewModel::selectDate,
+                onStep = viewModel::step,
+                onToday = viewModel::goToToday,
+                onRefresh = viewModel::refresh,
+                onRetry = viewModel::retry,
+                onRetryMilestones = viewModel::retryMilestones,
+                onSendWishes = viewModel::sendWishes,
+            ),
+        )
+        WaiveraSnackbarHost(hostState = snackbarHost, modifier = Modifier.align(Alignment.BottomCenter))
+    }
 }
 
 /** Everything the schedule screen can ask for. */
@@ -126,6 +160,8 @@ class ScheduleActions(
     val onRefresh: () -> Unit = {},
     val onRetry: () -> Unit = {},
     val onRetryMilestones: () -> Unit = {},
+    /** "Send wishes" on a milestone card, with the person's user id. */
+    val onSendWishes: (String) -> Unit = {},
 )
 
 /** Stateless schedule screen, for previews and screenshot tests. */
@@ -214,6 +250,8 @@ private fun LazyListScope.agendaItems(state: ScheduleUiState, actions: ScheduleA
                         currentYear = state.today.year,
                         onOpenEvent = actions.onOpenEvent,
                         ended = now != null && card.key in now.endedKeys,
+                        myUserId = state.myUserId,
+                        onSendWishes = actions.onSendWishes,
                         modifier = itemModifier.animateItem(
                             fadeInSpec = motion.state(),
                             placementSpec = motion.layout(),
@@ -394,37 +432,55 @@ private fun PreferWeekAtLargeFont(view: ScheduleView, onSelectView: (ScheduleVie
 }
 
 /**
- * The selected day above its agenda, as a small brand moment: the gradient wash with the day in
- * a calendar tile, and the Today chip when it is today.
+ * The selected day above its agenda: the day in a calendar tile, and the Today chip when it is
+ * today. It is a small brand moment on the gradient wash, unless the day has a celebration card:
+ * then that card keeps the screen's one wash and the header is a plain card (UI8-14).
  */
 @Composable
 private fun AgendaHeader(state: ScheduleUiState) {
-    WaiveraBrandSurface(
-        modifier = Modifier.padding(
-            start = WaiveraSpacing.Gutter,
-            end = WaiveraSpacing.Gutter,
-            top = WaiveraSpacing.Medium,
-            bottom = WaiveraSpacing.Small,
-        ),
-        shape = WaiveraShapes.ListCard,
-        contentPadding = PaddingValues(horizontal = WaiveraSpacing.MediumSmall, vertical = WaiveraSpacing.Small),
-    ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(WaiveraSpacing.MediumSmall),
+    val modifier = Modifier.padding(
+        start = WaiveraSpacing.Gutter,
+        end = WaiveraSpacing.Gutter,
+        top = WaiveraSpacing.Medium,
+        bottom = WaiveraSpacing.Small,
+    )
+    val padding = PaddingValues(horizontal = WaiveraSpacing.MediumSmall, vertical = WaiveraSpacing.Small)
+    if (state.hasCelebrationCard) {
+        val colors = WaiveraTheme.colors
+        Box(
+            modifier = modifier
+                .fillMaxWidth()
+                .clip(WaiveraShapes.ListCard)
+                .background(colors.surface)
+                .border(WaiveraSpacing.Hairline, colors.border, WaiveraShapes.ListCard)
+                .padding(padding),
         ) {
-            WaiveraIconTile(icon = WaiveraIcons.Calendar, tone = WaiveraTileTone.Teal)
-            Text(
-                text = ScheduleText.fullDay(state.selectedDate, currentLocale()),
-                style = MaterialTheme.typography.titleMedium,
-                color = WaiveraTheme.colors.text,
-                modifier = Modifier
-                    .weight(1f, fill = false)
-                    .semantics { heading() },
-            )
-            if (state.isTodaySelected) {
-                WaiveraStatusBadge(text = stringResource(R.string.feature_calendar_today), tone = BadgeTone.Accent)
-            }
+            AgendaHeaderRow(state)
+        }
+    } else {
+        WaiveraBrandSurface(modifier = modifier, shape = WaiveraShapes.ListCard, contentPadding = padding) {
+            AgendaHeaderRow(state)
+        }
+    }
+}
+
+@Composable
+private fun AgendaHeaderRow(state: ScheduleUiState) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(WaiveraSpacing.MediumSmall),
+    ) {
+        WaiveraIconTile(icon = WaiveraIcons.Calendar, tone = WaiveraTileTone.Teal)
+        Text(
+            text = ScheduleText.fullDay(state.selectedDate, currentLocale()),
+            style = MaterialTheme.typography.titleMedium,
+            color = WaiveraTheme.colors.text,
+            modifier = Modifier
+                .weight(1f, fill = false)
+                .semantics { heading() },
+        )
+        if (state.isTodaySelected) {
+            WaiveraStatusBadge(text = stringResource(R.string.feature_calendar_today), tone = BadgeTone.Accent)
         }
     }
 }

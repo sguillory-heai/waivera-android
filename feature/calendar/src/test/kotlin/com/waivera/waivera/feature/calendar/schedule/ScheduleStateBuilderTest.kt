@@ -152,4 +152,17 @@ class ScheduleStateBuilderTest {
         assertNull(build(feed = null, deviceZone = chicago).zoneNotice)
         assertNotNull(build(feed = null, deviceZone = ZoneId.of("Asia/Tokyo")).zoneNotice)
     }
+
+    /** A day with a celebration card gives that card the one brand wash; the header goes plain (UI8-14). */
+    @Test
+    fun aCelebrationCardIsKnownSoTheDayHeaderStepsBack() {
+        val jordan =
+            Milestone(MilestoneType.WORK_ANNIVERSARY, "usr_jordan", "Jordan Lee", month = 11, day = 1, startYear = 2021)
+        val withCard =
+            build(Synced(feed(overnight), lastSyncedAt = synced), milestones = MilestoneIndex(listOf(jordan)))
+        assertTrue(withCard.hasCelebrationCard)
+
+        val plain = build(Synced(feed(overnight), lastSyncedAt = synced))
+        assertTrue(!plain.hasCelebrationCard)
+    }
 }

@@ -3,12 +3,9 @@ package com.waivera.waivera.feature.calendar.ui
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.ui.platform.LocalConfiguration
-import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
-import com.waivera.waivera.core.data.model.MilestoneOccurrence
 import com.waivera.waivera.core.data.model.TimeOffEntry
 import com.waivera.waivera.core.network.dto.InviteStatus
-import com.waivera.waivera.core.network.dto.MilestoneType
 import com.waivera.waivera.feature.calendar.R
 import com.waivera.waivera.feature.calendar.model.EventTiming
 import com.waivera.waivera.feature.calendar.model.PeriodTitle
@@ -123,15 +120,6 @@ internal fun timeOffSubtitle(entry: TimeOffEntry): String {
     } else {
         stringResource(R.string.feature_calendar_with_detail, status, type)
     }
-}
-
-@Composable
-internal fun milestoneSubtitle(occurrence: MilestoneOccurrence): String = when (occurrence.milestone.type) {
-    MilestoneType.WORK_ANNIVERSARY -> {
-        val years = occurrence.years ?: 0
-        pluralStringResource(R.plurals.feature_calendar_milestone_anniversary, years, years)
-    }
-    else -> stringResource(R.string.feature_calendar_milestone_birthday)
 }
 
 @Composable

@@ -50,14 +50,12 @@
     <string name="feature_calendar_day_time_long">%1$s, %2$s</string>
     <string name="feature_calendar_open_event">Open event</string>
     <string name="feature_calendar_owner">Organized by %1$s</string>
-    <string name="feature_calendar_milestone_birthday">Birthday</string>
-    <plurals name="feature_calendar_milestone_anniversary">
-        <item quantity="one">%d-year work anniversary</item>
-        <item quantity="other">%d-year work anniversary</item>
-    </plurals>
 
     <!-- Celebrations (07 §4) -->
     <string name="feature_calendar_celebration_name_fallback">Teammate</string>
+    <string name="feature_calendar_send_wishes">Send wishes</string>
+    <string name="feature_calendar_send_wishes_a11y">Send wishes to %1$s</string>
+    <string name="feature_calendar_wishes_failed">We couldn\'t open the chat. Try again in a moment.</string>
     <string name="feature_calendar_celebration_compact_multiple">Birthday + %1$d-yr anniversary</string>
     <string name="feature_calendar_celebration_compact_birthday">Birthday today</string>
     <string name="feature_calendar_celebration_compact_anniversary">%1$d-year anniversary</string>

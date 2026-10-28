@@ -78,7 +78,11 @@ fun RouteContent(route: AppRoute, actions: RouteActions) {
             onOpenConversation = actions.openConversation,
             onOpenPerson = actions.openPerson,
         )
-        ScheduleRoute -> ScheduleScreen(onAccountClick = actions.openAccountMenu, onOpenEvent = actions.openEvent)
+        ScheduleRoute -> ScheduleScreen(
+            onAccountClick = actions.openAccountMenu,
+            onOpenEvent = actions.openEvent,
+            onOpenConversation = actions.openConversation,
+        )
         is ConversationRoute -> ConversationScreen(
             conversationId = route.conversationId,
             highlightMessageId = route.messageId,

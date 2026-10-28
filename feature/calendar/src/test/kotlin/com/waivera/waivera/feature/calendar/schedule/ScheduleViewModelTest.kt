@@ -12,6 +12,7 @@ import com.waivera.waivera.core.testing.MainDispatcherRule
 import com.waivera.waivera.core.testing.TestClock
 import com.waivera.waivera.core.testing.TestSessionRepository
 import com.waivera.waivera.feature.calendar.FakeCalendarRepository
+import com.waivera.waivera.feature.calendar.FakeConversationRepository
 import com.waivera.waivera.feature.calendar.FakeRealtimeStatusRepository
 import com.waivera.waivera.feature.calendar.data.DeviceZone
 import com.waivera.waivera.feature.calendar.model.AgendaItem
@@ -32,6 +33,7 @@ import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import org.junit.Rule
 
@@ -45,6 +47,7 @@ class ScheduleViewModelTest {
     private val calendar = FakeCalendarRepository(clock)
     private val realtime = FakeRealtimeStatusRepository()
     private val session = TestSessionRepository()
+    private val conversations = FakeConversationRepository()
     private var device: ZoneId = chicago
 
     private val shift = ScheduleEvent(
@@ -55,7 +58,14 @@ class ScheduleViewModelTest {
     )
 
     private fun TestScope.viewModel(): ScheduleViewModel {
-        val vm = ScheduleViewModel(calendar, session, realtime, clock, DeviceZone { device })
+        val vm = ScheduleViewModel(
+            calendar = calendar,
+            session = session,
+            realtime = realtime,
+            clock = clock,
+            deviceZone = DeviceZone { device },
+            conversations = conversations,
+        )
         backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { vm.uiState.collect {} }
         return vm
     }
@@ -221,7 +231,14 @@ class ScheduleViewModelTest {
 
         val fresh = FakeCalendarRepository(clock)
         fresh.milestoneState.value = Synced(emptyList(), lastSyncedAt = clock.instant().minusSeconds(5 * 60))
-        val vm = ScheduleViewModel(fresh, session, realtime, clock, DeviceZone { device })
+        val vm = ScheduleViewModel(
+            calendar = fresh,
+            session = session,
+            realtime = realtime,
+            clock = clock,
+            deviceZone = DeviceZone { device },
+            conversations = conversations,
+        )
         backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { vm.uiState.collect {} }
         assertEquals(0, fresh.milestoneRefreshes)
     }
@@ -252,5 +269,33 @@ class ScheduleViewModelTest {
         assertEquals(milestonesBefore + 1, calendar.milestoneRefreshes)
         gate.complete(Unit)
         assertFalse(vm.uiState.value.isRefreshing)
+    }
+
+    @Test
+    fun theSignedInPersonIsKnownSoTheirOwnCardOffersNoWishes() = runTest {
+        val vm = viewModel()
+        assertEquals("usr_alex_rivera", vm.uiState.value.myUserId)
+    }
+
+    @Test
+    fun sendWishesOpensTheDirectChat() = runTest {
+        val vm = viewModel()
+        val effects = mutableListOf<ScheduleEffect>()
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { vm.effects.collect { effects += it } }
+        vm.sendWishes("usr_priya")
+        runCurrent()
+        assertEquals(listOf(listOf("usr_priya")), conversations.opened)
+        assertEquals(ScheduleEffect.OpenConversation(FakeConversationRepository.OPENED_CONVERSATION_ID), effects.last())
+    }
+
+    @Test
+    fun sendWishesThatFailsOffersRetry() = runTest {
+        conversations.openResult = Result.failure(WaiveraError.Network())
+        val vm = viewModel()
+        val effects = mutableListOf<ScheduleEffect>()
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { vm.effects.collect { effects += it } }
+        vm.sendWishes("usr_priya")
+        runCurrent()
+        assertEquals(ScheduleEffect.WishesFailed("usr_priya"), effects.last())
     }
 }

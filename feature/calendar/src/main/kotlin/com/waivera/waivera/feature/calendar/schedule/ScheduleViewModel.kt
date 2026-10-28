@@ -8,7 +8,9 @@ import com.waivera.waivera.core.data.model.RealtimeStatus
 import com.waivera.waivera.core.data.model.ScheduleFeed
 import com.waivera.waivera.core.data.model.Synced
 import com.waivera.waivera.core.data.model.currentUser
+import com.waivera.waivera.core.data.model.currentUserId
 import com.waivera.waivera.core.data.repository.CalendarRepository
+import com.waivera.waivera.core.data.repository.ConversationRepository
 import com.waivera.waivera.core.data.repository.RealtimeStatusRepository
 import com.waivera.waivera.core.data.repository.SessionRepository
 import com.waivera.waivera.core.network.time.WaiveraTime
@@ -24,6 +26,8 @@ import java.time.LocalDate
 import java.time.ZoneId
 import javax.inject.Inject
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -35,6 +39,7 @@ import kotlinx.coroutines.flow.distinctUntilChangedBy
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
@@ -44,14 +49,22 @@ import kotlinx.coroutines.launch
  * [CalendarRepository.zone], never the device zone.
  */
 @HiltViewModel
-@Suppress("LongParameterList")
+// One small public action per user intent on the tab (view, date, step, refresh, wishes...).
+@Suppress("LongParameterList", "TooManyFunctions")
 class ScheduleViewModel @Inject constructor(
     private val calendar: CalendarRepository,
     private val session: SessionRepository,
     private val realtime: RealtimeStatusRepository,
     private val clock: Clock,
     private val deviceZone: DeviceZone,
+    private val conversations: ConversationRepository,
 ) : ViewModel() {
+    private val effectChannel = Channel<ScheduleEffect>(Channel.BUFFERED)
+
+    /** One-off effects: open the chat "Send wishes" started, or say it couldn't. */
+    val effects: Flow<ScheduleEffect> = effectChannel.receiveAsFlow()
+    private var wishesJob: Job? = null
+
     private val view = MutableStateFlow(ScheduleView.MONTH)
 
     /** The picked date; null follows "today" in the employee's zone. */
@@ -82,7 +95,7 @@ class ScheduleViewModel @Inject constructor(
         .map { MilestoneState(MilestoneIndex(it.data), it) }
 
     private val chrome = combine(realtime.status, pullRefreshing, session.state) { status, refreshing, state ->
-        Chrome(status, refreshing, state.currentUser?.timeZoneId)
+        Chrome(status, refreshing, state.currentUser?.timeZoneId, state.currentUserId)
     }
 
     val uiState: StateFlow<ScheduleUiState> = combine(period, feed, milestones, chrome) { p, f, m, c ->
@@ -149,6 +162,19 @@ class ScheduleViewModel @Inject constructor(
         now.value = clock.instant()
     }
 
+    /**
+     * "Send wishes" on a milestone card: opens (or starts) the direct chat with [userId], as on
+     * Today. A second tap while the first is still opening is ignored.
+     */
+    fun sendWishes(userId: String) {
+        if (wishesJob?.isActive == true) return
+        wishesJob = viewModelScope.launch {
+            conversations.openConversation(listOf(userId))
+                .onSuccess { effectChannel.send(ScheduleEffect.OpenConversation(it)) }
+                .onFailure { effectChannel.send(ScheduleEffect.WishesFailed(userId)) }
+        }
+    }
+
     private suspend fun refreshAll() = coroutineScope {
         launch { calendar.refresh(period.value.range) }
         launch { calendar.refreshMilestones() }
@@ -175,7 +201,12 @@ class ScheduleViewModel @Inject constructor(
 
     private data class MilestoneState(val index: MilestoneIndex, val synced: Synced<List<Milestone>>)
 
-    private data class Chrome(val status: RealtimeStatus, val pullRefreshing: Boolean, val savedZoneId: String?)
+    private data class Chrome(
+        val status: RealtimeStatus,
+        val pullRefreshing: Boolean,
+        val savedZoneId: String?,
+        val myUserId: String?,
+    )
 
     private companion object {
         const val STOP_TIMEOUT_MILLIS = 5_000L
@@ -205,8 +236,16 @@ class ScheduleViewModel @Inject constructor(
                 deviceZone = c?.let { deviceZone.current() },
                 isOffline = c?.status?.isOnline == false,
                 isRefreshing = c?.pullRefreshing == true,
-            )
+            ).copy(myUserId = c?.myUserId)
     }
+}
+
+/** One-off schedule effects. */
+sealed interface ScheduleEffect {
+    data class OpenConversation(val conversationId: Long) : ScheduleEffect
+
+    /** The chat for "Send wishes" couldn't be opened; Retry tries again for [userId]. */
+    data class WishesFailed(val userId: String) : ScheduleEffect
 }
 
 /** Runs [action] each time the connection comes back after it was lost (not on the first connect). */

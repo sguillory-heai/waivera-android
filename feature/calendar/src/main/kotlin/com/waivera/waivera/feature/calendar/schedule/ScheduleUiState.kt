@@ -30,8 +30,14 @@ data class ScheduleUiState(
     /** Milestones failed to load; the calendar still renders and a quiet banner says so. */
     val milestonesError: WaiveraError? = null,
     val isOffline: Boolean = false,
+    /** The signed-in person, so their own milestone card offers no "Send wishes" to themselves. */
+    val myUserId: String? = null,
 ) {
     val isTodaySelected: Boolean get() = selectedDate == today
+
+    /** The agenda holds a birthday or anniversary, which takes the screen's brand wash. */
+    val hasCelebrationCard: Boolean
+        get() = (agenda as? AgendaState.Content)?.items?.any { it is AgendaItem.MilestoneCard } == true
 
     /**
      * "Jump to today" is offered only when today is out of sight, so it never sits in the header

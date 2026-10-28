@@ -31,7 +31,11 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.style.TextOverflow
+import com.waivera.waivera.core.data.image.AvatarModel
+import com.waivera.waivera.core.designsystem.component.WaiveraAvatar
 import com.waivera.waivera.core.designsystem.component.WaiveraBrandSurface
+import com.waivera.waivera.core.designsystem.component.WaiveraButton
+import com.waivera.waivera.core.designsystem.component.WaiveraButtonVariant
 import com.waivera.waivera.core.designsystem.component.WaiveraEmojiTile
 import com.waivera.waivera.core.designsystem.component.WaiveraIconTile
 import com.waivera.waivera.core.designsystem.component.WaiveraPressable
@@ -49,10 +53,8 @@ import com.waivera.waivera.feature.calendar.model.ScheduleLabels
 import com.waivera.waivera.feature.calendar.ui.CalendarIcons
 import com.waivera.waivera.feature.calendar.ui.CalendarSizes
 import com.waivera.waivera.feature.calendar.ui.CelebrationText
-import com.waivera.waivera.feature.calendar.ui.MilestoneAvatar
 import com.waivera.waivera.feature.calendar.ui.agendaTimeText
 import com.waivera.waivera.feature.calendar.ui.currentLocale
-import com.waivera.waivera.feature.calendar.ui.milestoneSubtitle
 import com.waivera.waivera.feature.calendar.ui.resolve
 import com.waivera.waivera.feature.calendar.ui.timeOffSubtitle
 import java.time.ZonedDateTime
@@ -69,11 +71,18 @@ internal fun AgendaCard(
     onOpenEvent: (String) -> Unit,
     modifier: Modifier = Modifier,
     ended: Boolean = false,
+    myUserId: String? = null,
+    onSendWishes: (userId: String) -> Unit = {},
 ) {
     val endedLabel = stringResource(R.string.feature_calendar_item_ended)
     val endedModifier = if (ended) modifier.semantics { stateDescription = endedLabel } else modifier
     when (item) {
-        is AgendaItem.MilestoneCard -> MilestoneCard(item, modifier)
+        is AgendaItem.MilestoneCard -> MilestoneCard(
+            item = item,
+            showWishes = item.occurrence.milestone.userId != myUserId,
+            onSendWishes = onSendWishes,
+            modifier = modifier,
+        )
         is AgendaItem.HolidayCard -> InfoCard(
             icon = WaiveraIcons.Calendar,
             tone = WaiveraTileTone.Brand,
@@ -131,46 +140,58 @@ internal fun NowDivider(time: ZonedDateTime, modifier: Modifier = Modifier) {
 }
 
 /**
- * A birthday or anniversary on the day: a small brand moment, on the gradient wash with the
- * celebration emoji in its own tile (the sentence carries none, so it shows once).
+ * A birthday or anniversary on the day: a small brand moment on the gradient wash. The person's
+ * plain avatar, the sentence, and the celebration emoji once, in its own tile (no avatar badge and
+ * no subtitle repeating the sentence, UI8-03). "Send wishes" opens a direct chat, as on Today;
+ * it is hidden on the person's own card.
  */
 @Composable
-private fun MilestoneCard(item: AgendaItem.MilestoneCard, modifier: Modifier = Modifier) {
+private fun MilestoneCard(
+    item: AgendaItem.MilestoneCard,
+    showWishes: Boolean,
+    onSendWishes: (userId: String) -> Unit,
+    modifier: Modifier = Modifier,
+) {
     val fallbackName = stringResource(R.string.feature_calendar_celebration_name_fallback)
-    val name = item.occurrence.milestone.displayName?.takeIf(String::isNotBlank) ?: fallbackName
+    val milestone = item.occurrence.milestone
+    val name = milestone.displayName?.takeIf(String::isNotBlank) ?: fallbackName
+    val sentence = CelebrationText.full(item.celebration, fallbackName).resolve()
     WaiveraBrandSurface(
-        modifier = modifier
-            .heightIn(min = WaiveraSizes.ListRowMinHeight)
-            .semantics(mergeDescendants = true) { },
+        modifier = modifier.heightIn(min = WaiveraSizes.ListRowMinHeight),
         shape = WaiveraShapes.ListCard,
         contentPadding = PaddingValues(WaiveraSpacing.MediumSmall),
     ) {
         Row(
+            // The sentence alone: the card can sit on any day, so no "today" wording here.
+            modifier = Modifier.clearAndSetSemantics { contentDescription = sentence },
             horizontalArrangement = Arrangement.spacedBy(WaiveraSpacing.MediumSmall),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            MilestoneAvatar(
+            WaiveraAvatar(
                 name = name,
-                celebration = item.celebration,
+                imageModel = AvatarModel.of(milestone.userId),
                 size = CalendarSizes.MilestoneCardAvatar,
-                userId = item.occurrence.milestone.userId,
+                contentDescription = null,
             )
-            Column(
+            Text(
+                text = sentence,
+                style = MaterialTheme.typography.titleSmall,
+                color = WaiveraTheme.colors.text,
                 modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(WaiveraSpacing.XxSmall),
-            ) {
-                Text(
-                    text = CelebrationText.full(item.celebration, fallbackName).resolve(),
-                    style = MaterialTheme.typography.titleSmall,
-                    color = WaiveraTheme.colors.text,
-                )
-                Text(
-                    text = milestoneSubtitle(item.occurrence),
-                    style = MaterialTheme.typography.labelMedium,
-                    color = WaiveraTheme.colors.textSecondary,
-                )
-            }
+            )
             WaiveraEmojiTile(emoji = CelebrationText.emoji(item.celebration).resolve())
+        }
+        if (showWishes) {
+            val wishesLabel = stringResource(R.string.feature_calendar_send_wishes_a11y, name)
+            WaiveraButton(
+                text = stringResource(R.string.feature_calendar_send_wishes),
+                onClick = { onSendWishes(milestone.userId) },
+                variant = WaiveraButtonVariant.Tonal,
+                leadingIcon = WaiveraIcons.Chat,
+                modifier = Modifier
+                    .padding(start = CalendarSizes.MilestoneCardAvatar + WaiveraSpacing.MediumSmall)
+                    .semantics { contentDescription = wishesLabel },
+            )
         }
     }
 }
