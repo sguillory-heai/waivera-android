@@ -181,7 +181,7 @@ private fun ButtonProgress(label: String, color: Color) {
 private fun buttonBorder(variant: WaiveraButtonVariant, enabled: Boolean, colors: WaiveraColors): BorderStroke? = when {
     variant == WaiveraButtonVariant.Text -> null
     !enabled -> BorderStroke(WaiveraSpacing.Hairline, colors.border)
-    variant == WaiveraButtonVariant.Secondary -> BorderStroke(WaiveraSpacing.Hairline, colors.borderStrong)
+    variant == WaiveraButtonVariant.Secondary -> BorderStroke(WaiveraSpacing.Hairline, colors.secondaryBorder)
     variant == WaiveraButtonVariant.DestructiveOutline -> BorderStroke(WaiveraSpacing.Hairline, colors.danger)
     variant == WaiveraButtonVariant.Selected -> BorderStroke(WaiveraSizes.SelectedOutline, colors.accent)
     variant == WaiveraButtonVariant.Unselected -> BorderStroke(WaiveraSpacing.Hairline, colors.border)
@@ -191,8 +191,9 @@ private fun buttonBorder(variant: WaiveraButtonVariant, enabled: Boolean, colors
 private class ButtonStyle(val container: Color, val content: Color, val disabledContainer: Color)
 
 private fun WaiveraButtonVariant.styleFrom(colors: WaiveraColors): ButtonStyle = when (this) {
-    WaiveraButtonVariant.Primary -> ButtonStyle(colors.accent, colors.onAccent, colors.surfaceMuted)
-    WaiveraButtonVariant.Secondary -> ButtonStyle(colors.surface, colors.text, colors.surface)
+    WaiveraButtonVariant.Primary -> ButtonStyle(colors.accentFill, colors.onAccent, colors.surfaceMuted)
+    // Tonal in dark (the raised plum step with a quiet border), so it never glares as an outlined block.
+    WaiveraButtonVariant.Secondary -> ButtonStyle(colors.secondaryContainer, colors.text, colors.surface)
     WaiveraButtonVariant.Tonal -> ButtonStyle(colors.accentSoft, colors.onAccentSoft, colors.surfaceMuted)
     WaiveraButtonVariant.Destructive -> ButtonStyle(colors.dangerFill, colors.onDangerFill, colors.surfaceMuted)
     WaiveraButtonVariant.DestructiveOutline -> ButtonStyle(colors.surface, colors.dangerText, colors.surfaceMuted)

@@ -23,6 +23,8 @@ data class WaiveraColors(
     val text: Color,
     val textSecondary: Color,
     val accent: Color,
+    /** Fill of primary buttons and other filled accent controls; [onAccent] sits on it. */
+    val accentFill: Color,
     val onAccent: Color,
     val accentSoft: Color,
     val onAccentSoft: Color,
@@ -62,6 +64,28 @@ data class WaiveraColors(
     val skeletonBase: Color,
     /** The other end of the skeleton pulse. */
     val skeletonHighlight: Color,
+    /** Secondary (outlined) button: a tonal raised step in dark instead of a stark outlined block. */
+    val secondaryContainer: Color,
+    val secondaryBorder: Color,
+    /** Category tints for [com.waivera.waivera.core.designsystem.component.WaiveraIconTile]. */
+    val tiles: WaiveraTileColors,
+    /** Opacity of the brand gradient when it washes a surface (celebration cards, sign-in hero). */
+    val brandWashAlpha: Float,
+)
+
+/** One tile tint: the soft container and the outlined glyph on it (at least 4.5:1). */
+@Immutable
+data class WaiveraTileTint(val container: Color, val content: Color)
+
+/** Every icon-tile category, resolved for one theme. */
+@Immutable
+data class WaiveraTileColors(
+    val brand: WaiveraTileTint,
+    val rose: WaiveraTileTint,
+    val amber: WaiveraTileTint,
+    val teal: WaiveraTileTint,
+    val neutral: WaiveraTileTint,
+    val danger: WaiveraTileTint,
 )
 
 internal val LightWaiveraColors = WaiveraColors(
@@ -74,6 +98,7 @@ internal val LightWaiveraColors = WaiveraColors(
     text = WaiveraPalette.TextLight,
     textSecondary = WaiveraPalette.TextSecondaryLight,
     accent = WaiveraPalette.Purple,
+    accentFill = WaiveraPalette.Purple,
     onAccent = WaiveraPalette.White,
     accentSoft = WaiveraPalette.AccentSoftLight,
     onAccentSoft = WaiveraPalette.PurpleDeep,
@@ -110,6 +135,17 @@ internal val LightWaiveraColors = WaiveraColors(
     scrim = WaiveraPalette.Black.copy(alpha = WaiveraPalette.SCRIM_ALPHA),
     skeletonBase = WaiveraPalette.SkeletonBaseLight,
     skeletonHighlight = WaiveraPalette.SkeletonHighlightLight,
+    secondaryContainer = WaiveraPalette.SurfaceLight,
+    secondaryBorder = WaiveraPalette.BorderStrongLight,
+    tiles = WaiveraTileColors(
+        brand = WaiveraTileTint(WaiveraPalette.AccentSoftLight, WaiveraPalette.PurpleDeep),
+        rose = WaiveraTileTint(WaiveraPalette.TileRoseLight, WaiveraPalette.OnTileRoseLight),
+        amber = WaiveraTileTint(WaiveraPalette.TileAmberLight, WaiveraPalette.OnTileAmberLight),
+        teal = WaiveraTileTint(WaiveraPalette.TileTealLight, WaiveraPalette.OnTileTealLight),
+        neutral = WaiveraTileTint(WaiveraPalette.SurfaceMutedLight, WaiveraPalette.TextSecondaryLight),
+        danger = WaiveraTileTint(WaiveraPalette.TileDangerLight, WaiveraPalette.OnTileDangerLight),
+    ),
+    brandWashAlpha = WaiveraPalette.BRAND_WASH_ALPHA_LIGHT,
 )
 
 internal val DarkWaiveraColors = WaiveraColors(
@@ -122,6 +158,7 @@ internal val DarkWaiveraColors = WaiveraColors(
     text = WaiveraPalette.TextDark,
     textSecondary = WaiveraPalette.TextSecondaryDark,
     accent = WaiveraPalette.PurpleDarkAccent,
+    accentFill = WaiveraPalette.PurpleDarkFill,
     onAccent = WaiveraPalette.OnAccentDark,
     accentSoft = WaiveraPalette.AccentSoftDark,
     onAccentSoft = WaiveraPalette.OnAccentSoftDark,
@@ -158,6 +195,17 @@ internal val DarkWaiveraColors = WaiveraColors(
     scrim = WaiveraPalette.Black.copy(alpha = WaiveraPalette.SCRIM_ALPHA),
     skeletonBase = WaiveraPalette.SkeletonBaseDark,
     skeletonHighlight = WaiveraPalette.SkeletonHighlightDark,
+    secondaryContainer = WaiveraPalette.SurfaceMutedDark,
+    secondaryBorder = WaiveraPalette.BorderDark,
+    tiles = WaiveraTileColors(
+        brand = WaiveraTileTint(WaiveraPalette.AccentSoftDark, WaiveraPalette.OnAccentSoftDark),
+        rose = WaiveraTileTint(WaiveraPalette.TileRoseDark, WaiveraPalette.OnTileRoseDark),
+        amber = WaiveraTileTint(WaiveraPalette.TileAmberDark, WaiveraPalette.OnTileAmberDark),
+        teal = WaiveraTileTint(WaiveraPalette.TileTealDark, WaiveraPalette.OnTileTealDark),
+        neutral = WaiveraTileTint(WaiveraPalette.TileNeutralDark, WaiveraPalette.TextSecondaryDark),
+        danger = WaiveraTileTint(WaiveraPalette.DangerContainerDark, WaiveraPalette.OnDangerContainerDark),
+    ),
+    brandWashAlpha = WaiveraPalette.BRAND_WASH_ALPHA_DARK,
 )
 
 /** Resolves the colour set for a theme. Exposed for screenshot tests and the app's window colours. */
