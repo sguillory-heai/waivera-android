@@ -515,31 +515,43 @@ private fun AgendaHeader(state: ScheduleUiState) {
                 .background(colors.surface)
                 .padding(padding),
         ) {
-            AgendaHeaderRow(state)
+            AgendaDayHeading(date = state.selectedDate, isToday = state.isTodaySelected)
         }
     } else {
         WaiveraBrandSurface(modifier = modifier, shape = WaiveraShapes.SheetCard, contentPadding = padding) {
-            AgendaHeaderRow(state)
+            AgendaDayHeading(date = state.selectedDate, isToday = state.isTodaySelected)
         }
     }
 }
 
+/**
+ * The Week and Month agenda's day heading. From 150% it reads "Sun, Nov 1", as the Day title
+ * does (UI10-09), so at 200% beside the Today chip the day number never stands on a line of its
+ * own ("Sunday, / November / 1", UI11-04); TalkBack still hears the whole day.
+ */
 @Composable
-private fun AgendaHeaderRow(state: ScheduleUiState) {
+internal fun AgendaDayHeading(date: LocalDate, isToday: Boolean, modifier: Modifier = Modifier) {
+    val locale = currentLocale()
+    val spoken = ScheduleText.fullDay(date, locale)
+    val shown = if (isExtraLargeFontScale()) ScheduleText.weekdayMonthDay(date, locale, shortMonth = true) else spoken
     Row(
+        modifier = modifier,
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(WaiveraSpacing.MediumSmall),
     ) {
         WaiveraIconTile(icon = WaiveraIcons.Calendar, tone = WaiveraTileTone.Teal)
         Text(
-            text = ScheduleText.fullDay(state.selectedDate, currentLocale()),
+            text = shown,
             style = MaterialTheme.typography.titleMedium,
             color = WaiveraTheme.colors.text,
             modifier = Modifier
                 .weight(1f, fill = false)
-                .semantics { heading() },
+                .semantics {
+                    heading()
+                    contentDescription = spoken
+                },
         )
-        if (state.isTodaySelected) {
+        if (isToday) {
             WaiveraStatusBadge(text = stringResource(R.string.feature_calendar_today), tone = BadgeTone.Accent)
         }
     }
