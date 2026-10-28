@@ -185,7 +185,7 @@ private fun ProfileBody(
 }
 
 @Composable
-private fun IdentityCard(user: CurrentUser, profile: EmployeeProfile?, celebration: Celebration?) {
+internal fun IdentityCard(user: CurrentUser, profile: EmployeeProfile?, celebration: Celebration?) {
     val colors = WaiveraTheme.colors
     val name = profile?.displayName?.takeIf(String::isNotBlank)
         ?: listOfNotNull(profile?.firstName, profile?.lastName).joinToString(" ").takeIf(String::isNotBlank)
@@ -221,8 +221,11 @@ private fun IdentityCard(user: CurrentUser, profile: EmployeeProfile?, celebrati
                 Text(text = jobTitle, style = MaterialTheme.typography.bodyMedium, color = colors.textSecondary)
             }
             if (!email.isNullOrBlank()) {
+                // A little air under the role, so a wrapped role and a wrapped address read as two
+                // lines of information, not one grey paragraph (UI7-04).
                 WaiveraAddressText(
                     address = email,
+                    modifier = if (jobTitle != null) Modifier.padding(top = WaiveraSpacing.ExtraSmall) else Modifier,
                     style = MaterialTheme.typography.bodyMedium,
                     color = colors.textSecondary,
                 )
