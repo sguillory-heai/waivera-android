@@ -65,6 +65,15 @@ class WaiveraColorsContrastTest {
         text("textSecondary on chipNeutral (informational totals)", colors.textSecondary, colors.chipNeutral)
         text("onAccentSoft on accentSoft", colors.onAccentSoft, colors.accentSoft)
         text("onDangerFill on dangerFill", colors.onDangerFill, colors.dangerFill)
+        // v5 decision 2, option C: the label at the sheen's brightest point on each filled button.
+        text("onAccent under the button sheen", colors.onAccent, colors.buttonSheen.compositeOver(colors.accentFill))
+        text(
+            "onDangerFill under the button sheen",
+            colors.onDangerFill,
+            colors.buttonSheen.compositeOver(colors.dangerFill),
+        )
+        // The raised white secondary: body ink on the surface it is drawn in.
+        text("text on surface (raised secondary)", colors.text, colors.surface)
         text("onDangerContainer on dangerContainer", colors.onDangerContainer, colors.dangerContainer)
         text("onWarningContainer on warningContainer", colors.onWarningContainer, colors.warningContainer)
         text("onBirthdayContainer on birthdayContainer", colors.onBirthdayContainer, colors.birthdayContainer)

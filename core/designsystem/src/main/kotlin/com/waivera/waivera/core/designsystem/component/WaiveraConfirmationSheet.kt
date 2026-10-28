@@ -28,9 +28,9 @@ import com.waivera.waivera.core.designsystem.theme.WaiveraTheme
  * shows [confirmInProgressLabel] ("Signing out…"), or else its own label, beside its spinner.
  *
  * Concept A's sheet: a destructive question leads with the warning glyph in the danger tile, the
- * confirm is the full 56dp action (solid brand violet, or solid red when destructive, both with
- * white text) and the dismiss is the lilac tonal button under it. Nothing on the sheet is a
- * gradient (v5).
+ * confirm is the full 56dp action (brand violet, or red when destructive, both with white text,
+ * a light top edge and a faint sheen) and the dismiss is the raised white secondary under it
+ * (v5 decision 2, option C). Nothing on the sheet is the brand gradient.
  */
 @Composable
 fun WaiveraConfirmationSheet(

@@ -294,7 +294,7 @@ private fun SignInForm(
     }
 }
 
-/** The gradient Sign in (concept A's 56dp CTA), with Forgot password? centred under it. */
+/** The primary Sign in (concept A's 56dp CTA), with Forgot password? centred under it. */
 @Composable
 private fun SignInButtons(
     state: SignInUiState,

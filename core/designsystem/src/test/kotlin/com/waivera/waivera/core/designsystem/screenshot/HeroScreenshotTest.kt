@@ -35,6 +35,7 @@ import com.waivera.waivera.core.designsystem.component.WaiveraTimelineBlock
 import com.waivera.waivera.core.designsystem.component.WaiveraTimelineLabel
 import com.waivera.waivera.core.designsystem.component.WaiveraTimelineTone
 import com.waivera.waivera.core.designsystem.theme.WaiveraHero
+import com.waivera.waivera.core.designsystem.theme.WaiveraShapes
 import com.waivera.waivera.core.designsystem.theme.WaiveraSpacing
 import com.waivera.waivera.core.designsystem.theme.WaiveraTextStyles
 import com.waivera.waivera.core.designsystem.theme.WaiveraTheme
@@ -67,7 +68,7 @@ class HeroScreenshotTest {
         }
     }
 
-    /** The sheet's action family (v5): solid violet primary, busy, disabled, tonal secondary and solid red. */
+    /** The sheet's action family (v5 option C): sheened primary, busy, disabled, raised secondary and sheened red. */
     @Test
     fun sheetButtons() = captureScreenshots(name = "SheetButtons") {
         Column(
@@ -84,6 +85,22 @@ class HeroScreenshotTest {
             WaiveraButton(text = "Accept", onClick = {})
             WaiveraButton(text = "Cancel", onClick = {}, variant = WaiveraButtonVariant.Secondary)
             WaiveraButton(text = "Sign out", onClick = {}, variant = WaiveraButtonVariant.Destructive)
+            // The confirmation sheet's pair on the raised step, where the dark sheet is lightest.
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(WaiveraTheme.colors.raised, WaiveraShapes.Card)
+                    .padding(WaiveraSpacing.Medium),
+                verticalArrangement = Arrangement.spacedBy(WaiveraSpacing.Small),
+            ) {
+                WaiveraButton(
+                    text = "Sign out",
+                    onClick = {},
+                    variant = WaiveraButtonVariant.Destructive,
+                    size = WaiveraButtonSize.Large,
+                )
+                WaiveraButton(text = "Cancel", onClick = {}, variant = WaiveraButtonVariant.Secondary, fullWidth = true)
+            }
         }
     }
 

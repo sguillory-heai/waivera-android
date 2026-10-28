@@ -17,7 +17,7 @@ object WaiveraShapes {
     val Button: Shape = RoundedCornerShape(12.dp)
     val Card: Shape = RoundedCornerShape(12.dp)
 
-    /** Text fields and the primary gradient CTA (concept A). */
+    /** Text fields and the large primary CTA (concept A). */
     val Field: Shape = RoundedCornerShape(16.dp)
     val Cta: Shape = RoundedCornerShape(16.dp)
 

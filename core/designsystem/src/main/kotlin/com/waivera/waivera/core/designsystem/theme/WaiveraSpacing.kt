@@ -122,7 +122,7 @@ object WaiveraSizes {
     val ListRowMinHeight: Dp = 56.dp
     val ButtonMinHeight: Dp = 48.dp
 
-    /** The primary gradient CTA and a text field (concept A). */
+    /** The large primary CTA and a text field (concept A). */
     val CtaHeight: Dp = 56.dp
     val FieldHeight: Dp = 56.dp
 

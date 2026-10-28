@@ -42,6 +42,16 @@ data class WaiveraColors(
      */
     val accentFill: Color,
     val onAccent: Color,
+    /**
+     * The filled buttons' construction (v5 decision 2, option C), on [accentFill] and
+     * [dangerFill]: a [buttonSheen] that fades out down the top half, a 1dp [buttonEdge] along the
+     * top, and under the primary a soft [buttonGlow]. The white label keeps 4.5:1 on the sheen's
+     * brightest point. [buttonRaise] is the raised white secondary's faint shadow.
+     */
+    val buttonSheen: Color,
+    val buttonEdge: Color,
+    val buttonGlow: Color,
+    val buttonRaise: Color,
     val accentSoft: Color,
     val onAccentSoft: Color,
     val accentWash: Color,
@@ -154,6 +164,10 @@ internal val LightWaiveraColors = WaiveraColors(
     link = WaiveraPalette.Violet,
     accentFill = WaiveraPalette.Violet,
     onAccent = WaiveraPalette.White,
+    buttonSheen = WaiveraPalette.White.copy(alpha = WaiveraPalette.BUTTON_SHEEN_ALPHA_LIGHT),
+    buttonEdge = WaiveraPalette.White.copy(alpha = WaiveraPalette.BUTTON_EDGE_ALPHA),
+    buttonGlow = WaiveraPalette.Violet.copy(alpha = WaiveraPalette.BUTTON_GLOW_ALPHA),
+    buttonRaise = WaiveraPalette.ButtonRaiseShadow.copy(alpha = WaiveraPalette.BUTTON_RAISE_ALPHA),
     accentSoft = WaiveraPalette.AccentSoftLight,
     onAccentSoft = WaiveraPalette.TonalInkLight,
     accentWash = WaiveraPalette.Violet.copy(alpha = WaiveraPalette.WASH_ALPHA),
@@ -227,6 +241,10 @@ internal val DarkWaiveraColors = WaiveraColors(
     link = WaiveraPalette.VioletDarkLink,
     accentFill = WaiveraPalette.VioletDarkFill,
     onAccent = WaiveraPalette.White,
+    buttonSheen = WaiveraPalette.White.copy(alpha = WaiveraPalette.BUTTON_SHEEN_ALPHA_DARK),
+    buttonEdge = WaiveraPalette.White.copy(alpha = WaiveraPalette.BUTTON_EDGE_ALPHA),
+    buttonGlow = WaiveraPalette.VioletDarkFill.copy(alpha = WaiveraPalette.BUTTON_GLOW_ALPHA),
+    buttonRaise = WaiveraPalette.Black.copy(alpha = WaiveraPalette.BUTTON_RAISE_ALPHA),
     accentSoft = WaiveraPalette.AccentSoftDark,
     onAccentSoft = WaiveraPalette.OnAccentSoftDark,
     accentWash = WaiveraPalette.VioletDarkAccent.copy(alpha = WaiveraPalette.WASH_ALPHA),

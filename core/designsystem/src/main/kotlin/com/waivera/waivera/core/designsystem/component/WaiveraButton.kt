@@ -24,7 +24,12 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.graphics.drawOutline
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
@@ -36,6 +41,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import com.waivera.waivera.core.designsystem.icon.WaiveraIcons
 import com.waivera.waivera.core.designsystem.preview.WaiveraPreviews
 import com.waivera.waivera.core.designsystem.theme.WaiveraColors
+import com.waivera.waivera.core.designsystem.theme.WaiveraElevation
+import com.waivera.waivera.core.designsystem.theme.WaiveraPalette
 import com.waivera.waivera.core.designsystem.theme.WaiveraShapes
 import com.waivera.waivera.core.designsystem.theme.WaiveraSizes
 import com.waivera.waivera.core.designsystem.theme.WaiveraSpacing
@@ -43,8 +50,12 @@ import com.waivera.waivera.core.designsystem.theme.WaiveraTheme
 import com.waivera.waivera.core.designsystem.theme.isLargeFontScale
 
 /**
- * The v5 family: [Primary] is solid brand violet with white text, [Secondary] the lilac tonal
- * fill with violet ink, and [Destructive] solid red with white text. No button is a gradient.
+ * The v5 family (owner pick, option C): [Primary] is brand violet with a 1dp light top edge, a
+ * faint sheen over its top half and a soft violet glow below, with white text; [Secondary] is a
+ * raised white button (the surface with a hairline and a faint shadow) with the body ink; and
+ * [Destructive] is the primary's construction in red. The sheen is a white highlight fading out
+ * on a solid fill, never the brand gradient, and it is tuned so the white label keeps 4.5:1 at
+ * its brightest point in both themes.
  *
  * [Tonal] is the quiet filled style (accent-soft fill) for an action that matters but should not
  * shout, such as joining a call from a banner. [TonalOnWash] is the same quiet style drawn on the
@@ -82,9 +93,10 @@ enum class WaiveraButtonSize { Regular, Large }
  * announces it (never a blocking overlay). Loading has no other switch, so a busy button
  * always says what it is doing (UI2-21).
  *
- * An enabled [Primary][WaiveraButtonVariant.Primary] button is the solid brand violet with white
- * text in both themes (6.8:1 light, 5.3:1 dark), so every primary action in the app reads as one
- * and never as a gradient (v5 decision 2). Never dark ink on a pastel fill.
+ * An enabled [Primary][WaiveraButtonVariant.Primary] button is the brand violet with white text
+ * in both themes: 6.8 / 5.3:1 on the plain fill, and 5.5 / 4.6:1 under the sheen's brightest
+ * point (v5 decision 2, option C). A disabled button drops the sheen, the edge, the glow and the
+ * lift; a busy one keeps them, as its fill stays. Never dark ink on a pastel fill.
  *
  * [size] [WaiveraButtonSize.Large] is the screen's one big action: 56dp, full width, CTA corners.
  *
@@ -111,6 +123,7 @@ fun WaiveraButton(
     val interactionSource = remember { MutableInteractionSource() }
     val scale by animatePressScale(interactionSource)
     val loading = loadingText != null
+    val finish = if (enabled) variant.finish else ButtonFinish.Flat
     Button(
         onClick = { if (!loading) onClick() },
         modifier = modifier
@@ -118,8 +131,10 @@ fun WaiveraButton(
                 scaleX = scale
                 scaleY = scale
             }
+            .buttonLift(finish, shape, colors)
             .heightIn(min = if (large) WaiveraSizes.CtaHeight else WaiveraSizes.ButtonMinHeight)
             .then(if (fullWidth || large) Modifier.fillMaxWidth() else Modifier)
+            .buttonSheen(finish, shape, colors)
             .semantics { if (loadingText != null) stateDescription = loadingText },
         enabled = enabled,
         shape = shape,
@@ -205,9 +220,68 @@ private fun ButtonProgress(label: String, color: Color) {
     }
 }
 
+/**
+ * How a button is finished beyond its fill (v5 decision 2, option C): [Sheen] is a filled button's
+ * sheen and top edge, [Glow] adds the primary's violet glow, and [Raised] is the white
+ * secondary's faint lift. Everything else is [Flat].
+ */
+private enum class ButtonFinish { Flat, Sheen, Glow, Raised }
+
+private val WaiveraButtonVariant.finish: ButtonFinish
+    get() = when (this) {
+        WaiveraButtonVariant.Primary -> ButtonFinish.Glow
+        WaiveraButtonVariant.Destructive -> ButtonFinish.Sheen
+        WaiveraButtonVariant.Secondary -> ButtonFinish.Raised
+        else -> ButtonFinish.Flat
+    }
+
+/** The primary's soft violet glow and the secondary's faint lift, drawn under the button. */
+private fun Modifier.buttonLift(finish: ButtonFinish, shape: Shape, colors: WaiveraColors): Modifier = when (finish) {
+    ButtonFinish.Glow -> shadow(
+        elevation = WaiveraElevation.ButtonGlow,
+        shape = shape,
+        clip = false,
+        ambientColor = colors.buttonGlow,
+        spotColor = colors.buttonGlow,
+    )
+    ButtonFinish.Raised -> shadow(
+        elevation = WaiveraElevation.ButtonRaise,
+        shape = shape,
+        clip = false,
+        ambientColor = colors.buttonRaise,
+        spotColor = colors.buttonRaise,
+    )
+    else -> this
+}
+
+/**
+ * The filled button's light: over the drawn button, a 1dp [WaiveraColors.buttonEdge] along the
+ * top and a [WaiveraColors.buttonSheen] that fades out by [WaiveraPalette.BUTTON_SHEEN_END] of
+ * the height, clipped to the button's shape. It is drawn over the label too; white over the white
+ * label leaves it white, so the label's contrast is the white against the lightened fill.
+ */
+private fun Modifier.buttonSheen(finish: ButtonFinish, shape: Shape, colors: WaiveraColors): Modifier {
+    if (finish != ButtonFinish.Sheen && finish != ButtonFinish.Glow) return this
+    val edge = colors.buttonEdge
+    val sheen = colors.buttonSheen
+    return drawWithContent {
+        drawContent()
+        if (size.height <= 0f) return@drawWithContent
+        val edgeEnd = (WaiveraSpacing.Hairline.toPx() / size.height).coerceIn(0f, WaiveraPalette.BUTTON_SHEEN_END)
+        val brush = Brush.verticalGradient(
+            0f to edge,
+            edgeEnd to edge,
+            edgeEnd to sheen,
+            WaiveraPalette.BUTTON_SHEEN_END to sheen.copy(alpha = 0f),
+        )
+        drawOutline(outline = shape.createOutline(size, layoutDirection, this), brush = brush)
+    }
+}
+
 private fun buttonBorder(variant: WaiveraButtonVariant, enabled: Boolean, colors: WaiveraColors): BorderStroke? = when {
     variant == WaiveraButtonVariant.Text -> null
     !enabled -> BorderStroke(WaiveraSpacing.Hairline, colors.border)
+    variant == WaiveraButtonVariant.Secondary -> BorderStroke(WaiveraSpacing.Hairline, colors.border)
     variant == WaiveraButtonVariant.DestructiveOutline -> BorderStroke(WaiveraSpacing.Hairline, colors.danger)
     variant == WaiveraButtonVariant.Selected -> BorderStroke(WaiveraSizes.SelectedOutline, colors.accent)
     variant == WaiveraButtonVariant.Unselected -> BorderStroke(WaiveraSpacing.Hairline, colors.border)
@@ -221,8 +295,8 @@ private class ButtonStyle(val container: Color, val content: Color, val disabled
 
 private fun WaiveraButtonVariant.styleFrom(colors: WaiveraColors): ButtonStyle = when (this) {
     WaiveraButtonVariant.Primary -> ButtonStyle(colors.accentFill, colors.onAccent, colors.surfaceMuted)
-    // v5: the lilac tonal fill with violet ink in both themes, no outline.
-    WaiveraButtonVariant.Secondary -> ButtonStyle(colors.accentSoft, colors.onAccentSoft, colors.surfaceMuted)
+    // v5 option C: the raised white button, the surface with the body ink, a hairline and a lift.
+    WaiveraButtonVariant.Secondary -> ButtonStyle(colors.surface, colors.text, colors.surfaceMuted)
     WaiveraButtonVariant.Tonal -> ButtonStyle(colors.accentSoft, colors.onAccentSoft, colors.surfaceMuted)
     WaiveraButtonVariant.TonalOnWash -> ButtonStyle(colors.tonalOnWash, colors.onAccentSoft, colors.surfaceMuted)
     WaiveraButtonVariant.Destructive -> ButtonStyle(colors.dangerFill, colors.onDangerFill, colors.surfaceMuted)

@@ -171,8 +171,8 @@ private fun TicketRow(item: NeedsYouItem.Ticket, onClick: () -> Unit, modifier: 
 }
 
 /**
- * A pending invitation with one-tap answers. The body opens the event; Decline (tonal) and
- * Accept (the gradient) are separate 48dp buttons inside the card so TalkBack reaches each on
+ * A pending invitation with one-tap answers. The body opens the event; Decline (the raised
+ * secondary) and Accept (the primary) are separate 48dp buttons inside the card so TalkBack reaches each on
  * its own.
  */
 @Composable

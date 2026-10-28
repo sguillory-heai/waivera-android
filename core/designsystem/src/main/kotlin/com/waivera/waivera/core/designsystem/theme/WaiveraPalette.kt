@@ -59,14 +59,14 @@ internal object WaiveraPalette {
     /** The brand violet: links, accents and every solid filled control in light (white on it is 6.8:1). */
     val Violet = Color(0xFF6A3DC4)
 
-    /** The lilac tonal fill (v5 `tonal`): secondary buttons, the brand tile, quiet chips. */
+    /** The lilac tonal fill (v5 `tonal`): tonal buttons, the brand tile, quiet chips. */
     val AccentSoftLight = Color(0xFFEEE7FB)
 
     /** Violet ink on the lilac tonal fills (v5 `tonalInk`): 9.0:1 on the tonal, 6.8:1 on the selected fill. */
     val TonalInkLight = Color(0xFF4A2391)
     val DangerLight = Color(0xFFEF4444)
 
-    /** A destructive fill in light: v5's solid red, white on it is 5.5:1. */
+    /** A destructive fill in light: v5's red, white on it is 5.5:1 (4.7:1 under the button sheen). */
     val DangerFillLight = Color(0xFFC42F47)
     val DangerTextLight = Color(0xFFB91C1C)
     val DangerContainerLight = Color(0xFFFEE2E2)
@@ -125,7 +125,7 @@ internal object WaiveraPalette {
     val OnAccentSoftDark = Color(0xFFE2D6FF)
     val DangerDark = Color(0xFFF87171)
 
-    /** A destructive fill in dark: v5's solid red with white text (5.1:1), never pastel with dark ink. */
+    /** A destructive fill in dark: v5's red, white on it 5.1:1 (4.6:1 under the sheen), never pastel with dark ink. */
     val DangerFillDark = Color(0xFFC7375A)
     val DangerContainerDark = Color(0xFF3A1A24)
     val OnDangerContainerDark = Color(0xFFFF8A9B)
@@ -216,6 +216,26 @@ internal object WaiveraPalette {
 
     /** A snackbar in dark: the hero's lower plum, lifted off the page. */
     val SnackbarDark = Color(0xFF33195A)
+
+    /**
+     * The filled buttons' sheen (v5 decision 2, option C): white over the top half of the fill,
+     * fading out at [BUTTON_SHEEN_END]. The board's 13% put white text on the lightened top at
+     * 4.2:1 on the dark violet and 4.5:1 on the light red; these keep the label at 4.5:1 or better
+     * at the sheen's brightest point on every filled button (`WaiveraColorsContrastTest`).
+     */
+    const val BUTTON_SHEEN_ALPHA_LIGHT = 0.1f
+    const val BUTTON_SHEEN_ALPHA_DARK = 0.07f
+    const val BUTTON_SHEEN_END = 0.52f
+
+    /** The 1dp light top edge of a filled button; it sits above the label, never under it. */
+    const val BUTTON_EDGE_ALPHA = 0.25f
+
+    /** The primary button's soft violet glow below it (the board's 55–60% brand shadow). */
+    const val BUTTON_GLOW_ALPHA = 0.55f
+
+    /** The raised secondary button's faint drop shadow (the board's 14% plum). */
+    const val BUTTON_RAISE_ALPHA = 0.14f
+    val ButtonRaiseShadow = Color(0xFF140828)
 
     const val SCRIM_ALPHA = 0.36f
     const val WASH_ALPHA = 0.08f
