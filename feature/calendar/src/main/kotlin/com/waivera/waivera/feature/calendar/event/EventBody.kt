@@ -56,6 +56,7 @@ import com.waivera.waivera.core.designsystem.theme.WaiveraSizes
 import com.waivera.waivera.core.designsystem.theme.WaiveraSpacing
 import com.waivera.waivera.core.designsystem.theme.WaiveraTextStyles
 import com.waivera.waivera.core.designsystem.theme.WaiveraTheme
+import com.waivera.waivera.core.designsystem.theme.isLargeFontScale
 import com.waivera.waivera.feature.calendar.R
 import com.waivera.waivera.feature.calendar.model.WebLinks
 import com.waivera.waivera.feature.calendar.ui.CalendarIcons
@@ -116,12 +117,16 @@ internal fun EventBody(
         }
         details.refreshError?.let {
             item(key = "refreshError") {
+                // A stale-data notice, so it follows the status-banner rule the chat list and
+                // schedule use: a title saying what happened, compact at large font (UI6-09).
                 WaiveraBanner(
-                    message = stringResource(R.string.feature_calendar_event_refresh_failed),
+                    title = stringResource(R.string.feature_calendar_event_refresh_failed_title),
+                    message = stringResource(R.string.feature_calendar_event_refresh_failed_detail),
                     tone = BannerTone.Warning,
                     actionLabel = stringResource(R.string.feature_calendar_retry),
                     onAction = actions.onRetry,
                     actionIcon = WaiveraIcons.Refresh,
+                    compact = isLargeFontScale(),
                     modifier = sectionModifier,
                     gutter = false,
                 )

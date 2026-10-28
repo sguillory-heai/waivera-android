@@ -126,7 +126,8 @@
     <string name="feature_calendar_event_not_found_title">Event not found</string>
     <string name="feature_calendar_event_not_found_message">This event isn\'t on your schedule anymore, or it\'s outside the dates that can be looked up.</string>
     <string name="feature_calendar_event_error_title">This event didn\'t load</string>
-    <string name="feature_calendar_event_refresh_failed">Couldn\'t refresh this event. Showing what was saved.</string>
+    <string name="feature_calendar_event_refresh_failed_title">Couldn\'t refresh this event</string>
+    <string name="feature_calendar_event_refresh_failed_detail">Showing what was saved.</string>
     <!-- Today's agenda: the divider before what is still ahead, and items that already ended (UI4-12). -->
     <string name="feature_calendar_now_marker">Now · %1$s</string>
     <string name="feature_calendar_now_marker_a11y">Now, %1$s</string>
