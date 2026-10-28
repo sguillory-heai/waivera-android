@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- Strings added by the brand pass. Wording here can be edited freely by the copy owner. -->
-<resources>
+<resources xmlns:tools="http://schemas.android.com/tools">
     <!-- Greeting, in the employee's time zone -->
     <string name="feature_today_brand_greeting_morning_named">Good morning, %1$s</string>
     <string name="feature_today_brand_greeting_afternoon_named">Good afternoon, %1$s</string>
@@ -21,13 +21,14 @@
     <string name="feature_today_brand_wishes_failed">We couldn\'t open the chat. Try again in a moment.</string>
     <!-- Hero summary card -->
     <string name="feature_today_brand_ring_caption">handled</string>
-    <string name="feature_today_brand_ring_a11y">%1$d of %2$d handled today</string>
+    <!-- "handled" reads the same for one and many, so these stay strings. -->
+    <string name="feature_today_brand_ring_a11y" tools:ignore="PluralsCandidate">%1$d of %2$d handled today</string>
     <plurals name="feature_today_brand_needs_you_count">
         <item quantity="one">%d thing needs you</item>
         <item quantity="other">%d things need you</item>
     </plurals>
     <string name="feature_today_brand_needs_you_none">Nothing needs you right now</string>
-    <string name="feature_today_brand_handled_since">%1$d handled since this morning.</string>
+    <string name="feature_today_brand_handled_since" tools:ignore="PluralsCandidate">%1$d handled since this morning.</string>
     <string name="feature_today_brand_handled_none">Each one you clear counts here.</string>
     <string name="feature_today_brand_next">Next · %1$s</string>
     <string name="feature_today_brand_next_a11y">Next: %1$s, %2$s</string>
@@ -81,7 +82,7 @@
     <string name="feature_today_brand_day_minutes">%1$d min scheduled</string>
     <string name="feature_today_brand_day_open">Your day is wide open.</string>
     <string name="feature_today_brand_day_track_a11y">%1$s, from %2$s to %3$s</string>
-    <string name="feature_today_brand_day_now_a11y">It's %1$s now.</string>
+    <string name="feature_today_brand_day_now_a11y">It\'s %1$s now.</string>
     <string name="feature_today_brand_until">Until %1$s</string>
     <string name="feature_today_brand_until_dash">– %1$s</string>
     <string name="feature_today_brand_until_next_day">– %1$s next day</string>
