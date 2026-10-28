@@ -37,7 +37,10 @@ data class WaiveraColors(
     val accent: Color,
     /** Text links ("Forgot password?", "Show all"): the accent in light, a lighter lilac in dark. */
     val link: Color,
-    /** Fill of primary buttons and other filled accent controls; [onAccent] sits on it. */
+    /**
+     * Fill of primary buttons and other solid accent controls, my own message bubble and the
+     * selected calendar day; [onAccent] (white) sits on it. Controls are never a gradient (v5).
+     */
     val accentFill: Color,
     val onAccent: Color,
     val accentSoft: Color,
@@ -76,9 +79,6 @@ data class WaiveraColors(
     val skeletonBase: Color,
     /** The other end of the skeleton pulse. */
     val skeletonHighlight: Color,
-    /** Secondary (outlined) button: a tonal raised step in dark instead of a stark outlined block. */
-    val secondaryContainer: Color,
-    val secondaryBorder: Color,
     /**
      * The chosen segment of a segmented control: a white step on the lilac track in light, the
      * soft accent in dark (a darker surface step there read as the unselected one).
@@ -156,7 +156,7 @@ internal val LightWaiveraColors = WaiveraColors(
     accentFill = WaiveraPalette.Violet,
     onAccent = WaiveraPalette.White,
     accentSoft = WaiveraPalette.AccentSoftLight,
-    onAccentSoft = WaiveraPalette.PurpleDeep,
+    onAccentSoft = WaiveraPalette.TonalInkLight,
     accentWash = WaiveraPalette.Violet.copy(alpha = WaiveraPalette.WASH_ALPHA),
     accentBorder = WaiveraPalette.Violet.copy(alpha = WaiveraPalette.BORDER_ALPHA),
     accentBorderStrong = WaiveraPalette.Violet.copy(alpha = WaiveraPalette.BORDER_STRONG_ALPHA),
@@ -183,12 +183,10 @@ internal val LightWaiveraColors = WaiveraColors(
     newHireContainer = WaiveraPalette.NewHireContainerLight,
     onNewHireContainer = WaiveraPalette.OnNewHireContainerLight,
     multipleContainer = WaiveraPalette.AccentSoftLight,
-    onMultipleContainer = WaiveraPalette.PurpleDeep,
+    onMultipleContainer = WaiveraPalette.TonalInkLight,
     scrim = WaiveraPalette.Black.copy(alpha = WaiveraPalette.SCRIM_ALPHA),
     skeletonBase = WaiveraPalette.SkeletonBaseLight,
     skeletonHighlight = WaiveraPalette.SkeletonHighlightLight,
-    secondaryContainer = WaiveraPalette.SurfaceLight,
-    secondaryBorder = WaiveraPalette.BorderStrongLight,
     segmentSelected = WaiveraPalette.SurfaceLight,
     avatarFill = WaiveraPalette.AvatarFillLight,
     tonalOnWash = WaiveraPalette.TonalOnWashLight,
@@ -264,8 +262,6 @@ internal val DarkWaiveraColors = WaiveraColors(
     scrim = WaiveraPalette.Black.copy(alpha = WaiveraPalette.SCRIM_ALPHA),
     skeletonBase = WaiveraPalette.SkeletonBaseDark,
     skeletonHighlight = WaiveraPalette.SkeletonHighlightDark,
-    secondaryContainer = WaiveraPalette.SurfaceMutedDark,
-    secondaryBorder = WaiveraPalette.BorderDark,
     segmentSelected = WaiveraPalette.AccentSoftDark,
     avatarFill = WaiveraPalette.AvatarFillDark,
     tonalOnWash = WaiveraPalette.TonalOnWashDark,

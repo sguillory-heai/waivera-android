@@ -30,6 +30,7 @@ import com.waivera.waivera.core.designsystem.theme.WaiveraTheme
 fun WaiveraBusyIndicator(
     modifier: Modifier = Modifier,
     color: Color = WaiveraTheme.colors.accent,
+    trackColor: Color = Color.Transparent,
     size: Dp = WaiveraSizes.ProgressSmall,
     strokeWidth: Dp = WaiveraSizes.ProgressStroke,
 ) {
@@ -43,7 +44,12 @@ fun WaiveraBusyIndicator(
             )
         }
     } else {
-        CircularProgressIndicator(modifier = modifier.size(size), color = color, strokeWidth = strokeWidth)
+        CircularProgressIndicator(
+            modifier = modifier.size(size),
+            color = color,
+            strokeWidth = strokeWidth,
+            trackColor = trackColor,
+        )
     }
 }
 

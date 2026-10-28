@@ -18,8 +18,6 @@ import com.waivera.waivera.core.designsystem.component.WaiveraAvatar
 import com.waivera.waivera.core.designsystem.component.WaiveraButton
 import com.waivera.waivera.core.designsystem.component.WaiveraButtonVariant
 import com.waivera.waivera.core.designsystem.component.WaiveraCountBadge
-import com.waivera.waivera.core.designsystem.component.WaiveraGradientButton
-import com.waivera.waivera.core.designsystem.component.WaiveraGradientButtonSize
 import com.waivera.waivera.core.designsystem.component.WaiveraTileTone
 import com.waivera.waivera.core.designsystem.component.tint
 import com.waivera.waivera.core.designsystem.icon.WaiveraIcons
@@ -219,10 +217,10 @@ private fun InvitationRow(
                         .weight(1f)
                         .semantics { contentDescription = declineLabel },
                 )
-                WaiveraGradientButton(
+                WaiveraButton(
                     text = stringResource(R.string.feature_today_invitation_accept),
                     onClick = { onRespond(true) },
-                    size = WaiveraGradientButtonSize.Compact,
+                    fullWidth = true,
                     modifier = Modifier
                         .weight(1f)
                         .semantics { contentDescription = acceptLabel },

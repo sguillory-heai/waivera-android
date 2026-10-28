@@ -25,7 +25,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -47,7 +46,6 @@ import com.waivera.waivera.core.designsystem.component.rememberSkeletonVisible
 import com.waivera.waivera.core.designsystem.icon.WaiveraIcons
 import com.waivera.waivera.core.designsystem.preview.WaiveraPreviews
 import com.waivera.waivera.core.designsystem.theme.WaiveraElevation
-import com.waivera.waivera.core.designsystem.theme.WaiveraHero
 import com.waivera.waivera.core.designsystem.theme.WaiveraShapes
 import com.waivera.waivera.core.designsystem.theme.WaiveraSizes
 import com.waivera.waivera.core.designsystem.theme.WaiveraSpacing
@@ -138,10 +136,9 @@ fun Composer(
                     unfocusedTextColor = colors.text,
                 ),
             )
-            // Send is the composer's CTA: white on the brand gradient, at the CTA radius. Disabled
+            // Send is the composer's CTA: white on the solid brand violet, at the CTA radius. Disabled
             // reads as "nothing to send yet": a muted fill with a visible outline, not a faded
-            // gradient that looks like a broken enabled button.
-            val hero = WaiveraHero.colors
+            // violet that looks like a broken enabled button.
             FilledIconButton(
                 onClick = onSend,
                 enabled = canSend,
@@ -150,14 +147,18 @@ fun Composer(
                     .size(WaiveraSizes.IconButton)
                     .then(
                         if (canSend) {
-                            Modifier.background(brush = hero.buttonBrush, shape = WaiveraShapes.Cta)
+                            Modifier
                         } else {
-                            Modifier.border(WaiveraSpacing.Hairline, colors.border, WaiveraShapes.Cta)
+                            Modifier.border(
+                                WaiveraSpacing.Hairline,
+                                colors.border,
+                                WaiveraShapes.Cta,
+                            )
                         },
                     ),
                 colors = IconButtonDefaults.filledIconButtonColors(
-                    containerColor = Color.Transparent,
-                    contentColor = hero.onButton,
+                    containerColor = colors.accentFill,
+                    contentColor = colors.onAccent,
                     disabledContainerColor = colors.surfaceMuted,
                     disabledContentColor = colors.textSecondary,
                 ),

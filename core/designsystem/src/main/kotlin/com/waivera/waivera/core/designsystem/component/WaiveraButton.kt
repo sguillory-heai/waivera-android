@@ -2,7 +2,6 @@ package com.waivera.waivera.core.designsystem.component
 
 import androidx.annotation.DrawableRes
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.background
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -37,7 +36,6 @@ import androidx.compose.ui.text.style.TextOverflow
 import com.waivera.waivera.core.designsystem.icon.WaiveraIcons
 import com.waivera.waivera.core.designsystem.preview.WaiveraPreviews
 import com.waivera.waivera.core.designsystem.theme.WaiveraColors
-import com.waivera.waivera.core.designsystem.theme.WaiveraHero
 import com.waivera.waivera.core.designsystem.theme.WaiveraShapes
 import com.waivera.waivera.core.designsystem.theme.WaiveraSizes
 import com.waivera.waivera.core.designsystem.theme.WaiveraSpacing
@@ -45,6 +43,9 @@ import com.waivera.waivera.core.designsystem.theme.WaiveraTheme
 import com.waivera.waivera.core.designsystem.theme.isLargeFontScale
 
 /**
+ * The v5 family: [Primary] is solid brand violet with white text, [Secondary] the lilac tonal
+ * fill with violet ink, and [Destructive] solid red with white text. No button is a gradient.
+ *
  * [Tonal] is the quiet filled style (accent-soft fill) for an action that matters but should not
  * shout, such as joining a call from a banner. [TonalOnWash] is the same quiet style drawn on the
  * brand wash ("Send wishes" on a celebration card), where the accent-soft fill vanished (about
@@ -68,6 +69,9 @@ enum class WaiveraButtonVariant {
     Unselected,
 }
 
+/** How tall a [WaiveraButton] is: [Large] is the 56dp full-width action a screen exists for (Sign in). */
+enum class WaiveraButtonSize { Regular, Large }
+
 /**
  * The app's button.
  *
@@ -78,12 +82,11 @@ enum class WaiveraButtonVariant {
  * announces it (never a blocking overlay). Loading has no other switch, so a busy button
  * always says what it is doing (UI2-21).
  *
- * A [Secondary][WaiveraButtonVariant.Secondary] button's leading icon takes the accent, so an
- * outlined action never pairs a heavy near-black glyph with its softer label.
+ * An enabled [Primary][WaiveraButtonVariant.Primary] button is the solid brand violet with white
+ * text in both themes (6.8:1 light, 5.3:1 dark), so every primary action in the app reads as one
+ * and never as a gradient (v5 decision 2). Never dark ink on a pastel fill.
  *
- * An enabled [Primary][WaiveraButtonVariant.Primary] button is concept A's CTA fill: white on the
- * saturated violet-to-magenta gradient in both themes, the same fill as [WaiveraGradientButton],
- * so every primary action in the app reads as one. Never dark ink on a pastel fill.
+ * [size] [WaiveraButtonSize.Large] is the screen's one big action: 56dp, full width, CTA corners.
  *
  * [maxLines] caps the label for a short fixed label that must not wrap inside its own button
  * ("Send wishes" on a narrow card, UI10-05); it ends in an ellipsis rather than a second line.
@@ -99,15 +102,12 @@ fun WaiveraButton(
     @DrawableRes leadingIcon: Int? = null,
     loadingText: String? = null,
     maxLines: Int = Int.MAX_VALUE,
+    size: WaiveraButtonSize = WaiveraButtonSize.Regular,
 ) {
     val colors = WaiveraTheme.colors
-    val hero = WaiveraHero.colors
-    val gradient = variant == WaiveraButtonVariant.Primary && enabled
-    val style = if (gradient) {
-        ButtonStyle(container = Color.Transparent, content = hero.onButton, disabledContainer = colors.surfaceMuted)
-    } else {
-        variant.styleFrom(colors)
-    }
+    val style = variant.styleFrom(colors)
+    val large = size == WaiveraButtonSize.Large
+    val shape = if (large) WaiveraShapes.Cta else WaiveraShapes.Button
     val interactionSource = remember { MutableInteractionSource() }
     val scale by animatePressScale(interactionSource)
     val loading = loadingText != null
@@ -118,14 +118,11 @@ fun WaiveraButton(
                 scaleX = scale
                 scaleY = scale
             }
-            .heightIn(min = WaiveraSizes.ButtonMinHeight)
-            .then(if (fullWidth) Modifier.fillMaxWidth() else Modifier)
-            .then(
-                if (gradient) Modifier.background(brush = hero.buttonBrush, shape = WaiveraShapes.Button) else Modifier,
-            )
+            .heightIn(min = if (large) WaiveraSizes.CtaHeight else WaiveraSizes.ButtonMinHeight)
+            .then(if (fullWidth || large) Modifier.fillMaxWidth() else Modifier)
             .semantics { if (loadingText != null) stateDescription = loadingText },
         enabled = enabled,
-        shape = WaiveraShapes.Button,
+        shape = shape,
         colors = ButtonDefaults.buttonColors(
             containerColor = style.container,
             contentColor = style.content,
@@ -142,7 +139,6 @@ fun WaiveraButton(
                 maxLines = maxLines,
                 leadingIcon = leadingIcon,
                 regularWeight = variant == WaiveraButtonVariant.Unselected,
-                iconTint = if (variant == WaiveraButtonVariant.Secondary && enabled) colors.accent else null,
                 modifier = Modifier.alpha(if (loading) 0f else 1f),
             )
             if (loadingText != null) {
@@ -158,7 +154,6 @@ private fun ButtonLabel(
     maxLines: Int,
     @DrawableRes leadingIcon: Int?,
     regularWeight: Boolean,
-    iconTint: Color?,
     modifier: Modifier = Modifier,
 ) {
     Row(
@@ -170,7 +165,7 @@ private fun ButtonLabel(
             Icon(
                 painter = painterResource(leadingIcon),
                 contentDescription = null,
-                tint = iconTint ?: LocalContentColor.current,
+                tint = LocalContentColor.current,
                 modifier = Modifier.size(WaiveraSizes.Icon),
             )
         }
@@ -198,7 +193,14 @@ private fun ButtonProgress(label: String, color: Color) {
         horizontalArrangement = Arrangement.spacedBy(WaiveraSpacing.Small),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        if (!isLargeFontScale()) WaiveraBusyIndicator(color = color, size = WaiveraSizes.IconSmall)
+        // The fill stays solid while busy; the spinner is the label's ink on a faint track of it.
+        if (!isLargeFontScale()) {
+            WaiveraBusyIndicator(
+                color = color,
+                trackColor = color.copy(alpha = BUSY_TRACK_ALPHA),
+                size = WaiveraSizes.IconSmall,
+            )
+        }
         Text(text = label, style = MaterialTheme.typography.labelLarge, color = color, textAlign = TextAlign.Center)
     }
 }
@@ -206,19 +208,21 @@ private fun ButtonProgress(label: String, color: Color) {
 private fun buttonBorder(variant: WaiveraButtonVariant, enabled: Boolean, colors: WaiveraColors): BorderStroke? = when {
     variant == WaiveraButtonVariant.Text -> null
     !enabled -> BorderStroke(WaiveraSpacing.Hairline, colors.border)
-    variant == WaiveraButtonVariant.Secondary -> BorderStroke(WaiveraSpacing.Hairline, colors.secondaryBorder)
     variant == WaiveraButtonVariant.DestructiveOutline -> BorderStroke(WaiveraSpacing.Hairline, colors.danger)
     variant == WaiveraButtonVariant.Selected -> BorderStroke(WaiveraSizes.SelectedOutline, colors.accent)
     variant == WaiveraButtonVariant.Unselected -> BorderStroke(WaiveraSpacing.Hairline, colors.border)
     else -> null
 }
 
+/** The busy spinner's track inside a button, as a share of the label's ink (v5: white at 35%). */
+private const val BUSY_TRACK_ALPHA = 0.35f
+
 private class ButtonStyle(val container: Color, val content: Color, val disabledContainer: Color)
 
 private fun WaiveraButtonVariant.styleFrom(colors: WaiveraColors): ButtonStyle = when (this) {
     WaiveraButtonVariant.Primary -> ButtonStyle(colors.accentFill, colors.onAccent, colors.surfaceMuted)
-    // Tonal in dark (the raised plum step with a quiet border), so it never glares as an outlined block.
-    WaiveraButtonVariant.Secondary -> ButtonStyle(colors.secondaryContainer, colors.text, colors.surface)
+    // v5: the lilac tonal fill with violet ink in both themes, no outline.
+    WaiveraButtonVariant.Secondary -> ButtonStyle(colors.accentSoft, colors.onAccentSoft, colors.surfaceMuted)
     WaiveraButtonVariant.Tonal -> ButtonStyle(colors.accentSoft, colors.onAccentSoft, colors.surfaceMuted)
     WaiveraButtonVariant.TonalOnWash -> ButtonStyle(colors.tonalOnWash, colors.onAccentSoft, colors.surfaceMuted)
     WaiveraButtonVariant.Destructive -> ButtonStyle(colors.dangerFill, colors.onDangerFill, colors.surfaceMuted)
@@ -238,6 +242,7 @@ private fun WaiveraButtonPreview() {
             Modifier.padding(WaiveraSpacing.Medium),
             verticalArrangement = Arrangement.spacedBy(WaiveraSpacing.Small),
         ) {
+            WaiveraButton(text = "Sign in", onClick = {}, size = WaiveraButtonSize.Large)
             WaiveraButton(text = "Send", onClick = {}, fullWidth = true)
             WaiveraButton(text = "Sign out", onClick = {}, loadingText = "Signing out…")
             WaiveraButton(text = "Cancel", onClick = {}, variant = WaiveraButtonVariant.Secondary)

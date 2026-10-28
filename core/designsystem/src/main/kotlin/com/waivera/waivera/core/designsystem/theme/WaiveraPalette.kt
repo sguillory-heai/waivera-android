@@ -58,12 +58,18 @@ internal object WaiveraPalette {
     // 3.1:1 or more on every light page surface: quieter than secondary for non-essential text.
     val TextTertiaryLight = Color(0xFF8A8197)
 
-    /** The concept's violet: links, accents and the start of the light CTA gradient. */
+    /** The brand violet: links, accents and every solid filled control in light (white on it is 6.8:1). */
     val Violet = Color(0xFF6A3DC4)
-    val PurpleDeep = Color(0xFF5B33AE)
-    val AccentSoftLight = Color(0xFFEEE6FB)
+
+    /** The lilac tonal fill (v5 `tonal`): secondary buttons, the brand tile, quiet chips. */
+    val AccentSoftLight = Color(0xFFEEE7FB)
+
+    /** Violet ink on the lilac tonal fills (v5 `tonalInk`): 9.0:1 on the tonal, 6.8:1 on the selected fill. */
+    val TonalInkLight = Color(0xFF4A2391)
     val DangerLight = Color(0xFFEF4444)
-    val DangerFillLight = Color(0xFFDC2626)
+
+    /** A destructive fill in light: v5's solid red, white on it is 5.5:1. */
+    val DangerFillLight = Color(0xFFC42F47)
     val DangerTextLight = Color(0xFFB91C1C)
     val DangerContainerLight = Color(0xFFFEE2E2)
     val SuccessLight = Color(0xFF16A34A)
@@ -106,20 +112,23 @@ internal object WaiveraPalette {
     val VioletDarkLink = Color(0xFFC3ABFF)
 
     /**
-     * Filled accent controls in dark: the saturated violet of the CTA gradient with white text
-     * (5.95:1). Dark ink on a pastel fill was hard on the eyes (owner, 2026-10-28).
+     * Filled accent controls in dark, with white text (5.3:1). v5 moved it from #7A3BE0, which
+     * reached only 2.9:1 against the plum surfaces; this clears 3:1 on the page and the surface.
+     * Dark ink on a pastel fill was hard on the eyes (owner, 2026-10-28).
      */
-    val VioletDarkFill = Color(0xFF7A3BE0)
-    val AccentSoftDark = Color(0xFF2C2245)
+    val VioletDarkFill = Color(0xFF8048E6)
+
+    /** The lilac tonal fill in dark (v5 `tonal`), with [OnAccentSoftDark] ink at 10.5:1. */
+    val AccentSoftDark = Color(0xFF2E2448)
 
     /** Ink for stock Material fills on the pastel accent only; Waivera's own controls never use it. */
     val InkOnPastelDark = Color(0xFF1A1226)
     val AvatarFillDark = Color(0xFF4D3F6A)
-    val OnAccentSoftDark = Color(0xFFD9CCFF)
+    val OnAccentSoftDark = Color(0xFFE2D6FF)
     val DangerDark = Color(0xFFF87171)
 
-    /** A destructive fill in dark: saturated red with white text (5.48:1), never pastel with dark ink. */
-    val DangerFillDark = Color(0xFFC42E47)
+    /** A destructive fill in dark: v5's solid red with white text (5.1:1), never pastel with dark ink. */
+    val DangerFillDark = Color(0xFFC7375A)
     val DangerContainerDark = Color(0xFF3A1A24)
     val OnDangerContainerDark = Color(0xFFFF8A9B)
     val SuccessDark = Color(0xFF4ADE80)

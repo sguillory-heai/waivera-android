@@ -38,8 +38,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.waivera.waivera.core.designsystem.component.BannerTone
 import com.waivera.waivera.core.designsystem.component.WaiveraBanner
 import com.waivera.waivera.core.designsystem.component.WaiveraButton
+import com.waivera.waivera.core.designsystem.component.WaiveraButtonSize
 import com.waivera.waivera.core.designsystem.component.WaiveraButtonVariant
-import com.waivera.waivera.core.designsystem.component.WaiveraGradientButton
 import com.waivera.waivera.core.designsystem.component.WaiveraTextField
 import com.waivera.waivera.core.designsystem.feedback.Haptics
 import com.waivera.waivera.core.designsystem.feedback.rememberHaptics
@@ -309,9 +309,10 @@ private fun SignInButtons(
             .padding(top = WaiveraSpacing.MediumSmall),
         verticalArrangement = Arrangement.spacedBy(WaiveraSpacing.ExtraSmall),
     ) {
-        WaiveraGradientButton(
+        WaiveraButton(
             text = stringResource(R.string.feature_auth_sign_in_button),
             onClick = onSubmit,
+            size = WaiveraButtonSize.Large,
             // Enabled with empty fields so a tap explains what is missing (field errors) instead of
             // a dimmed button that says nothing; enabled while busy so the spinner is not dimmed.
             enabled = state.fieldsEnabled || state.isSigningIn,

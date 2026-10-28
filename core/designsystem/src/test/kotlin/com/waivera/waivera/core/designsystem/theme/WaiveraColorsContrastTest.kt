@@ -63,7 +63,6 @@ class WaiveraColorsContrastTest {
         // White counts sit on the saturated unread fill; the pastel dark accent never carries white.
         text("onAccent on unread (badges)", colors.onAccent, colors.unread)
         text("onAccentSoft on accentSoft", colors.onAccentSoft, colors.accentSoft)
-        text("text on secondaryContainer", colors.text, colors.secondaryContainer)
         text("onAccentSoft on segmentSelected (chosen segment)", colors.onAccentSoft, colors.segmentSelected)
         text("onDangerFill on dangerFill", colors.onDangerFill, colors.dangerFill)
         text("onDangerContainer on dangerContainer", colors.onDangerContainer, colors.dangerContainer)
@@ -198,6 +197,8 @@ class WaiveraColorsContrastTest {
             ui("borderStrong on $surfaceName", colors.borderStrong, surface)
         }
         ui("accentFill on background (primary button edge)", colors.accentFill, colors.background)
+        // v5 moved the dark fill to #8048E6 so a solid violet control also clears 3:1 on the surface.
+        ui("accentFill on surface (primary button edge)", colors.accentFill, colors.surface)
         ui("accent on accentSoft (selected outline)", colors.accent, colors.accentSoft)
     }
 

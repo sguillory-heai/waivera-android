@@ -12,9 +12,10 @@ import androidx.compose.material3.Text
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import com.waivera.waivera.core.designsystem.component.TopBarAccount
+import com.waivera.waivera.core.designsystem.component.WaiveraButton
+import com.waivera.waivera.core.designsystem.component.WaiveraButtonSize
+import com.waivera.waivera.core.designsystem.component.WaiveraButtonVariant
 import com.waivera.waivera.core.designsystem.component.WaiveraDayTimeline
-import com.waivera.waivera.core.designsystem.component.WaiveraGradientButton
-import com.waivera.waivera.core.designsystem.component.WaiveraGradientButtonSize
 import com.waivera.waivera.core.designsystem.component.WaiveraHeroBackdrop
 import com.waivera.waivera.core.designsystem.component.WaiveraHeroCard
 import com.waivera.waivera.core.designsystem.component.WaiveraHeroHeader
@@ -66,8 +67,9 @@ class HeroScreenshotTest {
         }
     }
 
+    /** The sheet's action family (v5): solid violet primary, busy, disabled, tonal secondary and solid red. */
     @Test
-    fun gradientButton() = captureScreenshots(name = "GradientButton") {
+    fun sheetButtons() = captureScreenshots(name = "SheetButtons") {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
@@ -75,10 +77,13 @@ class HeroScreenshotTest {
                 .padding(WaiveraSpacing.Medium),
             verticalArrangement = Arrangement.spacedBy(WaiveraSpacing.Small),
         ) {
-            WaiveraGradientButton(text = "Sign in", onClick = {})
-            WaiveraGradientButton(text = "Sign in", onClick = {}, loadingText = "Signing you in…")
-            WaiveraGradientButton(text = "Sign in", onClick = {}, enabled = false)
-            WaiveraGradientButton(text = "Accept", onClick = {}, size = WaiveraGradientButtonSize.Compact)
+            WaiveraButton(text = "Sign in", onClick = {}, size = WaiveraButtonSize.Large)
+            WaiveraButton(text = "Sign in", onClick = {
+            }, loadingText = "Signing you in…", size = WaiveraButtonSize.Large)
+            WaiveraButton(text = "Sign in", onClick = {}, enabled = false, size = WaiveraButtonSize.Large)
+            WaiveraButton(text = "Accept", onClick = {})
+            WaiveraButton(text = "Cancel", onClick = {}, variant = WaiveraButtonVariant.Secondary)
+            WaiveraButton(text = "Sign out", onClick = {}, variant = WaiveraButtonVariant.Destructive)
         }
     }
 
