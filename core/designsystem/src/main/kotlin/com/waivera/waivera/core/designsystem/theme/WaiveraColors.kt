@@ -2,7 +2,6 @@ package com.waivera.waivera.core.designsystem.theme
 
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.staticCompositionLocalOf
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 
 /**
@@ -80,11 +79,6 @@ data class WaiveraColors(
     /** The other end of the skeleton pulse. */
     val skeletonHighlight: Color,
     /**
-     * The chosen segment of a segmented control: a white step on the lilac track in light, the
-     * soft accent in dark (a darker surface step there read as the unselected one).
-     */
-    val segmentSelected: Color,
-    /**
      * Fill behind an avatar's initials or fallback glyph. Avatars have no border, so the fill
      * alone sets them apart from every surface and the brand wash (at least 1.3:1).
      */
@@ -98,12 +92,12 @@ data class WaiveraColors(
     val navBar: Color,
     val navBarBorder: Color,
     /**
-     * The selected pill, shared by the tab bar, segmented controls and filter chips: a pastel
-     * wash with [onNavPill] ink in light, the saturated CTA gradient with white in dark.
+     * The selected state, shared by the tab pill, the chosen segment and a selected filter chip:
+     * a solid deeper lilac with [onSelectedFill] violet ink in both themes (v5 decision 5, tonal),
+     * so a selection never reads as an action. It is never a gradient.
      */
-    val navPillStart: Color,
-    val navPillEnd: Color,
-    val onNavPill: Color,
+    val selectedFill: Color,
+    val onSelectedFill: Color,
     /** The tab's unread count; white sits on it. */
     val navBadge: Color,
     /** A snackbar's plum fill, its text and its action. */
@@ -187,14 +181,12 @@ internal val LightWaiveraColors = WaiveraColors(
     scrim = WaiveraPalette.Black.copy(alpha = WaiveraPalette.SCRIM_ALPHA),
     skeletonBase = WaiveraPalette.SkeletonBaseLight,
     skeletonHighlight = WaiveraPalette.SkeletonHighlightLight,
-    segmentSelected = WaiveraPalette.SurfaceLight,
     avatarFill = WaiveraPalette.AvatarFillLight,
     tonalOnWash = WaiveraPalette.TonalOnWashLight,
     navBar = WaiveraPalette.SurfaceLight,
     navBarBorder = WaiveraPalette.BorderLight,
-    navPillStart = WaiveraPalette.NavPillStartLight,
-    navPillEnd = WaiveraPalette.NavPillEndLight,
-    onNavPill = WaiveraPalette.OnNavPillLight,
+    selectedFill = WaiveraPalette.SelectedFillLight,
+    onSelectedFill = WaiveraPalette.TonalInkLight,
     navBadge = WaiveraPalette.NavBadge,
     snackbar = WaiveraPalette.SnackbarLight,
     onSnackbar = WaiveraPalette.White,
@@ -262,14 +254,12 @@ internal val DarkWaiveraColors = WaiveraColors(
     scrim = WaiveraPalette.Black.copy(alpha = WaiveraPalette.SCRIM_ALPHA),
     skeletonBase = WaiveraPalette.SkeletonBaseDark,
     skeletonHighlight = WaiveraPalette.SkeletonHighlightDark,
-    segmentSelected = WaiveraPalette.AccentSoftDark,
     avatarFill = WaiveraPalette.AvatarFillDark,
     tonalOnWash = WaiveraPalette.TonalOnWashDark,
     navBar = WaiveraPalette.NavBarDark,
     navBarBorder = WaiveraPalette.BorderDark,
-    navPillStart = WaiveraHeroPalette.ButtonStartDark,
-    navPillEnd = WaiveraHeroPalette.ButtonEndDark,
-    onNavPill = WaiveraPalette.White,
+    selectedFill = WaiveraPalette.SelectedFillDark,
+    onSelectedFill = WaiveraPalette.OnAccentSoftDark,
     navBadge = WaiveraPalette.NavBadge,
     snackbar = WaiveraPalette.SnackbarDark,
     onSnackbar = WaiveraPalette.White,
@@ -286,10 +276,6 @@ internal val DarkWaiveraColors = WaiveraColors(
     brandWashAlpha = WaiveraPalette.BRAND_WASH_ALPHA_DARK,
     brandWashEnd = WaiveraPalette.BrandPeach.copy(alpha = WaiveraPalette.BRAND_WASH_END_ALPHA_DARK),
 )
-
-/** The selected pill's fill, start to end ([WaiveraColors.navPillStart] to [WaiveraColors.navPillEnd]). */
-val WaiveraColors.navPillBrush: Brush
-    get() = Brush.horizontalGradient(listOf(navPillStart, navPillEnd))
 
 /** Resolves the colour set for a theme. Exposed for screenshot tests and the app's window colours. */
 fun waiveraColors(darkTheme: Boolean): WaiveraColors = if (darkTheme) DarkWaiveraColors else LightWaiveraColors

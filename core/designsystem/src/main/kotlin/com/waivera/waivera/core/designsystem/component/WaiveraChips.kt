@@ -40,7 +40,6 @@ import androidx.compose.ui.text.style.TextAlign
 import com.waivera.waivera.core.designsystem.feedback.rememberHaptics
 import com.waivera.waivera.core.designsystem.icon.WaiveraIcons
 import com.waivera.waivera.core.designsystem.preview.WaiveraPreviews
-import com.waivera.waivera.core.designsystem.theme.WaiveraHero
 import com.waivera.waivera.core.designsystem.theme.WaiveraShapes
 import com.waivera.waivera.core.designsystem.theme.WaiveraSizes
 import com.waivera.waivera.core.designsystem.theme.WaiveraSpacing
@@ -48,10 +47,11 @@ import com.waivera.waivera.core.designsystem.theme.WaiveraTheme
 
 /**
  * Filter chip (All, Mentions, Unread...). Selecting fires the selection haptic. [leadingIcon]
- * marks an on/off toggle (a check while on) so it reads apart from single-choice chips.
+ * is shown at rest; a selected chip always leads with a check.
  *
- * Concept A's selected state, shared with [WaiveraSegmentedControl]: white text on the CTA
- * gradient, so the choice reads by its fill and its ink, never by a faint tint alone (UI8-13).
+ * v5 decision 5, shared with [WaiveraSegmentedControl] and the tab pill: the selected chip is the
+ * tonal selected fill with violet ink, the bold weight and the check, so the choice reads by its
+ * ink, its weight and its glyph, never by a faint tint alone (UI8-13), and never as an action.
  * At rest the chip is the surface with a hairline. It draws 36dp tall and keeps a 48dp target.
  */
 @Composable
@@ -65,18 +65,18 @@ fun WaiveraFilterChip(
 ) {
     val haptics = rememberHaptics()
     val colors = WaiveraTheme.colors
-    val hero = WaiveraHero.colors
     val shape = WaiveraShapes.FilterChip
     val interactionSource = remember { MutableInteractionSource() }
     val scale by animatePressScale(interactionSource)
     val filled = selected && enabled
     val content = when {
         !enabled -> colors.textSecondary
-        filled -> hero.onButton
+        filled -> colors.onSelectedFill
         else -> colors.text
     }
+    val icon = if (filled) WaiveraIcons.Check else leadingIcon
     val fill = when {
-        filled -> Modifier.background(brush = hero.buttonBrush, shape = shape)
+        filled -> Modifier.background(color = colors.selectedFill, shape = shape)
         selected ->
             Modifier
                 .background(color = colors.surfaceMuted, shape = shape)
@@ -111,9 +111,9 @@ fun WaiveraFilterChip(
         horizontalArrangement = Arrangement.spacedBy(WaiveraSpacing.ExtraSmall + WaiveraSpacing.XxSmall),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        if (leadingIcon != null) {
+        if (icon != null) {
             Icon(
-                painter = painterResource(leadingIcon),
+                painter = painterResource(icon),
                 contentDescription = null,
                 tint = content,
                 modifier = Modifier.size(WaiveraSizes.FilterChipIcon),
@@ -131,7 +131,7 @@ fun WaiveraFilterChip(
 
 /**
  * Segmented control (Day | Week | Month, All | Unread | Channels). Each segment is a radio-style
- * selectable with a 48dp minimum height; the selected wash animates with the state token.
+ * selectable with a 48dp minimum height; the selected tonal fill animates with the state token.
  *
  * Labels are always one line. Segments share the width equally while the longest label fits.
  * When it does not (large font) but all labels fit side by side, each segment's share follows
@@ -179,20 +179,20 @@ fun WaiveraSegmentedControl(
 private fun Segment(label: String, selected: Boolean, onSelect: () -> Unit, modifier: Modifier = Modifier) {
     val haptics = rememberHaptics()
     val colors = WaiveraTheme.colors
-    val hero = WaiveraHero.colors
     val pill by animateFloatAsState(
         targetValue = if (selected) 1f else 0f,
         animationSpec = WaiveraTheme.motion.state(),
         label = "segmentPill",
     )
-    val brush = hero.buttonBrush
+    val fill = colors.selectedFill
     Box(
         modifier = modifier
             .heightIn(min = WaiveraSizes.SegmentMinHeight)
             .clip(WaiveraShapes.Segment)
-            // The chosen segment is the CTA gradient with white ink, so the choice never rests on a
-            // fill step alone; it fades in on the state token and snaps under reduced motion.
-            .drawBehind { if (pill > 0f) drawRect(brush = brush, alpha = pill) }
+            // The chosen segment is the tonal selected fill with violet ink in the heavier weight, so
+            // the choice never rests on a fill step alone; it fades in on the state token and snaps
+            // under reduced motion.
+            .drawBehind { if (pill > 0f) drawRect(color = fill, alpha = pill) }
             .selectable(
                 selected = selected,
                 role = Role.Tab,
@@ -209,7 +209,8 @@ private fun Segment(label: String, selected: Boolean, onSelect: () -> Unit, modi
         Text(
             text = label,
             style = MaterialTheme.typography.labelLarge,
-            color = if (selected) hero.onButton else colors.textSecondary,
+            fontWeight = if (selected) FontWeight.ExtraBold else FontWeight.SemiBold,
+            color = if (selected) colors.onSelectedFill else colors.textSecondary,
             textAlign = TextAlign.Center,
             maxLines = 1,
             softWrap = false,
@@ -221,7 +222,8 @@ private fun Segment(label: String, selected: Boolean, onSelect: () -> Unit, modi
 @Composable
 private fun rememberSegmentFit(options: List<String>, availableWidthPx: Int): SegmentFit {
     val measurer = rememberTextMeasurer()
-    val style = MaterialTheme.typography.labelLarge
+    // Measured at the selected weight, the widest, so a chosen label never outgrows its share.
+    val style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.ExtraBold)
     val density = LocalDensity.current
     val labelWidthsPx = remember(options, style, density) {
         options.map { measurer.measure(text = it, style = style).size.width }

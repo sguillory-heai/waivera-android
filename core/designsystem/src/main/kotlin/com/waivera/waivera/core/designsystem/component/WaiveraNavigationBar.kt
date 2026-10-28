@@ -26,7 +26,6 @@ import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.platform.LocalDensity
@@ -59,10 +58,10 @@ data class NavigationBarItemModel(
  * for the navigation bar again.
  *
  * Concept A's bar: the bar's own fill under a top hairline, and the selected tab's one pill
- * behind its glyph, the pastel lilac-to-pink wash with deep violet ink in light and the
- * saturated CTA gradient with white in dark. An unread count sits on the glyph's top-end corner
- * in the concept's rose, ringed in the bar's colour so it reads as cut out of it. The pill is
- * decoration; the label, the selected state and the count carry the meaning.
+ * behind its glyph. v5 decision 5 makes it tonal: a solid deeper lilac with violet ink in both
+ * themes, and the selected label in the heavier weight, never a gradient. An unread count sits on
+ * the glyph's top-end corner in the attention rose, ringed in the bar's colour so it reads as cut
+ * out of it. The pill is decoration; the label, the selected state and the count carry the meaning.
  */
 @Composable
 fun WaiveraNavigationBar(
@@ -113,11 +112,7 @@ fun WaiveraNavigationBar(
                         besideGlyph = extraLarge,
                         modifier = Modifier
                             .testTag(NAV_ICON_TEST_TAG)
-                            .selectedTabPill(
-                                start = colors.navPillStart,
-                                end = colors.navPillEnd,
-                                alpha = { washAlpha },
-                            ),
+                            .selectedTabPill(fill = colors.selectedFill, alpha = { washAlpha }),
                     ) {
                         Icon(
                             painterResource(item.icon),
@@ -130,13 +125,13 @@ fun WaiveraNavigationBar(
                     Text(
                         text = item.label,
                         style = labelStyle,
-                        fontWeight = if (selected) FontWeight.Bold else FontWeight.SemiBold,
+                        fontWeight = if (selected) FontWeight.ExtraBold else FontWeight.SemiBold,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                     )
                 },
                 colors = NavigationBarItemDefaults.colors(
-                    selectedIconColor = colors.onNavPill,
+                    selectedIconColor = colors.onSelectedFill,
                     selectedTextColor = colors.text,
                     // The pill is drawn once, below, so Material's own indicator stays invisible:
                     // two pills of different widths read as a smear (UI8-01).
@@ -161,21 +156,17 @@ private fun rememberTabWashAlpha(selected: Boolean): Float {
 }
 
 /**
- * The selected tab's one pill, the [start]-to-[end] gradient. It draws behind the icon and
- * outside the icon's bounds, centred on it, so it never changes the layout.
+ * The selected tab's one pill, solid [fill]. It draws behind the icon and outside the icon's
+ * bounds, centred on it, so it never changes the layout.
  */
-private fun Modifier.selectedTabPill(start: Color, end: Color, alpha: () -> Float): Modifier = drawBehind {
+private fun Modifier.selectedTabPill(fill: Color, alpha: () -> Float): Modifier = drawBehind {
     val shown = alpha()
     if (shown == 0f) return@drawBehind
     val width = WaiveraSizes.NavIndicatorWidth.toPx()
     val height = WaiveraSizes.NavIndicatorHeight.toPx()
     val topLeft = Offset(center.x - width / 2f, center.y - height / 2f)
     drawRoundRect(
-        brush = Brush.horizontalGradient(
-            colors = listOf(start, end),
-            startX = topLeft.x,
-            endX = topLeft.x + width,
-        ),
+        color = fill,
         topLeft = topLeft,
         size = Size(width, height),
         cornerRadius = CornerRadius(height / 2f),

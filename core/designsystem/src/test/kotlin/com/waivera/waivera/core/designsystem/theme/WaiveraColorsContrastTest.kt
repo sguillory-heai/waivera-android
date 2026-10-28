@@ -63,7 +63,6 @@ class WaiveraColorsContrastTest {
         // White counts sit on the saturated unread fill; the pastel dark accent never carries white.
         text("onAccent on unread (badges)", colors.onAccent, colors.unread)
         text("onAccentSoft on accentSoft", colors.onAccentSoft, colors.accentSoft)
-        text("onAccentSoft on segmentSelected (chosen segment)", colors.onAccentSoft, colors.segmentSelected)
         text("onDangerFill on dangerFill", colors.onDangerFill, colors.dangerFill)
         text("onDangerContainer on dangerContainer", colors.onDangerContainer, colors.dangerContainer)
         text("onWarningContainer on warningContainer", colors.onWarningContainer, colors.warningContainer)
@@ -156,25 +155,30 @@ class WaiveraColorsContrastTest {
     }
 
     /**
-     * The selected pill (concept A): its ink at 4.5:1 at both ends, the pastel wash with violet ink
-     * in light and the CTA gradient with white in dark; the tab's rose count with white; and the
-     * snackbar's text and action on its plum.
+     * The tonal selected state (v5 decision 5), shared by the tab pill, segments and chips: violet
+     * ink on the selected fill; the tab's rose count with white; and the snackbar's text and
+     * action on its plum.
      */
     @Test
     fun selectedPill_badgeAndSnackbar() = forEachTheme { colors ->
-        text("onNavPill on navPillStart", colors.onNavPill, colors.navPillStart)
-        text("onNavPill on navPillEnd", colors.onNavPill, colors.navPillEnd)
+        text("onSelectedFill on selectedFill (tab pill, segment, chip)", colors.onSelectedFill, colors.selectedFill)
         text("onAccent on navBadge (tab count)", colors.onAccent, colors.navBadge)
         text("textSecondary on navBar (tab labels)", colors.textSecondary, colors.navBar)
         text("onSnackbar on snackbar", colors.onSnackbar, colors.snackbar)
         text("snackbarAction on snackbar", colors.snackbarAction, colors.snackbar)
     }
 
-    /** The light tab pill ends on pink, never gold: gold on a 32dp pill read as a smear (UI8-01). */
+    /**
+     * The fill alone is under 3:1 against its track (v5: 1.3 / 1.6:1), so the selection must not
+     * rest on it: the selected ink stands well apart from the resting ink on the same track, and
+     * the fill is still a visible step off the track and the bar.
+     */
     @Test
-    fun selectedTab_hasNoGoldEnd() {
-        val end = waiveraColors(darkTheme = false).navPillEnd
-        assertTrue(end.blue >= end.green, "the tab pill should end on pink, not gold")
+    fun selectedState_isCarriedByItsInkNotItsFillAlone() = forEachTheme { colors ->
+        for ((name, track) in listOf("segment track" to colors.surfaceMuted, "nav bar" to colors.navBar)) {
+            text("onSelectedFill on $name", colors.onSelectedFill, track)
+            check("selectedFill on $name", colors.selectedFill, track, SELECTED_FILL_MIN)
+        }
     }
 
     /**
@@ -264,6 +268,9 @@ class WaiveraColorsContrastTest {
         const val UI_MIN = 3.0
         const val SKELETON_MIN = 1.3
         const val AVATAR_FILL_MIN = 1.3
+
+        /** The tonal selected fill against its track: a visible step, not the state's only signal. */
+        const val SELECTED_FILL_MIN = 1.2
         const val PLUM_MAX_BLUE_LEAD = 0.07f
 
         /** How much less contrast tertiary text has than secondary, so the two read as two steps. */

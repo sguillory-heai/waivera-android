@@ -189,11 +189,14 @@ internal object WaiveraPalette {
     val NewHireContainerDark = Color(0xFF2F2643)
     val OnNewHireContainerDark = Color(0xFFC4B5FD)
 
-    // The selected tab's pill (concept A): a pastel lilac-to-pink wash with deep violet ink in
-    // light, the saturated CTA gradient with white in dark (never dark ink on a pastel there).
-    val NavPillStartLight = Color(0xFFEBDDFB)
-    val NavPillEndLight = Color(0xFFFBDDEC)
-    val OnNavPillLight = Color(0xFF4A2391)
+    /**
+     * The selected state shared by the tab pill, segments and chips (v5 decision 5, tonal): a
+     * deeper lilac than the tonal button, with [TonalInkLight] / [OnAccentSoftDark] ink at 6.8 /
+     * 7.7:1. The fill alone is only 1.3 / 1.6:1 against its track, so the ink, the heavier weight
+     * and the chip's check carry the state too (WCAG 1.4.11).
+     */
+    val SelectedFillLight = Color(0xFFD6C6F6)
+    val SelectedFillDark = Color(0xFF46356E)
 
     /** The bar behind the tabs in dark, one step under the surface so the pill lifts off it. */
     val NavBarDark = Color(0xFF18141F)
