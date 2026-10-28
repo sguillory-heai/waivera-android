@@ -25,6 +25,7 @@ import com.waivera.waivera.core.designsystem.component.WaiveraAvatar
 import com.waivera.waivera.core.designsystem.component.WaiveraButton
 import com.waivera.waivera.core.designsystem.component.WaiveraButtonVariant
 import com.waivera.waivera.core.designsystem.component.WaiveraCelebrationBurst
+import com.waivera.waivera.core.designsystem.component.WaiveraEmojiTile
 import com.waivera.waivera.core.designsystem.component.WaiveraPressable
 import com.waivera.waivera.core.designsystem.icon.WaiveraIcons
 import com.waivera.waivera.core.designsystem.preview.WaiveraPreviews
@@ -76,10 +77,10 @@ internal fun greetingText(greeting: Greeting): String {
 
 /**
  * A birthday or work anniversary today, as a small moment rather than a list row: the person's
- * plain avatar, the one celebration emoji, the sentence on a soft brand-gradient card, and an easy "Send wishes"
- * that opens a direct chat with them. Confetti bursts over the card the first time it shows
- * (nothing with reduced motion). The card body opens the schedule, as the row did; the button
- * is its own 48dp target so TalkBack reaches it separately.
+ * plain avatar, the one celebration emoji in its tile, the sentence on a soft brand-gradient
+ * card, and an easy "Send wishes" that opens a direct chat with them. Confetti bursts over the
+ * card the first time it shows (nothing with reduced motion). The card body opens the schedule,
+ * as the row did; the button is its own 48dp target so TalkBack reaches it separately.
  */
 @Composable
 internal fun CelebrationCard(
@@ -134,7 +135,8 @@ internal fun CelebrationCard(
                         Text(text = label, style = MaterialTheme.typography.labelMedium, color = colors.textSecondary)
                         Text(text = sentence, style = MaterialTheme.typography.titleSmall, color = colors.text)
                     }
-                    Text(text = stringResource(celebrationEmoji(item)), style = WaiveraTextStyles.CelebrationEmoji)
+                    // The same emoji tile as Schedule and Profile: one celebration treatment (UI9-07).
+                    WaiveraEmojiTile(emoji = stringResource(celebrationEmoji(item)))
                 }
             }
             if (!item.isMe) {
