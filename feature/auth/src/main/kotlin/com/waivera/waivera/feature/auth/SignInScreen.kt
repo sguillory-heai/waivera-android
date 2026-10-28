@@ -213,7 +213,7 @@ private fun SignInForm(state: SignInUiState, actions: SignInActions, onSubmit: (
             value = state.password,
             onValueChange = actions.onPasswordChange,
             label = stringResource(R.string.feature_auth_password_label),
-            placeholder = stringResource(R.string.feature_auth_brand_password_placeholder),
+            placeholder = stringResource(R.string.feature_auth_password_placeholder),
             imeAction = ImeAction.Go,
             onImeAction = onSubmit,
             errorText = state.passwordError?.let { stringResource(it) },

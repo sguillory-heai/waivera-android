@@ -2,6 +2,8 @@ package com.waivera.waivera.navtour
 
 import androidx.compose.ui.test.hasContentDescription
 import com.waivera.waivera.core.demo.DemoData
+import com.waivera.waivera.feature.calendar.R as CalendarR
+import com.waivera.waivera.feature.today.R as TodayR
 import com.waivera.waivera.navigation.CalendarEventRoute
 import com.waivera.waivera.navigation.ConversationRoute
 import com.waivera.waivera.navigation.ScheduleRoute
@@ -93,7 +95,7 @@ class Path05TodayTest : NavTourHarness() {
     fun path05_invitationAccept_onToday() {
         launch()
         click(hasContentDescription(ACCEPT_INVITE))
-        expectScreen("Invitation accepted")
+        expectScreen(stringOf(TodayR.string.feature_today_invitation_accepted))
         expectStack(TodayRoute)
         shot("path_05_today_07_invitation_accepted")
     }
@@ -102,7 +104,7 @@ class Path05TodayTest : NavTourHarness() {
     fun path05_invitationAccept_onToday_undoBringsItBack() {
         launch()
         click(hasContentDescription(ACCEPT_INVITE))
-        expectScreen("Invitation accepted")
+        expectScreen(stringOf(TodayR.string.feature_today_invitation_accepted))
         click("Undo")
         expectScreen(ACCEPT_INVITE)
         expectStack(TodayRoute)
@@ -118,7 +120,7 @@ class Path05TodayTest : NavTourHarness() {
 
         // The RSVP choice reads "Going" / "Not going" since the event screen fix.
         click(textOrDescription("Going"))
-        expectScreen("You accepted the invitation")
+        expectScreen(stringOf(CalendarR.string.feature_calendar_undo_accepted))
         shot("path_05_today_09_invitation_accepted_undo")
 
         click("Undo")

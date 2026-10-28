@@ -1,6 +1,7 @@
 package com.waivera.waivera.navtour
 
 import androidx.compose.ui.test.hasText
+import com.waivera.waivera.R
 import com.waivera.waivera.core.data.model.SessionState
 import com.waivera.waivera.core.demo.DemoData
 import com.waivera.waivera.core.notifications.deeplink.DeepLinkTarget
@@ -128,7 +129,7 @@ class Path08DeepLinksTest : NavTourHarness() {
         expectStack(TodayRoute)
         expectScreen("Needs you")
         // The stack stays, but the tap is acknowledged (UI2-22).
-        expectScreen("That link can't be opened in the app.")
+        expectScreen(stringOf(R.string.shell_link_unopenable))
         shot("path_08_links_07_unknown")
 
         openLink("waivera://chats/not-a-number")

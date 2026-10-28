@@ -94,20 +94,20 @@
     <string name="feature_today_past_yesterday">Yesterday</string>
 
     <!-- Next up -->
-    <string name="feature_today_next_up_empty">Nothing else on your schedule for the next two weeks.</string>
+    <string name="feature_today_next_up_empty">Your next two weeks are clear.</string>
     <string name="feature_today_next_up_failed">Your schedule didn\'t load.</string>
     <string name="feature_today_happening_now_a11y">Happening now</string>
 
     <!-- Celebrations -->
-    <string name="feature_today_celebration_name_fallback">This employee</string>
-    <string name="feature_today_celebration_birthday">It\'s %1$s\'s birthday today!</string>
-    <string name="feature_today_celebration_anniversary">Celebrating %1$s\'s %2$d-year work anniversary!</string>
-    <string name="feature_today_celebration_both">It\'s %1$s\'s birthday and %2$d-year work anniversary!</string>
+    <string name="feature_today_celebration_name_fallback">Teammate</string>
+    <string name="feature_today_celebration_birthday">Happy birthday, %1$s! 🎂</string>
+    <string name="feature_today_celebration_anniversary">Happy %2$d-year work anniversary, %1$s! 🎉</string>
+    <string name="feature_today_celebration_both">Happy birthday and %2$d-year work anniversary, %1$s! 🎉</string>
     <string name="feature_today_milestones_failed">Celebrations didn\'t load.</string>
 
     <!-- All caught up: the one celebrated empty state -->
-    <string name="feature_today_all_caught_up_title">You\'re all caught up</string>
-    <string name="feature_today_all_caught_up_message">New messages, mentions and invitations will show up here.</string>
+    <string name="feature_today_all_caught_up_title">You\'re all caught up 🎉</string>
+    <string name="feature_today_all_caught_up_message">Enjoy the calm. Anything new will show up here.</string>
 
     <!-- Activity -->
     <string name="feature_today_filter_all">All</string>
@@ -135,9 +135,9 @@
     <string name="feature_today_activity_reacted_with">%1$s reacted %2$s to one of your messages.</string>
     <string name="feature_today_activity_fallback">New chat activity</string>
     <string name="feature_today_activity_empty_title">No activity yet</string>
-    <string name="feature_today_activity_empty_message">New mentions, reactions, and thread replies will appear here.</string>
-    <string name="feature_today_activity_filtered_title">No activity matches</string>
-    <string name="feature_today_activity_filtered_message">Try another filter.</string>
+    <string name="feature_today_activity_empty_message">Mentions, reactions and replies to you will show up here.</string>
+    <string name="feature_today_activity_filtered_title">Nothing here</string>
+    <string name="feature_today_activity_filtered_message">Try a different filter.</string>
     <string name="feature_today_activity_failed">Activity didn\'t load.</string>
     <string name="feature_today_activity_more_failed">More activity didn\'t load.</string>
     <string name="feature_today_activity_loading_more">Loading more activity</string>
@@ -146,7 +146,7 @@
     <string name="feature_today_refresh_failed">Couldn\'t refresh. Showing saved updates.</string>
     <string name="feature_today_mark_read_failed">Couldn\'t mark that as read.</string>
     <string name="feature_today_mark_all_failed">Couldn\'t mark everything as read.</string>
-    <string name="feature_today_invitation_accepted">Invitation accepted</string>
+    <string name="feature_today_invitation_accepted">Accepted. See you there!</string>
     <string name="feature_today_invitation_declined">Invitation declined</string>
     <string name="feature_today_invitation_failed">Your response wasn\'t saved.</string>
     <string name="feature_today_retry">Retry</string>

@@ -22,7 +22,7 @@ data class TextSpec(@StringRes val id: Int, val args: List<Any> = emptyList()) {
 fun TextSpec.resolve(): String = stringResource(id, *args.toTypedArray())
 
 /**
- * Celebration copy from 07 §4. [fallbackName] is "This employee", resolved by the caller, used
+ * Celebration copy from 07 §4. [fallbackName] is "Teammate", resolved by the caller, used
  * when the milestone has no display name.
  */
 object CelebrationText {

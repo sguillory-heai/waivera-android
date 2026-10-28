@@ -15,7 +15,7 @@
     <string name="core_notifications_channel_digest_description">Milestones, announcements and other low-priority updates.</string>
 
     <string name="core_notifications_reply">Reply</string>
-    <string name="core_notifications_reply_hint">Message</string>
+    <string name="core_notifications_reply_hint">Write a reply…</string>
     <string name="core_notifications_mark_read">Mark read</string>
     <string name="core_notifications_you">You</string>
     <string name="core_notifications_someone">Someone</string>

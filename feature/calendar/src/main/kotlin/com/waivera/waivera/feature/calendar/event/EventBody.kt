@@ -537,7 +537,7 @@ private fun LabeledBlock(eyebrow: String, text: String, strongBorder: Boolean, m
 private fun AttendeesHeader(count: Int) {
     val heading = stringResource(R.string.feature_calendar_event_attendees)
     if (count == 0) {
-        // "No one else is invited." follows, so a zero count would only repeat it.
+        // "It's just you on this one." follows, so a zero count would only repeat it.
         WaiveraSectionHeader(text = heading, modifier = Modifier.semantics { heading() })
         return
     }

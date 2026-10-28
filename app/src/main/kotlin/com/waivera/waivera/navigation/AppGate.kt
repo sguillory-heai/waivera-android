@@ -71,7 +71,7 @@ data class ShellState(
         if (next == gate) return this
         return when {
             // Signing in runs the bootstrap through Initializing; the sign-in screen keeps its
-            // "Connecting to Waivera…" button instead of swapping to the full-screen loader (01 §8).
+            // "Signing you in…" button instead of swapping to the full-screen loader (01 §8).
             gate is AppGate.SignIn && next == AppGate.Loading -> this
             next == AppGate.Main && pendingDeepLink != null ->
                 copy(gate = next, nav = nav.open(pendingDeepLink), pendingDeepLink = null)

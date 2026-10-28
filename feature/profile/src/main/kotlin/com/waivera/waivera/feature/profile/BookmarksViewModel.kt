@@ -55,13 +55,29 @@ internal data class BookmarkRow(
     val preview: BookmarkPreview,
     /** [createdAt] in the inbox's words, set by the ViewModel from its clock and the saved zone. */
     val date: BookmarkDate? = null,
+    /** A message that has replies of its own; it opens in the conversation like any message. */
+    val isThreadRoot: Boolean = false,
 ) {
     val isThreadReply: Boolean get() = threadRootId != null
+
+    /** Part of a thread, as a reply or as the message the replies hang off. */
+    val isInThread: Boolean get() = isThreadReply || isThreadRoot
 }
+
+/**
+ * The chips above the list. The server sends each bookmark's thread fields (`threadRootMessageId`,
+ * `parentMessageId`, `threadReplyCount`), so Threads holds replies and messages with replies, and
+ * Messages holds everything else.
+ */
+internal enum class BookmarkFilter { All, Messages, Threads }
+
+/** Why an empty list is empty, so the screen can offer the right next step. */
+internal enum class BookmarksEmptyReason { NoBookmarks, NoMatch, NoneInFilter }
 
 @Immutable
 internal data class BookmarksUiState(
     val query: String = "",
+    val filter: BookmarkFilter = BookmarkFilter.All,
     val rows: List<BookmarkRow> = emptyList(),
     val totalCount: Int = 0,
     val phase: ListPhase = ListPhase.Loading,
@@ -72,7 +88,17 @@ internal data class BookmarksUiState(
     val now: Instant = Instant.EPOCH,
     /** The employee's saved zone, so "today" and dates agree with the inbox (never the device zone). */
     val zone: ZoneId = WaiveraTime.FallbackZone,
-)
+) {
+    /** A search or a chip narrows the list, so the count reads "2 of 5". */
+    val isFiltered: Boolean get() = query.isNotBlank() || filter != BookmarkFilter.All
+
+    /** Read while [phase] is [ListPhase.Empty]: a search miss wins over an empty chip. */
+    val emptyReason: BookmarksEmptyReason get() = when {
+        totalCount == 0 -> BookmarksEmptyReason.NoBookmarks
+        query.isNotBlank() -> BookmarksEmptyReason.NoMatch
+        else -> BookmarksEmptyReason.NoneInFilter
+    }
+}
 
 /** When a bookmarked message was sent, in the inbox's words (UI2-27): a time today, Yesterday, "Oct 20". */
 internal sealed interface BookmarkDate {
@@ -98,6 +124,7 @@ internal sealed interface BookmarkDate {
 /** Localised words a search can match besides the message itself ("thread reply", "photo"...). */
 internal data class BookmarkSearchWords(
     val threadReply: String = "thread reply",
+    val thread: String = "thread",
     val message: String = "message",
     val photo: String = "photo",
     val file: String = "file",
@@ -124,15 +151,19 @@ internal object BookmarkRules {
         .sortedWith(compareByDescending<Message, Instant?>(nullsFirst()) { it.createdAt }.thenByDescending { it.id })
         .map(::row)
 
-    fun row(message: Message) = BookmarkRow(
-        messageId = message.id,
-        conversationId = message.conversationId,
-        threadRootId = threadRoot(message),
-        author = message.author?.name.orEmpty(),
-        authorId = message.authorId ?: message.author?.id,
-        createdAt = message.createdAt,
-        preview = preview(message),
-    )
+    fun row(message: Message): BookmarkRow {
+        val root = threadRoot(message)
+        return BookmarkRow(
+            messageId = message.id,
+            conversationId = message.conversationId,
+            threadRootId = root,
+            author = message.author?.name.orEmpty(),
+            authorId = message.authorId ?: message.author?.id,
+            createdAt = message.createdAt,
+            preview = preview(message),
+            isThreadRoot = root == null && message.threadReplyCount > 0,
+        )
+    }
 
     /** Fills each row's [BookmarkRow.date] for [now] in the employee's [zone]. */
     fun dated(rows: List<BookmarkRow>, now: Instant, zone: ZoneId): List<BookmarkRow> =
@@ -153,12 +184,24 @@ internal object BookmarkRules {
         }
     }
 
+    fun matches(row: BookmarkRow, filter: BookmarkFilter): Boolean = when (filter) {
+        BookmarkFilter.All -> true
+        BookmarkFilter.Messages -> !row.isInThread
+        BookmarkFilter.Threads -> row.isInThread
+    }
+
     fun matches(row: BookmarkRow, query: String, words: BookmarkSearchWords): Boolean {
         val needle = query.trim().lowercase(Locale.getDefault())
         if (needle.isEmpty()) return true
         val haystack = buildList {
             add(row.author)
-            add(if (row.isThreadReply) words.threadReply else words.message)
+            add(
+                when {
+                    row.isThreadReply -> words.threadReply
+                    row.isThreadRoot -> words.thread
+                    else -> words.message
+                },
+            )
             when (val preview = row.preview) {
                 is BookmarkPreview.Text -> add(preview.text)
                 BookmarkPreview.Photo -> add(words.photo)
@@ -189,6 +232,7 @@ internal class BookmarksViewModel @Inject constructor(
 ) : ViewModel() {
     private val query = MutableStateFlow("")
     private val words = MutableStateFlow(BookmarkSearchWords())
+    private val filter = MutableStateFlow(BookmarkFilter.All)
     private val refreshing = MutableStateFlow(false)
     private val refreshError = MutableStateFlow<WaiveraError?>(null)
     private val hidden = MutableStateFlow<Set<Long>>(emptySet())
@@ -199,18 +243,19 @@ internal class BookmarksViewModel @Inject constructor(
 
     val uiState: StateFlow<BookmarksUiState> = combine(
         bookmarks.observeBookmarks(),
-        combine(query, words) { q, w -> q to w },
+        combine(query, words, filter) { q, w, f -> Narrowing(q, w, f) },
         combine(refreshing, refreshError) { busy, error -> busy to error },
         hidden,
         combine(realtime.status, calendar.zone) { status, zone -> status to zone },
-    ) { synced, (text, searchWords), (busy, failed), removed, (status, zone) ->
+    ) { synced, (text, searchWords, chip), (busy, failed), removed, (status, zone) ->
         val all = BookmarkRules.rows(synced.data).filter { it.messageId !in removed }
         val now = clock.instant()
-        val shown = all.filter { BookmarkRules.matches(it, text, searchWords) }
+        val shown = all.filter { BookmarkRules.matches(it, chip) && BookmarkRules.matches(it, text, searchWords) }
             .let { BookmarkRules.dated(it, now, zone) }
         val error = synced.error ?: failed
         BookmarksUiState(
             query = text,
+            filter = chip,
             rows = shown,
             totalCount = all.size,
             phase = when {
@@ -238,6 +283,10 @@ internal class BookmarksViewModel @Inject constructor(
 
     fun onQueryChange(value: String) {
         query.value = value
+    }
+
+    fun onFilterChange(value: BookmarkFilter) {
+        filter.value = value
     }
 
     /** The screen passes the localised search words once. */
@@ -280,6 +329,8 @@ internal class BookmarksViewModel @Inject constructor(
     }
 
     fun retryConnection() = realtime.retryNow()
+
+    private data class Narrowing(val query: String, val words: BookmarkSearchWords, val filter: BookmarkFilter)
 
     private companion object {
         const val STOP_TIMEOUT_MILLIS = 5_000L

@@ -8,6 +8,7 @@ import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.longClick
 import androidx.compose.ui.test.performTouchInput
 import com.waivera.waivera.core.demo.DemoData
+import com.waivera.waivera.feature.chat.R as ChatR
 import com.waivera.waivera.navigation.AppRoute
 import com.waivera.waivera.navigation.ChatListRoute
 import com.waivera.waivera.navigation.ConversationRoute
@@ -137,11 +138,11 @@ class Path04ChatTest : NavTourHarness() {
         openPriya()
 
         reveal(textOrDescription(FAILED_TEXT, substring = true))
-        expectScreen("Failed")
+        expectScreen(stringOf(ChatR.string.feature_chat_failed))
         shot("path_04_chat_12_failed_send")
 
         click(hasText("Retry"))
-        expectGone("Failed")
+        expectGone(stringOf(ChatR.string.feature_chat_failed))
         expectScreen(FAILED_TEXT, substring = true)
         expectStack(TodayRoute, ChatListRoute, ConversationRoute(DemoData.DM_PRIYA))
         shot("path_04_chat_13_retried")

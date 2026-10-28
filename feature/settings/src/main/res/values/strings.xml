@@ -24,18 +24,18 @@
     <string name="feature_settings_theme_dark_detail">Always use the dark theme</string>
     <string name="feature_settings_feedback_section">Feedback</string>
     <string name="feature_settings_haptics_title">Haptics</string>
-    <string name="feature_settings_haptics_subtitle">Vibrate for new messages, menus and switches, when you accept an invitation, change your password or mark all read, and when something doesn\'t work.</string>
+    <string name="feature_settings_haptics_subtitle">Small vibrations when messages arrive, when you use menus and switches, when an action is done, and when something goes wrong.</string>
 
     <!-- Notifications -->
     <string name="feature_settings_notification_settings_title">Notifications</string>
     <string name="feature_settings_system_blocked_title">Notifications are off for Waivera</string>
-    <string name="feature_settings_system_blocked_message">Android is blocking notifications from this app, so nothing below will reach you until you turn them on.</string>
+    <string name="feature_settings_system_blocked_message">Android is blocking notifications from Waivera, so nothing below will reach you until you turn them on.</string>
     <string name="feature_settings_open_system_settings">Open settings</string>
     <string name="feature_settings_push_section">Push notifications</string>
     <string name="feature_settings_push_title">Push notifications</string>
-    <string name="feature_settings_push_subtitle">Get notified when Waivera isn\'t open.</string>
+    <string name="feature_settings_push_subtitle">Hear from Waivera even when the app is closed.</string>
     <string name="feature_settings_categories_section">Notify me about</string>
-    <string name="feature_settings_categories_push_off">Turn on push notifications to choose what you get.</string>
+    <string name="feature_settings_categories_push_off">Turn on push notifications to choose what you hear about.</string>
     <string name="feature_settings_categories_system_off">Turn notifications on in Android settings to use these.</string>
     <string name="feature_settings_category_messages">Direct messages and mentions</string>
     <string name="feature_settings_category_messages_detail">Messages sent to you and times someone mentions you.</string>
@@ -49,7 +49,7 @@
     <string name="feature_settings_category_digest_detail">Milestones, announcements and other low-priority updates.</string>
     <string name="feature_settings_privacy_section">Privacy</string>
     <string name="feature_settings_previews_title">Show message previews</string>
-    <string name="feature_settings_previews_subtitle">When off, notifications say you have a new message without showing what it says.</string>
+    <string name="feature_settings_previews_subtitle">When this is off, notifications say you have a new message but not what it says.</string>
     <string name="feature_settings_sound_section">Sound and vibration</string>
     <string name="feature_settings_sound_explainer">Android lets you pick the sound, vibration and pop-up style for each kind of notification.</string>
     <string name="feature_settings_channel_open">Change in Android settings</string>

@@ -1,8 +1,4 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- Strings added by the brand pass. Wording here can be edited freely by the copy owner. -->
 <resources>
-    <string name="feature_auth_brand_password_placeholder">Enter your password</string>
-    <string name="feature_auth_brand_current_password_placeholder">Your current password</string>
-    <string name="feature_auth_brand_new_password_placeholder">Create a new password</string>
-    <string name="feature_auth_brand_confirm_password_placeholder">Type it once more</string>
 </resources>

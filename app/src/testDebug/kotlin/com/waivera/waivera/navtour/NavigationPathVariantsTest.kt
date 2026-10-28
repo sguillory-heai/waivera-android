@@ -3,6 +3,7 @@ package com.waivera.waivera.navtour
 import com.waivera.waivera.core.data.model.SessionState
 import com.waivera.waivera.core.demo.DemoData
 import com.waivera.waivera.core.network.error.WaiveraError
+import com.waivera.waivera.feature.auth.R as AuthR
 import com.waivera.waivera.navigation.AppGate
 import com.waivera.waivera.navigation.CalendarEventRoute
 import com.waivera.waivera.navigation.ChatListRoute
@@ -34,7 +35,7 @@ class NavigationPathVariantsTest : NavTourHarness() {
         world.session().force(SessionState.SignedOut())
         launch()
         expectGate(AppGate.SignIn())
-        expectScreen("Welcome back.")
+        expectScreen(stringOf(AuthR.string.feature_auth_sign_in_title))
         shot("path_01_signin_01_empty_font200")
         click("Sign in")
         expectScreen("Enter your email.")

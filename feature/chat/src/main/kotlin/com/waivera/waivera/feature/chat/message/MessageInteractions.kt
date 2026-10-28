@@ -80,7 +80,7 @@ class MessageInteractions(
         if (text.isEmpty()) return
         emit(ChatEffect.CopyText(text))
         emit(ChatEffect.Haptic(HapticMoment.Success))
-        // The sheet stays open and the row reads "Copied to clipboard" (03 §14).
+        // The sheet stays open and the row reads "Copied" (03 §14).
         _sheet.update { current ->
             (current as? ChatSheet.Actions)?.let { it.copy(model = it.model.copy(copied = true)) }
                 ?: current

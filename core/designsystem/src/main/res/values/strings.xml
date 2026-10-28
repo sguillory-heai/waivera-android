@@ -23,9 +23,9 @@
     <string name="core_designsystem_milestone_multiple">Celebrating today</string>
     <string name="core_designsystem_connection_connecting">Connecting…</string>
     <string name="core_designsystem_connection_reconnecting">Reconnecting…</string>
-    <string name="core_designsystem_connection_reconnecting_detail">Messages may be delayed. We\'ll keep trying.</string>
+    <string name="core_designsystem_connection_reconnecting_detail">Messages may be a little delayed. We\'ll keep trying.</string>
     <string name="core_designsystem_connection_offline">You\'re offline</string>
-    <string name="core_designsystem_connection_offline_detail">Messages you send will go out when you\'re back online.</string>
+    <string name="core_designsystem_connection_offline_detail">Anything you send will go out once you\'re back online.</string>
     <string name="core_designsystem_connection_retry">Retry now</string>
     <string name="core_designsystem_sync_pending">Sending…</string>
     <string name="core_designsystem_sync_failed">Not sent · Tap to retry</string>

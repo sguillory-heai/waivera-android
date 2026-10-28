@@ -37,15 +37,15 @@ class CelebrationLabelsRobolectricTest {
     @Test
     fun fullLabelsUseTheNameOrTheFallback() {
         assertEquals(
-            "It's Priya Raman's birthday today!",
+            "Happy birthday, Priya Raman! 🎂",
             CelebrationText.full(Celebration(CelebrationType.BIRTHDAY, null, "Priya Raman"), fallback).resolve(context),
         )
         assertEquals(
-            "Celebrating This employee's 5-year work anniversary!",
+            "Happy 5-year work anniversary, Teammate! 🎉",
             CelebrationText.full(Celebration(CelebrationType.WORK_ANNIVERSARY, 5, " "), fallback).resolve(context),
         )
         assertEquals(
-            "It's Jordan Lee's birthday and 5-year work anniversary!",
+            "Happy birthday and 5-year work anniversary, Jordan Lee! 🎉",
             CelebrationText.full(Celebration(CelebrationType.MULTIPLE, 5, "Jordan Lee"), fallback).resolve(context),
         )
     }
@@ -53,7 +53,7 @@ class CelebrationLabelsRobolectricTest {
     @Test
     fun accessibleLabelIsAFullSentence() {
         assertEquals(
-            "Jordan Lee is celebrating a 5-year work anniversary today.",
+            "Jordan Lee has a 5-year work anniversary today.",
             CelebrationText.accessible(Celebration(CelebrationType.WORK_ANNIVERSARY, 5, "Jordan Lee"), fallback)
                 .resolve(context),
         )
