@@ -73,4 +73,7 @@ object WaiveraSizes {
 
     /** Windows shorter than this (a small phone, landscape) drop optional copy so actions stay close. */
     val CompactWindowHeight: Dp = 700.dp
+
+    /** Corner radius of the screen being dismissed in the predictive back preview (M3 back preview). */
+    val BackPreviewCorner: Dp = 24.dp
 }

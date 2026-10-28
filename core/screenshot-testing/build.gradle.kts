@@ -14,4 +14,8 @@ dependencies {
     api(libs.roborazzi)
     api(libs.roborazzi.compose)
     api(libs.androidx.compose.ui.test.junit4)
+    // Captures load people's photos through the app's image loader over the demo people (UI4-10).
+    implementation(projects.core.demo)
+    implementation(libs.coil)
+    implementation(libs.okhttp)
 }

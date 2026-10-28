@@ -29,6 +29,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import com.waivera.waivera.core.designsystem.icon.WaiveraIcons
 import com.waivera.waivera.core.designsystem.preview.WaiveraPreviews
@@ -40,11 +41,24 @@ import com.waivera.waivera.core.designsystem.theme.WaiveraTheme
 
 /**
  * [Tonal] is the quiet filled style (accent-soft fill) for an action that matters but should not
- * shout, such as joining a call from a banner or a chosen option in a pair. [DestructiveOutline]
- * is a destructive action that a confirmation sheet already guards (Sign out), so the button
- * itself stays light.
+ * shout, such as joining a call from a banner. [DestructiveOutline] is a destructive action that
+ * a confirmation sheet already guards (Sign out), so the button itself stays light.
+ *
+ * [Selected] and [Unselected] are the two sides of a single-choice pair (Going / Not going): the
+ * chosen one has the accent-soft fill and an accent outline, the other a subtle outline and
+ * regular-weight secondary text, so the chosen one is always the heavier of the two, in dark
+ * mode too (UI4-04).
  */
-enum class WaiveraButtonVariant { Primary, Secondary, Tonal, Destructive, DestructiveOutline, Text }
+enum class WaiveraButtonVariant {
+    Primary,
+    Secondary,
+    Tonal,
+    Destructive,
+    DestructiveOutline,
+    Text,
+    Selected,
+    Unselected,
+}
 
 /**
  * The app's button.
@@ -95,7 +109,12 @@ fun WaiveraButton(
         interactionSource = interactionSource,
     ) {
         Box(contentAlignment = Alignment.Center) {
-            ButtonLabel(text = text, leadingIcon = leadingIcon, modifier = Modifier.alpha(if (loading) 0f else 1f))
+            ButtonLabel(
+                text = text,
+                leadingIcon = leadingIcon,
+                regularWeight = variant == WaiveraButtonVariant.Unselected,
+                modifier = Modifier.alpha(if (loading) 0f else 1f),
+            )
             if (loadingText != null) {
                 ButtonProgress(label = loadingText, color = if (enabled) style.content else colors.textSecondary)
             }
@@ -104,7 +123,12 @@ fun WaiveraButton(
 }
 
 @Composable
-private fun ButtonLabel(text: String, @DrawableRes leadingIcon: Int?, modifier: Modifier = Modifier) {
+private fun ButtonLabel(
+    text: String,
+    @DrawableRes leadingIcon: Int?,
+    regularWeight: Boolean,
+    modifier: Modifier = Modifier,
+) {
     Row(
         modifier = modifier,
         horizontalArrangement = Arrangement.spacedBy(WaiveraSpacing.Small),
@@ -113,7 +137,12 @@ private fun ButtonLabel(text: String, @DrawableRes leadingIcon: Int?, modifier: 
         if (leadingIcon != null) {
             Icon(painterResource(leadingIcon), contentDescription = null, modifier = Modifier.size(WaiveraSizes.Icon))
         }
-        Text(text = text, style = MaterialTheme.typography.labelLarge, textAlign = TextAlign.Center)
+        Text(
+            text = text,
+            style = MaterialTheme.typography.labelLarge,
+            fontWeight = if (regularWeight) FontWeight.Normal else null,
+            textAlign = TextAlign.Center,
+        )
     }
 }
 
@@ -135,6 +164,8 @@ private fun buttonBorder(variant: WaiveraButtonVariant, enabled: Boolean, colors
     !enabled -> BorderStroke(WaiveraSpacing.Hairline, colors.border)
     variant == WaiveraButtonVariant.Secondary -> BorderStroke(WaiveraSpacing.Hairline, colors.borderStrong)
     variant == WaiveraButtonVariant.DestructiveOutline -> BorderStroke(WaiveraSpacing.Hairline, colors.danger)
+    variant == WaiveraButtonVariant.Selected -> BorderStroke(WaiveraSpacing.SelectedOutline, colors.accent)
+    variant == WaiveraButtonVariant.Unselected -> BorderStroke(WaiveraSpacing.Hairline, colors.border)
     else -> null
 }
 
@@ -147,6 +178,8 @@ private fun WaiveraButtonVariant.styleFrom(colors: WaiveraColors): ButtonStyle =
     WaiveraButtonVariant.Destructive -> ButtonStyle(colors.dangerFill, colors.onDangerFill, colors.surfaceMuted)
     WaiveraButtonVariant.DestructiveOutline -> ButtonStyle(colors.surface, colors.dangerText, colors.surfaceMuted)
     WaiveraButtonVariant.Text -> ButtonStyle(Color.Transparent, colors.accent, Color.Transparent)
+    WaiveraButtonVariant.Selected -> ButtonStyle(colors.accentSoft, colors.onAccentSoft, colors.surfaceMuted)
+    WaiveraButtonVariant.Unselected -> ButtonStyle(colors.surface, colors.textSecondary, colors.surface)
 }
 
 @WaiveraPreviews
@@ -164,6 +197,21 @@ private fun WaiveraButtonPreview() {
             WaiveraButton(text = "Delete message", onClick = {}, variant = WaiveraButtonVariant.Destructive)
             WaiveraButton(text = "Sign out", onClick = {}, variant = WaiveraButtonVariant.DestructiveOutline)
             WaiveraButton(text = "Not now", onClick = {}, variant = WaiveraButtonVariant.Text)
+            Row(horizontalArrangement = Arrangement.spacedBy(WaiveraSpacing.Small)) {
+                WaiveraButton(
+                    text = "Not going",
+                    onClick = {},
+                    variant = WaiveraButtonVariant.Unselected,
+                    modifier = Modifier.weight(1f),
+                )
+                WaiveraButton(
+                    text = "Going",
+                    onClick = {},
+                    variant = WaiveraButtonVariant.Selected,
+                    leadingIcon = WaiveraIcons.Check,
+                    modifier = Modifier.weight(1f),
+                )
+            }
             WaiveraButton(text = "New chat", onClick = {}, leadingIcon = WaiveraIcons.Add, enabled = false)
         }
     }

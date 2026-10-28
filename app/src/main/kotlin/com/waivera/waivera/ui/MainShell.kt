@@ -13,6 +13,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -21,9 +22,11 @@ import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDecorator
 import androidx.navigation3.runtime.NavEntry
 import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
+import androidx.navigation3.ui.LocalNavAnimatedContentScope
 import androidx.navigation3.ui.NavDisplay
 import com.waivera.waivera.R
 import com.waivera.waivera.core.data.image.AvatarModel
+import com.waivera.waivera.core.designsystem.component.BackPreviewFrame
 import com.waivera.waivera.core.designsystem.component.NavigationBarItemModel
 import com.waivera.waivera.core.designsystem.component.WaiveraNavigationBar
 import com.waivera.waivera.core.designsystem.component.WaiveraSnackbarHost
@@ -49,6 +52,8 @@ fun MainShell(state: ShellUiState, actions: ShellActions, modifier: Modifier = M
     val routeActions = remember(actions) { RouteActions(actions, openAccountMenu) }
     val snackbar = remember { SnackbarHostState() }
     val unopenableLinkMessage = stringResource(R.string.shell_link_unopenable)
+    // Read inside entries, so an entry that is leaving after a pop sees the new top, not the old.
+    val topEntry = rememberUpdatedState(nav.visibleEntries.lastOrNull())
     LaunchedEffect(state.unopenableLink) {
         if (state.unopenableLink) {
             try {
@@ -79,7 +84,14 @@ fun MainShell(state: ShellUiState, actions: ShellActions, modifier: Modifier = M
                 },
                 entryProvider = { entry: ShellEntry ->
                     NavEntry(key = entry, contentKey = entry.key) {
-                        RouteContent(route = entry.route, actions = routeActions)
+                        // Rounded corners on the screen a back swipe dismisses, a scrim on the one it reveals.
+                        BackPreviewFrame(
+                            scope = LocalNavAnimatedContentScope.current,
+                            isTop = entry == topEntry.value,
+                            modifier = Modifier.fillMaxSize(),
+                        ) {
+                            RouteContent(route = entry.route, actions = routeActions)
+                        }
                     }
                 },
             )

@@ -15,6 +15,9 @@ object WaiveraIcons {
 
     @DrawableRes val Archive: Int = R.drawable.core_designsystem_ic_archive
 
+    /** "Show it": scrolls up to something further up the screen, such as a message that wasn't sent. */
+    @DrawableRes val ArrowUp: Int = R.drawable.core_designsystem_ic_arrow_upward
+
     @DrawableRes val Attachment: Int = R.drawable.core_designsystem_ic_attachment
 
     @DrawableRes val Award: Int = R.drawable.core_designsystem_ic_award
@@ -43,6 +46,12 @@ object WaiveraIcons {
     @DrawableRes val CloudOff: Int = R.drawable.core_designsystem_ic_cloud_off
 
     @DrawableRes val Error: Int = R.drawable.core_designsystem_ic_error
+
+    /** A banner's hidden details can be opened (▾). */
+    @DrawableRes val ExpandMore: Int = R.drawable.core_designsystem_ic_expand_more
+
+    /** A banner's details are open and can be folded away (▴). */
+    @DrawableRes val ExpandLess: Int = R.drawable.core_designsystem_ic_expand_less
 
     /** Channel marker. */
     @DrawableRes val Hash: Int = R.drawable.core_designsystem_ic_hash

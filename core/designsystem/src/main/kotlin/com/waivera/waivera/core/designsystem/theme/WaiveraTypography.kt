@@ -9,12 +9,19 @@ import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
 
 /**
- * Lines wrap at word boundaries with balanced lengths ([LineBreak.Paragraph]) and are never
- * hyphenated: product copy split as "pass-word" or "notifica-tions" reads like a layout bug
- * (UI3-02). Long single tokens (emails, names) are capped with maxLines and an ellipsis where
- * they appear, instead of being broken.
+ * Body copy wraps at word boundaries with balanced lengths ([LineBreak.Paragraph]). Titles,
+ * headlines and labels, where names and channel names show, use the greedy simple breaker
+ * ([TitleLineBreak]): the balancing breaker would rather split a long hyphenated name mid-word
+ * ("coordination-a / nd-scheduling") than leave a short line (UI4-02). Nothing is hyphenated:
+ * product copy split as "pass-word" or "notifica-tions" reads like a layout bug (UI3-02). Names
+ * also get break points after their own hyphens (`withBreaksAfterHyphens`) where they show.
  */
 private val WrapLineBreak = LineBreak.Paragraph
+internal val TitleLineBreak = LineBreak(
+    strategy = LineBreak.Strategy.Simple,
+    strictness = LineBreak.Strictness.Strict,
+    wordBreak = LineBreak.WordBreak.Default,
+)
 internal val WaiveraHyphens = Hyphens.None
 
 /**
@@ -26,12 +33,14 @@ internal val WaiveraMaterialTypography = Typography(
         fontSize = 30.sp,
         lineHeight = 36.sp,
         fontWeight = FontWeight.Bold,
+        lineBreak = TitleLineBreak,
         hyphens = WaiveraHyphens,
     ),
     headlineMedium = TextStyle(
         fontSize = 26.sp,
         lineHeight = 32.sp,
         fontWeight = FontWeight.Bold,
+        lineBreak = TitleLineBreak,
         hyphens = WaiveraHyphens,
     ),
     // Screen titles ("Title" in the Expo app: 21sp, heaviest weight).
@@ -39,14 +48,14 @@ internal val WaiveraMaterialTypography = Typography(
         fontSize = 21.sp,
         lineHeight = 28.sp,
         fontWeight = FontWeight.Black,
-        lineBreak = WrapLineBreak,
+        lineBreak = TitleLineBreak,
         hyphens = WaiveraHyphens,
     ),
     titleLarge = TextStyle(
         fontSize = 18.sp,
         lineHeight = 24.sp,
         fontWeight = FontWeight.Bold,
-        lineBreak = WrapLineBreak,
+        lineBreak = TitleLineBreak,
         hyphens = WaiveraHyphens,
     ),
     // Section titles.
@@ -54,14 +63,14 @@ internal val WaiveraMaterialTypography = Typography(
         fontSize = 16.sp,
         lineHeight = 22.sp,
         fontWeight = FontWeight.ExtraBold,
-        lineBreak = WrapLineBreak,
+        lineBreak = TitleLineBreak,
         hyphens = WaiveraHyphens,
     ),
     titleSmall = TextStyle(
         fontSize = 15.sp,
         lineHeight = 20.sp,
         fontWeight = FontWeight.SemiBold,
-        lineBreak = WrapLineBreak,
+        lineBreak = TitleLineBreak,
         hyphens = WaiveraHyphens,
     ),
     bodyLarge = TextStyle(
@@ -90,6 +99,7 @@ internal val WaiveraMaterialTypography = Typography(
         fontSize = 15.sp,
         lineHeight = 20.sp,
         fontWeight = FontWeight.ExtraBold,
+        lineBreak = TitleLineBreak,
         hyphens = WaiveraHyphens,
     ),
     // Subtitles and field labels.
@@ -97,12 +107,14 @@ internal val WaiveraMaterialTypography = Typography(
         fontSize = 12.5.sp,
         lineHeight = 16.sp,
         fontWeight = FontWeight.SemiBold,
+        lineBreak = TitleLineBreak,
         hyphens = WaiveraHyphens,
     ),
     labelSmall = TextStyle(
         fontSize = 11.5.sp,
         lineHeight = 14.sp,
         fontWeight = FontWeight.Bold,
+        lineBreak = TitleLineBreak,
         hyphens = WaiveraHyphens,
     ),
 )

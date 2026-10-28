@@ -9,11 +9,18 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Density
+import coil3.SingletonImageLoader
+import coil3.annotation.DelicateCoilApi
 import com.github.takahirom.roborazzi.ExperimentalRoborazziApi
 import com.github.takahirom.roborazzi.captureRoboImage
+import com.waivera.waivera.core.data.image.AuthenticatedImageLoader
+import com.waivera.waivera.core.demo.DemoBackend
+import com.waivera.waivera.core.demo.DemoPeopleRepository
 import com.waivera.waivera.core.designsystem.component.LocalWaiveraSkeletonDelay
 import com.waivera.waivera.core.designsystem.theme.WaiveraMotionScheme
 import com.waivera.waivera.core.designsystem.theme.WaiveraTheme
+import kotlinx.coroutines.Dispatchers
+import okhttp3.OkHttpClient
 import org.robolectric.RuntimeEnvironment
 
 /** Phone sizes every screen is checked on (spec: a small and a large phone). */
@@ -73,12 +80,21 @@ object ScreenshotMatrix {
  * `@Config(sdk = [ScreenshotSdk.VALUE])`. Motion is reduced so captures are deterministic and
  * haptics are off. Font scale is applied through [LocalDensity] so `sp` text scales exactly as
  * it does on device.
+ *
+ * [animations] keeps the system animator scale at 1 and the theme on standard motion, for a
+ * capture of a seeked transition such as the predictive back preview halfway through a swipe;
+ * with animations off a seek snaps straight to its end (UI4-10). Only use it for content with no
+ * infinite animation, which would never let the capture settle.
+ *
+ * People's photos load through the app's image loader over the demo people, on the main thread,
+ * so avatars show photos as they do in the app instead of initials (UI4-10).
  */
 @OptIn(ExperimentalRoborazziApi::class)
 fun captureScreenshots(
     name: String,
     variants: List<ScreenshotVariant> = ScreenshotMatrix.Default,
     heightDp: Int? = null,
+    animations: Boolean = false,
     content: @Composable () -> Unit,
 ) {
     // Animator scale 0 is the system "Remove animations" setting: Compose then stops infinite
@@ -86,8 +102,10 @@ fun captureScreenshots(
     Settings.Global.putFloat(
         RuntimeEnvironment.getApplication().contentResolver,
         Settings.Global.ANIMATOR_DURATION_SCALE,
-        0f,
+        if (animations) 1f else 0f,
     )
+    installDemoImageLoader()
+    val motion = if (animations) WaiveraMotionScheme.Standard else WaiveraMotionScheme.Reduced
     variants.forEach { variant ->
         RuntimeEnvironment.setQualifiers(variant.device.qualifiers(variant.darkTheme, heightDp))
         captureRoboImage(filePath = "${ScreenshotMatrix.outputDirectory}/${name}_${variant.suffix}.png") {
@@ -98,7 +116,7 @@ fun captureScreenshots(
             ) {
                 WaiveraTheme(
                     darkTheme = variant.darkTheme,
-                    motion = WaiveraMotionScheme.Reduced,
+                    motion = motion,
                     hapticsEnabled = false,
                 ) {
                     Box(
@@ -112,6 +130,23 @@ fun captureScreenshots(
             }
         }
     }
+}
+
+/**
+ * The app's [AuthenticatedImageLoader] over the demo people (Priya has a photo), decoding on the
+ * main thread so the photo is in the frame Roborazzi captures, as the navigation tour does.
+ */
+@OptIn(DelicateCoilApi::class)
+private fun installDemoImageLoader() {
+    val people = DemoPeopleRepository(DemoBackend())
+    val loader = AuthenticatedImageLoader(
+        context = RuntimeEnvironment.getApplication(),
+        client = OkHttpClient(),
+        people = { people },
+    ).imageLoader.newBuilder()
+        .coroutineContext(Dispatchers.Main.immediate)
+        .build()
+    SingletonImageLoader.setUnsafe(loader)
 }
 
 /** Window heights for [captureScreenshots] when the state under test is below the first screen. */

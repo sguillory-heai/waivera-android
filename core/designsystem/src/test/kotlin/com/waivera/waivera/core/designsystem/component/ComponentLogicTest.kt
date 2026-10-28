@@ -80,6 +80,21 @@ class ComponentLogicTest {
     }
 
     @Test
+    fun `banner action stacks when the message would take more than two lines beside it`() {
+        // The offline banner's "Showing your saved conversations..." beside "Retry now" (UI4-06).
+        assertTrue(stacks(messageLinesBeside = 3))
+        assertFalse(stacks(messageLinesBeside = 2))
+        assertFalse(stacks(messageLinesBeside = 1))
+    }
+
+    private fun stacks(messageLinesBeside: Int) = bannerActionStacks(
+        fontScale = 1f,
+        actionWidthPx = 200,
+        availableWidthPx = 1000,
+        messageLinesBeside = messageLinesBeside,
+    )
+
+    @Test
     fun `segments share the width while the widest label fits`() {
         assertFalse(segmentsNeedScroll(count = 3, segmentWidthPx = 200, availableWidthPx = 900))
         assertFalse(segmentsNeedScroll(count = 3, segmentWidthPx = 300, availableWidthPx = 900))

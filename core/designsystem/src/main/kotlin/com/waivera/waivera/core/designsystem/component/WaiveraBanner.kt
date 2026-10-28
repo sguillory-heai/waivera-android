@@ -39,13 +39,13 @@ import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.testTag
 import androidx.compose.ui.text.rememberTextMeasurer
-import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.dp
 import com.waivera.waivera.core.designsystem.R
 import com.waivera.waivera.core.designsystem.icon.WaiveraIcons
 import com.waivera.waivera.core.designsystem.preview.WaiveraPreviews
-import com.waivera.waivera.core.designsystem.theme.LARGE_FONT_SCALE
 import com.waivera.waivera.core.designsystem.theme.WaiveraColors
 import com.waivera.waivera.core.designsystem.theme.WaiveraShapes
 import com.waivera.waivera.core.designsystem.theme.WaiveraSizes
@@ -59,16 +59,21 @@ enum class BannerTone { Info, Warning, Error, Offline }
  * Inline banner: leading icon, optional title, message, optional action and dismiss.
  * Announced politely when it appears. Never covers content.
  *
- * The action sits beside the text only when it is short; when the action label would take more
- * than about a third of the width, it moves to its own row under the text so the message keeps
- * the full width.
+ * A banner shows its title and message in full at every font scale, and never cuts a title
+ * short: an error or warning that hid its reason ("Couldn't sign in" with no why) would fail
+ * the glance it exists for (UI4-01).
  *
- * Above [LARGE_FONT_SCALE] a banner with a [title] goes compact: one row of icon, title (one
- * line, ellipsized), the action as a 48dp [actionIcon] button whose content description is
- * [actionLabel], and dismiss. The message folds away behind a tap on the title (TalkBack still
- * reads the message, and the tap is announced as "Show details"). At 200% a full banner would
- * otherwise take a third of a small phone, and a text action would wrap the row (UI3-08). Pass
- * [compact] to force either form; a banner forced compact at normal font keeps its text action.
+ * The action sits beside the text when it is short and the message fits in two lines beside it;
+ * otherwise it moves to its own row under the text, so the message keeps the full width instead
+ * of squeezing into a narrow column (UI4-06). Above the large font scale an action with an
+ * [actionIcon] becomes a 48dp icon button whose content description is [actionLabel], so the
+ * text keeps the width and wraps; without an icon the text action goes under the text.
+ *
+ * [compact] is for status banners only: the connection banner and "showing saved data" notices,
+ * where the title alone says what is going on. A compact banner with a [title] shows the title
+ * (wrapping, never ellipsized) and a visible chevron, and folds the message away behind a tap on
+ * them; TalkBack always reads both. [ConnectionBanner] goes compact at large font by itself;
+ * other status banners pass `compact = isLargeFontScale()`.
  *
  * [gutter] insets the banner by the screen gutter; turn it off inside a block that is already
  * padded, so the banner lines up with the buttons around it instead of sitting narrower (UI3-15).
@@ -81,14 +86,15 @@ fun WaiveraBanner(
     title: String? = null,
     actionLabel: String? = null,
     onAction: (() -> Unit)? = null,
-    @DrawableRes actionIcon: Int = WaiveraIcons.ChevronRight,
+    @DrawableRes actionIcon: Int? = null,
     onDismiss: (() -> Unit)? = null,
-    compact: Boolean = title != null && isLargeFontScale(),
+    compact: Boolean = false,
     gutter: Boolean = true,
 ) {
     val style = tone.style(WaiveraTheme.colors)
     val action = if (actionLabel != null && onAction != null) BannerActionModel(actionLabel, onAction) else null
     val collapsible = compact && title != null
+    val iconAction = if (action != null && isLargeFontScale()) actionIcon else null
     var expanded by rememberSaveable(message) { mutableStateOf(false) }
     BoxWithConstraints(
         modifier = modifier
@@ -99,8 +105,14 @@ fun WaiveraBanner(
             ),
     ) {
         val stacked = action != null &&
+            iconAction == null &&
             !collapsible &&
-            rememberBannerActionStacks(action.label, constraints.maxWidth)
+            rememberBannerActionStacks(
+                label = action.label,
+                message = message,
+                hasDismiss = onDismiss != null,
+                availableWidthPx = constraints.maxWidth,
+            )
         val trailingInline = (action != null && !stacked) || onDismiss != null
         Column(
             modifier = Modifier
@@ -139,15 +151,15 @@ fun WaiveraBanner(
                 }
                 when {
                     action == null || stacked -> Unit
-                    collapsible && isLargeFontScale() -> WaiveraIconButton(
-                        icon = actionIcon,
+                    iconAction != null -> WaiveraIconButton(
+                        icon = iconAction,
                         contentDescription = action.label,
                         onClick = action.onClick,
                         tint = style.content,
                     )
-                    else -> BannerAction(action, style.content)
+                    else -> BannerAction(action = action, color = style.content)
                 }
-                if (onDismiss != null) BannerDismiss(onDismiss, style.content)
+                if (onDismiss != null) BannerDismiss(onDismiss = onDismiss, color = style.content)
             }
             if (action != null && stacked) {
                 BannerAction(
@@ -173,8 +185,9 @@ private fun BannerDismiss(onDismiss: () -> Unit, color: Color) {
 }
 
 /**
- * The compact banner's text: the title, with the message under it only when [expanded]. One
- * TalkBack stop that always reads both, so folding the message away hides nothing.
+ * The compact banner's text: the title (wrapping, never cut) with a chevron that shows there is
+ * more, and the message under it only when [expanded]. One TalkBack stop that always reads both,
+ * so folding the message away hides nothing.
  */
 @Composable
 private fun CompactBannerText(
@@ -199,15 +212,28 @@ private fun CompactBannerText(
             .padding(vertical = WaiveraSpacing.Small),
         verticalArrangement = Arrangement.spacedBy(WaiveraSpacing.XxSmall, Alignment.CenterVertically),
     ) {
-        // The column's description already reads title and message; the texts stay silent.
-        Text(
-            text = title,
-            style = MaterialTheme.typography.titleSmall,
-            color = color,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.clearAndSetSemantics {},
-        )
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(WaiveraSpacing.ExtraSmall),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            // The column's description already reads title and message; the texts stay silent.
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleSmall,
+                color = color,
+                modifier = Modifier
+                    .weight(1f, fill = false)
+                    .clearAndSetSemantics { testTag = BANNER_COMPACT_TITLE_TAG },
+            )
+            Icon(
+                painter = painterResource(if (expanded) WaiveraIcons.ExpandLess else WaiveraIcons.ExpandMore),
+                contentDescription = null,
+                tint = color,
+                modifier = Modifier
+                    .size(WaiveraSizes.Icon)
+                    .semantics { testTag = BANNER_CHEVRON_TAG },
+            )
+        }
         AnimatedVisibility(
             visible = expanded,
             enter = expandVertically(motion.layout()) + fadeIn(motion.state()),
@@ -222,6 +248,10 @@ private fun CompactBannerText(
         }
     }
 }
+
+/** Test tags for the compact banner's title and its "more" chevron. */
+internal const val BANNER_COMPACT_TITLE_TAG = "waivera_banner_compact_title"
+internal const val BANNER_CHEVRON_TAG = "waivera_banner_chevron"
 
 @Immutable
 private class BannerActionModel(val label: String, val onClick: () -> Unit)
@@ -246,29 +276,47 @@ private fun BannerAction(action: BannerActionModel, color: Color, modifier: Modi
     }
 }
 
-/** Measures the action label once per label, style and density, then applies [bannerActionStacks]. */
-@Composable
-private fun rememberBannerActionStacks(label: String, availableWidthPx: Int): Boolean {
-    val measurer = rememberTextMeasurer()
-    val style = MaterialTheme.typography.labelLarge
-    val density = LocalDensity.current
-    val labelWidthPx = remember(label, style, density) {
-        measurer.measure(text = label, style = style).size.width
-    }
-    val buttonPaddingPx = with(density) { (WaiveraSpacing.MediumSmall * 2).roundToPx() }
-    return bannerActionStacks(density.fontScale, labelWidthPx + buttonPaddingPx, availableWidthPx)
-}
-
 /**
- * True when the action should go under the text: above [BANNER_STACK_FONT_SCALE], or when the
- * action would take more than [BANNER_INLINE_ACTION_MAX_FRACTION] of the banner width.
+ * Measures the action label, and the message in the width it would have beside the action (and
+ * dismiss), once per text, style, density and width; then applies [bannerActionStacks].
  */
-internal fun bannerActionStacks(fontScale: Float, actionWidthPx: Int, availableWidthPx: Int): Boolean =
-    fontScale > BANNER_STACK_FONT_SCALE ||
-        actionWidthPx > availableWidthPx * BANNER_INLINE_ACTION_MAX_FRACTION
-
-internal const val BANNER_STACK_FONT_SCALE = LARGE_FONT_SCALE
-internal const val BANNER_INLINE_ACTION_MAX_FRACTION = 0.35f
+@Composable
+private fun rememberBannerActionStacks(
+    label: String,
+    message: String,
+    hasDismiss: Boolean,
+    availableWidthPx: Int,
+): Boolean {
+    val measurer = rememberTextMeasurer()
+    val labelStyle = MaterialTheme.typography.labelLarge
+    val messageStyle = MaterialTheme.typography.bodySmall
+    val density = LocalDensity.current
+    val labelWidthPx = remember(label, labelStyle, density) {
+        measurer.measure(text = label, style = labelStyle).size.width
+    }
+    val actionWidthPx = labelWidthPx + with(density) { (WaiveraSpacing.MediumSmall * 2).roundToPx() }
+    // Start padding, the leading icon and the gaps on both sides of the text, plus the dismiss.
+    val dismissWidth = if (hasDismiss) WaiveraSizes.IconButton + WaiveraSpacing.MediumSmall else WaiveraSpacing.None
+    val chromeWidth = WaiveraSpacing.MediumSmall * 3 + WaiveraSizes.Icon + dismissWidth
+    val besideWidthPx = availableWidthPx - with(density) { chromeWidth.roundToPx() } - actionWidthPx
+    val messageLines = remember(message, messageStyle, density, besideWidthPx) {
+        if (besideWidthPx <= 0) {
+            Int.MAX_VALUE
+        } else {
+            measurer.measure(
+                text = message,
+                style = messageStyle,
+                constraints = Constraints(maxWidth = besideWidthPx),
+            ).lineCount
+        }
+    }
+    return bannerActionStacks(
+        fontScale = density.fontScale,
+        actionWidthPx = actionWidthPx,
+        availableWidthPx = availableWidthPx,
+        messageLinesBeside = messageLines,
+    )
+}
 
 /** Hub connection state as the banner shows it. [Connected] shows nothing. */
 @Immutable
@@ -289,6 +337,9 @@ sealed interface ConnectionBannerState {
  * This is the one connection signal on a screen: [offlineMessage] replaces the offline detail
  * when the screen wants to say what it is showing instead ("Showing what you had at 9:12"), so
  * screens never stack a second "saved data" banner under it.
+ *
+ * It is a status banner, so at large font it goes compact: one row of title, chevron and a
+ * refresh icon, with the detail a tap away.
  */
 @Composable
 fun ConnectionBanner(
@@ -298,6 +349,7 @@ fun ConnectionBanner(
     offlineMessage: String? = null,
 ) {
     val motion = WaiveraTheme.motion
+    val compact = isLargeFontScale()
     AnimatedVisibility(
         visible = state != ConnectionBannerState.Connected,
         modifier = modifier,
@@ -317,6 +369,7 @@ fun ConnectionBanner(
                 actionLabel = stringResource(R.string.core_designsystem_connection_retry),
                 onAction = onRetry,
                 actionIcon = WaiveraIcons.Refresh,
+                compact = compact,
             )
             ConnectionBannerState.Offline -> WaiveraBanner(
                 title = stringResource(R.string.core_designsystem_connection_offline),
@@ -325,6 +378,7 @@ fun ConnectionBanner(
                 actionLabel = stringResource(R.string.core_designsystem_connection_retry),
                 onAction = onRetry,
                 actionIcon = WaiveraIcons.Refresh,
+                compact = compact,
             )
         }
     }
@@ -354,11 +408,22 @@ private fun WaiveraBannerCompactPreview() {
                 compact = true,
             )
             WaiveraBanner(
-                title = "1 message not sent",
-                message = "It's further up the conversation.",
-                tone = BannerTone.Error,
-                actionLabel = "Show",
+                title = "Couldn't refresh",
+                message = "Showing what was saved.",
+                tone = BannerTone.Warning,
+                actionLabel = "Retry",
                 onAction = {},
+                actionIcon = WaiveraIcons.Refresh,
+                compact = true,
+            )
+            // A long status title wraps; it is never ellipsized.
+            WaiveraBanner(
+                title = "Still can't reach Waivera after several tries",
+                message = "Showing saved conversations.",
+                tone = BannerTone.Offline,
+                actionLabel = "Retry now",
+                onAction = {},
+                actionIcon = WaiveraIcons.Refresh,
                 compact = true,
             )
         }
@@ -377,6 +442,7 @@ private fun WaiveraBannerPreview() {
                 tone = BannerTone.Error,
                 actionLabel = "Retry",
                 onAction = {},
+                actionIcon = WaiveraIcons.Refresh,
                 onDismiss = {},
             )
             WaiveraBanner(
@@ -386,6 +452,15 @@ private fun WaiveraBannerPreview() {
                 actionLabel = "Open settings",
                 onAction = {},
                 actionIcon = WaiveraIcons.OpenExternal,
+            )
+            WaiveraBanner(
+                title = "1 message not sent",
+                message = "It's further up the conversation.",
+                tone = BannerTone.Error,
+                actionLabel = "Show",
+                onAction = {},
+                actionIcon = WaiveraIcons.ArrowUp,
+                onDismiss = {},
             )
             // Inside a block that already has the gutter: as wide as the buttons around it.
             Column(Modifier.padding(horizontal = WaiveraSpacing.Gutter)) {

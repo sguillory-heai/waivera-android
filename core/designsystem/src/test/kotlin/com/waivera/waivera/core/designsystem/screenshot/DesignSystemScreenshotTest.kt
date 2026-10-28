@@ -102,6 +102,19 @@ class DesignSystemScreenshotTest {
         WaiveraButton(text = "New chat", onClick = {}, leadingIcon = WaiveraIcons.Add, enabled = false)
     }
 
+    /** A single-choice pair after an answer: the chosen side is the heavier in both themes (UI4-04). */
+    @Test
+    fun choicePair() = capture("ChoicePair") {
+        WaiveraButton(text = "Not going", onClick = {}, variant = WaiveraButtonVariant.Unselected, fullWidth = true)
+        WaiveraButton(
+            text = "Going",
+            onClick = {},
+            variant = WaiveraButtonVariant.Selected,
+            leadingIcon = WaiveraIcons.Check,
+            fullWidth = true,
+        )
+    }
+
     @Test
     fun iconButtons() = capture("IconButtons") {
         Row {
@@ -342,6 +355,10 @@ class DesignSystemScreenshotTest {
         WaiveraSnackbar(message = "Copied")
     }
 
+    /**
+     * Full banners. At 200% every title and message shows in full; actions with an icon become a
+     * 48dp icon button and the rest move under the text (UI4-01).
+     */
     @Test
     fun banners() = capture("Banners", padded = false) {
         ConnectionBanner(state = ConnectionBannerState.Reconnecting, onRetry = {})
@@ -352,6 +369,7 @@ class DesignSystemScreenshotTest {
             tone = BannerTone.Error,
             actionLabel = "Retry",
             onAction = {},
+            actionIcon = WaiveraIcons.Refresh,
             onDismiss = {},
         )
         WaiveraBanner(message = "You can read this channel but not post in it.", tone = BannerTone.Info)
@@ -362,12 +380,43 @@ class DesignSystemScreenshotTest {
             tone = BannerTone.Warning,
             actionLabel = "Open Android notification settings",
             onAction = {},
+            actionIcon = WaiveraIcons.OpenExternal,
+        )
+        WaiveraBanner(
+            title = "Couldn't sign in",
+            message = "You appear to be offline. Check your connection and try again.",
+            tone = BannerTone.Error,
+            onDismiss = {},
         )
     }
 
     /**
-     * The compact form every titled banner takes above 130% font, forced here at every scale. At
-     * 200% each is one row: the title ellipsizes and the action is an icon button (UI3-08).
+     * A full banner whose message would take more than two lines beside a short action: the
+     * action moves under the text so the message keeps the width (UI4-06).
+     */
+    @Test
+    fun bannersLongMessage() = capture("BannersLongMessage", padded = false) {
+        WaiveraBanner(
+            title = "You're offline",
+            message = "Showing your saved conversations. New messages arrive when you're back online.",
+            tone = BannerTone.Offline,
+            actionLabel = "Retry now",
+            onAction = {},
+            actionIcon = WaiveraIcons.Refresh,
+        )
+        WaiveraBanner(
+            message = "Couldn't refresh. Showing saved conversations.",
+            tone = BannerTone.Warning,
+            actionLabel = "Retry",
+            onAction = {},
+            actionIcon = WaiveraIcons.Refresh,
+        )
+    }
+
+    /**
+     * The compact form status banners take above 130% font, forced here at every scale. Titles
+     * wrap instead of being cut, a chevron shows the folded detail, and at 200% the action is an
+     * icon button (UI3-08, UI4-01).
      */
     @Test
     fun bannersCompact() = capture("BannersCompact", padded = false) {
@@ -381,18 +430,18 @@ class DesignSystemScreenshotTest {
             compact = true,
         )
         WaiveraBanner(
-            title = "1 message not sent",
-            message = "It's further up the conversation.",
-            tone = BannerTone.Error,
-            actionLabel = "Show",
+            title = "Couldn't refresh your schedule",
+            message = "Showing what was saved.",
+            tone = BannerTone.Warning,
+            actionLabel = "Retry",
             onAction = {},
-            onDismiss = {},
+            actionIcon = WaiveraIcons.Refresh,
             compact = true,
         )
         WaiveraBanner(
-            title = "Couldn't refresh",
+            title = "Still can't reach Waivera after several tries",
             message = "Showing saved conversations. Pull down to try again.",
-            tone = BannerTone.Warning,
+            tone = BannerTone.Offline,
             onDismiss = {},
             compact = true,
         )

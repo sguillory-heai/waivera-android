@@ -13,6 +13,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import com.waivera.waivera.core.designsystem.component.BackPreviewFrame
 import com.waivera.waivera.core.designsystem.component.WaiveraListRow
 import com.waivera.waivera.core.designsystem.component.WaiveraSectionHeader
 import com.waivera.waivera.core.designsystem.component.WaiveraTopBar
@@ -30,9 +31,12 @@ import org.robolectric.annotation.GraphicsMode
 /**
  * The predictive back preview halfway through a swipe from the left edge, with animations on
  * (UI3-10). The tour runs with "Remove animations", so this is where the standard preview is
- * seen: the leaving screen shrinks and follows the finger, on top and opaque, and the screen
- * underneath shows around it with a slight parallax. It drives [WaiveraMotionScheme.Standard]'s
- * transform through a seekable transition, the mechanism Navigation 3 uses for the gesture.
+ * seen: the leaving screen shrinks and follows the finger, on top and opaque, with rounded
+ * corners, and the screen underneath shows around it with a slight parallax under a scrim. It
+ * drives [WaiveraMotionScheme.Standard]'s transform and [BackPreviewFrame] through a seekable
+ * transition, the mechanism Navigation 3 uses for the gesture. The standard capture keeps the
+ * animator scale on (`animations = true`); with it off the seek snaps to the end and the two
+ * captures looked the same (UI4-10).
  */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
@@ -40,7 +44,7 @@ import org.robolectric.annotation.GraphicsMode
 class PredictiveBackScreenshotTest {
 
     @Test
-    fun standardMotionAtHalfway() = captureScreenshots("PredictiveBackStandard_halfway") {
+    fun standardMotionAtHalfway() = captureScreenshots("PredictiveBackStandard_halfway", animations = true) {
         BackPreview(motion = WaiveraMotionScheme.Standard)
     }
 
@@ -60,7 +64,10 @@ class PredictiveBackScreenshotTest {
             transitionSpec = { motion.predictiveBackTransition(swipeFromRight = false) },
             modifier = Modifier.fillMaxSize(),
         ) { screen ->
-            SampleScreen(screen)
+            // Detail is the top of the stack, the one the swipe dismisses; List is revealed.
+            BackPreviewFrame(scope = this, isTop = screen == Screen.Detail, modifier = Modifier.fillMaxSize()) {
+                SampleScreen(screen)
+            }
         }
     }
 
