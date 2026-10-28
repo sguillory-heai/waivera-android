@@ -17,6 +17,7 @@ import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.waivera.waivera.core.designsystem.theme.WaiveraMotionScheme
+import com.waivera.waivera.core.designsystem.theme.WaiveraSpacing
 import com.waivera.waivera.core.designsystem.theme.WaiveraTheme
 import com.waivera.waivera.core.screenshottesting.ScreenshotSdk
 import com.waivera.waivera.feature.today.R
@@ -98,9 +99,12 @@ class HeroNextLayoutTest {
                 chip.top >= title.bottom - 1f,
                 "the chip at ${chip.top} is beside the title ending ${title.bottom}",
             )
+            // The node is the chip's text, which sits inside the pill's own Small side padding,
+            // so the pill starts under the title when its text starts one Small in from it.
+            val pillLeft = chip.left - with(compose.density) { WaiveraSpacing.Small.toPx() }
             assertTrue(
-                chip.left <= title.left + 1f,
-                "the chip starts at ${chip.left}, not under the title at ${title.left}",
+                pillLeft <= title.left + 1f,
+                "the chip starts at $pillLeft, not under the title at ${title.left}",
             )
         }
     }
