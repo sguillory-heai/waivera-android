@@ -36,13 +36,13 @@ import com.waivera.waivera.core.designsystem.component.ConnectionBannerState
 import com.waivera.waivera.core.designsystem.component.WaiveraAddressText
 import com.waivera.waivera.core.designsystem.component.WaiveraAvatar
 import com.waivera.waivera.core.designsystem.component.WaiveraButton
+import com.waivera.waivera.core.designsystem.component.WaiveraCelebrationNote
 import com.waivera.waivera.core.designsystem.component.WaiveraSnackbarHost
 import com.waivera.waivera.core.designsystem.component.WaiveraTopBar
 import com.waivera.waivera.core.designsystem.feedback.rememberHaptics
 import com.waivera.waivera.core.designsystem.icon.WaiveraIcons
 import com.waivera.waivera.core.designsystem.preview.WaiveraPreviews
 import com.waivera.waivera.core.designsystem.text.withBreaksAfterHyphens
-import com.waivera.waivera.core.designsystem.theme.WaiveraShapes
 import com.waivera.waivera.core.designsystem.theme.WaiveraSizes
 import com.waivera.waivera.core.designsystem.theme.WaiveraSpacing
 import com.waivera.waivera.core.designsystem.theme.WaiveraTheme
@@ -179,15 +179,7 @@ private fun PersonHero(state: PersonDetailUiState) {
             )
         }
         state.celebration?.let { party ->
-            Text(
-                text = party.fullLabel(state.name),
-                style = MaterialTheme.typography.bodyMedium,
-                color = colors.onAccentSoft,
-                textAlign = TextAlign.Center,
-                modifier = Modifier
-                    .background(colors.accentSoft, WaiveraShapes.Chip)
-                    .padding(horizontal = WaiveraSpacing.MediumSmall, vertical = WaiveraSpacing.Small),
-            )
+            WaiveraCelebrationNote(emoji = party.emoji(), text = party.fullLabel(state.name), centered = true)
         }
     }
 }

@@ -30,6 +30,7 @@ import com.waivera.waivera.core.designsystem.component.WaiveraBanner
 import com.waivera.waivera.core.designsystem.component.WaiveraDivider
 import com.waivera.waivera.core.designsystem.component.WaiveraEmptyState
 import com.waivera.waivera.core.designsystem.component.WaiveraErrorState
+import com.waivera.waivera.core.designsystem.component.WaiveraIllustration
 import com.waivera.waivera.core.designsystem.component.WaiveraListRow
 import com.waivera.waivera.core.designsystem.component.WaiveraTopBar
 import com.waivera.waivera.core.designsystem.icon.WaiveraIcons
@@ -122,7 +123,7 @@ private fun PeopleEmpty(searching: Boolean, onClear: () -> Unit) {
                 WaiveraEmptyState(
                     title = stringResource(R.string.feature_profile_people_no_match_title),
                     message = stringResource(R.string.feature_profile_people_no_match_message),
-                    icon = WaiveraIcons.Search,
+                    illustration = WaiveraIllustration.Search,
                     actionLabel = stringResource(R.string.feature_profile_clear_search),
                     onAction = onClear,
                     modifier = Modifier.padding(top = WaiveraSpacing.Large),
@@ -131,7 +132,7 @@ private fun PeopleEmpty(searching: Boolean, onClear: () -> Unit) {
                 WaiveraEmptyState(
                     title = stringResource(R.string.feature_profile_people_empty_title),
                     message = stringResource(R.string.feature_profile_people_empty_message),
-                    icon = WaiveraIcons.People,
+                    illustration = WaiveraIllustration.Connections,
                     modifier = Modifier.padding(top = WaiveraSpacing.Large),
                 )
             }

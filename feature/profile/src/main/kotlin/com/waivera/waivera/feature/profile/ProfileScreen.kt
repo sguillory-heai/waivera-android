@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
@@ -41,11 +42,14 @@ import com.waivera.waivera.core.designsystem.component.ConnectionBannerState
 import com.waivera.waivera.core.designsystem.component.WaiveraAddressText
 import com.waivera.waivera.core.designsystem.component.WaiveraAvatar
 import com.waivera.waivera.core.designsystem.component.WaiveraBanner
+import com.waivera.waivera.core.designsystem.component.WaiveraBrandSurface
 import com.waivera.waivera.core.designsystem.component.WaiveraButton
 import com.waivera.waivera.core.designsystem.component.WaiveraButtonVariant
+import com.waivera.waivera.core.designsystem.component.WaiveraCelebrationNote
 import com.waivera.waivera.core.designsystem.component.WaiveraEmptyState
 import com.waivera.waivera.core.designsystem.component.WaiveraErrorState
 import com.waivera.waivera.core.designsystem.component.WaiveraIconTile
+import com.waivera.waivera.core.designsystem.component.WaiveraIllustration
 import com.waivera.waivera.core.designsystem.component.WaiveraListRow
 import com.waivera.waivera.core.designsystem.component.WaiveraTopBar
 import com.waivera.waivera.core.designsystem.icon.WaiveraIcons
@@ -105,7 +109,7 @@ internal fun ProfileContent(
             ProfileUiState.Unavailable -> WaiveraEmptyState(
                 title = stringResource(R.string.feature_profile_unavailable_title),
                 message = stringResource(R.string.feature_profile_unavailable_message),
-                icon = WaiveraIcons.Person,
+                illustration = WaiveraIllustration.Connections,
                 modifier = Modifier.padding(top = WaiveraSpacing.Large),
             )
             is ProfileUiState.Ready -> {
@@ -232,7 +236,12 @@ internal fun IdentityCard(user: CurrentUser, profile: EmployeeProfile?, celebrat
             }
         }
     }
-    ProfileCard {
+    // Your own header is the profile's one brand moment, on the gradient wash.
+    WaiveraBrandSurface(
+        modifier = Modifier.padding(horizontal = WaiveraSpacing.Gutter),
+        shape = WaiveraShapes.ListCard,
+        contentPadding = PaddingValues(vertical = WaiveraSpacing.MediumSmall),
+    ) {
         if (stacked) {
             Column(
                 modifier = Modifier.padding(horizontal = WaiveraSpacing.Medium),
@@ -252,15 +261,10 @@ internal fun IdentityCard(user: CurrentUser, profile: EmployeeProfile?, celebrat
             }
         }
         if (celebration != null) {
-            Text(
+            WaiveraCelebrationNote(
+                emoji = celebration.emoji(),
                 text = celebration.fullLabel(name),
-                style = MaterialTheme.typography.bodyMedium,
-                color = colors.onAccentSoft,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = WaiveraSpacing.Medium)
-                    .background(colors.accentSoft, WaiveraShapes.Chip)
-                    .padding(horizontal = WaiveraSpacing.MediumSmall, vertical = WaiveraSpacing.Small),
+                modifier = Modifier.padding(horizontal = WaiveraSpacing.Medium),
             )
         }
     }

@@ -34,7 +34,18 @@ internal data class Celebration(val birthday: Boolean, val anniversaryYears: Int
     }
 }
 
-/** The sentence shown beside a large avatar: "Happy birthday, Priya! 🎂". */
+/** The emoji for the celebration note's tile; [fullLabel] carries none, so it shows once. */
+@Composable
+internal fun Celebration.emoji(): String = stringResource(
+    // A birthday that is also an anniversary takes the party emoji, as on Today and the schedule.
+    if (birthday && anniversaryYears == null) {
+        R.string.feature_profile_celebration_emoji_birthday
+    } else {
+        R.string.feature_profile_celebration_emoji_anniversary
+    },
+)
+
+/** The sentence shown beside a large avatar: "Happy birthday, Priya!", with the emoji in its tile. */
 @Composable
 internal fun Celebration.fullLabel(name: String): String {
     val who = name.ifBlank { stringResource(R.string.feature_profile_celebration_someone) }

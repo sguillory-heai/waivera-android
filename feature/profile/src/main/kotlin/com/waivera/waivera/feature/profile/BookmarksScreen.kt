@@ -46,6 +46,7 @@ import com.waivera.waivera.core.designsystem.component.WaiveraEmptyState
 import com.waivera.waivera.core.designsystem.component.WaiveraErrorState
 import com.waivera.waivera.core.designsystem.component.WaiveraFilterChip
 import com.waivera.waivera.core.designsystem.component.WaiveraIconButton
+import com.waivera.waivera.core.designsystem.component.WaiveraIllustration
 import com.waivera.waivera.core.designsystem.component.WaiveraPressable
 import com.waivera.waivera.core.designsystem.component.WaiveraSnackbarHost
 import com.waivera.waivera.core.designsystem.component.WaiveraStatusBadge
@@ -236,7 +237,7 @@ private fun BookmarksEmpty(
                 BookmarksEmptyReason.NoMatch -> WaiveraEmptyState(
                     title = stringResource(R.string.feature_profile_bookmarks_no_match_title),
                     message = stringResource(R.string.feature_profile_bookmarks_no_match_message),
-                    icon = WaiveraIcons.Search,
+                    illustration = WaiveraIllustration.Search,
                     actionLabel = stringResource(R.string.feature_profile_clear_search),
                     onAction = onClearSearch,
                     modifier = modifier,
@@ -258,7 +259,7 @@ private fun BookmarksEmpty(
                                 R.string.feature_profile_bookmarks_empty_messages_message
                             },
                         ),
-                        icon = WaiveraIcons.Bookmark,
+                        illustration = WaiveraIllustration.Bookmarks,
                         actionLabel = stringResource(R.string.feature_profile_bookmarks_show_all),
                         onAction = onShowAll,
                         modifier = modifier,
@@ -267,7 +268,7 @@ private fun BookmarksEmpty(
                 BookmarksEmptyReason.NoBookmarks -> WaiveraEmptyState(
                     title = stringResource(R.string.feature_profile_bookmarks_empty_title),
                     message = stringResource(R.string.feature_profile_bookmarks_empty_message),
-                    icon = WaiveraIcons.Bookmark,
+                    illustration = WaiveraIllustration.Bookmarks,
                     modifier = modifier,
                 )
             }

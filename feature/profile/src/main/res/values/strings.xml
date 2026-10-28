@@ -11,15 +11,18 @@
 
     <!-- Celebrations (spec 07 §4) -->
     <string name="feature_profile_celebration_someone">Teammate</string>
-    <string name="feature_profile_celebration_birthday">Happy birthday, %1$s! 🎂</string>
+    <!-- The note shows the emoji in its own tile, so the sentence carries none. -->
+    <string name="feature_profile_celebration_birthday">Happy birthday, %1$s!</string>
     <plurals name="feature_profile_celebration_anniversary">
-        <item quantity="one">Happy %2$d-year work anniversary, %1$s! 🎉</item>
-        <item quantity="other">Happy %2$d-year work anniversary, %1$s! 🎉</item>
+        <item quantity="one">Happy %2$d-year work anniversary, %1$s!</item>
+        <item quantity="other">Happy %2$d-year work anniversary, %1$s!</item>
     </plurals>
     <plurals name="feature_profile_celebration_both">
-        <item quantity="one">Happy birthday and %2$d-year work anniversary, %1$s! 🎉</item>
-        <item quantity="other">Happy birthday and %2$d-year work anniversary, %1$s! 🎉</item>
+        <item quantity="one">Happy birthday and %2$d-year work anniversary, %1$s!</item>
+        <item quantity="other">Happy birthday and %2$d-year work anniversary, %1$s!</item>
     </plurals>
+    <string name="feature_profile_celebration_emoji_birthday" translatable="false">🎂</string>
+    <string name="feature_profile_celebration_emoji_anniversary" translatable="false">🎉</string>
     <string name="feature_profile_celebration_birthday_compact">Birthday today</string>
     <plurals name="feature_profile_celebration_anniversary_compact">
         <item quantity="one">%1$d-year anniversary</item>
