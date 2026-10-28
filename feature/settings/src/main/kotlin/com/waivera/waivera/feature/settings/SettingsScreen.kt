@@ -133,6 +133,7 @@ internal fun SettingsContent(
                         showChevron = true,
                         leading = { WaiveraIconTile(icon = WaiveraIcons.Notifications, tone = WaiveraTileTone.Amber) },
                     )
+                    SettingsRowDivider()
                     WaiveraListRow(
                         headline = stringResource(R.string.feature_settings_appearance_title),
                         supporting = stringResource(R.string.feature_settings_appearance_row_detail),

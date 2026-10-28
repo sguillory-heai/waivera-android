@@ -1,7 +1,5 @@
 package com.waivera.waivera.feature.settings
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
@@ -18,27 +16,20 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.Role
-import com.waivera.waivera.core.designsystem.component.WaiveraDivider
+import com.waivera.waivera.core.designsystem.component.WaiveraCardGroup
+import com.waivera.waivera.core.designsystem.component.WaiveraInsetDivider
 import com.waivera.waivera.core.designsystem.feedback.rememberHaptics
 import com.waivera.waivera.core.designsystem.preview.WaiveraPreviews
-import com.waivera.waivera.core.designsystem.theme.WaiveraShapes
 import com.waivera.waivera.core.designsystem.theme.WaiveraSizes
 import com.waivera.waivera.core.designsystem.theme.WaiveraSpacing
 import com.waivera.waivera.core.designsystem.theme.WaiveraTheme
 
-/** A group of settings rows on a surface card. */
+/** A group of settings rows on concept A's lifted sheet card ([WaiveraCardGroup]). */
 @Composable
 internal fun SettingsCard(modifier: Modifier = Modifier, content: @Composable ColumnScope.() -> Unit) {
-    val colors = WaiveraTheme.colors
-    Column(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(horizontal = WaiveraSpacing.Gutter)
-            .background(colors.surface, WaiveraShapes.ListCard)
-            .border(WaiveraSpacing.Hairline, colors.border, WaiveraShapes.ListCard)
-            .padding(vertical = WaiveraSpacing.ExtraSmall),
-        content = content,
-    )
+    WaiveraCardGroup(modifier = modifier) {
+        Column(modifier = Modifier.padding(vertical = WaiveraSpacing.ExtraSmall), content = content)
+    }
 }
 
 /**
@@ -93,7 +84,7 @@ internal fun SettingsRadioRow(
 /** Divider inset to the row text, between rows in a [SettingsCard]. */
 @Composable
 internal fun SettingsRowDivider() {
-    WaiveraDivider(modifier = Modifier.padding(start = WaiveraSpacing.Gutter))
+    WaiveraInsetDivider()
 }
 
 @WaiveraPreviews
