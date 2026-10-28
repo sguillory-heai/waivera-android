@@ -47,6 +47,7 @@ internal fun BootstrapFailedContent(
 ) {
     AuthScaffold(
         modifier = modifier,
+        hero = true,
         bottomBar = {
             GateActions(
                 primaryLabel = stringResource(R.string.feature_auth_try_again),
@@ -121,6 +122,7 @@ internal fun OnboardingRequiredContent(
     val signOutInline = isLargeFontScale()
     AuthScaffold(
         modifier = modifier,
+        hero = true,
         pinnedAtLargeFont = true,
         bottomBar = {
             GateActions(
@@ -138,7 +140,6 @@ internal fun OnboardingRequiredContent(
             message = stringResource(R.string.feature_auth_onboarding_message),
             icon = WaiveraIcons.Person,
             welcome = true,
-            showLogo = true,
         )
         AuthAnimatedVisibility(visible = state.stillPending) {
             WaiveraBanner(

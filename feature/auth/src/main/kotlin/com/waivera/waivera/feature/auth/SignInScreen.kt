@@ -43,9 +43,11 @@ import com.waivera.waivera.core.designsystem.component.WaiveraGradientButton
 import com.waivera.waivera.core.designsystem.component.WaiveraTextField
 import com.waivera.waivera.core.designsystem.feedback.Haptics
 import com.waivera.waivera.core.designsystem.feedback.rememberHaptics
+import com.waivera.waivera.core.designsystem.icon.WaiveraIcons
 import com.waivera.waivera.core.designsystem.preview.WaiveraPreviews
 import com.waivera.waivera.core.designsystem.theme.WaiveraSpacing
 import com.waivera.waivera.core.designsystem.theme.WaiveraTheme
+import com.waivera.waivera.core.designsystem.theme.isLargeFontScale
 import com.waivera.waivera.core.network.R as NetworkR
 import kotlinx.coroutines.flow.Flow
 
@@ -145,9 +147,15 @@ internal fun SignInContent(
             if (legalLinks != null) LegalFooter(links = legalLinks, onOpen = actions.onOpenLink)
         },
     ) {
+        // Concept A's 30 / 800; one step down at large font so "Welcome back" keeps to two lines.
+        val titleStyle = if (isLargeFontScale()) {
+            MaterialTheme.typography.headlineMedium
+        } else {
+            MaterialTheme.typography.headlineLarge
+        }
         Text(
             text = stringResource(R.string.feature_auth_sign_in_title),
-            style = MaterialTheme.typography.headlineMedium,
+            style = titleStyle,
             color = WaiveraTheme.colors.text,
             modifier = Modifier
                 .fillMaxWidth()
@@ -251,7 +259,8 @@ private fun SignInForm(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .then(GutterPadding),
+            .then(GutterPadding)
+            .padding(top = WaiveraSpacing.Small),
         verticalArrangement = Arrangement.spacedBy(WaiveraSpacing.Medium),
     ) {
         WaiveraTextField(
@@ -269,6 +278,7 @@ private fun SignInForm(
                 imeAction = ImeAction.Next,
             ),
             keyboardActions = KeyboardActions(onNext = { focusManager.moveFocus(FocusDirection.Next) }),
+            leadingIcon = { FieldIcon(WaiveraIcons.Mail) },
         )
         PasswordField(
             value = state.password,
@@ -284,7 +294,7 @@ private fun SignInForm(
     }
 }
 
-/** The gradient Sign in, with Forgot password? centred under it, close to the fields. */
+/** The gradient Sign in (concept A's 56dp CTA), with Forgot password? centred under it. */
 @Composable
 private fun SignInButtons(
     state: SignInUiState,
@@ -296,7 +306,7 @@ private fun SignInButtons(
         modifier = modifier
             .fillMaxWidth()
             .then(GutterPadding)
-            .padding(top = WaiveraSpacing.ExtraSmall),
+            .padding(top = WaiveraSpacing.MediumSmall),
         verticalArrangement = Arrangement.spacedBy(WaiveraSpacing.ExtraSmall),
     ) {
         WaiveraGradientButton(

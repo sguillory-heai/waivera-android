@@ -122,7 +122,7 @@ internal fun PasswordChangeContent(
         { PasswordChangeButtons(state = state, actions = actions, showSignOut = required) }
     }
     if (required) {
-        AuthScaffold(modifier = modifier, bottomBar = bottomBar) {
+        AuthScaffold(modifier = modifier, hero = true, bottomBar = bottomBar) {
             if (done) {
                 PasswordChangeDone(state = state, onDismiss = actions.onDismissMessage)
             } else {

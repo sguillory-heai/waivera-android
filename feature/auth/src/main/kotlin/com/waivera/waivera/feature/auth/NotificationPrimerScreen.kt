@@ -132,6 +132,7 @@ internal fun NotificationPrimerContent(
     }
     AuthScaffold(
         modifier = modifier,
+        hero = true,
         pinnedAtLargeFont = true,
         bottomBar = {
             WaiveraButton(

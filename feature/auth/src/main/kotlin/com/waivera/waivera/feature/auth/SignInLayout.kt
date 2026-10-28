@@ -174,6 +174,7 @@ internal fun SignInFrame(
                 )
                 SignInSheet(
                     top = topInset + headerHeight,
+                    compact = compact,
                     minHeight = sheetMinHeight,
                     rise = { entrance.sheet },
                     footer = footer,
@@ -209,6 +210,7 @@ private fun SignInHeader(height: Dp, compact: Boolean, logoAlpha: () -> Float) {
 @Composable
 private fun SignInSheet(
     top: Dp,
+    compact: Boolean,
     minHeight: Dp,
     rise: () -> Float,
     footer: @Composable ColumnScope.() -> Unit,
@@ -230,7 +232,13 @@ private fun SignInSheet(
             .clip(WaiveraHero.SheetShape)
             .background(hero.sheet)
             .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Bottom + WindowInsetsSides.Horizontal))
-            .padding(top = WaiveraSpacing.MediumLarge, bottom = WaiveraSpacing.Medium),
+            // Concept A: 32 above "Welcome back" and 24 at the sides (8 here plus each row's gutter).
+            .padding(
+                top = if (compact) WaiveraSpacing.MediumLarge else WaiveraSpacing.ExtraLarge,
+                bottom = WaiveraSpacing.Medium,
+                start = WaiveraSpacing.Small,
+                end = WaiveraSpacing.Small,
+            ),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Column(
