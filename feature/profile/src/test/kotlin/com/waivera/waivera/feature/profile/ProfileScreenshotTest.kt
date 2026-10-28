@@ -297,6 +297,7 @@ class ProfileScreenshotTest {
         snackbar = remember { SnackbarHostState() },
         onBack = {},
         onQueryChange = {},
+        onFilterChange = {},
         onRefresh = {},
         onRetryConnection = {},
         onOpen = {},
@@ -335,6 +336,33 @@ class ProfileScreenshotTest {
                 phase = ListPhase.Content,
                 error = WaiveraError.Network(),
                 connection = ConnectionBannerState.Offline,
+                now = DemoData.NOW,
+            ),
+        )
+    }
+
+    @Test
+    fun bookmarksThreadsFilter() = capture("bookmarks_filter_threads") {
+        val rows = bookmarkRows
+        val threads = rows.filter { BookmarkRules.matches(it, BookmarkFilter.Threads) }
+        Bookmarks(
+            BookmarksUiState(
+                filter = BookmarkFilter.Threads,
+                rows = threads,
+                totalCount = rows.size,
+                phase = ListPhase.Content,
+                now = DemoData.NOW,
+            ),
+        )
+    }
+
+    @Test
+    fun bookmarksFilterEmpty() = capture("bookmarks_filter_empty") {
+        Bookmarks(
+            BookmarksUiState(
+                filter = BookmarkFilter.Messages,
+                totalCount = 2,
+                phase = ListPhase.Empty,
                 now = DemoData.NOW,
             ),
         )

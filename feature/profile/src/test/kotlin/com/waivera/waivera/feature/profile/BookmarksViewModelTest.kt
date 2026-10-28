@@ -41,6 +41,7 @@ class BookmarkRulesTest {
         root: Long? = null,
         conversationId: Long = 7,
         attachment: Attachment? = null,
+        replies: Int = 0,
     ) = Message(
         id = id,
         conversationId = conversationId,
@@ -50,6 +51,7 @@ class BookmarkRulesTest {
         parentMessageId = parent,
         threadRootMessageId = root,
         attachment = attachment,
+        threadReplyCount = replies,
     )
 
     @Test
@@ -112,6 +114,47 @@ class BookmarkRulesTest {
         assertFalse(BookmarkRules.matches(root, "thread", words))
         assertTrue(BookmarkRules.matches(root, "PRIYA", words))
         assertTrue(BookmarkRules.matches(root, "on call", words))
+    }
+
+    @Test
+    fun aMessageWithRepliesIsAThreadRootAndAReplyNeverIs() {
+        val root = BookmarkRules.row(message(100, replies = 2))
+        val reply = BookmarkRules.row(message(300, root = 100, replies = 1))
+        val plain = BookmarkRules.row(message(200))
+        assertTrue(root.isThreadRoot)
+        assertTrue(root.isInThread)
+        assertNull(root.threadRootId, "a root still opens in the conversation")
+        assertFalse(reply.isThreadRoot)
+        assertTrue(reply.isInThread)
+        assertFalse(plain.isInThread)
+    }
+
+    @Test
+    fun filtersSplitMessagesFromThreads() {
+        val root = BookmarkRules.row(message(100, replies = 2))
+        val reply = BookmarkRules.row(message(300, root = 100))
+        val plain = BookmarkRules.row(message(200))
+        val rows = listOf(root, reply, plain)
+        fun ids(filter: BookmarkFilter) = rows.filter { BookmarkRules.matches(it, filter) }.map { it.messageId }
+        assertEquals(listOf(100L, 300L, 200L), ids(BookmarkFilter.All))
+        assertEquals(listOf(200L), ids(BookmarkFilter.Messages))
+        assertEquals(listOf(100L, 300L), ids(BookmarkFilter.Threads))
+    }
+
+    @Test
+    fun searchingThreadAlsoFindsThreadRoots() {
+        val words = BookmarkSearchWords()
+        assertTrue(BookmarkRules.matches(BookmarkRules.row(message(100, replies = 2)), "thread", words))
+    }
+
+    @Test
+    fun aSearchMissOutranksAnEmptyChip() {
+        assertEquals(BookmarksEmptyReason.NoBookmarks, BookmarksUiState(filter = BookmarkFilter.Threads).emptyReason)
+        val threads = BookmarksUiState(filter = BookmarkFilter.Threads, totalCount = 2)
+        assertEquals(BookmarksEmptyReason.NoneInFilter, threads.emptyReason)
+        assertEquals(BookmarksEmptyReason.NoMatch, threads.copy(query = "zz").emptyReason)
+        assertFalse(BookmarksUiState(query = " ").isFiltered)
+        assertTrue(threads.isFiltered)
     }
 }
 
@@ -185,6 +228,80 @@ class BookmarksViewModelTest {
         graph.backend.syncStatus.value = SyncStatus.Idle
         assertEquals(ListPhase.Empty, vm.uiState.value.phase)
         assertEquals(0, vm.uiState.value.totalCount)
+        assertEquals(BookmarksEmptyReason.NoBookmarks, vm.uiState.value.emptyReason)
+    }
+
+    @Test
+    fun chipsSplitTheSavedMessagesAndKeepTheTotal() = runTest {
+        val vm = viewModel(DemoGraph(backgroundScope))
+        val total = DemoData.bookmarkedIds().size
+
+        vm.onFilterChange(BookmarkFilter.Threads)
+        assertEquals(listOf(DemoData.THREAD_ROOT), vm.uiState.value.rows.map { it.messageId })
+        assertEquals(total, vm.uiState.value.totalCount)
+
+        vm.onFilterChange(BookmarkFilter.Messages)
+        assertEquals(listOf(9320L), vm.uiState.value.rows.map { it.messageId })
+
+        vm.onFilterChange(BookmarkFilter.All)
+        assertEquals(DemoData.bookmarkedIds(), vm.uiState.value.rows.map { it.messageId }.toSet())
+        assertFalse(vm.uiState.value.isFiltered)
+    }
+
+    @Test
+    fun anEmptyChipSaysSoAndAllBringsTheListBack() = runTest {
+        val graph = DemoGraph(backgroundScope)
+        graph.backend.bookmarks.value = setOf(9320L)
+        val vm = viewModel(graph)
+
+        vm.onFilterChange(BookmarkFilter.Threads)
+
+        assertEquals(ListPhase.Empty, vm.uiState.value.phase)
+        assertEquals(BookmarksEmptyReason.NoneInFilter, vm.uiState.value.emptyReason)
+
+        vm.onFilterChange(BookmarkFilter.All)
+
+        assertEquals(ListPhase.Content, vm.uiState.value.phase)
+    }
+
+    @Test
+    fun searchNarrowsInsideTheChosenChip() = runTest {
+        val vm = viewModel(DemoGraph(backgroundScope))
+        val root = vm.uiState.value.rows.single { it.messageId == DemoData.THREAD_ROOT }
+        val author = root.author.substringBefore(' ')
+
+        vm.onFilterChange(BookmarkFilter.Threads)
+        vm.onQueryChange(author)
+        assertEquals(listOf(DemoData.THREAD_ROOT), vm.uiState.value.rows.map { it.messageId })
+
+        vm.onQueryChange("zzzz")
+        assertEquals(ListPhase.Empty, vm.uiState.value.phase)
+        assertEquals(BookmarksEmptyReason.NoMatch, vm.uiState.value.emptyReason)
+    }
+
+    @Test
+    fun aThreadReplyBookmarkedElsewhereJoinsTheThreadsChip() = runTest {
+        val graph = DemoGraph(backgroundScope)
+        val vm = viewModel(graph)
+        vm.onFilterChange(BookmarkFilter.Threads)
+        val reply = graph.backend.messages.value.values.flatten().first { it.isThreadReply }
+
+        graph.bookmarks.toggle(reply.id)
+
+        assertTrue(vm.uiState.value.rows.any { it.messageId == reply.id })
+        assertTrue(vm.uiState.value.rows.all { it.isInThread })
+    }
+
+    @Test
+    fun anErrorWithNothingCachedIgnoresTheChip() = runTest {
+        val graph = DemoGraph(backgroundScope)
+        graph.backend.bookmarks.value = emptySet()
+        graph.backend.failRefreshes = WaiveraError.Server(500)
+        val vm = viewModel(graph)
+
+        vm.onFilterChange(BookmarkFilter.Threads)
+
+        assertEquals(ListPhase.Error, vm.uiState.value.phase)
     }
 
     @Test
@@ -266,6 +383,23 @@ class BookmarksViewModelTest {
         realtime.set(ConnectionState.Connected)
 
         assertEquals(2, counting.refreshes)
+    }
+
+    @Test
+    fun aReconnectKeepsTheChipAndTheSearch() = runTest {
+        val graph = DemoGraph(backgroundScope)
+        val counting = CountingBookmarks(graph.bookmarks)
+        val vm = viewModel(graph, counting)
+        vm.onFilterChange(BookmarkFilter.Threads)
+        vm.onQueryChange("on call")
+
+        realtime.set(ConnectionState.Reconnecting(1, 1_000))
+        realtime.set(ConnectionState.Connected)
+
+        assertEquals(2, counting.refreshes)
+        assertEquals(BookmarkFilter.Threads, vm.uiState.value.filter)
+        assertEquals("on call", vm.uiState.value.query)
+        assertTrue(vm.uiState.value.rows.all { it.isInThread })
     }
 
     @Test

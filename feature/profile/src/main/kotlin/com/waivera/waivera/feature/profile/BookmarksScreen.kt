@@ -2,6 +2,7 @@ package com.waivera.waivera.feature.profile
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -15,6 +16,8 @@ import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarHostState
@@ -41,6 +44,7 @@ import com.waivera.waivera.core.designsystem.component.WaiveraAvatar
 import com.waivera.waivera.core.designsystem.component.WaiveraBanner
 import com.waivera.waivera.core.designsystem.component.WaiveraEmptyState
 import com.waivera.waivera.core.designsystem.component.WaiveraErrorState
+import com.waivera.waivera.core.designsystem.component.WaiveraFilterChip
 import com.waivera.waivera.core.designsystem.component.WaiveraIconButton
 import com.waivera.waivera.core.designsystem.component.WaiveraPressable
 import com.waivera.waivera.core.designsystem.component.WaiveraSnackbarHost
@@ -70,6 +74,7 @@ fun BookmarksScreen(
     val haptics = rememberHaptics()
     val words = BookmarkSearchWords(
         threadReply = stringResource(R.string.feature_profile_bookmarks_thread_reply),
+        thread = stringResource(R.string.feature_profile_bookmarks_search_word_thread),
         message = stringResource(R.string.feature_profile_bookmarks_search_word_message),
         photo = stringResource(R.string.feature_profile_bookmarks_photo),
         file = stringResource(R.string.feature_profile_bookmarks_search_word_file),
@@ -105,6 +110,7 @@ fun BookmarksScreen(
         snackbar = snackbar,
         onBack = onBack,
         onQueryChange = viewModel::onQueryChange,
+        onFilterChange = viewModel::onFilterChange,
         onRefresh = viewModel::refresh,
         onRetryConnection = viewModel::retryConnection,
         onOpen = { row -> onOpenMessage(row.conversationId, row.messageId, row.threadRootId) },
@@ -120,6 +126,7 @@ internal fun BookmarksContent(
     snackbar: SnackbarHostState,
     onBack: () -> Unit,
     onQueryChange: (String) -> Unit,
+    onFilterChange: (BookmarkFilter) -> Unit,
     onRefresh: () -> Unit,
     onRetryConnection: () -> Unit,
     onOpen: (BookmarkRow) -> Unit,
@@ -140,6 +147,10 @@ internal fun BookmarksContent(
                 placeholder = stringResource(R.string.feature_profile_bookmarks_search),
                 clearDescription = stringResource(R.string.feature_profile_bookmarks_search_clear),
             )
+            // Nothing to narrow until something is saved; a chip still on stays visible to turn off.
+            if (state.totalCount > 0 || state.filter != BookmarkFilter.All) {
+                BookmarkFilterChips(selected = state.filter, onSelect = onFilterChange)
+            }
             if (showsRefreshFailed(state.connection, state.error != null && state.phase == ListPhase.Content)) {
                 WaiveraBanner(
                     message = stringResource(R.string.feature_profile_bookmarks_refresh_failed),
@@ -163,7 +174,12 @@ internal fun BookmarksContent(
                         onRetry = onRefresh,
                         modifier = Modifier.padding(top = WaiveraSpacing.Large),
                     )
-                    ListPhase.Empty -> BookmarksEmpty(searching = state.totalCount > 0, onClear = { onQueryChange("") })
+                    ListPhase.Empty -> BookmarksEmpty(
+                        reason = state.emptyReason,
+                        filter = state.filter,
+                        onClearSearch = { onQueryChange("") },
+                        onShowAll = { onFilterChange(BookmarkFilter.All) },
+                    )
                     ListPhase.Content -> BookmarksList(state, onOpen, onRemove)
                 }
             }
@@ -177,25 +193,82 @@ internal fun BookmarksContent(
     }
 }
 
+/** Single choice: All, Messages or Threads. Scrolls sideways at 200% instead of wrapping a label. */
 @Composable
-private fun BookmarksEmpty(searching: Boolean, onClear: () -> Unit) {
+private fun BookmarkFilterChips(selected: BookmarkFilter, onSelect: (BookmarkFilter) -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .horizontalScroll(rememberScrollState())
+            .padding(horizontal = WaiveraSpacing.Gutter)
+            .padding(bottom = WaiveraSpacing.Small)
+            .selectableGroup(),
+        horizontalArrangement = Arrangement.spacedBy(WaiveraSpacing.Small),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        BookmarkFilter.entries.forEach { option ->
+            WaiveraFilterChip(
+                label = stringResource(option.labelRes()),
+                selected = option == selected,
+                onClick = { onSelect(option) },
+            )
+        }
+    }
+}
+
+private fun BookmarkFilter.labelRes(): Int = when (this) {
+    BookmarkFilter.All -> R.string.feature_profile_bookmarks_filter_all
+    BookmarkFilter.Messages -> R.string.feature_profile_bookmarks_filter_messages
+    BookmarkFilter.Threads -> R.string.feature_profile_bookmarks_filter_threads
+}
+
+@Composable
+private fun BookmarksEmpty(
+    reason: BookmarksEmptyReason,
+    filter: BookmarkFilter,
+    onClearSearch: () -> Unit,
+    onShowAll: () -> Unit,
+) {
     LazyColumn(modifier = Modifier.fillMaxSize()) {
         item {
-            if (searching) {
-                WaiveraEmptyState(
+            val modifier = Modifier.padding(top = WaiveraSpacing.Large)
+            when (reason) {
+                BookmarksEmptyReason.NoMatch -> WaiveraEmptyState(
                     title = stringResource(R.string.feature_profile_bookmarks_no_match_title),
                     message = stringResource(R.string.feature_profile_bookmarks_no_match_message),
                     icon = WaiveraIcons.Search,
                     actionLabel = stringResource(R.string.feature_profile_clear_search),
-                    onAction = onClear,
-                    modifier = Modifier.padding(top = WaiveraSpacing.Large),
+                    onAction = onClearSearch,
+                    modifier = modifier,
                 )
-            } else {
-                WaiveraEmptyState(
+                BookmarksEmptyReason.NoneInFilter -> {
+                    val threads = filter == BookmarkFilter.Threads
+                    WaiveraEmptyState(
+                        title = stringResource(
+                            if (threads) {
+                                R.string.feature_profile_bookmarks_empty_threads_title
+                            } else {
+                                R.string.feature_profile_bookmarks_empty_messages_title
+                            },
+                        ),
+                        message = stringResource(
+                            if (threads) {
+                                R.string.feature_profile_bookmarks_empty_threads_message
+                            } else {
+                                R.string.feature_profile_bookmarks_empty_messages_message
+                            },
+                        ),
+                        icon = WaiveraIcons.Bookmark,
+                        actionLabel = stringResource(R.string.feature_profile_bookmarks_show_all),
+                        onAction = onShowAll,
+                        modifier = modifier,
+                    )
+                }
+                BookmarksEmptyReason.NoBookmarks -> WaiveraEmptyState(
                     title = stringResource(R.string.feature_profile_bookmarks_empty_title),
                     message = stringResource(R.string.feature_profile_bookmarks_empty_message),
                     icon = WaiveraIcons.Bookmark,
-                    modifier = Modifier.padding(top = WaiveraSpacing.Large),
+                    modifier = modifier,
                 )
             }
         }
@@ -216,7 +289,7 @@ private fun BookmarksList(state: BookmarksUiState, onOpen: (BookmarkRow) -> Unit
     ) {
         item(key = "meta") {
             Text(
-                text = if (state.query.isBlank()) {
+                text = if (!state.isFiltered) {
                     pluralStringResource(R.plurals.feature_profile_bookmarks_count, state.totalCount, state.totalCount)
                 } else {
                     pluralStringResource(
@@ -281,8 +354,11 @@ private fun BookmarkCard(row: BookmarkRow, onOpen: () -> Unit, onRemove: () -> U
                     maxLines = PREVIEW_LINES,
                     overflow = TextOverflow.Ellipsis,
                 )
-                if (row.isThreadReply) {
-                    WaiveraStatusBadge(text = stringResource(R.string.feature_profile_bookmarks_thread_reply))
+                when {
+                    row.isThreadReply ->
+                        WaiveraStatusBadge(text = stringResource(R.string.feature_profile_bookmarks_thread_reply))
+                    row.isThreadRoot ->
+                        WaiveraStatusBadge(text = stringResource(R.string.feature_profile_bookmarks_thread_root))
                 }
             }
             WaiveraIconButton(
@@ -349,6 +425,7 @@ private fun BookmarksScreenPreview() {
             snackbar = remember { SnackbarHostState() },
             onBack = {},
             onQueryChange = {},
+            onFilterChange = {},
             onRefresh = {},
             onRetryConnection = {},
             onOpen = {},

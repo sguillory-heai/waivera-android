@@ -156,7 +156,6 @@
     <string name="feature_profile_bookmarks_filter_all">All</string>
     <string name="feature_profile_bookmarks_filter_messages">Messages</string>
     <string name="feature_profile_bookmarks_filter_threads">Threads</string>
-    <string name="feature_profile_bookmarks_filters">Show bookmarks</string>
     <string name="feature_profile_bookmarks_thread_root">Thread</string>
     <string name="feature_profile_bookmarks_search_word_thread">thread</string>
     <string name="feature_profile_bookmarks_empty_threads_title">No saved threads yet</string>
