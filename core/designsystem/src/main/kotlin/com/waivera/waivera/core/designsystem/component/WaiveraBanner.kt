@@ -41,6 +41,7 @@ import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.testTag
 import androidx.compose.ui.text.rememberTextMeasurer
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.dp
 import com.waivera.waivera.core.designsystem.R
@@ -77,6 +78,11 @@ enum class BannerTone { Info, Warning, Error, Offline }
  *
  * [gutter] insets the banner by the screen gutter; turn it off inside a block that is already
  * padded, so the banner lines up with the buttons around it instead of sitting narrower (UI3-15).
+ *
+ * [detail] is one value the message is about, such as an email address, on its own line between
+ * the title and the message. It never wraps: inside a sentence the paragraph line breaker splits
+ * an address at its dots ("alex / .rivera@example / .org"). When it is wider than the banner it
+ * is cut in the middle, so both ends stay readable, and TalkBack still reads all of it.
  */
 @Composable
 fun WaiveraBanner(
@@ -90,6 +96,7 @@ fun WaiveraBanner(
     onDismiss: (() -> Unit)? = null,
     compact: Boolean = false,
     gutter: Boolean = true,
+    detail: String? = null,
 ) {
     val style = tone.style(WaiveraTheme.colors)
     val action = if (actionLabel != null && onAction != null) BannerActionModel(actionLabel, onAction) else null
@@ -141,13 +148,20 @@ fun WaiveraBanner(
                     CompactBannerText(
                         title = title.orEmpty(),
                         message = message,
+                        detail = detail,
                         expanded = expanded,
                         onToggle = { expanded = !expanded },
                         color = style.content,
                         modifier = textModifier,
                     )
                 } else {
-                    BannerText(title = title, message = message, color = style.content, modifier = textModifier)
+                    BannerText(
+                        title = title,
+                        message = message,
+                        detail = detail,
+                        color = style.content,
+                        modifier = textModifier,
+                    )
                 }
                 when {
                     action == null || stacked -> Unit
@@ -193,6 +207,7 @@ private fun BannerDismiss(onDismiss: () -> Unit, color: Color) {
 private fun CompactBannerText(
     title: String,
     message: String,
+    detail: String?,
     expanded: Boolean,
     onToggle: () -> Unit,
     color: Color,
@@ -208,7 +223,7 @@ private fun CompactBannerText(
         modifier = modifier
             .heightIn(min = WaiveraSpacing.MinTouchTarget)
             .clickable(onClickLabel = toggleLabel, role = Role.Button, onClick = onToggle)
-            .semantics { contentDescription = "$title. $message" }
+            .semantics { contentDescription = listOfNotNull(title, detail, message).joinToString(separator = ". ") }
             .padding(vertical = WaiveraSpacing.Small),
         verticalArrangement = Arrangement.spacedBy(WaiveraSpacing.XxSmall, Alignment.CenterVertically),
     ) {
@@ -239,12 +254,17 @@ private fun CompactBannerText(
             enter = expandVertically(motion.layout()) + fadeIn(motion.state()),
             exit = shrinkVertically(motion.layout()) + fadeOut(motion.state()),
         ) {
-            Text(
-                text = message,
-                style = MaterialTheme.typography.bodySmall,
-                color = color,
-                modifier = Modifier.clearAndSetSemantics {},
-            )
+            Column(verticalArrangement = Arrangement.spacedBy(WaiveraSpacing.XxSmall)) {
+                if (detail != null) {
+                    BannerDetail(detail = detail, color = color, modifier = Modifier.clearAndSetSemantics {})
+                }
+                Text(
+                    text = message,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = color,
+                    modifier = Modifier.clearAndSetSemantics {},
+                )
+            }
         }
     }
 }
@@ -253,11 +273,14 @@ private fun CompactBannerText(
 internal const val BANNER_COMPACT_TITLE_TAG = "waivera_banner_compact_title"
 internal const val BANNER_CHEVRON_TAG = "waivera_banner_chevron"
 
+/** Test tag for the banner's one-line detail. */
+internal const val BANNER_DETAIL_TAG = "waivera_banner_detail"
+
 @Immutable
 private class BannerActionModel(val label: String, val onClick: () -> Unit)
 
 @Composable
-private fun BannerText(title: String?, message: String, color: Color, modifier: Modifier = Modifier) {
+private fun BannerText(title: String?, message: String, detail: String?, color: Color, modifier: Modifier = Modifier) {
     Column(
         modifier = modifier.padding(vertical = WaiveraSpacing.Small),
         verticalArrangement = Arrangement.spacedBy(WaiveraSpacing.XxSmall),
@@ -265,8 +288,23 @@ private fun BannerText(title: String?, message: String, color: Color, modifier: 
         if (title != null) {
             Text(text = title, style = MaterialTheme.typography.titleSmall, color = color)
         }
+        if (detail != null) BannerDetail(detail = detail, color = color)
         Text(text = message, style = MaterialTheme.typography.bodySmall, color = color)
     }
+}
+
+/** The banner's [detail] line: one line, never wrapped, cut in the middle only when it can't fit. */
+@Composable
+private fun BannerDetail(detail: String, color: Color, modifier: Modifier = Modifier) {
+    Text(
+        text = detail,
+        style = MaterialTheme.typography.bodySmall,
+        color = color,
+        // One line, as the attachment name does: Android cuts a single line in the middle.
+        maxLines = 1,
+        overflow = TextOverflow.MiddleEllipsis,
+        modifier = modifier.semantics { testTag = BANNER_DETAIL_TAG },
+    )
 }
 
 @Composable
@@ -461,6 +499,14 @@ private fun WaiveraBannerPreview() {
                 onAction = {},
                 actionIcon = WaiveraIcons.ArrowUp,
                 onDismiss = {},
+            )
+            // The address on its own line, never broken at its dots.
+            WaiveraBanner(
+                title = "Check your email",
+                message = "If this address has a Waivera account, we've sent it a link to reset the password.",
+                tone = BannerTone.Info,
+                onDismiss = {},
+                detail = "alex.rivera@example.org",
             )
             // Inside a block that already has the gutter: as wide as the buttons around it.
             Column(Modifier.padding(horizontal = WaiveraSpacing.Gutter)) {

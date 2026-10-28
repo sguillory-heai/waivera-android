@@ -21,6 +21,7 @@ import com.waivera.waivera.core.designsystem.icon.WaiveraIcons
 import com.waivera.waivera.core.designsystem.theme.WaiveraMotionScheme
 import com.waivera.waivera.core.designsystem.theme.WaiveraTheme
 import com.waivera.waivera.core.screenshottesting.ScreenshotSdk
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -130,6 +131,7 @@ class CompactBannerLayoutTest {
                 onAction = banner.actionLabel?.let { { } },
                 actionIcon = banner.actionIcon,
                 onDismiss = if (banner.dismissible) ({ }) else null,
+                detail = banner.detail,
             )
         }
         val title = compose.onNodeWithText(banner.title).assertIsDisplayed()
@@ -139,6 +141,23 @@ class CompactBannerLayoutTest {
         assertBreaksOnlyBetweenWords(banner.title, titleLayout)
         assertBreaksOnlyBetweenWords(banner.message, message.fetchTextLayoutResult())
         banner.actionLabel?.let { compose.onNodeWithContentDescription(it).assertHasClickAction() }
+        banner.detail?.let { assertDetailOnOneLine(it) }
+    }
+
+    /**
+     * The detail (an email address) is one line that stays inside the banner: never broken at its
+     * dots, and cut in the middle rather than running off the edge when it is too wide. Its
+     * semantics keep the whole value, so TalkBack reads all of it.
+     */
+    private fun assertDetailOnOneLine(detail: String) {
+        val node = compose.onNodeWithTag(BANNER_DETAIL_TAG, useUnmergedTree = true).assertIsDisplayed()
+        compose.onNodeWithText(detail).assertIsDisplayed()
+        val layout = node.fetchTextLayoutResult()
+        assertEquals("\"$detail\" is on ${layout.lineCount} lines", 1, layout.lineCount)
+        assertTrue(
+            "\"$detail\" runs to ${layout.getLineRight(0)} past ${layout.size.width}",
+            layout.getLineRight(0) <= layout.size.width,
+        )
     }
 
     /**
@@ -179,6 +198,7 @@ class CompactBannerLayoutTest {
         val actionLabel: String? = null,
         val actionIcon: Int? = null,
         val dismissible: Boolean = false,
+        val detail: String? = null,
     )
 
     private companion object {
@@ -202,9 +222,11 @@ class CompactBannerLayoutTest {
         )
         val RESET_SENT = InAppBanner(
             title = "Check your email",
-            message = "If sam@example.com has a Waivera account, we've sent it a link to reset the password.",
+            message = "If this address has a Waivera account, we've sent it a link to reset the password.",
             tone = BannerTone.Info,
             dismissible = true,
+            // Longer than the small phone's banner at 200%, so it has to stay one line and fit.
+            detail = "alex.rivera@example.org",
         )
         val CONFIGURATION_MISSING = InAppBanner(
             title = "This build isn't set up yet",

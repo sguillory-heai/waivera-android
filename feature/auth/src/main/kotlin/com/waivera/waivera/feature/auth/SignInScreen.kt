@@ -161,8 +161,10 @@ private fun SignInBanners(state: SignInUiState, onDismiss: () -> Unit, showConfi
         state.resetSentTo?.let { email ->
             WaiveraBanner(
                 title = stringResource(R.string.feature_auth_reset_sent_title),
-                message = stringResource(R.string.feature_auth_reset_sent_message, email),
+                message = stringResource(R.string.feature_auth_reset_sent_message),
                 tone = BannerTone.Info,
+                // The address on a line of its own, so it never breaks at its dots.
+                detail = email,
                 onDismiss = onDismiss,
             )
         }

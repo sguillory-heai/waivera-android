@@ -20,7 +20,7 @@
     <string name="feature_auth_sign_in_failed_title">Couldn\'t sign in</string>
     <string name="feature_auth_reset_sending">Sending link…</string>
     <string name="feature_auth_reset_sent_title">Check your email</string>
-    <string name="feature_auth_reset_sent_message">If %1$s has a Waivera account, we\'ve sent it a link to reset the password.</string>
+    <string name="feature_auth_reset_sent_message">If this address has a Waivera account, we\'ve sent it a link to reset the password.</string>
     <string name="feature_auth_configuration_title">This build isn\'t set up yet</string>
     <string name="feature_auth_configuration_message">This copy of the app is missing its server settings, so sign-in is turned off. Ask your administrator for a supported version of Waivera.</string>
     <string name="feature_auth_configuration_details">Missing settings: %1$s</string>
