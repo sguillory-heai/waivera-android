@@ -3,34 +3,65 @@ package com.waivera.waivera.core.designsystem.component
 import com.waivera.waivera.core.designsystem.theme.WaiveraMotionScheme
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
+import kotlin.test.assertTrue
 
-/** The corner and scrim follow the card's own scale and slide, so they can't settle early (UI6-01). */
+/**
+ * The preview follows the gesture evenly (UI7-01): through the linear gesture curve, a quarter,
+ * a half and three quarters of the swipe put the card at about 0.975, 0.95 and 0.925, with the
+ * corner, the outline and the dim moving in step.
+ */
 class BackPreviewProgressTest {
+    private val curve = WaiveraMotionScheme.Standard.gesture.progress
+
     @Test
-    fun shrinkProgressFollowsTheScale() {
-        assertEquals(0f, backPreviewShrinkProgress(scale = 1f), TOLERANCE)
-        assertEquals(1f, backPreviewShrinkProgress(scale = WaiveraMotionScheme.BACK_PREVIEW_SCALE), TOLERANCE)
-        // The halfway capture: the card is at 0.915, so the corner is 85% of the way round.
-        assertEquals(0.85f, backPreviewShrinkProgress(scale = 0.915f), TOLERANCE)
+    fun theCardShrinksEvenlyWithTheSwipe() {
+        listOf(0.25f to 0.975f, 0.5f to 0.95f, 0.75f to 0.925f).forEach { (progress, scale) ->
+            val leaving =
+                backPreviewGeometry(BackPreviewRole.Leaving, curve.transform(progress), swipeFromRight = false)
+            assertEquals(scale, leaving.scale, TOLERANCE, "scale at $progress")
+            assertEquals(progress, leaving.corner, TOLERANCE, "corner at $progress")
+            assertTrue(leaving.outlined, "outlined at $progress")
+            assertEquals(0f, leaving.scrim, TOLERANCE, "the card itself is never dimmed")
+        }
     }
 
     @Test
-    fun shrinkProgressIsClampedWhenASpringOvershoots() {
-        assertEquals(0f, backPreviewShrinkProgress(scale = 1.01f), TOLERANCE)
-        assertEquals(1f, backPreviewShrinkProgress(scale = 0.89f), TOLERANCE)
+    fun theCardKeepsItsFarSideOnTheEdgeAwayFromTheSwipe() {
+        val fromLeft = backPreviewGeometry(BackPreviewRole.Leaving, fraction = 1f, swipeFromRight = false)
+        assertEquals(WaiveraMotionScheme.BACK_PREVIEW_SCALE, fromLeft.scale, TOLERANCE)
+        assertEquals((1f - WaiveraMotionScheme.BACK_PREVIEW_SCALE) / 2f, fromLeft.shift, TOLERANCE)
+        val fromRight = backPreviewGeometry(BackPreviewRole.Leaving, fraction = 1f, swipeFromRight = true)
+        assertEquals(-fromLeft.shift, fromRight.shift, TOLERANCE)
     }
 
     @Test
-    fun revealProgressFollowsTheSlide() {
-        assertEquals(0f, backPreviewRevealProgress(offsetX = -72, extentX = 72), TOLERANCE)
-        assertEquals(1f, backPreviewRevealProgress(offsetX = 0, extentX = 72), TOLERANCE)
-        assertEquals(0.75f, backPreviewRevealProgress(offsetX = 18, extentX = 72), TOLERANCE)
+    fun theRevealedScreenSlidesToRestAndTheDimLifts() {
+        val start = backPreviewGeometry(BackPreviewRole.Revealed, fraction = 0f, swipeFromRight = false)
+        assertEquals(-0.1f, start.shift, TOLERANCE)
+        assertEquals(1f, start.scrim, TOLERANCE)
+        val halfway = backPreviewGeometry(BackPreviewRole.Revealed, curve.transform(0.5f), swipeFromRight = false)
+        assertEquals(-0.05f, halfway.shift, TOLERANCE)
+        assertEquals(0.5f, halfway.scrim, TOLERANCE)
+        assertEquals(BackPreviewGeometry.Rest, backPreviewGeometry(BackPreviewRole.Revealed, 1f, false))
+        val fromRight = backPreviewGeometry(BackPreviewRole.Revealed, fraction = 0f, swipeFromRight = true)
+        assertEquals(0.1f, fromRight.shift, TOLERANCE)
     }
 
     @Test
-    fun noSlideMeansNothingToDim() {
-        assertEquals(1f, backPreviewRevealProgress(offsetX = 0, extentX = 0), TOLERANCE)
-        assertEquals(0f, backPreviewRevealProgress(offsetX = -90, extentX = 72), TOLERANCE)
+    fun atRestNothingIsDrawn() {
+        val leaving = backPreviewGeometry(BackPreviewRole.Leaving, fraction = 0f, swipeFromRight = false)
+        assertEquals(1f, leaving.scale, TOLERANCE)
+        assertFalse(leaving.outlined, "no outline before the card moves")
+        assertEquals(BackPreviewGeometry.Rest, backPreviewGeometry(BackPreviewRole.None, 0.5f, false))
+    }
+
+    @Test
+    fun progressOutsideTheSwipeIsClamped() {
+        val over = backPreviewGeometry(BackPreviewRole.Leaving, fraction = 1.2f, swipeFromRight = false)
+        assertEquals(WaiveraMotionScheme.BACK_PREVIEW_SCALE, over.scale, TOLERANCE)
+        val under = backPreviewGeometry(BackPreviewRole.Revealed, fraction = -0.2f, swipeFromRight = false)
+        assertEquals(1f, under.scrim, TOLERANCE)
     }
 
     private companion object {

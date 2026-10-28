@@ -1,47 +1,63 @@
 package com.waivera.waivera.core.designsystem.component
 
-import androidx.compose.animation.AnimatedVisibilityScope
-import androidx.compose.animation.EnterExitState
-import androidx.compose.animation.core.Transition
-import androidx.compose.animation.core.VectorConverter
+import androidx.compose.animation.core.Animatable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.Stable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
+import androidx.compose.runtime.snapshots.Snapshot
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.lerp
 import com.waivera.waivera.core.designsystem.theme.WaiveraMotionScheme
 import com.waivera.waivera.core.designsystem.theme.WaiveraSizes
 import com.waivera.waivera.core.designsystem.theme.WaiveraSpacing
 import com.waivera.waivera.core.designsystem.theme.WaiveraTheme
-import kotlin.math.abs
+import kotlinx.coroutines.flow.collectLatest
 
 /**
- * The M3 back-preview frame around one navigation entry (UI3-10): while a predictive back swipe
- * shrinks the screen being dismissed, its corners round to [WaiveraSizes.BackPreviewCorner], and
- * the screen being revealed underneath is dimmed by a scrim that fades as the swipe goes on.
+ * The M3 back preview around one navigation entry (UI3-10, UI7-01). While a predictive back
+ * swipe is in progress the screen being dismissed shrinks to
+ * [WaiveraMotionScheme.BACK_PREVIEW_SCALE], moves away from the swipe's edge, rounds its
+ * corners to [WaiveraSizes.BackPreviewCorner] and gets a hairline outline, so its edge reads
+ * on a light theme where both screens share one background. The screen being revealed sits a
+ * little towards the swipe's edge and is dimmed by a scrim that lifts as the swipe goes on.
  *
- * [scope] is the entry's animated content scope (Navigation 3's `LocalNavAnimatedContentScope`).
+ * Everything is drawn from [gesture], mapped through [GestureMotion.progress],
+ * so the preview follows the finger evenly; the transition Navigation 3 seeks only keeps both
+ * screens composed ([WaiveraMotionScheme.predictiveBackTransition]). Reading the preview back
+ * from a seeked transition gave values that depended on when each animation was set up: the
+ * springs finished early in the swipe on a device, and the Robolectric capture showed only end
+ * values (UI6-01, UI7-01). After the finger lifts, [GestureMotion.settle] takes
+ * the preview from where it was to its end: on a commit, the leaving card to its full shrink
+ * and the revealed screen to rest; on a cancel, both back to where they started.
+ *
  * [isTop] says whether the entry is the top of the back stack. During a swipe the stack has not
- * changed yet, so the top entry is the one leaving and the one below it is the one revealed. In
- * an ordinary push or pop neither of those holds, so the frame shows only mid-swipe. The roles
- * are read when a transition starts and kept until it settles, so committing the swipe (which
- * changes the stack) does not drop the corners while the screen finishes leaving.
+ * changed yet, so the top entry is the one leaving and the one below it is the one revealed.
+ * The role is taken when the swipe starts and kept through the settle, so committing (which
+ * changes the stack) does not drop the frame while the screen finishes leaving. An entry that
+ * was not on screen when the swipe started, or any entry in an ordinary push or pop, draws
+ * nothing extra.
  *
- * The corner and the scrim have no animations of their own. They are read, at draw time, from
- * the scale and the slide that [WaiveraMotionScheme.predictiveBackTransition] puts on the same
- * transition, so they move in step with the card frame by frame. Their own springs on the same
- * spec settled before the scale did: the layout-time scale and slide start later in a seek than
- * animations set up in composition, so halfway through a swipe the scrim was already gone and
- * the corner already full (UI6-01).
- *
- * Reduced motion holds the leaving screen still and full size, so there is nothing to frame.
+ * [gesture] is read in effects and at draw time, so a swipe redraws the frame without
+ * recomposing [content]. Reduced motion holds the leaving screen still and full size, so there
+ * is nothing to frame.
  */
 @Composable
 fun BackPreviewFrame(
-    scope: AnimatedVisibilityScope,
+    gesture: () -> BackGesture,
     isTop: Boolean,
     modifier: Modifier = Modifier,
     content: @Composable () -> Unit,
@@ -52,62 +68,163 @@ fun BackPreviewFrame(
         return
     }
     val scrimColor = WaiveraTheme.colors.scrim
-    val transition = scope.transition
-    val settled = transition.currentState == transition.targetState
-    val topDuringTransition = remember(settled) { isTop }
+    val outlineColor = WaiveraTheme.colors.border
+    val currentIsTop by rememberUpdatedState(isTop)
+    val currentGesture by rememberUpdatedState(gesture)
+    val preview = remember {
+        // An entry composed mid-swipe is the screen being revealed; take its role now, so its
+        // first frame is already dimmed and offset.
+        BackPreviewState(initial = Snapshot.withoutReadObservation { gesture() }, isTop = isTop)
+    }
+    LaunchedEffect(preview, motion) {
+        snapshotFlow { currentGesture() }.collectLatest { next -> preview.follow(next, currentIsTop, motion) }
+    }
+    // The preview wraps the caller's modifier, so everything it draws (and the bounds tests and
+    // accessibility read from it) is the card where it is drawn.
     Box(
-        modifier = modifier
+        modifier = Modifier
             .graphicsLayer {
-                val corner = if (topDuringTransition) {
-                    WaiveraSizes.BackPreviewCorner * transition.shrinkProgress()
-                } else {
-                    WaiveraSpacing.None
-                }
+                val geometry = preview.geometry(currentGesture(), motion)
+                scaleX = geometry.scale
+                scaleY = geometry.scale
+                translationX = geometry.shift * size.width
+                val corner = lerp(WaiveraSpacing.None, WaiveraSizes.BackPreviewCorner, geometry.corner)
                 shape = RoundedCornerShape(corner)
                 clip = corner > WaiveraSpacing.None
             }
             .drawWithContent {
                 drawContent()
-                val revealing = !topDuringTransition && transition.currentState == EnterExitState.PreEnter
-                val scrim = if (revealing) 1f - transition.revealProgress() else 0f
-                if (scrim > 0f) drawRect(color = scrimColor, alpha = scrim)
-            },
+                val geometry = preview.geometry(currentGesture(), motion)
+                if (geometry.scrim > 0f) drawRect(color = scrimColor, alpha = geometry.scrim)
+                if (geometry.outlined) {
+                    val stroke = WaiveraSpacing.Hairline.toPx()
+                    val radius = lerp(WaiveraSpacing.None, WaiveraSizes.BackPreviewCorner, geometry.corner).toPx()
+                    drawRoundRect(
+                        color = outlineColor,
+                        topLeft = Offset(stroke / 2, stroke / 2),
+                        size = Size(size.width - stroke, size.height - stroke),
+                        cornerRadius = CornerRadius((radius - stroke / 2).coerceAtLeast(0f)),
+                        style = Stroke(width = stroke),
+                    )
+                }
+            }
+            .then(modifier),
     ) {
         content()
     }
 }
 
+/** Which screen of a back swipe a frame is showing, taken when the swipe starts. */
+internal enum class BackPreviewRole { None, Leaving, Revealed }
+
 /**
- * How far the leaving screen has shrunk, from 0 at full size to 1 at
- * [WaiveraMotionScheme.BACK_PREVIEW_SCALE], read from the transition's own scale animation.
- * 0 when there is none, as in a push, a fade or a settled screen.
+ * The preview's role and its settle after the finger lifts. While the finger is down the
+ * preview is read straight from the gesture, so it never lags a frame behind it.
  */
-private fun Transition<EnterExitState>.shrinkProgress(): Float {
-    val scale = animations.firstNotNullOfOrNull { animation ->
-        val ends = listOf(animation.animation.initialValue, animation.animation.targetValue)
-        val isPreviewScale = animation.typeConverter == Float.VectorConverter &&
-            WaiveraMotionScheme.BACK_PREVIEW_SCALE in ends
-        if (isPreviewScale) animation.value as? Float else null
-    } ?: return 0f
-    return backPreviewShrinkProgress(scale)
+@Stable
+private class BackPreviewState(initial: BackGesture, isTop: Boolean) {
+    var role by mutableStateOf(if (initial is BackGesture.Dragging) roleFor(isTop) else BackPreviewRole.None)
+        private set
+    var swipeFromRight by mutableStateOf((initial as? BackGesture.Dragging)?.swipeFromRight ?: false)
+        private set
+    private val settle = Animatable(0f)
+    private var lastFraction = 0f
+    private var dragging = initial is BackGesture.Dragging
+
+    fun geometry(gesture: BackGesture, motion: WaiveraMotionScheme): BackPreviewGeometry {
+        val fraction = if (gesture is BackGesture.Dragging && role != BackPreviewRole.None) {
+            motion.gesture.progress.transform(gesture.progress.coerceIn(0f, 1f))
+        } else {
+            settle.value
+        }
+        return backPreviewGeometry(role = role, fraction = fraction, swipeFromRight = swipeFromRight)
+    }
+
+    suspend fun follow(gesture: BackGesture, isTop: Boolean, motion: WaiveraMotionScheme) {
+        when (gesture) {
+            is BackGesture.Dragging -> {
+                // A new swipe takes the role afresh, even over the settle of the last one: after
+                // a commit, the screen that was revealed is the top and leaves next.
+                if (!dragging) {
+                    dragging = true
+                    role = roleFor(isTop)
+                    swipeFromRight = gesture.swipeFromRight
+                }
+                lastFraction = motion.gesture.progress.transform(gesture.progress.coerceIn(0f, 1f))
+                settle.snapTo(lastFraction)
+            }
+            BackGesture.Committed -> release(target = 1f, motion = motion)
+            BackGesture.Cancelled -> release(target = 0f, motion = motion)
+            BackGesture.Idle -> dragging = false
+        }
+    }
+
+    private suspend fun release(target: Float, motion: WaiveraMotionScheme) {
+        val wasDragging = dragging
+        dragging = false
+        if (!wasDragging || role == BackPreviewRole.None) return
+        settle.snapTo(lastFraction)
+        val remaining = if (target == 1f) 1f - lastFraction else lastFraction
+        settle.animateTo(target, motion.gesture.settle(remaining))
+        // Where the end is the screen at rest, the frame lets go. A card that committed stays at
+        // its full shrink until Navigation 3 removes it, and a cancelled revealed screen stays
+        // dimmed under the full-size card until it goes, so neither jumps back for a frame.
+        val atRest = (role == BackPreviewRole.Leaving && target == 0f) ||
+            (role == BackPreviewRole.Revealed && target == 1f)
+        if (atRest) {
+            role = BackPreviewRole.None
+            settle.snapTo(0f)
+        }
+    }
+
+    private fun roleFor(isTop: Boolean) = if (isTop) BackPreviewRole.Leaving else BackPreviewRole.Revealed
 }
 
 /**
- * How far the revealed screen has slid into place, from 0 at its start offset to 1 at rest,
- * read from the transition's own slide animation. 1 when there is none, so nothing is dimmed.
+ * The preview's shape at one moment: [scale] of the screen, [shift] as a share of its width
+ * (positive is rightward), [corner] from 0 (square) to 1 ([WaiveraSizes.BackPreviewCorner]),
+ * [scrim] as a share of the theme scrim, and whether the card is [outlined].
  */
-private fun Transition<EnterExitState>.revealProgress(): Float {
-    val slide = animations.firstOrNull { it.typeConverter == IntOffset.VectorConverter } ?: return 1f
-    val offset = slide.value as? IntOffset ?: return 1f
-    val from = slide.animation.initialValue as? IntOffset ?: return 1f
-    val to = slide.animation.targetValue as? IntOffset ?: return 1f
-    return backPreviewRevealProgress(offsetX = offset.x, extentX = maxOf(abs(from.x), abs(to.x)))
+internal data class BackPreviewGeometry(
+    val scale: Float,
+    val shift: Float,
+    val corner: Float,
+    val scrim: Float,
+    val outlined: Boolean,
+) {
+    companion object {
+        val Rest = BackPreviewGeometry(scale = 1f, shift = 0f, corner = 0f, scrim = 0f, outlined = false)
+    }
 }
 
-/** 0 at scale 1, 1 at the preview scale, clamped in between. */
-internal fun backPreviewShrinkProgress(scale: Float): Float =
-    ((1f - scale) / (1f - WaiveraMotionScheme.BACK_PREVIEW_SCALE)).coerceIn(0f, 1f)
+/**
+ * The back preview at [fraction] of the way (0 when the swipe starts, 1 at its full travel).
+ * The leaving card shrinks to [WaiveraMotionScheme.BACK_PREVIEW_SCALE] and moves away from the
+ * swipe's edge by half the scale gap, so its far side stays on the display edge; its corners
+ * round and it is outlined as soon as it has moved. The revealed screen starts a tenth of its
+ * width towards the swipe's edge, fully dimmed, and reaches rest at the end.
+ */
+internal fun backPreviewGeometry(role: BackPreviewRole, fraction: Float, swipeFromRight: Boolean): BackPreviewGeometry {
+    val f = fraction.coerceIn(0f, 1f)
+    val away = if (swipeFromRight) -1f else 1f
+    return when (role) {
+        BackPreviewRole.None -> BackPreviewGeometry.Rest
+        BackPreviewRole.Leaving -> BackPreviewGeometry(
+            scale = 1f - (1f - WaiveraMotionScheme.BACK_PREVIEW_SCALE) * f,
+            shift = away * f * (1f - WaiveraMotionScheme.BACK_PREVIEW_SCALE) / 2f,
+            corner = f,
+            scrim = 0f,
+            outlined = f > 0f,
+        )
+        BackPreviewRole.Revealed -> BackPreviewGeometry(
+            scale = 1f,
+            shift = -away * (1f - f) * BACK_PARALLAX,
+            corner = 0f,
+            scrim = 1f - f,
+            outlined = false,
+        )
+    }
+}
 
-/** 1 at rest, 0 at the full [extentX] away; 1 when there is no slide at all. */
-internal fun backPreviewRevealProgress(offsetX: Int, extentX: Int): Float =
-    if (extentX <= 0) 1f else (1f - abs(offsetX).toFloat() / extentX).coerceIn(0f, 1f)
+/** How far the revealed screen starts towards the swipe's edge, as a share of its width. */
+private const val BACK_PARALLAX = 0.1f

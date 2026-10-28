@@ -14,6 +14,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import com.waivera.waivera.core.designsystem.component.BackGesture
 import com.waivera.waivera.core.designsystem.component.BackPreviewFrame
 import com.waivera.waivera.core.designsystem.component.WaiveraListRow
 import com.waivera.waivera.core.designsystem.component.WaiveraSectionHeader
@@ -26,9 +27,10 @@ import com.waivera.waivera.core.designsystem.theme.WaiveraTheme
 internal enum class BackPreviewScreen { List, Detail }
 
 /**
- * A back swipe from the left edge held at [BACK_PREVIEW_HALFWAY], driven like Navigation 3
- * drives the gesture: a seekable transition from Detail to List, through
- * [WaiveraMotionScheme.predictiveBackTransition] and [BackPreviewFrame].
+ * A back swipe from the left edge held at [progress] ([BACK_PREVIEW_HALFWAY] by default), driven
+ * like the shell drives it: one gesture progress seeks a transition from Detail to List through
+ * [WaiveraMotionScheme.predictiveBackTransition], which keeps both screens composed, and is what
+ * each [BackPreviewFrame] draws the preview from.
  *
  * The z-index follows NavDisplay, which replaces every transform's `targetContentZIndex` with its
  * own: the screen on show when nothing is moving keeps 0, and the screen a pop reveals goes one
@@ -41,20 +43,26 @@ internal enum class BackPreviewScreen { List, Detail }
  */
 @OptIn(ExperimentalAnimationApi::class)
 @Composable
-internal fun BackPreviewSample(motion: WaiveraMotionScheme, onTap: (BackPreviewScreen) -> Unit = {}) {
+internal fun BackPreviewSample(
+    motion: WaiveraMotionScheme,
+    progress: Float = BACK_PREVIEW_HALFWAY,
+    onTap: (BackPreviewScreen) -> Unit = {},
+) {
+    val gesture = remember(progress) { BackGesture.Dragging(progress = progress, swipeFromRight = false) }
+    val readGesture = remember(gesture) { { gesture } }
     val state = remember { SeekableTransitionState(BackPreviewScreen.Detail) }
-    LaunchedEffect(state) { state.seekTo(fraction = BACK_PREVIEW_HALFWAY, targetState = BackPreviewScreen.List) }
+    LaunchedEffect(state, progress) { state.seekTo(fraction = progress, targetState = BackPreviewScreen.List) }
     val transition = rememberTransition(state, label = "predictiveBack")
     transition.AnimatedContent(
         transitionSpec = {
-            motion.predictiveBackTransition(swipeFromRight = false).apply {
+            motion.predictiveBackTransition().apply {
                 targetContentZIndex = if (initialState == targetState) SETTLED_Z_INDEX else REVEALED_Z_INDEX
             }
         },
         modifier = Modifier.fillMaxSize(),
     ) { screen ->
         BackPreviewFrame(
-            scope = this,
+            gesture = readGesture,
             isTop = screen == BackPreviewScreen.Detail,
             modifier = Modifier
                 .fillMaxSize()

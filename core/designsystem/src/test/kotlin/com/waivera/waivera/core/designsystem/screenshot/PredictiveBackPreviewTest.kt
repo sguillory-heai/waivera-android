@@ -32,12 +32,15 @@ import org.robolectric.annotation.GraphicsMode
 
 /**
  * What [PredictiveBackScreenshotTest]'s standard capture has to show halfway through the swipe
- * (UI5-02): the leaving Detail screen shrunk to a card inset from the screen's edges, on top of
- * the revealed List, which sits a little to the left and is dimmed around the card.
+ * (UI5-02, UI7-01): the leaving Detail screen shrunk to a card inset from the screen's edges,
+ * with rounded corners, on top of the revealed List, which sits a little to the left and is
+ * dimmed around the card.
  *
- * The card is measured with bounds in root, which include the scale and slide AnimatedContent
- * applies on a parent layer; unclipped bounds report the untransformed 360dp layout. The List's
- * start lies off screen, so only its unclipped bounds can show it.
+ * The sample holds the gesture progress at 0.5, the input the frames draw from, so the expected
+ * geometry is exact: through the linear gesture curve the card is at scale 0.95 and 5% of the
+ * scale gap's shift (9dp at 360dp), and the List starts 18dp off the left edge. The frame's layer
+ * wraps the test tag, so bounds in root include its scale and shift. The List's start lies off
+ * screen, so only its unclipped bounds can show it.
  */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
@@ -56,16 +59,43 @@ class PredictiveBackPreviewTest {
             Settings.Global.ANIMATOR_DURATION_SCALE,
             1f,
         )
+    }
+
+    private fun showHalfway(motion: WaiveraMotionScheme = WaiveraMotionScheme.Standard) {
         compose.setContent {
-            WaiveraTheme(darkTheme = false, motion = WaiveraMotionScheme.Standard, hapticsEnabled = false) {
-                BackPreviewSample(motion = WaiveraMotionScheme.Standard, onTap = { tapped = it })
+            WaiveraTheme(darkTheme = false, motion = motion, hapticsEnabled = false) {
+                BackPreviewSample(motion = motion, onTap = { tapped = it })
             }
         }
         compose.waitForIdle()
     }
 
+    /** Halfway through the gesture is halfway through the preview: the curve is linear. */
+    @Test
+    fun theCardIsHalfwayToItsShrinkAtHalfTheSwipe() {
+        showHalfway()
+        val screen = compose.onRoot().getBoundsInRoot()
+        val card = compose.onNodeWithTag(BackPreviewScreen.Detail.name).getBoundsInRoot()
+        assertEquals(screen.width.value * HALFWAY_SCALE, card.width.value, GEOMETRY_TOLERANCE)
+        assertEquals(screen.height.value * HALFWAY_SCALE, card.height.value, GEOMETRY_TOLERANCE)
+        // Centred, then moved right by half the scale gap: its right side stays on the screen edge.
+        assertEquals(screen.right.value, card.right.value, GEOMETRY_TOLERANCE)
+        val revealed = compose.onNodeWithTag(BackPreviewScreen.List.name).getUnclippedBoundsInRoot()
+        assertEquals(-screen.width.value * HALFWAY_PARALLAX, revealed.left.value, GEOMETRY_TOLERANCE)
+    }
+
+    /** "Remove animations": nothing shrinks or moves, so there is nothing to frame. */
+    @Test
+    fun reducedMotionLeavesTheScreenFullSize() {
+        showHalfway(WaiveraMotionScheme.Reduced)
+        val screen = compose.onRoot().getBoundsInRoot()
+        val detail = compose.onNodeWithTag(BackPreviewScreen.Detail.name).getBoundsInRoot()
+        assertEquals(screen, detail)
+    }
+
     @Test
     fun theLeavingScreenIsAShrunkenCardInsetFromTheEdges() {
+        showHalfway()
         val screen = compose.onRoot().getBoundsInRoot()
         val card = compose.onNodeWithTag(BackPreviewScreen.Detail.name).getBoundsInRoot()
         assertTrue("card is ${card.width} wide on a ${screen.width} screen", card.width < screen.width - MIN_INSET)
@@ -76,6 +106,7 @@ class PredictiveBackPreviewTest {
 
     @Test
     fun theRevealedScreenSlidesInFromTheLeft() {
+        showHalfway()
         val revealed = compose.onNodeWithTag(BackPreviewScreen.List.name).getUnclippedBoundsInRoot()
         assertTrue("revealed screen starts at ${revealed.left}", revealed.left < 0.dp)
     }
@@ -83,6 +114,7 @@ class PredictiveBackPreviewTest {
     /** Hit testing follows the same z-order as drawing, so a tap on the card lands on Detail. */
     @Test
     fun theLeavingCardIsOnTopOfTheRevealedScreen() {
+        showHalfway()
         val card = compose.onNodeWithTag(BackPreviewScreen.Detail.name).getBoundsInRoot()
         val center = with(compose.density) {
             Offset(x = ((card.left + card.right) / 2).toPx(), y = ((card.top + card.bottom) / 2).toPx())
@@ -98,6 +130,7 @@ class PredictiveBackPreviewTest {
      */
     @Test
     fun theRevealedScreenIsDimmedAroundTheCard() {
+        showHalfway()
         val card = compose.onNodeWithTag(BackPreviewScreen.Detail.name).getBoundsInRoot()
         val pixels = compose.onRoot().captureToImage().toPixelMap()
         val centerY = with(compose.density) { ((card.top + card.bottom) / 2).roundToPx() }
@@ -115,6 +148,7 @@ class PredictiveBackPreviewTest {
      */
     @Test
     fun theLeavingCardHasRoundedCornersHalfway() {
+        showHalfway()
         val card = compose.onNodeWithTag(BackPreviewScreen.Detail.name).getBoundsInRoot()
         val pixels = compose.onRoot().captureToImage().toPixelMap()
         val y = with(compose.density) { (card.top + CORNER_PROBE).roundToPx() }
@@ -131,7 +165,12 @@ class PredictiveBackPreviewTest {
         // Inside the screens' left padding, so the probes land on background, not text.
         val PROBE_FROM_EDGE: Dp = 3.dp
 
-        // Well outside a corner of about 18dp (24dp at 0.85 progress, scaled by the card's 0.915).
+        // Well outside a corner of about 11dp (12dp halfway, scaled by the card's 0.95), and
+        // inside the 1dp outline.
         val CORNER_PROBE: Dp = 1.5.dp
+
+        const val HALFWAY_SCALE = 0.95f
+        const val HALFWAY_PARALLAX = 0.05f
+        const val GEOMETRY_TOLERANCE = 0.5f
     }
 }

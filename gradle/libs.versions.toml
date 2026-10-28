@@ -12,6 +12,9 @@ androidxBrowser = "1.8.0"
 androidxHiltNavigationCompose = "1.2.0"
 # Navigation 3: type-safe back stack owned by the app, predictive back built in.
 androidxNavigation3 = "1.0.0"
+# The shell reads predictive back progress from the NavigationEventState it hands to NavDisplay.
+# Navigation 3 already brings it in; this makes the direct use explicit.
+androidxNavigationEvent = "1.0.0"
 androidxComposeBom = "2026.09.00"
 androidxCoreKtx = "1.19.0"
 androidxLifecycle = "2.11.0"
@@ -60,6 +63,7 @@ androidx-lifecycle-viewmodel-compose = { module = "androidx.lifecycle:lifecycle-
 androidx-lifecycle-viewmodel-navigation3 = { module = "androidx.lifecycle:lifecycle-viewmodel-navigation3", version.ref = "androidxLifecycle" }
 androidx-navigation3-runtime = { module = "androidx.navigation3:navigation3-runtime", version.ref = "androidxNavigation3" }
 androidx-navigation3-ui = { module = "androidx.navigation3:navigation3-ui", version.ref = "androidxNavigation3" }
+androidx-navigationevent-compose = { module = "androidx.navigationevent:navigationevent-compose", version.ref = "androidxNavigationEvent" }
 androidx-room-compiler = { module = "androidx.room:room-compiler", version.ref = "androidxRoom" }
 androidx-room-ktx = { module = "androidx.room:room-ktx", version.ref = "androidxRoom" }
 androidx-room-runtime = { module = "androidx.room:room-runtime", version.ref = "androidxRoom" }

@@ -1,6 +1,5 @@
 package com.waivera.waivera.ui
 
-import androidx.activity.BackEventCompat
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -10,6 +9,7 @@ import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -21,9 +21,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDecorator
 import androidx.navigation3.runtime.NavEntry
+import androidx.navigation3.runtime.rememberDecoratedNavEntries
 import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
-import androidx.navigation3.ui.LocalNavAnimatedContentScope
+import androidx.navigation3.scene.SceneInfo
+import androidx.navigation3.scene.SinglePaneSceneStrategy
+import androidx.navigation3.scene.rememberSceneState
 import androidx.navigation3.ui.NavDisplay
+import androidx.navigationevent.compose.NavigationBackHandler
+import androidx.navigationevent.compose.rememberNavigationEventState
 import com.waivera.waivera.R
 import com.waivera.waivera.core.data.image.AvatarModel
 import com.waivera.waivera.core.designsystem.component.BackPreviewFrame
@@ -54,6 +59,48 @@ fun MainShell(state: ShellUiState, actions: ShellActions, modifier: Modifier = M
     val unopenableLinkMessage = stringResource(R.string.shell_link_unopenable)
     // Read inside entries, so an entry that is leaving after a pop sees the new top, not the old.
     val topEntry = rememberUpdatedState(nav.visibleEntries.lastOrNull())
+    // The preview is drawn from the swipe itself (BackPreviewFrame), so the shell owns the
+    // navigation event state that NavDisplay would otherwise keep to itself. This is NavDisplay's
+    // own back-stack overload, spelled out.
+    val backGesture = remember { ShellBackGesture() }
+    val readBackGesture = remember(backGesture) { { backGesture.current() } }
+    val entries = rememberDecoratedNavEntries(
+        backStack = nav.visibleEntries,
+        entryDecorators = listOf(
+            rememberSaveableStateHolderNavEntryDecorator(),
+            rememberViewModelStoreNavEntryDecorator(),
+        ),
+        entryProvider = { entry: ShellEntry ->
+            NavEntry(key = entry, contentKey = entry.key) {
+                // Rounded, outlined corners on the screen a back swipe dismisses, a scrim on the one it reveals.
+                BackPreviewFrame(
+                    gesture = readBackGesture,
+                    isTop = entry == topEntry.value,
+                    modifier = Modifier.fillMaxSize(),
+                ) {
+                    RouteContent(route = entry.route, actions = routeActions)
+                }
+            }
+        },
+    )
+    val sceneStrategy = remember { SinglePaneSceneStrategy<ShellEntry>() }
+    val sceneState = rememberSceneState(entries = entries, sceneStrategy = sceneStrategy, onBack = { actions.back() })
+    val scene = sceneState.currentScene
+    val navigationEvents = rememberNavigationEventState(
+        currentInfo = SceneInfo(scene),
+        backInfo = sceneState.previousScenes.map { SceneInfo(it) },
+    )
+    SideEffect { backGesture.attach(navigationEvents) }
+    NavigationBackHandler(
+        state = navigationEvents,
+        isBackEnabled = scene.previousEntries.isNotEmpty(),
+        onBackCancelled = { backGesture.cancelled() },
+        onBackCompleted = {
+            backGesture.completed()
+            // As NavDisplay does: pop every entry the current scene covers.
+            repeat(entries.size - scene.previousEntries.size) { actions.back() }
+        },
+    )
     LaunchedEffect(state.unopenableLink) {
         if (state.unopenableLink) {
             try {
@@ -71,29 +118,12 @@ fun MainShell(state: ShellUiState, actions: ShellActions, modifier: Modifier = M
     ) {
         Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
             NavDisplay(
-                backStack = nav.visibleEntries,
-                onBack = { actions.back() },
-                entryDecorators = listOf(
-                    rememberSaveableStateHolderNavEntryDecorator(),
-                    rememberViewModelStoreNavEntryDecorator(),
-                ),
+                sceneState = sceneState,
+                navigationEventState = navigationEvents,
                 transitionSpec = { motion.forwardTransition() },
                 popTransitionSpec = { motion.backTransition() },
-                predictivePopTransitionSpec = { swipeEdge ->
-                    motion.predictiveBackTransition(swipeFromRight = swipeEdge == BackEventCompat.EDGE_RIGHT)
-                },
-                entryProvider = { entry: ShellEntry ->
-                    NavEntry(key = entry, contentKey = entry.key) {
-                        // Rounded corners on the screen a back swipe dismisses, a scrim on the one it reveals.
-                        BackPreviewFrame(
-                            scope = LocalNavAnimatedContentScope.current,
-                            isTop = entry == topEntry.value,
-                            modifier = Modifier.fillMaxSize(),
-                        ) {
-                            RouteContent(route = entry.route, actions = routeActions)
-                        }
-                    }
-                },
+                // The swipe's edge reaches the frames through [backGesture].
+                predictivePopTransitionSpec = { motion.predictiveBackTransition() },
             )
             WaiveraSnackbarHost(hostState = snackbar, modifier = Modifier.align(Alignment.BottomCenter))
         }

@@ -54,6 +54,31 @@ Bookmarks) push onto the current tab; Settings from the account menu pushes Prof
 conversation, person or event from any screen pushes onto the current tab, so back returns to
 where the person was.
 
+### Predictive back and motion
+
+Motion comes from `WaiveraTheme.motion` (`WaiveraMotionScheme`). The time-based tokens are
+springs: press, state, layout, navigate and celebrate, which also drive the forward push and the
+back button's pop. Reduced motion ("Remove animations", animator scale 0) snaps spatial tokens
+and cross-fades effects.
+
+A predictive back swipe uses the gesture tokens instead, `WaiveraMotionScheme.gesture`:
+
+| Token | Value | Used for |
+| --- | --- | --- |
+| `gesture.progress` | Linear easing (0 for reduced motion) | Maps swipe progress to the preview: 25%, 50% and 75% of the swipe put the leaving card at scale 0.975, 0.95 and 0.925 |
+| `gesture.settle(remaining)` | Ease-out tween of `remaining × BACK_GESTURE_MILLIS` (300ms); a snap for reduced motion | Finishes the preview after the finger lifts, timed to land when Navigation 3 removes the screen it leaves behind |
+
+The shell owns the navigation event state it hands to `NavDisplay` (`rememberSceneState`,
+`rememberNavigationEventState`, `NavigationBackHandler`, the same steps NavDisplay's back-stack
+overload takes), so `ShellBackGesture` can read the swipe's progress and edge, and whether it was
+committed or cancelled. Every entry is wrapped in `BackPreviewFrame`, which draws the whole
+preview from that one input: the leaving screen shrinks to 0.9, moves away from the swipe's edge
+by half the scale gap, rounds to a 24dp corner and gets a 1dp `colors.border` outline; the
+revealed screen starts a tenth of its width towards the edge under the full scrim and reaches
+rest at the end of the swipe. `predictiveBackTransition()` moves nothing itself: an opaque
+300ms fade keeps both screens composed through the settle. Reduced motion draws no preview: the
+leaving screen holds, full size, until the swipe commits.
+
 The shell provides two composition locals to every screen: `LocalSignedInAccount` (name and
 avatar model, read by `rememberTopBarAccount` in each tab's top bar) and `LocalUriHandler` as a
 Custom Tabs handler, so `uriHandler.openUri` keeps web links in the app. It throws

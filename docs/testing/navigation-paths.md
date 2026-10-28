@@ -33,6 +33,14 @@ Images land in `app/build/outputs/roborazzi/` as `path_<NN>_<flow>_<NN>_<step>.p
 Suffixes: `_dark` is the same step with the Dark theme preference (set through the demo settings,
 then restored); `_font200` is the step at 200% font in `NavigationPathVariantsTest`;
 `_swipe` is a predictive back gesture held halfway, `_before`/`_after` either side of it.
+The tour runs with "Remove animations", so a `_swipe` image shows the leaving screen still and
+full size, as a person with that setting sees it. The standard preview (the shrunken, outlined
+card over the dimmed screen underneath) is drawn from the gesture's progress by
+`BackPreviewFrame` and is checked in `:core:designsystem` instead: `PredictiveBackPreviewTest`
+holds the progress at 0.5 and asserts the card's scale, shift, corners and the dim, and
+`PredictiveBackScreenshotTest` writes `PredictiveBackStandard_halfway_*` and
+`PredictiveBackReduced_halfway_*` (`docs/architecture/app-shell.md`, "Predictive back and
+motion").
 
 Every step asserts the shell's gate and visible back stack (Today's stack plus the selected
 tab's, compared by screen identity) and something on screen (a heading, a row, a button).

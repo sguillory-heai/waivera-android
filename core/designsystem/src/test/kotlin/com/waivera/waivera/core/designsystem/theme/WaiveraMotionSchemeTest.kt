@@ -55,30 +55,47 @@ class WaiveraMotionSchemeTest {
 
     // Transition data is internal to Compose; the public toString() names each part (Fade(...), Scale(...)).
     @Test
-    fun `predictive back never fades and keeps the leaving screen on top`() {
+    fun `predictive back moves nothing itself and keeps the leaving screen on top`() {
         listOf(WaiveraMotionScheme.Standard, WaiveraMotionScheme.Reduced).forEach { motion ->
-            listOf(true, false).forEach { fromRight ->
-                val transform = motion.predictiveBackTransition(swipeFromRight = fromRight)
-                val label = "reduced=${motion.reduced} fromRight=$fromRight"
-                assertFalse("Fade(" in transform.targetContentEnter.toString(), "incoming screen is opaque: $label")
-                assertFalse("Fade(" in transform.initialContentExit.toString(), "leaving screen is opaque: $label")
-                assertTrue(transform.targetContentZIndex < 0f, "leaving screen draws on top: $label")
+            val transform = motion.predictiveBackTransition()
+            val label = "reduced=${motion.reduced}"
+            listOf(transform.targetContentEnter.toString(), transform.initialContentExit.toString()).forEach { part ->
+                assertFalse("Scale(" in part, "nothing shrinks in the transition: $label")
+                assertFalse("Slide(" in part, "nothing slides in the transition: $label")
+                assertFalse(
+                    Regex("""Fade\(alpha=(?!1\.0,)""").containsMatchIn(part),
+                    "both screens stay opaque: $label",
+                )
             }
-        }
-        listOf(true, false).forEach { fromRight ->
-            val standard = WaiveraMotionScheme.Standard.predictiveBackTransition(swipeFromRight = fromRight)
-            assertTrue("Scale(" in standard.initialContentExit.toString(), "leaving screen shrinks: $fromRight")
+            assertTrue(transform.targetContentZIndex < 0f, "leaving screen draws on top: $label")
         }
     }
 
     @Test
-    fun `predictive back slides only when animations are on`() {
-        val standard = WaiveraMotionScheme.Standard.predictiveBackTransition(swipeFromRight = false)
-        assertTrue("Slide(" in standard.initialContentExit.toString(), "the preview follows the finger")
-        assertTrue("Slide(" in standard.targetContentEnter.toString(), "the screen underneath has parallax")
-        val reduced = WaiveraMotionScheme.Reduced.predictiveBackTransition(swipeFromRight = false)
+    fun `predictive back holds both screens for the settle only when animations are on`() {
+        val standard = WaiveraMotionScheme.Standard.predictiveBackTransition()
+        assertTrue("Fade(alpha=1.0," in standard.initialContentExit.toString(), "an opaque hold keeps the card")
+        assertTrue("Fade(alpha=1.0," in standard.targetContentEnter.toString(), "an opaque hold keeps the List")
+        val reduced = WaiveraMotionScheme.Reduced.predictiveBackTransition()
         assertEquals(EnterTransition.None, reduced.targetContentEnter, "nothing moves underneath")
         // UI3-10: no shrink either, so no unframed sliver of the screen underneath shows.
         assertEquals(ExitTransition.None, reduced.initialContentExit, "the leaving screen holds until commit")
+    }
+
+    @Test
+    fun `the gesture curve is linear, and flat when animations are off`() {
+        listOf(0f, 0.25f, 0.5f, 0.75f, 1f).forEach { progress ->
+            assertEquals(progress, WaiveraMotionScheme.Standard.gesture.progress.transform(progress), "at $progress")
+            assertEquals(0f, WaiveraMotionScheme.Reduced.gesture.progress.transform(progress), "reduced at $progress")
+        }
+    }
+
+    @Test
+    fun `the settle takes the share of the gesture time the swipe had left`() {
+        val half = assertIs<TweenSpec<*>>(WaiveraMotionScheme.Standard.gesture.settle(remainingFraction = 0.5f))
+        assertEquals(WaiveraMotionScheme.BACK_GESTURE_MILLIS / 2, half.durationMillis)
+        val over = assertIs<TweenSpec<*>>(WaiveraMotionScheme.Standard.gesture.settle(remainingFraction = 1.5f))
+        assertEquals(WaiveraMotionScheme.BACK_GESTURE_MILLIS, over.durationMillis)
+        assertIs<SnapSpec<*>>(WaiveraMotionScheme.Reduced.gesture.settle(remainingFraction = 0.5f))
     }
 }
