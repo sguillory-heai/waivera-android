@@ -57,14 +57,13 @@ import com.waivera.waivera.core.designsystem.component.bubbleArrival
 import com.waivera.waivera.core.designsystem.component.rememberBubbleArrival
 import com.waivera.waivera.core.designsystem.icon.WaiveraIcons
 import com.waivera.waivera.core.designsystem.theme.LocalWaiveraColors
-import com.waivera.waivera.core.designsystem.theme.WaiveraHero
 import com.waivera.waivera.core.designsystem.theme.WaiveraShapes
 import com.waivera.waivera.core.designsystem.theme.WaiveraSizes
 import com.waivera.waivera.core.designsystem.theme.WaiveraSpacing
 import com.waivera.waivera.core.designsystem.theme.WaiveraTextStyles
 import com.waivera.waivera.core.designsystem.theme.WaiveraTheme
 import com.waivera.waivera.core.designsystem.theme.isLargeFontScale
-import com.waivera.waivera.core.designsystem.theme.onGradient
+import com.waivera.waivera.core.designsystem.theme.onAccentFill
 import com.waivera.waivera.feature.chat.R
 import java.time.Instant
 import java.time.ZoneId
@@ -227,19 +226,15 @@ private fun Bubble(
     val message = row.message
     val hasBody = message.isDeleted || row.ticket != null || row.rich != null || !message.text.isNullOrBlank()
     val shape = ChatDimens.bubbleShape(row.isMine, row.groupedWithPrevious, row.groupedWithNext)
-    // Concept A: my own messages wear the brand's CTA gradient with white ink; everyone else's sit
-    // on the surface. A deleted message stays quiet whoever wrote it.
-    val gradient = hasBody && row.isMine && !row.isBot && !message.isDeleted
+    // v5: my own messages are the solid brand violet with white ink; everyone else's sit on the
+    // surface. A deleted message stays quiet whoever wrote it.
+    val solid = hasBody && row.isMine && !row.isBot && !message.isDeleted
     val (fill, border) = when {
-        !hasBody || gradient -> Color.Transparent to Color.Transparent
+        !hasBody -> Color.Transparent to Color.Transparent
+        solid -> colors.accentFill to Color.Transparent
         row.isBot -> colors.surface to colors.accentBorder
         row.isMine -> colors.surface to colors.accentBorder
         else -> colors.surface to colors.border
-    }
-    val fillModifier = if (gradient) {
-        Modifier.background(brush = WaiveraHero.colors.buttonBrush, shape = shape)
-    } else {
-        Modifier.background(color = fill, shape = shape)
     }
     val wash = colors.accentWash.copy(alpha = colors.accentWash.alpha * (1f - arrival))
     val description = rowDescription(row, authorName, time)
@@ -256,9 +251,9 @@ private fun Bubble(
     ) {
         Column(
             modifier = Modifier
-                .then(fillModifier)
+                .background(color = fill, shape = shape)
                 .background(wash, shape)
-                .then(if (hasBody && !gradient) Modifier.border(WaiveraSpacing.Hairline, border, shape) else Modifier)
+                .then(if (hasBody && !solid) Modifier.border(WaiveraSpacing.Hairline, border, shape) else Modifier)
                 .defaultMinSize(minWidth = if (hasBody) ChatDimens.BubbleMinWidth else 0.dp)
                 .padding(
                     horizontal = if (hasBody) WaiveraSpacing.MediumSmall - WaiveraSpacing.Hairline else 0.dp,
@@ -267,22 +262,22 @@ private fun Bubble(
             horizontalAlignment = if (row.isMine) Alignment.End else Alignment.Start,
             verticalArrangement = Arrangement.spacedBy(WaiveraSpacing.ExtraSmall + WaiveraSpacing.XxSmall),
         ) {
-            OnBubbleColors(gradient = gradient) { BubbleContent(row, callbacks) }
+            OnBubbleColors(onFill = solid) { BubbleContent(row, callbacks) }
         }
     }
 }
 
-/** White inks and dark nested tints inside a gradient bubble; the theme's own colours elsewhere. */
+/** White inks and dark nested tints inside my violet bubble; the theme's own colours elsewhere. */
 @Composable
-private fun OnBubbleColors(gradient: Boolean, content: @Composable () -> Unit) {
-    if (!gradient) {
+private fun OnBubbleColors(onFill: Boolean, content: @Composable () -> Unit) {
+    if (!onFill) {
         content()
         return
     }
-    val onGradient = WaiveraTheme.colors.onGradient()
+    val onAccentFill = WaiveraTheme.colors.onAccentFill()
     CompositionLocalProvider(
-        LocalWaiveraColors provides onGradient,
-        LocalContentColor provides onGradient.text,
+        LocalWaiveraColors provides onAccentFill,
+        LocalContentColor provides onAccentFill.text,
         content = content,
     )
 }
@@ -331,7 +326,7 @@ private fun BubbleBody(row: TimelineItem.MessageRow, callbacks: MessageRowCallba
         row.rich != null -> RichText(
             document = row.rich,
             onLink = callbacks.onLink,
-            onGradient = row.isMine && !row.isBot,
+            onAccentFill = row.isMine && !row.isBot,
         )
         !message.text.isNullOrBlank() -> Text(
             text = message.text.orEmpty(),

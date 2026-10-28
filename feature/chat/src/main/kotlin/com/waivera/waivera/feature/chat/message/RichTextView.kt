@@ -48,7 +48,7 @@ import kotlinx.serialization.json.JsonObject
 
 /**
  * Colours the inline builder needs; resolved from the theme by [RichText]. A null
- * [mentionBackground] sets mentions underlined instead of on a wash: on the gradient bubble a
+ * [mentionBackground] sets mentions underlined instead of on a wash: on my violet bubble a
  * square dark block reads like a text selection, not a mention (UI10-14).
  */
 @Immutable
@@ -122,24 +122,24 @@ fun RichText(
     onLink: (String) -> Unit,
     modifier: Modifier = Modifier,
     color: Color = WaiveraTheme.colors.text,
-    onGradient: Boolean = false,
+    onAccentFill: Boolean = false,
 ) {
-    CompositionLocalProvider(LocalOnGradient provides onGradient) {
+    CompositionLocalProvider(LocalOnAccentFill provides onAccentFill) {
         Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(WaiveraSpacing.ExtraSmall)) {
             document.blocks.forEach { RichBlockView(it, onLink, color) }
         }
     }
 }
 
-/** True inside my own gradient bubble, where mentions are underlined rather than washed. */
-private val LocalOnGradient = staticCompositionLocalOf { false }
+/** True inside my own violet bubble, where mentions are underlined rather than washed. */
+private val LocalOnAccentFill = staticCompositionLocalOf { false }
 
 @Composable
 private fun RichBlockView(block: RichBlock, onLink: (String) -> Unit, color: Color) {
     val colors = WaiveraTheme.colors
     val inlineColors = RichInlineColors(
         accent = colors.accent,
-        mentionBackground = if (LocalOnGradient.current) null else colors.accentWash,
+        mentionBackground = if (LocalOnAccentFill.current) null else colors.accentWash,
     )
     when (block) {
         is RichBlock.Paragraph -> InlineText(
