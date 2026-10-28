@@ -6,6 +6,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
@@ -47,10 +48,13 @@ import androidx.compose.ui.semantics.onClick
 import androidx.compose.ui.semantics.onLongClick
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Constraints
 import com.waivera.waivera.core.data.model.Attachment
 import com.waivera.waivera.core.data.model.Message
 import com.waivera.waivera.core.data.model.SendState
@@ -63,6 +67,7 @@ import com.waivera.waivera.core.designsystem.component.WaiveraPressable
 import com.waivera.waivera.core.designsystem.component.WaiveraStatusBadge
 import com.waivera.waivera.core.designsystem.icon.WaiveraIcons
 import com.waivera.waivera.core.designsystem.text.fileNameHeadAndTail
+import com.waivera.waivera.core.designsystem.text.withBreaksAfterHyphens
 import com.waivera.waivera.core.designsystem.text.withNonBreakingHyphens
 import com.waivera.waivera.core.designsystem.text.withUnbreakableExtension
 import com.waivera.waivera.core.designsystem.theme.WaiveraShapes
@@ -382,30 +387,79 @@ private fun FileAttachment(message: Message, attachment: Attachment, onOpen: () 
 }
 
 /**
- * The file card's name at large font, on up to two lines: the head of the name, cut in the
- * middle when it is too long, then the tail with the extension ("nor…ter-" / "wk43.pdf"), which
- * is never cut while it fits a line. The two sit on one line when they fit together. The
- * description gives TalkBack the whole name in one piece instead of the two halves.
+ * The file card's name at large font: the head of the name, then the tail with the extension
+ * ("wk43.pdf"), which is never cut while it fits a line. The head wraps after its hyphens onto
+ * up to [FILE_NAME_HEAD_MAX_LINES] lines when every piece fits a line ("north-" / "roster-"),
+ * and only otherwise is it one line cut in the middle ("nor…ter-"), so it keeps every letter it
+ * has room for (UI7-05). The head and tail share a line when they fit together. The description
+ * gives TalkBack the whole name in one piece instead of the parts.
  */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 internal fun FileCardName(name: String, color: Color, modifier: Modifier = Modifier) {
     val (head, tail) = remember(name) { name.fileNameHeadAndTail() }
     val style = MaterialTheme.typography.titleSmall
-    FlowRow(modifier = modifier.semantics { contentDescription = name }) {
-        if (head.isNotEmpty()) {
-            Text(text = head, style = style, color = color, maxLines = 1, overflow = TextOverflow.MiddleEllipsis)
+    val measurer = rememberTextMeasurer()
+    BoxWithConstraints(modifier = modifier.semantics { contentDescription = name }) {
+        val maxWidth = constraints.maxWidth
+        val wrappedHead = remember(head) { head.withBreaksAfterHyphens() }
+        val headWraps = remember(wrappedHead, style, maxWidth, measurer) {
+            head.isNotEmpty() &&
+                measurer.measure(
+                    text = wrappedHead,
+                    style = style,
+                    maxLines = FILE_NAME_HEAD_MAX_LINES,
+                    constraints = Constraints(maxWidth = maxWidth),
+                ).wrapsOnlyAtBreaks()
         }
-        Text(
-            text = tail.withUnbreakableExtension(),
-            style = style,
-            color = color,
-            maxLines = 1,
-            overflow = TextOverflow.MiddleEllipsis,
-            modifier = Modifier.testTag(FILE_NAME_TAIL_TAG),
-        )
+        FlowRow {
+            if (headWraps) {
+                Text(
+                    text = wrappedHead,
+                    style = style,
+                    color = color,
+                    maxLines = FILE_NAME_HEAD_MAX_LINES,
+                    overflow = TextOverflow.Clip,
+                    modifier = Modifier.testTag(FILE_NAME_HEAD_TAG),
+                )
+            } else if (head.isNotEmpty()) {
+                Text(
+                    text = head,
+                    style = style,
+                    color = color,
+                    maxLines = 1,
+                    overflow = TextOverflow.MiddleEllipsis,
+                    modifier = Modifier.testTag(FILE_NAME_HEAD_TAG),
+                )
+            }
+            Text(
+                text = tail.withUnbreakableExtension(),
+                style = style,
+                color = color,
+                maxLines = 1,
+                overflow = TextOverflow.MiddleEllipsis,
+                modifier = Modifier.testTag(FILE_NAME_TAIL_TAG),
+            )
+        }
     }
 }
+
+/** Whether the text fits its lines whole, with every line but the last ending at a break point. */
+private fun TextLayoutResult.wrapsOnlyAtBreaks(): Boolean {
+    if (hasVisualOverflow) return false
+    val text = layoutInput.text.text
+    return (0 until lineCount - 1).all { line ->
+        val end = getLineEnd(line, visibleEnd = false)
+        end > 0 && text[end - 1] == BREAK_AFTER_HYPHEN
+    }
+}
+
+/** What `withBreaksAfterHyphens` puts after a hyphen inside a name. */
+private const val BREAK_AFTER_HYPHEN = '\u200B'
+private const val FILE_NAME_HEAD_MAX_LINES = 2
+
+/** Test tag for the head of the file card's name at large font. */
+internal const val FILE_NAME_HEAD_TAG = "chat_file_name_head"
 
 /** Test tag for the never-cut tail of the file card's name. */
 internal const val FILE_NAME_TAIL_TAG = "chat_file_name_tail"

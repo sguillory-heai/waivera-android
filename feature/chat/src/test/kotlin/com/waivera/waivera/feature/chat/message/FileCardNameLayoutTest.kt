@@ -32,7 +32,8 @@ import org.robolectric.annotation.GraphicsMode
 
 /**
  * The file card at 200% in a small phone's bubble (UI6-06): the end of the name and its
- * extension ("wk43.pdf") stay whole; only the head of the name may be cut, in the middle.
+ * extension ("wk43.pdf") stay whole, and the head wraps after its hyphens instead of giving up
+ * letters it has room for (UI7-05): "north- / roster- / wk43.pdf".
  */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
@@ -41,8 +42,7 @@ class FileCardNameLayoutTest {
     @get:Rule
     val compose = createComposeRule()
 
-    @Test
-    fun theTailAndExtensionAreNeverCut() {
+    private fun render() {
         compose.setContent {
             val density = LocalDensity.current
             CompositionLocalProvider(LocalDensity provides Density(density.density, LARGE_FONT)) {
@@ -57,6 +57,11 @@ class FileCardNameLayoutTest {
                 }
             }
         }
+    }
+
+    @Test
+    fun theTailAndExtensionAreNeverCut() {
+        render()
         compose.onNodeWithContentDescription(NAME, substring = true, useUnmergedTree = true).assertIsDisplayed()
         val tail = compose.onNodeWithTag(FILE_NAME_TAIL_TAG, useUnmergedTree = true).assertIsDisplayed()
         val layout = tail.fetchTextLayoutResult()
@@ -66,6 +71,20 @@ class FileCardNameLayoutTest {
         assertFalse("\"$shown\" is ellipsized", layout.isLineEllipsized(0))
         assertEquals("\"$shown\" is not fully laid out", shown.length, layout.getLineEnd(0))
         assertTrue("\"$shown\" runs past its width", layout.getLineRight(0) <= layout.size.width)
+    }
+
+    @Test
+    fun theHeadKeepsEveryLetter() {
+        render()
+        val head = compose.onNodeWithTag(FILE_NAME_HEAD_TAG, useUnmergedTree = true).assertIsDisplayed()
+        val layout = head.fetchTextLayoutResult()
+        val shown = layout.layoutInput.text.text
+        assertEquals("north-roster-", shown.filterNot { it == '\u200B' || it == '⁠' })
+        assertFalse("\"$shown\" overflows its lines", layout.hasVisualOverflow)
+        (0 until layout.lineCount).forEach { line ->
+            assertFalse("\"$shown\" is ellipsized on line $line", layout.isLineEllipsized(line))
+        }
+        assertEquals("\"$shown\" is not fully laid out", shown.length, layout.getLineEnd(layout.lineCount - 1))
     }
 
     private fun SemanticsNodeInteraction.fetchTextLayoutResult(): TextLayoutResult {
