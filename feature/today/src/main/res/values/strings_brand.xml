@@ -15,7 +15,7 @@
     <!-- Celebrations -->
     <string name="feature_today_brand_celebration_emoji_birthday" translatable="false">🎂</string>
     <string name="feature_today_brand_celebration_emoji_anniversary" translatable="false">🎉</string>
-    <string name="feature_today_brand_celebration_emoji_both" translatable="false">🥳</string>
+    <string name="feature_today_brand_celebration_emoji_both" translatable="false">🎉</string>
     <string name="feature_today_brand_celebration_label_birthday">Birthday</string>
     <string name="feature_today_brand_celebration_label_anniversary">Work anniversary</string>
     <string name="feature_today_brand_celebration_label_both">Birthday and work anniversary</string>

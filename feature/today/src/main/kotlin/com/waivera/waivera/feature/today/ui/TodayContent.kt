@@ -39,11 +39,11 @@ import com.waivera.waivera.core.designsystem.component.WaiveraButton
 import com.waivera.waivera.core.designsystem.component.WaiveraButtonVariant
 import com.waivera.waivera.core.designsystem.component.WaiveraEmptyState
 import com.waivera.waivera.core.designsystem.component.WaiveraErrorState
+import com.waivera.waivera.core.designsystem.component.WaiveraIllustration
 import com.waivera.waivera.core.designsystem.component.WaiveraSnackbarHost
 import com.waivera.waivera.core.designsystem.component.WaiveraTopBar
 import com.waivera.waivera.core.designsystem.component.rememberSkeletonVisible
 import com.waivera.waivera.core.designsystem.component.rememberTopBarAccount
-import com.waivera.waivera.core.designsystem.icon.WaiveraIcons
 import com.waivera.waivera.core.designsystem.theme.WaiveraMotionScheme
 import com.waivera.waivera.core.designsystem.theme.WaiveraSpacing
 import com.waivera.waivera.core.designsystem.theme.WaiveraTheme
@@ -297,7 +297,7 @@ private fun LazyListScope.activityItems(state: TodayUiState, callbacks: TodayCal
             WaiveraEmptyState(
                 title = stringResource(R.string.feature_today_activity_empty_title),
                 message = stringResource(R.string.feature_today_activity_empty_message),
-                icon = WaiveraIcons.MarkRead,
+                illustration = WaiveraIllustration.Activity,
             )
         }
         else -> {
@@ -314,7 +314,7 @@ private fun LazyListScope.activityItems(state: TodayUiState, callbacks: TodayCal
                     WaiveraEmptyState(
                         title = stringResource(R.string.feature_today_activity_filtered_title),
                         message = stringResource(R.string.feature_today_activity_filtered_message),
-                        icon = WaiveraIcons.Search,
+                        illustration = WaiveraIllustration.Search,
                         actionLabel = stringResource(R.string.feature_today_activity_show_all),
                         onAction = { callbacks.onAction(TodayAction.ShowAllActivity) },
                     )

@@ -100,9 +100,10 @@
 
     <!-- Celebrations -->
     <string name="feature_today_celebration_name_fallback">Teammate</string>
-    <string name="feature_today_celebration_birthday">Happy birthday, %1$s! 🎂</string>
-    <string name="feature_today_celebration_anniversary">Happy %2$d-year work anniversary, %1$s! 🎉</string>
-    <string name="feature_today_celebration_both">Happy birthday and %2$d-year work anniversary, %1$s! 🎉</string>
+    <!-- The celebration card shows the emoji large beside the sentence, so the sentence carries none. -->
+    <string name="feature_today_celebration_birthday">Happy birthday, %1$s!</string>
+    <string name="feature_today_celebration_anniversary">Happy %2$d-year work anniversary, %1$s!</string>
+    <string name="feature_today_celebration_both">Happy birthday and %2$d-year work anniversary, %1$s!</string>
     <string name="feature_today_milestones_failed">Celebrations didn\'t load.</string>
 
     <!-- All caught up: the one celebrated empty state -->
