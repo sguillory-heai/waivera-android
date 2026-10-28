@@ -108,10 +108,30 @@ class PredictiveBackPreviewTest {
         assertTrue("revealed screen at $dimmed is not darker than the card at $onCard", dimmed < onCard)
     }
 
+    /**
+     * The card's corners are rounded halfway through, so just inside its top-left corner the
+     * dimmed List shows instead of the card's top bar. The probe on the card is on the same top
+     * bar row, above the title's glyphs.
+     */
+    @Test
+    fun theLeavingCardHasRoundedCornersHalfway() {
+        val card = compose.onNodeWithTag(BackPreviewScreen.Detail.name).getBoundsInRoot()
+        val pixels = compose.onRoot().captureToImage().toPixelMap()
+        val y = with(compose.density) { (card.top + CORNER_PROBE).roundToPx() }
+        val inCorner = with(compose.density) { (card.left + CORNER_PROBE).roundToPx() }
+        val onCard = with(compose.density) { ((card.left + card.right) / 2).roundToPx() }
+        val corner = pixels[inCorner, y].luminance()
+        val bar = pixels[onCard, y].luminance()
+        assertTrue("card corner at $corner is not darker than its top bar at $bar", corner < bar)
+    }
+
     private companion object {
         val MIN_INSET: Dp = 8.dp
 
         // Inside the screens' left padding, so the probes land on background, not text.
         val PROBE_FROM_EDGE: Dp = 3.dp
+
+        // Well outside a corner of about 18dp (24dp at 0.85 progress, scaled by the card's 0.915).
+        val CORNER_PROBE: Dp = 1.5.dp
     }
 }
