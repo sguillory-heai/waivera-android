@@ -8,7 +8,8 @@ All copy lives in `strings.xml` resources. Brand-only additions go in `strings_b
 
 ## Tone
 
-- **Warm, not cute.** Sound like a person: "You're all caught up 🎉", not "No unread items."
+- **Warm, not cute.** Sound like a person: "Nice work. New messages will land here.", not "No
+  unread items."
 - **Short.** Every line has to fit at 200% font on a small phone. One idea per sentence, and
   usually one sentence.
 - **Plain words.** "Chat", not "conversation thread". "Start date", not "hire date". "Couldn't",
@@ -27,6 +28,7 @@ All copy lives in `strings.xml` resources. Brand-only additions go in `strings_b
 | Empty, first time | What will appear + how to get it | "Press and hold any message, then tap Bookmark to keep it here for later." |
 | Empty, filtered | What's missing + one way out | "No matches" · "Try a different name or word." · Clear search |
 | Celebration | Name the person, one emoji (in the tile when the card has one) | "Happy birthday, Priya! 🎂" |
+| Your own celebration | Your first name, to you | "Happy birthday, Alex!" (never "…, Alex Rivera!") |
 | Success | Confirm it landed, briefly | "Saved to your bookmarks" · "Accepted. See you there!" |
 | Error | What failed + what to do | "You're offline. Reconnect, then try sending again." |
 | Busy | What's happening now, with an ellipsis | "Signing you in…" · "Saving your new password…" |
@@ -49,18 +51,27 @@ All copy lives in `strings.xml` resources. Brand-only additions go in `strings_b
 
 ## Emoji
 
-- **Only for celebrations and success moments.** Birthdays 🎂, work anniversaries and other wins
-  🎉. "All caught up" 🎉 is the one empty state that earns one, because it is a reward.
-- **One per string, at the end**, so the words still lead and TalkBack reads the meaning first.
-- **Once per moment.** When a celebration card or note shows the emoji in its own tile (Today,
-  the schedule, a profile), the sentence beside it carries none, so the emoji never shows twice.
-  The tile is decorative; TalkBack reads the sentence.
+Use them sparingly. Too many read as tacky, so the rule is strict:
+
+- **Only on celebration content and the one reward.** A birthday 🎂, a work anniversary 🎉 and a
+  new hire 👋 get their emoji. "You're all caught up 🎉" on Today is the one reward that earns
+  one. Nothing else does: no emoji in greetings ("Good morning, Alex", not "Good morning ☀️"),
+  successes, empty states, settings, filters or headings.
+- **Everywhere else, a flat outlined icon in the standard tile, or nothing.** A row or note that
+  wants a mark uses an outlined glyph in `WaiveraIconTile` in its tone. `WaiveraEmojiTile` is for
+  celebrations only.
+- **Once per moment.** A celebration shows its emoji once: in its tile when the card has one
+  (Today, the schedule, a profile), and then the sentence carries none and the avatar has no
+  badge. The tile is decorative; TalkBack reads the sentence.
+- **At the end, tied to the last word.** When the emoji is in the sentence, it comes last and is
+  joined to the last word by a no-break space (`\u00A0`), so it never wraps onto a line by itself.
 - **Never** in errors, warnings, security, sign-in, password or permission copy, or in
   accessibility-only labels (`*_a11y`, content descriptions). TalkBack reads emoji names aloud,
   and "party popper" adds nothing to a label.
-- Compact labels in dense UI (calendar cells, badges) stay plain. The full sentence nearby carries
-  the emoji.
-- Reactions use real emoji as data. That is content, not voice, and these rules don't apply.
+- Compact labels in dense UI (calendar cells, badges, list rows) stay plain.
+- Reactions use real emoji as data. That is content the person sent, not voice: it shows once,
+  in the sentence ("Jordan reacted 👍 to one of your messages."), and its row takes the outlined
+  reaction icon in the tile.
 
 ## Mechanics
 
@@ -70,7 +81,7 @@ All copy lives in `strings.xml` resources. Brand-only additions go in `strings_b
 - Escape apostrophes as `\'` and ampersands as `&amp;` in XML. Keep `%1$s` and `%1$d` placeholders
   and plural forms intact when you rewrite a string.
 - Names in sentences come from data and may be missing. Fallbacks ("Teammate") must read well as
-  a headline and in a greeting ("Happy birthday, Teammate! 🎂").
+  a headline and in a greeting ("Happy birthday, Teammate!").
 - Accessibility labels describe the control and the target ("Remove bookmark from Priya Raman").
   Being warm never makes a label vaguer.
 - Tests look copy up through `stringOf(R.string.…)` (navigation tour) or the module's resources,
