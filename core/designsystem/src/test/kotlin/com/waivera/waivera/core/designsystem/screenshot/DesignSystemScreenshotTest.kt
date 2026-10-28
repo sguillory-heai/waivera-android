@@ -33,7 +33,6 @@ import com.waivera.waivera.core.designsystem.component.ConnectionBannerState
 import com.waivera.waivera.core.designsystem.component.MilestoneBadge
 import com.waivera.waivera.core.designsystem.component.MilestoneKind
 import com.waivera.waivera.core.designsystem.component.NavigationBarItemModel
-import com.waivera.waivera.core.designsystem.component.PresenceStatus
 import com.waivera.waivera.core.designsystem.component.SkeletonList
 import com.waivera.waivera.core.designsystem.component.SyncState
 import com.waivera.waivera.core.designsystem.component.TopBarAccount
@@ -313,18 +312,18 @@ class DesignSystemScreenshotTest {
             verticalArrangement = Arrangement.spacedBy(WaiveraSpacing.MediumSmall),
             itemVerticalAlignment = Alignment.CenterVertically,
         ) {
-            WaiveraAvatar(name = "Alex Rivera", presence = PresenceStatus.Online)
+            WaiveraAvatar(name = "Alex Rivera")
             WaiveraAvatar(name = "Priya Raman", milestone = MilestoneKind.Birthday)
-            WaiveraAvatar(name = "Sam Lee", milestone = MilestoneKind.WorkAnniversary, presence = PresenceStatus.Away)
+            WaiveraAvatar(name = "Sam Lee", milestone = MilestoneKind.WorkAnniversary)
             WaiveraAvatar(name = "Jo", milestone = MilestoneKind.NewHire, size = WaiveraSizes.AvatarSmall)
-            WaiveraAvatar(name = "", size = WaiveraSizes.AvatarLarge, presence = PresenceStatus.Offline)
-            WaiveraAvatar(name = "Jordan Lee", presence = PresenceStatus.Offline)
-            // The hero size, where a corner-aligned dot floated off the curve (UI9-09).
-            WaiveraAvatar(name = "Alex Rivera", size = WaiveraSizes.AvatarHero, presence = PresenceStatus.Online)
+            WaiveraAvatar(name = "", size = WaiveraSizes.AvatarLarge)
+            WaiveraAvatar(name = "Jordan Lee")
+            // The hero size, as the profile and person heroes draw it.
+            WaiveraAvatar(name = "Alex Rivera", size = WaiveraSizes.AvatarHero)
         }
     }
 
-    /** The photo path: crop and presence over a real image in the one rounded-square shape, beside initials. */
+    /** The photo path: crop over a real image in the one rounded-square shape, beside initials. */
     @OptIn(ExperimentalLayoutApi::class)
     @Test
     fun avatarsWithPhoto() = capture("AvatarsPhoto") {
@@ -335,7 +334,7 @@ class DesignSystemScreenshotTest {
             verticalArrangement = Arrangement.spacedBy(WaiveraSpacing.MediumSmall),
             itemVerticalAlignment = Alignment.CenterVertically,
         ) {
-            WaiveraAvatar(name = "Priya Raman", painter = photo, presence = PresenceStatus.Online)
+            WaiveraAvatar(name = "Priya Raman", painter = photo)
             WaiveraAvatar(name = "Priya Raman", painter = photo, milestone = MilestoneKind.Birthday)
             WaiveraAvatar(name = "Priya Raman", painter = photo, size = WaiveraSizes.AvatarLarge)
             WaiveraAvatar(name = "Priya Raman", painter = photo, size = WaiveraSizes.AvatarSmall)
@@ -345,7 +344,7 @@ class DesignSystemScreenshotTest {
                 WaiveraSizes.AvatarMedium,
                 painter = photo,
             )
-            WaiveraAvatar(name = "Jordan Lee", presence = PresenceStatus.Away)
+            WaiveraAvatar(name = "Jordan Lee")
         }
     }
 

@@ -14,9 +14,6 @@
     <string name="core_designsystem_selected">Selected</string>
     <string name="core_designsystem_not_selected">Not selected</string>
     <string name="core_designsystem_error_title">This didn’t load</string>
-    <string name="core_designsystem_presence_online">Online</string>
-    <string name="core_designsystem_presence_away">Away</string>
-    <string name="core_designsystem_presence_offline">Offline</string>
     <string name="core_designsystem_milestone_birthday">Birthday today</string>
     <string name="core_designsystem_milestone_anniversary">Work anniversary today</string>
     <string name="core_designsystem_milestone_new_hire">New to the team</string>

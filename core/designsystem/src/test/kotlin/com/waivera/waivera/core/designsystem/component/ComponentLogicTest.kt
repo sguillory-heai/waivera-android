@@ -4,8 +4,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.unit.dp
 import com.waivera.waivera.core.designsystem.theme.WaiveraShapes
-import com.waivera.waivera.core.designsystem.theme.WaiveraSizes
-import kotlin.math.sqrt
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -59,26 +57,6 @@ class ComponentLogicTest {
         assertEquals(RoundedCornerShape(10.dp), WaiveraShapes.avatar(40.dp))
         assertEquals(RoundedCornerShape(23.dp), WaiveraShapes.avatar(96.dp))
         assertNotEquals(CircleShape, WaiveraShapes.avatar(40.dp))
-    }
-
-    /**
-     * The presence dot sits on the avatar's curve (UI9-09): at the hero size its coloured core
-     * meets the corner's 45° point instead of floating in the cut-away corner, and small avatars
-     * keep the dot where it was.
-     */
-    @Test
-    fun `presence dot sits on the rounded corner at every size`() {
-        val dot = WaiveraSizes.PresenceDot
-        listOf(24.dp, 40.dp, 48.dp, 64.dp, 96.dp).forEach { size ->
-            val inset = presenceDotInset(size)
-            val radius = WaiveraShapes.avatarCornerRadius(size)
-            val curve = radius.value * (1f - 1f / sqrt(2f))
-            assertTrue(inset >= dot / 2, "the dot at $size pokes out past the avatar's box")
-            val coreEdge = inset.value - (dot / 2 - WaiveraSizes.AvatarRing).value
-            assertEquals(curve.toDouble(), coreEdge.toDouble(), TOLERANCE, "the dot's core misses the curve at $size")
-        }
-        assertTrue(presenceDotInset(96.dp) - dot / 2 > 4.dp, "the hero dot still floats in the corner")
-        assertTrue(presenceDotInset(40.dp) - dot / 2 < 1.dp, "a list avatar's dot moved noticeably")
     }
 
     @Test
@@ -160,9 +138,5 @@ class ComponentLogicTest {
         )
         assertEquals(SegmentFit.Scroll, segmentFit(listOf(250, 300, 400), availableWidthPx = 900))
         assertEquals(SegmentFit.Equal, segmentFit(emptyList(), availableWidthPx = 900))
-    }
-
-    private companion object {
-        const val TOLERANCE = 0.01
     }
 }

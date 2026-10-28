@@ -72,12 +72,6 @@ object WaiveraSizes {
 
     /** Size of one confetti piece in the celebrate burst. */
     val ConfettiPiece: Dp = 7.dp
-    val AvatarRing: Dp = 2.dp
-    val PresenceDot: Dp = 12.dp
-
-    /** Ring width of the "away" presence dot; "offline" uses the thinner hairline ring. */
-    val PresenceRing: Dp = 2.5.dp
-    val PresenceHairline: Dp = 1.5.dp
 
     /** Outline of a selected or "mine" pill (reactions): heavier than the hairline so it reads at a glance. */
     val SelectedOutline: Dp = 1.5.dp
