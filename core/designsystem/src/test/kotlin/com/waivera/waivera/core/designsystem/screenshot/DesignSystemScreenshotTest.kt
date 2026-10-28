@@ -1,6 +1,7 @@
 package com.waivera.waivera.core.designsystem.screenshot
 
 import android.graphics.BitmapFactory
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -9,6 +10,7 @@ import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -251,7 +253,11 @@ class DesignSystemScreenshotTest {
 
     @Test
     fun chipsAndSegmented() = capture("ChipsSegmented") {
-        Row(horizontalArrangement = Arrangement.spacedBy(WaiveraSpacing.Small)) {
+        // Scrolls sideways as the real chip rows do; a fixed row squeezed the last chip at 200%.
+        Row(
+            modifier = Modifier.horizontalScroll(rememberScrollState()),
+            horizontalArrangement = Arrangement.spacedBy(WaiveraSpacing.Small),
+        ) {
             WaiveraFilterChip(label = "All", selected = true, onClick = {})
             WaiveraFilterChip(label = "Mentions", selected = false, onClick = {})
             WaiveraFilterChip(label = "Unread", selected = false, onClick = {})

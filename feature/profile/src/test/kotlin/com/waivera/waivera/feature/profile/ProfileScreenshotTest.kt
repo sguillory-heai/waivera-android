@@ -234,6 +234,19 @@ class ProfileScreenshotTest {
         )
     }
 
+    /** A long hyphenated name in the person header and top bar, so UI5-05 has coverage. */
+    @Test
+    fun personLongName() = capture("person_long") {
+        Person(
+            PersonDetailUiState(
+                userId = DemoData.JORDAN,
+                name = LONG_NAME,
+                email = "alexandria.rivera-montgomery@example.com",
+                details = Section.Ready(priyaDetails.copy(displayName = LONG_NAME)),
+            ),
+        )
+    }
+
     @Test
     fun personLoading() = capture("person_loading") {
         Person(PersonDetailUiState(userId = DemoData.JORDAN, name = "Jordan Lee", email = "jordan.lee@example.com"))
@@ -325,5 +338,9 @@ class ProfileScreenshotTest {
                 now = DemoData.NOW,
             ),
         )
+    }
+
+    private companion object {
+        const val LONG_NAME = "Alexandria Catherine Rivera-Montgomery"
     }
 }

@@ -80,6 +80,16 @@ class CalendarEventScreenshotTest {
         )
     }
 
+    /** A long hyphenated organizer name wraps after its hyphens, never mid-word (UI5-05). */
+    @Test
+    fun longOrganizerName() = capture(
+        "calendarEvent_long_organizer",
+        loaded(
+            "demo_invite",
+            event = events.getValue("demo_invite").copy(ownerName = "Maria-Fernanda Castellanos-Whitaker"),
+        ),
+    )
+
     /** I organize it: one plain line, no card with my own name (UI3-15). */
     @Test
     fun organizer() = capture("calendarEvent_organizer", loaded("demo_visit"))
