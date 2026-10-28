@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
@@ -28,9 +29,11 @@ import com.waivera.waivera.core.designsystem.theme.WaiveraSizes
 import com.waivera.waivera.core.designsystem.theme.WaiveraSpacing
 import com.waivera.waivera.core.designsystem.theme.WaiveraTheme
 import com.waivera.waivera.feature.today.R
+import com.waivera.waivera.feature.today.model.ActivitySummary
 import com.waivera.waivera.feature.today.model.MessageSnippet
 import com.waivera.waivera.feature.today.model.NeedsYouItem
 import com.waivera.waivera.feature.today.model.PastLabel
+import com.waivera.waivera.feature.today.model.QuotedSummary
 import com.waivera.waivera.feature.today.model.UpcomingLabel
 import java.time.LocalTime
 
@@ -105,14 +108,23 @@ private fun NotSentRow(item: NeedsYouItem.NotSent, onClick: () -> Unit, modifier
     )
 }
 
+/**
+ * A mention, as concept A draws it: who mentioned you as the headline, then what they said as a
+ * quote on its own line behind a rose rule. A summary not in the server's `{sender} mentioned
+ * you: "{snippet}"` shape is shown whole as the quote.
+ */
 @Composable
 private fun MentionRow(item: NeedsYouItem.Mention, onClick: () -> Unit, modifier: Modifier) {
     val formats = rememberTodayFormats()
     val summary = summaryText(item.summary)
+    val parts = remember(summary) { QuotedSummary.of(summary) }
+    val headline = parts.lead
+        ?: item.actorName?.let { stringResource(R.string.feature_today_brand_mentioned_you, it) }
+        ?: stringResource(R.string.feature_today_brand_mentioned_you_unknown)
     val kind = stringResource(R.string.feature_today_kind_mention)
     val rose = WaiveraTileTone.Rose.tint(WaiveraTheme.colors)
     TodayRow(
-        headline = summary,
+        headline = headline,
         description = stringResource(
             R.string.feature_today_activity_unread_prefix,
             joined(joined(kind, summary), item.at?.let { pastSpokenText(it, formats) }),
@@ -121,6 +133,8 @@ private fun MentionRow(item: NeedsYouItem.Mention, onClick: () -> Unit, modifier
         onClickLabel = stringResource(R.string.feature_today_open_message),
         eyebrow = joined(kind, item.at?.let { pastText(it, formats) }),
         eyebrowColor = rose.content,
+        quote = parts.quote,
+        quoteRuleColor = rose.content,
         emphasized = true,
         modifier = modifier,
         // A single mention has no count, so bold text and the "Unread" announcement are enough;
@@ -225,6 +239,18 @@ private fun NeedsYouRowsPreview() {
     WaiveraTheme {
         Column(Modifier.background(WaiveraTheme.colors.background).padding(vertical = WaiveraSpacing.Small)) {
             NeedsYouRow(NeedsYouItem.NotSent(conversationId = 7, name = "Priya Raman"), callbacks)
+            NeedsYouRow(
+                NeedsYouItem.Mention(
+                    activityId = 1,
+                    conversationId = 7,
+                    messageId = 70,
+                    threadRootMessageId = null,
+                    actorName = "Priya Raman",
+                    summary = ActivitySummary.Server("Priya Raman mentioned you: \"the Hughes visit moved to 10\""),
+                    at = PastLabel.MinutesAgo(5),
+                ),
+                callbacks,
+            )
             NeedsYouRow(
                 NeedsYouItem.DirectMessage(
                     conversationId = 7,

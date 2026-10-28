@@ -86,4 +86,7 @@
     <string name="feature_today_brand_until">Until %1$s</string>
     <string name="feature_today_brand_until_dash">– %1$s</string>
     <string name="feature_today_brand_until_next_day">– %1$s next day</string>
+    <!-- A mention card's headline when the summary carries no lead of its own. -->
+    <string name="feature_today_brand_mentioned_you">%1$s mentioned you</string>
+    <string name="feature_today_brand_mentioned_you_unknown">You were mentioned</string>
 </resources>

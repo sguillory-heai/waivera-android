@@ -35,6 +35,7 @@ class WaiveraTypographyTest {
         "Badge" to WaiveraTextStyles.Badge,
         "HeroEyebrow" to WaiveraTextStyles.HeroEyebrow,
         "HeroGreeting" to WaiveraTextStyles.HeroGreeting,
+        "HeroGreetingCompact" to WaiveraTextStyles.HeroGreetingCompact,
         "HeroBarTitle" to WaiveraTextStyles.HeroBarTitle,
         "HeroTitle" to WaiveraTextStyles.HeroTitle,
         "HeroReward" to WaiveraTextStyles.HeroReward,

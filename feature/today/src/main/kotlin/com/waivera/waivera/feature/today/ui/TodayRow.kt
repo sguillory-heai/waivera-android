@@ -5,12 +5,16 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -46,7 +50,8 @@ import com.waivera.waivera.feature.today.R
  * ("Not sent", "Mention · 5m"), a headline that wraps (up to [headlineMaxLines]), supporting
  * text, a leading tile and a trailing slot. TalkBack reads the tappable part as one element with
  * [description], so compact visuals like "5m" are spoken in full. Every Today card opens
- * something, so it ends in the same chevron by default. [below] holds separate actions inside
+ * something, so it ends in the same chevron by default. [quote] is what someone said (a
+ * mention's snippet), on its own line behind a rule in [quoteRuleColor]. [below] holds separate actions inside
  * the card (an invitation's Decline and Accept), outside the card's own tap target.
  */
 @Composable
@@ -59,6 +64,8 @@ internal fun TodayRow(
     eyebrow: String? = null,
     eyebrowColor: Color = WaiveraTheme.colors.textSecondary,
     supporting: String? = null,
+    quote: String? = null,
+    quoteRuleColor: Color = WaiveraTheme.colors.accent,
     emphasized: Boolean = false,
     headlineMaxLines: Int = HEADLINE_MAX_LINES,
     showChevron: Boolean = true,
@@ -110,6 +117,7 @@ internal fun TodayRow(
                         maxLines = headlineMaxLines,
                         overflow = TextOverflow.Ellipsis,
                     )
+                    if (quote != null) QuoteLine(quote = quote, ruleColor = quoteRuleColor)
                     if (supporting != null) {
                         Text(
                             text = supporting,
@@ -145,6 +153,31 @@ internal fun TodayRow(
                 below()
             }
         }
+    }
+}
+
+/** A quote on its own line behind a thin rule, as the concept draws a mention's snippet. */
+@Composable
+private fun QuoteLine(quote: String, ruleColor: Color) {
+    Row(
+        modifier = Modifier
+            .padding(top = WaiveraSpacing.ExtraSmall)
+            .height(IntrinsicSize.Min),
+        horizontalArrangement = Arrangement.spacedBy(WaiveraSpacing.Small),
+    ) {
+        Box(
+            modifier = Modifier
+                .width(WaiveraSizes.QuoteRule)
+                .fillMaxHeight()
+                .background(ruleColor, WaiveraShapes.Circle),
+        )
+        Text(
+            text = quote,
+            style = MaterialTheme.typography.bodyMedium,
+            color = WaiveraTheme.colors.text,
+            maxLines = QUOTE_MAX_LINES,
+            overflow = TextOverflow.Ellipsis,
+        )
     }
 }
 
@@ -211,6 +244,7 @@ internal val CardGap = WaiveraSpacing.MediumSmall + WaiveraSpacing.XxSmall
 
 private const val HEADLINE_MAX_LINES = 3
 private const val SUPPORTING_MAX_LINES = 2
+private const val QUOTE_MAX_LINES = 2
 
 @WaiveraPreviews
 @Composable
@@ -219,11 +253,12 @@ private fun TodayRowPreview() {
         Column(Modifier.background(WaiveraTheme.colors.background)) {
             TodaySectionHeader(title = "Needs you")
             TodayRow(
-                headline = "Priya Raman mentioned you: \"the Hughes visit moved to 10\"",
+                headline = "Priya Raman mentioned you",
                 description = "Unread. Priya Raman mentioned you",
                 onClick = {},
                 onClickLabel = "Open message",
-                supporting = "Mention · 5m",
+                eyebrow = "Mention · 5m",
+                quote = "the Hughes visit moved to 10",
                 emphasized = true,
                 leading = { TodayTile(icon = R.drawable.feature_today_ic_mention, tone = WaiveraTileTone.Rose) },
             )

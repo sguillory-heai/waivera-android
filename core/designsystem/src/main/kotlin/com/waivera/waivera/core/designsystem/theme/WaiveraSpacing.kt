@@ -127,6 +127,10 @@ object WaiveraSizes {
     val Ring: Dp = 96.dp
     val RingStroke: Dp = 10.dp
 
+    /** The progress ring on a short window (`isShortWindow`). */
+    val RingCompact: Dp = 72.dp
+    val RingStrokeCompact: Dp = 8.dp
+
     /** The all-caught-up ring, its stroke, its halo's reach beyond it and its check. */
     val RewardRing: Dp = 132.dp
     val RewardRingStroke: Dp = 12.dp

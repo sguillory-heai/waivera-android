@@ -192,6 +192,9 @@ object WaiveraTextStyles {
         hyphens = WaiveraHyphens,
     )
 
+    /** The greeting on a short window, so the sheet's first rows show above the fold: 24 / 800. */
+    val HeroGreetingCompact = HeroGreeting.copy(fontSize = 24.sp, lineHeight = 28.sp)
+
     /** The hero bar's screen title next to the mark ("Today"): 17 / 800. */
     val HeroBarTitle = TextStyle(
         fontFamily = Jakarta,

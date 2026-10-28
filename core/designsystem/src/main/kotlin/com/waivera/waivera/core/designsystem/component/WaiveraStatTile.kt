@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
@@ -41,22 +42,43 @@ fun WaiveraStatRow(modifier: Modifier = Modifier, content: @Composable RowScope.
 /**
  * One stat on the hero: the number large ("14") over its label ("events this week") on a faint
  * glass tile. TalkBack reads [contentDescription] (for example "14 events this week") as one item.
- * Use it inside [WaiveraStatRow].
+ * Use it inside [WaiveraStatRow]. [compact] (a short window at regular font) puts the label
+ * beside the number on a shorter tile, so the sheet's first rows still show above the fold.
  */
 @Composable
-fun RowScope.WaiveraStatTile(value: String, label: String, contentDescription: String, modifier: Modifier = Modifier) {
+fun RowScope.WaiveraStatTile(
+    value: String,
+    label: String,
+    contentDescription: String,
+    modifier: Modifier = Modifier,
+    compact: Boolean = false,
+) {
     val hero = WaiveraHero.colors
+    val tile = modifier
+        .weight(1f)
+        .fillMaxHeight()
+        .background(hero.tile, WaiveraShapes.StatTile)
+        .border(BorderStroke(WaiveraSpacing.Hairline, hero.tileBorder), WaiveraShapes.StatTile)
+        .clearAndSetSemantics { this.contentDescription = contentDescription }
+    if (compact) {
+        Row(
+            modifier = tile.padding(
+                horizontal = WaiveraSpacing.Small + WaiveraSpacing.XxSmall,
+                vertical = WaiveraSpacing.Small,
+            ),
+            horizontalArrangement = Arrangement.spacedBy(WaiveraSpacing.ExtraSmall + WaiveraSpacing.XxSmall),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(text = value, style = WaiveraTextStyles.StatNumeral, color = hero.onHeader, maxLines = 1)
+            Text(text = label, style = WaiveraTextStyles.StatLabel, color = hero.onHeaderSecondary, maxLines = 2)
+        }
+        return
+    }
     Column(
-        modifier = modifier
-            .weight(1f)
-            .fillMaxHeight()
-            .background(hero.tile, WaiveraShapes.StatTile)
-            .border(BorderStroke(WaiveraSpacing.Hairline, hero.tileBorder), WaiveraShapes.StatTile)
-            .padding(
-                horizontal = WaiveraSpacing.MediumSmall,
-                vertical = WaiveraSpacing.MediumSmall - WaiveraSpacing.Hairline,
-            )
-            .clearAndSetSemantics { this.contentDescription = contentDescription },
+        modifier = tile.padding(
+            horizontal = WaiveraSpacing.MediumSmall,
+            vertical = WaiveraSpacing.MediumSmall - WaiveraSpacing.Hairline,
+        ),
         verticalArrangement = Arrangement.spacedBy(WaiveraSpacing.XxSmall),
     ) {
         Text(text = value, style = WaiveraTextStyles.StatNumeral, color = hero.onHeader, maxLines = 1)

@@ -24,6 +24,7 @@ class Path05TodayTest : NavTourHarness() {
     fun path05_directMessageRow_opensConversationOnToday() {
         TourSeeds.priyaAsks(world.backend())
         launch()
+        showAllNeedsYou()
         expectScreen("Needs you")
         shot("path_05_today_01_overview")
         shotDark("path_05_today_01_overview")
@@ -42,6 +43,7 @@ class Path05TodayTest : NavTourHarness() {
     @Test
     fun path05_mentionRow_opensConversationAtTheMessage() {
         launch()
+        showAllNeedsYou()
         click(hasClickLabel("Open message") and textOrDescription("the Hughes visit moved to 10", substring = true))
         expectTop(ConversationRoute(DemoData.GROUP, messageId = MENTION_MESSAGE))
         expectStack(TodayRoute, ConversationRoute(DemoData.GROUP))
@@ -94,6 +96,7 @@ class Path05TodayTest : NavTourHarness() {
     @Test
     fun path05_invitationAccept_onToday() {
         launch()
+        showAllNeedsYou()
         click(hasContentDescription(ACCEPT_INVITE))
         expectScreen(stringOf(TodayR.string.feature_today_invitation_accepted))
         expectStack(TodayRoute)
@@ -103,6 +106,7 @@ class Path05TodayTest : NavTourHarness() {
     @Test
     fun path05_invitationAccept_onToday_undoBringsItBack() {
         launch()
+        showAllNeedsYou()
         click(hasContentDescription(ACCEPT_INVITE))
         expectScreen(stringOf(TodayR.string.feature_today_invitation_accepted))
         click("Undo")
@@ -113,6 +117,7 @@ class Path05TodayTest : NavTourHarness() {
     @Test
     fun path05_invitationRow_opensEvent_acceptThenUndo() {
         launch()
+        showAllNeedsYou()
         click(hasClickLabel("Open event") and textOrDescription(INVITE_TITLE, substring = true))
         expectStack(TodayRoute, CalendarEventRoute(INVITE))
         expectScreen("You haven't responded yet.")
@@ -130,6 +135,15 @@ class Path05TodayTest : NavTourHarness() {
 
         systemBack()
         expectStack(TodayRoute)
+    }
+
+    /**
+     * Needs you folds after three rows, as in concept A; opens the rest (when there are more) so
+     * every row kind can be reached.
+     */
+    private fun showAllNeedsYou() {
+        val showAll = textOrDescription(stringOf(TodayR.string.feature_today_brand_show_all))
+        if (exists(showAll and clickable())) click(showAll)
     }
 
     private companion object {

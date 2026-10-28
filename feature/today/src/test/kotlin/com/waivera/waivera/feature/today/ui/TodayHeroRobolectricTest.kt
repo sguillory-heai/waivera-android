@@ -88,7 +88,7 @@ class TodayHeroRobolectricTest {
             next.fetchSemanticsNode().config[SemanticsActions.OnClick].label,
         )
         next.performClick()
-        assertEquals("demo_allday", opened, "the hero shows the first Up next item")
+        assertEquals("demo_visit", opened, "the hero features the first timed Up next item, not the all-day one")
     }
 
     @Test

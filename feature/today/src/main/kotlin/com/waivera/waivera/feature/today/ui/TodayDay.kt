@@ -110,8 +110,10 @@ private fun scheduledText(scheduled: Duration): String? {
 }
 
 /**
- * Today's next timed event under the track: the clock ("11:00 / AM"), a teal dot, the title with
- * "Until 12:00 PM · place", and the countdown chip while it is close. It opens the event.
+ * Today's next timed event under the track: the clock ("11:00 AM") with the countdown chip under
+ * it while it is close, a teal dot, then the title with "Until 12:00 PM · place". The chip sits
+ * under the clock rather than at the end so the title keeps the row's width on a small phone,
+ * where it was squeezed into a narrow middle column ("Client home / visit"). It opens the event.
  */
 @Composable
 private fun DayNextRow(item: NextUpItem, onClick: () -> Unit) {
@@ -149,7 +151,10 @@ private fun DayNextRow(item: NextUpItem, onClick: () -> Unit) {
                 horizontalArrangement = Arrangement.spacedBy(WaiveraSpacing.MediumSmall),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Text(text = formats.time(start), style = WaiveraTextStyles.ClockTime, color = colors.text)
+                Column(verticalArrangement = Arrangement.spacedBy(WaiveraSpacing.ExtraSmall)) {
+                    Text(text = formats.time(start), style = WaiveraTextStyles.ClockTime, color = colors.text)
+                    if (countdown) CountdownChip(text = upcoming)
+                }
                 Box(
                     modifier = Modifier
                         .size(WaiveraSizes.TimelineNowDot + WaiveraSpacing.Small)
@@ -181,21 +186,24 @@ private fun DayNextRow(item: NextUpItem, onClick: () -> Unit) {
                         )
                     }
                 }
-                if (countdown) {
-                    Text(
-                        text = upcoming,
-                        style = WaiveraTextStyles.Chip,
-                        color = teal.content,
-                        maxLines = 1,
-                        softWrap = false,
-                        modifier = Modifier
-                            .background(teal.container, WaiveraShapes.CountBadge)
-                            .padding(horizontal = WaiveraSpacing.Small, vertical = WaiveraSpacing.ExtraSmall),
-                    )
-                }
             }
         }
     }
+}
+
+@Composable
+private fun CountdownChip(text: String) {
+    val teal = WaiveraTileTone.Teal.tint(WaiveraTheme.colors)
+    Text(
+        text = text,
+        style = WaiveraTextStyles.Chip,
+        color = teal.content,
+        maxLines = 1,
+        softWrap = false,
+        modifier = Modifier
+            .background(teal.container, WaiveraShapes.CountBadge)
+            .padding(horizontal = WaiveraSpacing.Small, vertical = WaiveraSpacing.ExtraSmall),
+    )
 }
 
 private fun DayBlock.toTimeline() = WaiveraTimelineBlock(

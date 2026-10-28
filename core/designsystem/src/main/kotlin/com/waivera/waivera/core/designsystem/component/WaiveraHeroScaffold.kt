@@ -136,18 +136,23 @@ fun WaiveraHeroTopBar(title: String, modifier: Modifier = Modifier, account: Top
 
 /**
  * The glass summary card on the hero ("5 of 9 handled"): a faint white fill and hairline over the
- * plum. Its content uses the hero inks ([WaiveraHero.colors]).
+ * plum. Its content uses the hero inks ([WaiveraHero.colors]). [compact] tightens its padding on
+ * a short window.
  */
 @Composable
-fun WaiveraHeroCard(modifier: Modifier = Modifier, content: @Composable ColumnScope.() -> Unit) {
+fun WaiveraHeroCard(
+    modifier: Modifier = Modifier,
+    compact: Boolean = false,
+    content: @Composable ColumnScope.() -> Unit,
+) {
     val hero = WaiveraHero.colors
     Column(
         modifier = modifier
             .fillMaxWidth()
             .background(hero.card, WaiveraShapes.HeroCard)
             .border(BorderStroke(WaiveraSpacing.Hairline, hero.cardBorder), WaiveraShapes.HeroCard)
-            .padding(WaiveraSpacing.Medium + WaiveraSpacing.XxSmall),
-        verticalArrangement = Arrangement.spacedBy(WaiveraSpacing.Medium),
+            .padding(if (compact) WaiveraSpacing.MediumSmall else WaiveraSpacing.Medium + WaiveraSpacing.XxSmall),
+        verticalArrangement = Arrangement.spacedBy(if (compact) WaiveraSpacing.MediumSmall else WaiveraSpacing.Medium),
         content = content,
     )
 }

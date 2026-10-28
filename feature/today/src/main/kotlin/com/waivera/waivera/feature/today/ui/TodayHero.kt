@@ -48,6 +48,7 @@ import com.waivera.waivera.core.designsystem.theme.WaiveraSpacing
 import com.waivera.waivera.core.designsystem.theme.WaiveraTextStyles
 import com.waivera.waivera.core.designsystem.theme.WaiveraTheme
 import com.waivera.waivera.core.designsystem.theme.isLargeFontScale
+import com.waivera.waivera.core.designsystem.theme.isShortWindow
 import com.waivera.waivera.feature.today.R
 import com.waivera.waivera.feature.today.model.NextUpItem
 import com.waivera.waivera.feature.today.model.TodayProgress
@@ -81,10 +82,16 @@ internal fun TodayHero(state: TodayUiState, callbacks: TodayCallbacks, modifier:
     }
 }
 
+/**
+ * On a short window (a 640dp phone) the greeting, ring, card and stat tiles compact, so at least
+ * two Needs you rows show under the hero instead of one.
+ */
 @Composable
 private fun DayHeroBody(state: TodayUiState, onOpenEvent: (String) -> Unit) {
     val formats = rememberTodayFormats()
     val hero = WaiveraHero.colors
+    val compact = isShortWindow()
+    val compactTiles = compact && !isLargeFontScale()
     Column(modifier = Modifier.padding(horizontal = WaiveraSpacing.Gutter + WaiveraSpacing.ExtraSmall)) {
         state.date?.let { date ->
             val spoken = formats.longDay(date)
@@ -100,7 +107,7 @@ private fun DayHeroBody(state: TodayUiState, onOpenEvent: (String) -> Unit) {
         state.greeting?.let { greeting ->
             Text(
                 text = greetingText(greeting),
-                style = WaiveraTextStyles.HeroGreeting,
+                style = if (compact) WaiveraTextStyles.HeroGreetingCompact else WaiveraTextStyles.HeroGreeting,
                 color = hero.onHeader,
                 modifier = Modifier
                     .padding(top = WaiveraSpacing.ExtraSmall + WaiveraSpacing.XxSmall)
@@ -108,24 +115,25 @@ private fun DayHeroBody(state: TodayUiState, onOpenEvent: (String) -> Unit) {
             )
         }
     }
-    Spacer(Modifier.height(WaiveraSpacing.Medium + WaiveraSpacing.XxSmall))
+    Spacer(Modifier.height(if (compact) WaiveraSpacing.Small else WaiveraSpacing.Medium + WaiveraSpacing.XxSmall))
     val progress = state.progress
     val cardModifier = Modifier.padding(horizontal = WaiveraSpacing.Gutter)
     when {
         progress != null -> SummaryCard(
             progress = progress,
-            next = state.nextUp.items.firstOrNull(),
+            next = state.nextUp.featured,
             onOpenEvent = onOpenEvent,
+            compact = compact,
             modifier = cardModifier,
         )
-        state.loadError == null -> SummaryPlaceholder(modifier = cardModifier)
+        state.loadError == null -> SummaryPlaceholder(compact = compact, modifier = cardModifier)
         else -> Unit
     }
-    Spacer(Modifier.height(WaiveraSpacing.Small + WaiveraSpacing.XxSmall))
+    Spacer(Modifier.height(if (compact) WaiveraSpacing.Small else WaiveraSpacing.Small + WaiveraSpacing.XxSmall))
     WaiveraStatRow(modifier = Modifier.padding(horizontal = WaiveraSpacing.Gutter)) {
-        CountTile(value = state.stats.eventsToday, label = R.plurals.feature_today_brand_stat_events_today)
-        CountTile(value = state.stats.unreadChats, label = R.plurals.feature_today_brand_stat_unread_chats)
-        CountTile(value = state.stats.eventsThisWeek, label = R.plurals.feature_today_brand_stat_events_week)
+        CountTile(state.stats.eventsToday, R.plurals.feature_today_brand_stat_events_today, compactTiles)
+        CountTile(state.stats.unreadChats, R.plurals.feature_today_brand_stat_unread_chats, compactTiles)
+        CountTile(state.stats.eventsThisWeek, R.plurals.feature_today_brand_stat_events_week, compactTiles)
     }
     Spacer(Modifier.height(WaiveraSpacing.MediumSmall))
 }
@@ -140,10 +148,15 @@ private fun SummaryCard(
     next: NextUpItem?,
     onOpenEvent: (String) -> Unit,
     modifier: Modifier = Modifier,
+    compact: Boolean = false,
 ) {
-    WaiveraHeroCard(modifier = modifier) {
+    // The count inside the ring grows to 130%, which the compact ring has no room for.
+    val smallRing = compact && !isLargeFontScale()
+    WaiveraHeroCard(modifier = modifier, compact = compact) {
         val ring: @Composable () -> Unit = {
             WaiveraProgressRing(
+                size = if (smallRing) WaiveraSizes.RingCompact else WaiveraSizes.Ring,
+                stroke = if (smallRing) WaiveraSizes.RingStrokeCompact else WaiveraSizes.RingStroke,
                 done = progress.handled,
                 total = progress.total,
                 caption = stringResource(R.string.feature_today_brand_ring_caption),
@@ -169,7 +182,7 @@ private fun SummaryCard(
             }
         }
         if (next != null) {
-            NextRow(item = next, onClick = { onOpenEvent(next.eventId) })
+            NextRow(item = next, compact = compact, onClick = { onOpenEvent(next.eventId) })
         }
     }
 }
@@ -203,7 +216,7 @@ private fun SummaryText(progress: TodayProgress) {
  * Later items name their day in the kicker instead. It opens the event.
  */
 @Composable
-private fun NextRow(item: NextUpItem, onClick: () -> Unit) {
+private fun NextRow(item: NextUpItem, compact: Boolean, onClick: () -> Unit) {
     val formats = rememberTodayFormats()
     val hero = WaiveraHero.colors
     val title = item.title ?: stringResource(R.string.feature_today_invitation_untitled)
@@ -234,7 +247,7 @@ private fun NextRow(item: NextUpItem, onClick: () -> Unit) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(top = WaiveraSpacing.MediumSmall)
+                    .padding(top = if (compact) WaiveraSpacing.Small else WaiveraSpacing.MediumSmall)
                     .clearAndSetSemantics { },
                 horizontalArrangement = Arrangement.spacedBy(WaiveraSpacing.Small),
                 verticalAlignment = Alignment.CenterVertically,
@@ -279,17 +292,17 @@ private fun NextRow(item: NextUpItem, onClick: () -> Unit) {
 
 /** The card's shape while Needs you loads: the ring's track and two faint lines, without numbers. */
 @Composable
-private fun SummaryPlaceholder(modifier: Modifier = Modifier) {
+private fun SummaryPlaceholder(modifier: Modifier = Modifier, compact: Boolean = false) {
     val hero = WaiveraHero.colors
     val loading = stringResource(R.string.feature_today_brand_loading_summary)
-    WaiveraHeroCard(modifier = modifier.clearAndSetSemantics { contentDescription = loading }) {
+    WaiveraHeroCard(modifier = modifier.clearAndSetSemantics { contentDescription = loading }, compact = compact) {
         Row(
             horizontalArrangement = Arrangement.spacedBy(WaiveraSpacing.Medium + WaiveraSpacing.XxSmall),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Box(
                 modifier = Modifier
-                    .size(WaiveraSizes.Ring)
+                    .size(if (compact && !isLargeFontScale()) WaiveraSizes.RingCompact else WaiveraSizes.Ring)
                     .background(hero.tile, WaiveraShapes.Circle),
             )
             Column(
@@ -315,13 +328,14 @@ private fun PlaceholderLine(fraction: Float) {
 
 /** A stat tile for a count; a dash (and "still loading" for TalkBack) until its source loads. */
 @Composable
-private fun RowScope.CountTile(value: Int?, @PluralsRes label: Int) {
+private fun RowScope.CountTile(value: Int?, @PluralsRes label: Int, compact: Boolean = false) {
     val words = pluralStringResource(label, value ?: 0)
     WaiveraStatTile(
         value = value?.toString() ?: stringResource(R.string.feature_today_brand_stat_unknown),
         label = words,
         contentDescription = value?.let { stringResource(R.string.feature_today_brand_stat_a11y, it, words) }
             ?: stringResource(R.string.feature_today_brand_stat_loading_a11y, words),
+        compact = compact,
     )
 }
 

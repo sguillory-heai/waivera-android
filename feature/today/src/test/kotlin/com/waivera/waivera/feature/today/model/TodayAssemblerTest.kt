@@ -102,6 +102,8 @@ class TodayAssemblerTest {
                     timedEvent("started", "2026-11-01T16:00:00Z", "2026-11-01T17:00:00Z", MyInvitation.PENDING),
                 ),
             ),
+            // Opened, so the order of all four shows past the three-row fold.
+            context(TodayLocalState(needsYouExpanded = true)),
         )
         val keys = state.needsYou.items.map { it.key }
         assertEquals(listOf("mention-1", "dm-7", "invite-invite", "ticket-14"), keys)
@@ -213,11 +215,11 @@ class TodayAssemblerTest {
     }
 
     @Test
-    fun `Needs you collapses to five rows with a count of the rest`() {
+    fun `Needs you collapses to three rows with a count of the rest`() {
         val conversations = (1L..7L).map { conversation(it, unread = 1, at = TEST_NOW.minusSeconds(it * 60)) }
         val collapsed = assemble(sources(conversations = conversations))
-        assertEquals(5, collapsed.needsYou.items.size)
-        assertEquals(2, collapsed.needsYou.hiddenCount)
+        assertEquals(3, collapsed.needsYou.items.size)
+        assertEquals(4, collapsed.needsYou.hiddenCount)
         assertFalse(collapsed.needsYou.isExpanded)
         val expandedContext = context(TodayLocalState(needsYouExpanded = true))
         val expanded = assemble(sources(conversations = conversations), expandedContext)

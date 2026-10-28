@@ -150,9 +150,17 @@ private fun TodayList(state: TodayUiState, callbacks: TodayCallbacks, listState:
             else -> {
                 if (staleLine != null) item(key = "stale", contentType = "quiet") { QuietLine(staleLine) }
                 needsYouItems(state, callbacks)
-                yourDayItem(state, callbacks)
-                nextUpItems(state, callbacks)
-                celebrationItems(state, callbacks)
+                // All caught up leads with what is next and who to celebrate, as concept A's
+                // reward does; a working day leads with the day's track.
+                if (state.isAllCaughtUp) {
+                    nextUpItems(state, callbacks)
+                    celebrationItems(state, callbacks)
+                    yourDayItem(state, callbacks)
+                } else {
+                    yourDayItem(state, callbacks)
+                    nextUpItems(state, callbacks)
+                    celebrationItems(state, callbacks)
+                }
                 activityItems(state, callbacks)
             }
         }
@@ -242,7 +250,7 @@ private fun LazyListScope.nextUpItems(state: TodayUiState, callbacks: TodayCallb
                 onClick = callbacks.onOpenSchedule,
                 onClickLabel = stringResource(R.string.feature_today_open_schedule),
             ),
-            modifier = Modifier.sheetHeader(first = state.isAllCaughtUp && state.day == null),
+            modifier = Modifier.sheetHeader(first = state.isAllCaughtUp),
         )
     }
     when {
@@ -256,16 +264,22 @@ private fun LazyListScope.nextUpItems(state: TodayUiState, callbacks: TodayCallb
         section.items.isEmpty() -> item(key = "next-empty", contentType = "quiet") {
             QuietLine(stringResource(R.string.feature_today_next_up_empty))
         }
-        else -> itemsIndexed(
-            items = section.items,
-            key = { _, item -> "next-${item.eventId}" },
-            contentType = { index, _ -> if (index == 0) "next-first" else "next" },
-        ) { index, item ->
-            val modifier = Modifier.animateTodayItem(this, WaiveraTheme.motion)
-            if (index == 0) {
-                UpNextCard(item = item, onClick = { callbacks.onOpenEvent(item.eventId) }, modifier = modifier)
-            } else {
-                NextUpRow(item = item, onClick = { callbacks.onOpenEvent(item.eventId) }, modifier = modifier)
+        else -> {
+            section.featured?.let { first ->
+                item(key = "next-${first.eventId}", contentType = "next-first") {
+                    UpNextCard(
+                        item = first,
+                        onClick = { callbacks.onOpenEvent(first.eventId) },
+                        modifier = Modifier.animateTodayItem(this, WaiveraTheme.motion),
+                    )
+                }
+            }
+            items(section.others, key = { "next-${it.eventId}" }, contentType = { "next" }) { item ->
+                NextUpRow(
+                    item = item,
+                    onClick = { callbacks.onOpenEvent(item.eventId) },
+                    modifier = Modifier.animateTodayItem(this, WaiveraTheme.motion),
+                )
             }
         }
     }

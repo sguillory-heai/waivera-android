@@ -67,7 +67,8 @@ data class NeedsYouSection(
     val failed: Boolean = false,
 ) {
     companion object {
-        const val COLLAPSED_COUNT = 5
+        /** Concept A folds after three rows, so the day's first cards still show on a short phone. */
+        const val COLLAPSED_COUNT = 3
     }
 }
 
@@ -150,6 +151,17 @@ data class NextUpSection(
     val isReady: Boolean = false,
     val failed: Boolean = false,
 ) {
+    /**
+     * The item the large Up next card and the hero's Next row feature: the first with a start
+     * time, since an all-day item ("Daylight saving ends") is nothing to get to; else the first.
+     */
+    val featured: NextUpItem? get() = items.firstOrNull { it.start != null } ?: items.firstOrNull()
+
+    /** Every item but [featured], in order, for the rows under the card. */
+    val others: List<NextUpItem> get() = featured?.let { first ->
+        items.filterNot { it.eventId == first.eventId }
+    }.orEmpty()
+
     companion object {
         const val COUNT = 3
     }
