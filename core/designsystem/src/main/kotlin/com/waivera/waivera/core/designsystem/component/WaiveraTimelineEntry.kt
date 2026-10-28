@@ -4,11 +4,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -17,8 +14,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.layout.Layout
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Constraints
 import com.waivera.waivera.core.designsystem.preview.WaiveraPreviews
 import com.waivera.waivera.core.designsystem.theme.WaiveraShapes
 import com.waivera.waivera.core.designsystem.theme.WaiveraSizes
@@ -45,6 +45,13 @@ val WaiveraTimelineTone.brush: Brush
  * / AM" in the column (UI10-11). At large font both go on the one line above the card.
  *
  * The time and the rail are decoration for TalkBack: the card carries its own time in words.
+ *
+ * The row is a small custom layout rather than a `Row` at `IntrinsicSize.Min`: the card is
+ * measured first, at its real width, and the time and the rail then take its height. So the row
+ * is exactly as tall as the card it draws, even for a card that picks its layout from its own
+ * measured width (the Day celebration card), and every gap along the rail is the same (UI11-02).
+ * Nothing in the row asks its content for intrinsic measurements, which a SubcomposeLayout
+ * inside a card (such as BoxWithConstraints) does not support.
  */
 @Composable
 fun WaiveraTimelineEntry(
@@ -77,67 +84,97 @@ fun WaiveraTimelineEntry(
                 }
                 Text(text = time, style = WaiveraTextStyles.TimelineTime, color = colors.text)
             }
-            content()
+            Box(modifier = Modifier.testTag(TIMELINE_ENTRY_CONTENT_TEST_TAG)) { content() }
         }
         return
     }
-    Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .height(IntrinsicSize.Min),
-        horizontalArrangement = Arrangement.spacedBy(WaiveraSpacing.Small),
-    ) {
-        Column(
-            modifier = Modifier
-                .width(WaiveraSizes.TimelineTimeColumn)
-                .padding(top = WaiveraSpacing.MediumSmall)
-                .clearAndSetSemantics { },
-            horizontalAlignment = Alignment.End,
-        ) {
-            if (kicker != null) {
+    Layout(
+        modifier = modifier.fillMaxWidth(),
+        content = {
+            Column(
+                modifier = Modifier
+                    .padding(top = WaiveraSpacing.MediumSmall)
+                    .clearAndSetSemantics { },
+                horizontalAlignment = Alignment.End,
+            ) {
+                if (kicker != null) {
+                    Text(
+                        text = kicker,
+                        style = WaiveraTextStyles.TimelineTime,
+                        color = colors.textSecondary,
+                        textAlign = TextAlign.End,
+                        maxLines = 1,
+                    )
+                }
                 Text(
-                    text = kicker,
+                    text = time,
                     style = WaiveraTextStyles.TimelineTime,
-                    color = colors.textSecondary,
+                    color = if (tone == null) colors.textSecondary else colors.text,
                     textAlign = TextAlign.End,
                     maxLines = 1,
+                    softWrap = false,
                 )
             }
-            Text(
-                text = time,
-                style = WaiveraTextStyles.TimelineTime,
-                color = if (tone == null) colors.textSecondary else colors.text,
-                textAlign = TextAlign.End,
-                maxLines = 1,
-                softWrap = false,
-            )
-        }
-        Column(
-            modifier = Modifier
-                .width(WaiveraSizes.TimelineRailBlock)
-                .fillMaxHeight()
-                .clearAndSetSemantics { },
-            horizontalAlignment = Alignment.CenterHorizontally,
-        ) {
-            Box(
-                Modifier
-                    .padding(top = WaiveraSpacing.MediumSmall)
-                    .size(width = WaiveraSizes.TimelineRailBlock, height = WaiveraSizes.TimelineRailBlockTall)
-                    .background(block, WaiveraShapes.TimelineBlock),
-            )
-            if (!isLast) {
+            Column(
+                modifier = Modifier.clearAndSetSemantics { },
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
                 Box(
                     Modifier
-                        .padding(top = WaiveraSpacing.ExtraSmall)
-                        .width(WaiveraSizes.TimelineTick)
-                        .weight(1f)
-                        .background(colors.border),
+                        .padding(top = WaiveraSpacing.MediumSmall)
+                        .size(width = WaiveraSizes.TimelineRailBlock, height = WaiveraSizes.TimelineRailBlockTall)
+                        .background(block, WaiveraShapes.TimelineBlock),
                 )
+                if (!isLast) {
+                    Box(
+                        Modifier
+                            .padding(top = WaiveraSpacing.ExtraSmall)
+                            .width(WaiveraSizes.TimelineTick)
+                            .weight(1f)
+                            .background(colors.border),
+                    )
+                }
             }
+            Box(modifier = Modifier.testTag(TIMELINE_ENTRY_CONTENT_TEST_TAG)) { content() }
+        },
+    ) { measurables, constraints ->
+        val (timeColumn, railColumn, card) = measurables
+        val gap = WaiveraSpacing.Small.roundToPx()
+        val timeWidth = WaiveraSizes.TimelineTimeColumn.roundToPx()
+        val railWidth = WaiveraSizes.TimelineRailBlock.roundToPx()
+        val cardX = timeWidth + railWidth + 2 * gap
+        val cardWidth = if (constraints.hasBoundedWidth) {
+            (constraints.maxWidth - cardX).coerceAtLeast(0)
+        } else {
+            Constraints.Infinity
         }
-        Box(modifier = Modifier.weight(1f)) { content() }
+        // The card first, at its real width, so the row is as tall as the card it draws.
+        val cardPlaceable = card.measure(
+            Constraints(
+                minWidth = if (cardWidth == Constraints.Infinity) 0 else cardWidth,
+                maxWidth = cardWidth,
+                maxHeight = constraints.maxHeight,
+            ),
+        )
+        val timePlaceable = timeColumn.measure(
+            Constraints.fixedWidth(timeWidth).copy(maxHeight = constraints.maxHeight),
+        )
+        // The time and the rail's block never clip: a card shorter than them grows the row.
+        val railMinimum = (WaiveraSpacing.MediumSmall + WaiveraSizes.TimelineRailBlockTall).roundToPx()
+        val height = maxOf(cardPlaceable.height, timePlaceable.height, railMinimum)
+            .coerceIn(constraints.minHeight, constraints.maxHeight)
+        val railPlaceable = railColumn.measure(Constraints.fixed(railWidth, height))
+        val width = if (constraints.hasBoundedWidth) constraints.maxWidth else cardX + cardPlaceable.width
+        layout(width, height) {
+            timePlaceable.placeRelative(0, 0)
+            railPlaceable.placeRelative(timeWidth + gap, 0)
+            cardPlaceable.placeRelative(cardX, 0)
+        }
     }
 }
+
+/** Tags the card slot of each [WaiveraTimelineEntry], for layout tests that measure the rail. */
+const val TIMELINE_ENTRY_CONTENT_TEST_TAG = "waiveraTimelineEntryContent"
 
 @WaiveraPreviews
 @Composable

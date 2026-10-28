@@ -170,9 +170,10 @@ private fun MilestoneCard(
     val sentence = CelebrationText.self(item.celebration)?.takeIf { !showWishes }?.resolve()
         ?: CelebrationText.full(item.celebration, fallbackName).resolve()
     val emoji = CelebrationText.emoji(item.celebration).resolve()
-    // Not BoxWithConstraints: the Day rail sizes its row with IntrinsicSize.Min, and a
-    // SubcomposeLayout throws when asked for intrinsics. The card is always full width, so its
-    // measured width settles in one frame and never depends on the narrow choice.
+    // Not BoxWithConstraints: the card's own width is all it needs, and a SubcomposeLayout throws
+    // if any parent ever asks it for intrinsics. The card is always full width, so its measured
+    // width settles in one frame and never depends on the narrow choice; the Day rail takes the
+    // height the card draws at (UI11-02).
     val narrowBelowPx = with(LocalDensity.current) { CalendarSizes.CelebrationNarrowCard.roundToPx() }
     var narrow by remember { mutableStateOf(false) }
     Box(
