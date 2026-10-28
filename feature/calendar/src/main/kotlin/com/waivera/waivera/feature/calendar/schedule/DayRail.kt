@@ -63,13 +63,17 @@ internal fun AgendaRailEntry(
     modifier: Modifier = Modifier,
     content: @Composable () -> Unit,
 ) {
-    val text = when (val time = railTime(item.timing)) {
-        is RailTime.At -> clock(time.time)
-        is RailTime.Until -> stringResource(R.string.feature_calendar_until, clock(time.time))
+    val rail = railTime(item.timing)
+    val text = when (rail) {
+        is RailTime.At -> clock(rail.time)
+        is RailTime.Until -> clock(rail.time)
         RailTime.AllDay -> stringResource(R.string.feature_calendar_all_day)
     }
+    // "Until" goes over the time, so the column never wraps "Until 6:00 / AM" (UI10-11).
+    val kicker = if (rail is RailTime.Until) stringResource(R.string.feature_calendar_until_kicker) else null
     WaiveraTimelineEntry(
         time = text,
+        kicker = kicker,
         tone = railTone(item, ended),
         isLast = isLast,
         modifier = modifier,

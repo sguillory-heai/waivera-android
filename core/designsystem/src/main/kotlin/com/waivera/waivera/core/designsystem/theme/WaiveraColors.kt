@@ -29,6 +29,11 @@ data class WaiveraColors(
     val borderStrong: Color,
     val text: Color,
     val textSecondary: Color,
+    /**
+     * Non-essential text that should recede, such as the other month's dates in a month grid:
+     * 3:1 on every page surface (the non-text minimum), never for anything that must be read.
+     */
+    val textTertiary: Color,
     val accent: Color,
     /** Text links ("Forgot password?", "Show all"): the accent in light, a lighter lilac in dark. */
     val link: Color,
@@ -148,6 +153,7 @@ internal val LightWaiveraColors = WaiveraColors(
     borderStrong = WaiveraPalette.BorderStrongLight,
     text = WaiveraPalette.TextLight,
     textSecondary = WaiveraPalette.TextSecondaryLight,
+    textTertiary = WaiveraPalette.TextTertiaryLight,
     accent = WaiveraPalette.Violet,
     link = WaiveraPalette.Violet,
     accentFill = WaiveraPalette.Violet,
@@ -226,6 +232,7 @@ internal val DarkWaiveraColors = WaiveraColors(
     borderStrong = WaiveraPalette.BorderStrongDark,
     text = WaiveraPalette.TextDark,
     textSecondary = WaiveraPalette.TextSecondaryDark,
+    textTertiary = WaiveraPalette.TextTertiaryDark,
     accent = WaiveraPalette.VioletDarkAccent,
     link = WaiveraPalette.VioletDarkLink,
     accentFill = WaiveraPalette.VioletDarkFill,

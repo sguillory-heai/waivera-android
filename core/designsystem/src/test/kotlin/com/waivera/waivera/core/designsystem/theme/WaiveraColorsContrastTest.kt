@@ -27,6 +27,24 @@ class WaiveraColorsContrastTest {
         }
     }
 
+    /**
+     * Tertiary text (the other month's dates) is quieter than secondary but still meets the 3:1
+     * non-text minimum on every page surface (UI10-16).
+     */
+    @Test
+    fun textTertiary_recedesButStaysVisible() = forEachTheme { colors ->
+        for ((surfaceName, surface) in pageSurfaces(colors)) {
+            ui("textTertiary on $surfaceName", colors.textTertiary, surface)
+            val tertiary = contrast(colors.textTertiary, surface)
+            val secondary = contrast(colors.textSecondary, surface)
+            assertTrue(
+                secondary - tertiary >= TERTIARY_STEP,
+                "textTertiary on $surfaceName (${"%.2f".format(tertiary)}:1) is too close to textSecondary " +
+                    "(${"%.2f".format(secondary)}:1)",
+            )
+        }
+    }
+
     @Test
     fun text_onFillsAndContainers() = forEachTheme { colors ->
         text("onAccent on accentFill (primary button)", colors.onAccent, colors.accentFill)
@@ -234,6 +252,9 @@ class WaiveraColorsContrastTest {
         const val SKELETON_MIN = 1.3
         const val AVATAR_FILL_MIN = 1.3
         const val PLUM_MAX_BLUE_LEAD = 0.07f
+
+        /** How much less contrast tertiary text has than secondary, so the two read as two steps. */
+        const val TERTIARY_STEP = 2.0
 
         fun contrast(a: Color, b: Color): Double {
             val la = luminance(a)

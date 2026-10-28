@@ -49,6 +49,12 @@ class ScheduleTextTest {
         val date = LocalDate.of(2026, 10, 27)
         assertEquals("October 2026", ScheduleText.monthYear(date, Locale.US))
         assertEquals("Tue, October\u00A027", ScheduleText.weekdayMonthDay(date, Locale.US))
+        assertEquals("Tue, Oct\u00A027", ScheduleText.weekdayMonthDay(date, Locale.US, shortMonth = true))
+        // The day DST ends in Chicago names its date like any other.
+        assertEquals(
+            "Sun, Nov\u00A01",
+            ScheduleText.weekdayMonthDay(LocalDate.of(2026, 11, 1), Locale.US, shortMonth = true),
+        )
         assertEquals("Tuesday, October\u00A027", ScheduleText.fullDay(date, Locale.US))
         assertEquals("Tue, Oct\u00A027", ScheduleText.shortDay(date, 2026, Locale.US))
         assertEquals("Wed, Jan\u00A06, 2027", ScheduleText.shortDay(LocalDate.of(2027, 1, 6), 2026, Locale.US))

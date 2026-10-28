@@ -46,6 +46,8 @@
     <string name="feature_calendar_with_detail">%1$s · %2$s</string>
     <string name="feature_calendar_all_day">All day</string>
     <string name="feature_calendar_until">Until %1$s</string>
+    <!-- Over the end time in the Day timeline, for an overnight item that began the day before. -->
+    <string name="feature_calendar_until_kicker">Until</string>
     <string name="feature_calendar_day_time">%1$s %2$s</string>
     <string name="feature_calendar_day_time_long">%1$s, %2$s</string>
     <string name="feature_calendar_open_event">Open event</string>

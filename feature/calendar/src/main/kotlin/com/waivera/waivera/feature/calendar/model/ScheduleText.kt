@@ -16,6 +16,7 @@ object ScheduleText {
     // moves "November 1" down together instead of leaving the day alone on a line (UI3-11).
     private const val MONTH_YEAR = "MMMM yyyy"
     private const val WEEKDAY_MONTH_DAY = "EEE, MMMM\u00A0d"
+    private const val WEEKDAY_SHORT_MONTH_DAY = "EEE, MMM\u00A0d"
     private const val MONTH_DAY = "MMMM\u00A0d"
     private const val DAY = "d"
     private const val YEAR = "yyyy"
@@ -25,7 +26,12 @@ object ScheduleText {
 
     fun monthYear(date: LocalDate, locale: Locale): String = format(date, MONTH_YEAR, locale)
 
-    fun weekdayMonthDay(date: LocalDate, locale: Locale): String = format(date, WEEKDAY_MONTH_DAY, locale)
+    /**
+     * "Sun, November 1", or with [shortMonth] "Sun, Nov 1": the Day view's title at 150% font and
+     * up, where the long month wraps (UI10-09).
+     */
+    fun weekdayMonthDay(date: LocalDate, locale: Locale, shortMonth: Boolean = false): String =
+        format(date, if (shortMonth) WEEKDAY_SHORT_MONTH_DAY else WEEKDAY_MONTH_DAY, locale)
 
     fun monthDay(date: LocalDate, locale: Locale): String = format(date, MONTH_DAY, locale)
 

@@ -40,6 +40,10 @@ val WaiveraTimelineTone.brush: Brush
  * At large font the time no longer fits a column beside the card, so it moves above the card
  * on a line of its own with the block in front of it, and the rail is left out.
  *
+ * A [kicker] ("Until", for an overnight item that began the day before) sits over the time as a
+ * line of its own, and the time stays on one line, so "Until 6:00 AM" never wraps as "Until 6:00
+ * / AM" in the column (UI10-11). At large font both go on the one line above the card.
+ *
  * The time and the rail are decoration for TalkBack: the card carries its own time in words.
  */
 @Composable
@@ -47,6 +51,7 @@ fun WaiveraTimelineEntry(
     time: String,
     tone: WaiveraTimelineTone?,
     modifier: Modifier = Modifier,
+    kicker: String? = null,
     isLast: Boolean = false,
     content: @Composable () -> Unit,
 ) {
@@ -67,6 +72,9 @@ fun WaiveraTimelineEntry(
                         .size(width = WaiveraSizes.TimelineRailBlock, height = WaiveraSizes.TimelineRailBlockShort)
                         .background(block, WaiveraShapes.TimelineBlock),
                 )
+                if (kicker != null) {
+                    Text(text = kicker, style = WaiveraTextStyles.TimelineTime, color = colors.textSecondary)
+                }
                 Text(text = time, style = WaiveraTextStyles.TimelineTime, color = colors.text)
             }
             content()
@@ -79,16 +87,31 @@ fun WaiveraTimelineEntry(
             .height(IntrinsicSize.Min),
         horizontalArrangement = Arrangement.spacedBy(WaiveraSpacing.Small),
     ) {
-        Text(
-            text = time,
-            style = WaiveraTextStyles.TimelineTime,
-            color = if (tone == null) colors.textSecondary else colors.text,
-            textAlign = TextAlign.End,
+        Column(
             modifier = Modifier
                 .width(WaiveraSizes.TimelineTimeColumn)
                 .padding(top = WaiveraSpacing.MediumSmall)
                 .clearAndSetSemantics { },
-        )
+            horizontalAlignment = Alignment.End,
+        ) {
+            if (kicker != null) {
+                Text(
+                    text = kicker,
+                    style = WaiveraTextStyles.TimelineTime,
+                    color = colors.textSecondary,
+                    textAlign = TextAlign.End,
+                    maxLines = 1,
+                )
+            }
+            Text(
+                text = time,
+                style = WaiveraTextStyles.TimelineTime,
+                color = if (tone == null) colors.textSecondary else colors.text,
+                textAlign = TextAlign.End,
+                maxLines = 1,
+                softWrap = false,
+            )
+        }
         Column(
             modifier = Modifier
                 .width(WaiveraSizes.TimelineRailBlock)
@@ -127,6 +150,9 @@ private fun WaiveraTimelineEntryPreview() {
         ) {
             WaiveraTimelineEntry(time = "9:00 AM", tone = null) {
                 WaiveraSheetCard { Text(text = "Team check-in") }
+            }
+            WaiveraTimelineEntry(time = "6:00 AM", kicker = "Until", tone = WaiveraTimelineTone.Violet) {
+                WaiveraSheetCard { Text(text = "Overnight respite shift") }
             }
             WaiveraTimelineEntry(time = "11:00 AM", tone = WaiveraTimelineTone.Teal) {
                 WaiveraSheetCard { Text(text = "Client home visit") }

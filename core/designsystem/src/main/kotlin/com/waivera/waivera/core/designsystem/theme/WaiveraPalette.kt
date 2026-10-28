@@ -55,6 +55,9 @@ internal object WaiveraPalette {
     val TextLight = Color(0xFF1A1324)
     val TextSecondaryLight = Color(0xFF5B5169)
 
+    // 3.1:1 or more on every light page surface: quieter than secondary for non-essential text.
+    val TextTertiaryLight = Color(0xFF8A8197)
+
     /** The concept's violet: links, accents and the start of the light CTA gradient. */
     val Violet = Color(0xFF6A3DC4)
     val PurpleDeep = Color(0xFF5B33AE)
@@ -92,6 +95,9 @@ internal object WaiveraPalette {
     val FieldBorderDark = Color(0xFF776B8F)
     val TextDark = Color(0xFFF4F0FA)
     val TextSecondaryDark = Color(0xFFB3A9C4)
+
+    // 3.2:1 or more on every dark page surface, in the plum family.
+    val TextTertiaryDark = Color(0xFF776D85)
 
     /** Pastel lilac for links, icons and data marks on dark surfaces only (8.3:1 on the page). */
     val VioletDarkAccent = Color(0xFFB79CFF)

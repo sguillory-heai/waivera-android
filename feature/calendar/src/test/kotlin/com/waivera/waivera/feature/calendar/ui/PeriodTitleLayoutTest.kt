@@ -34,8 +34,8 @@ import org.robolectric.annotation.GraphicsMode
 
 /**
  * The Schedule period title at 200% in the slot it gets on the small phone, between the two 48dp
- * arrows (360dp less the gutters and arrows, about 232dp): a wrap never splits a number, and the
- * month keeps its day (UI5-04).
+ * arrows (360dp less the gutters and arrows, about 232dp): a wrap never splits a number, the
+ * month keeps its day (UI5-04), and the Day title's large-font form fits one line (UI10-09).
  */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
@@ -65,6 +65,14 @@ class PeriodTitleLayoutTest {
         val layout = render(title)
         assertNoNumberSplit(title, layout)
         assertMonthKeepsItsDay(title, layout)
+    }
+
+    /** From 150% the Day title abbreviates its month, so at 200% it is one line over the chip (UI10-09). */
+    @Test
+    fun shortDayTitleIsOneLineAtLargeFont() {
+        val title = ScheduleText.weekdayMonthDay(date, Locale.US, shortMonth = true)
+        val layout = render(title)
+        assertEquals("\"$title\" wraps at 200%", 1, layout.lineCount)
     }
 
     private fun render(title: String): TextLayoutResult {

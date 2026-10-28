@@ -21,12 +21,13 @@ import java.util.Locale
 @ReadOnlyComposable
 internal fun currentLocale(): Locale = LocalConfiguration.current.locales.get(0) ?: Locale.ROOT
 
+/** The period's title; [short] abbreviates the Day view's month ("Sun, Nov 1") for large font. */
 @Composable
-internal fun periodTitleText(title: PeriodTitle): String {
+internal fun periodTitleText(title: PeriodTitle, short: Boolean = false): String {
     val locale = currentLocale()
     return when (title) {
         is PeriodTitle.Month -> ScheduleText.monthYear(title.month.atDay(1), locale)
-        is PeriodTitle.Day -> ScheduleText.weekdayMonthDay(title.date, locale)
+        is PeriodTitle.Day -> ScheduleText.weekdayMonthDay(title.date, locale, shortMonth = short)
         is PeriodTitle.WeekInMonth -> stringResource(
             R.string.feature_calendar_period_week_in_month,
             ScheduleText.monthDay(title.start, locale),

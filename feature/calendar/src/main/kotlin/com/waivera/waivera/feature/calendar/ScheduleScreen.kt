@@ -69,6 +69,7 @@ import com.waivera.waivera.core.designsystem.preview.WaiveraPreviews
 import com.waivera.waivera.core.designsystem.theme.WaiveraShapes
 import com.waivera.waivera.core.designsystem.theme.WaiveraSpacing
 import com.waivera.waivera.core.designsystem.theme.WaiveraTheme
+import com.waivera.waivera.core.designsystem.theme.isExtraLargeFontScale
 import com.waivera.waivera.core.designsystem.theme.isLargeFontScale
 import com.waivera.waivera.feature.calendar.model.AgendaNow
 import com.waivera.waivera.feature.calendar.model.ScheduleText
@@ -411,7 +412,8 @@ private fun ViewPicker(state: ScheduleUiState, actions: ScheduleActions) {
  * Previous, the period title, next; the saved zone is a quiet caption under the title. In the Day
  * view the title is the only day heading, so it carries the Today chip. At large font the chip
  * goes under the title, so the title has the whole width between the arrows: beside the chip,
- * "Sun, November 1" had no room left and stranded the "1" (UI5-04).
+ * "Sun, November 1" had no room left and stranded the "1" (UI5-04). From 150% the Day title
+ * abbreviates its month ("Sun, Nov 1"), so it stays on one line over the chip (UI10-09).
  */
 @Composable
 private fun PeriodRow(state: ScheduleUiState, actions: ScheduleActions, modifier: Modifier = Modifier) {
@@ -435,7 +437,7 @@ private fun PeriodRow(state: ScheduleUiState, actions: ScheduleActions, modifier
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(
-                    text = periodTitleText(state.title),
+                    text = periodTitleText(state.title, short = isExtraLargeFontScale()),
                     style = MaterialTheme.typography.titleMedium,
                     color = WaiveraTheme.colors.text,
                     textAlign = TextAlign.Center,

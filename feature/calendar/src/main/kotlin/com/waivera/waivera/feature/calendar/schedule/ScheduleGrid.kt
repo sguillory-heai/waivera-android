@@ -127,7 +127,8 @@ private fun DayCell(cell: GridCell, showWeekday: Boolean, onClick: () -> Unit, m
     val numberColor = when {
         cell.isSelected -> hero.onButton
         cell.isToday -> colors.onAccentSoft
-        !cell.inPeriod -> colors.textSecondary
+        // The other month's dates recede, so this month's read as the grid (UI10-16).
+        !cell.inPeriod -> colors.textTertiary
         else -> colors.text
     }
     val label = cellLabel(cell)
