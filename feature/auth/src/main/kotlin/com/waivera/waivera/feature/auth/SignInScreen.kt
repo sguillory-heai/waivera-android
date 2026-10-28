@@ -76,7 +76,10 @@ fun SignInScreen(configurationMissing: Boolean, modifier: Modifier = Modifier) {
     )
 }
 
-/** Plays the haptic for each one-off outcome: errors and a sent reset link. */
+/**
+ * Plays the haptic for each one-off outcome: errors and warnings. Sign-in and the gates emit no
+ * success; a sent reset link is confirmed by its banner alone (UI6-07).
+ */
 @Composable
 internal fun AuthEffects(effects: Flow<AuthEffect>, haptics: Haptics) {
     LaunchedEffect(effects, haptics) {

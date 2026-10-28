@@ -221,13 +221,14 @@ class SignInViewModelTest {
         assertTrue(session.resets.isEmpty())
     }
 
+    /** The banner confirms; a sent link plays no haptic, as no "sent" does (UI6-07). */
     @Test
-    fun `password reset confirms with the trimmed address`() = runTest {
+    fun `password reset confirms with the trimmed address and no haptic`() = runTest {
         val vm = viewModel()
         vm.effects.test {
             vm.onEmailChange(" alex.rivera@example.org ")
             vm.sendPasswordReset()
-            assertEquals(AuthEffect.Success, awaitItem())
+            expectNoEvents()
         }
         assertEquals(listOf("alex.rivera@example.org"), session.resets)
         assertEquals("alex.rivera@example.org", vm.state.value.resetSentTo)

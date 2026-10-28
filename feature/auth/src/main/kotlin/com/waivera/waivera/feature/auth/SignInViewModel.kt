@@ -157,9 +157,9 @@ class SignInViewModel @Inject constructor(
             val result = session.sendPasswordReset(email)
             val error = result.exceptionOrNull()?.let(WaiveraError::from)
             // An unknown address reads as sent, so the screen never reveals who has an account.
+            // No haptic: the banner is the confirmation, and "sent" never vibrates (UI6-07).
             if (error == null || error.hidesAccountExistence()) {
                 _state.update { it.copy(phase = SignInPhase.Idle, resetSentTo = email) }
-                _effects.trySend(AuthEffect.Success)
             } else {
                 _state.update { it.copy(phase = SignInPhase.Idle, errorMessage = error.messageRes) }
                 _effects.trySend(AuthEffect.Error)

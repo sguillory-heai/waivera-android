@@ -112,7 +112,8 @@ private suspend fun handleEffect(
         }
         TodayEffect.MarkedAllRead -> haptics.success()
         is TodayEffect.OfferUndo -> {
-            haptics.success()
+            // As on the event screen: accepting confirms, declining is a lighter tick.
+            if (effect.accept) haptics.success() else haptics.selection()
             val result = snackbar.showSnackbar(
                 message = if (effect.accept) messages.accepted else messages.declined,
                 actionLabel = messages.undo,
