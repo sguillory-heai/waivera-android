@@ -50,7 +50,10 @@ data class SignInUiState(
 
     /** A banner shows above the form (configuration, failure, signed out or reset sent). */
     val hasBanner: Boolean
-        get() = missingConfiguration != null || errorMessage != null || signedOutNotice || resetSentTo != null ||
+        get() = missingConfiguration != null ||
+            errorMessage != null ||
+            signedOutNotice ||
+            resetSentTo != null ||
             linkUnavailable
 
     /** Never print the password, even in a debug log or a crash report of this object. */
