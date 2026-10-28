@@ -82,6 +82,8 @@ class SignInKeyboardTest {
         val window = compose.onAllNodes(isRoot()).onFirst().fetchSemanticsNode().boundsInRoot
         val keyboardTop = window.bottom - keyboardPx()
         val signIn = compose.onNode(hasText("Sign in") and hasClickAction()).fetchSemanticsNode().boundsInRoot
+        // A node scrolled out of view reports empty bounds at 0,0, which would pass the checks below.
+        assertTrue("Sign in is not on screen (bounds $signIn)", signIn.height > 0f)
         assertTrue("Sign in ends at ${signIn.bottom}, under the keyboard at $keyboardTop", signIn.bottom <= keyboardTop)
         assertTrue("Sign in starts at ${signIn.top}, above the window", signIn.top >= window.top)
 
