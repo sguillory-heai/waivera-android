@@ -12,6 +12,7 @@ import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.unit.Density
 import com.waivera.waivera.core.designsystem.theme.WaiveraMotionScheme
 import com.waivera.waivera.core.designsystem.theme.WaiveraSpacing
@@ -183,6 +184,8 @@ class PrimaryActionBoundsTest {
         }
         val minimum = with(compose.density) { WaiveraSpacing.MinTouchTarget.toPx() }
         listOf("Terms of Service", "Privacy Policy").forEach { label ->
+            // At 200% the footer sits below the fold; scroll it in so the screen edge doesn't cut it.
+            button(label).performScrollTo()
             val bounds = button(label).fetchSemanticsNode().boundsInRoot
             assertTrue("$label is ${bounds.height}px tall, under $minimum", bounds.height >= minimum)
         }

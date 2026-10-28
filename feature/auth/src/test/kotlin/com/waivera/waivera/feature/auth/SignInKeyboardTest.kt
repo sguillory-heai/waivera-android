@@ -10,8 +10,9 @@ import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.isRoot
 import androidx.compose.ui.test.junit4.createComposeRule
-import androidx.compose.ui.test.onRoot
+import androidx.compose.ui.test.onFirst
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.unit.dp
 import androidx.core.graphics.Insets
@@ -76,7 +77,9 @@ class SignInKeyboardTest {
         compose.onAllNodes(hasSetTextAction())[1].performClick()
         raiseKeyboard()
 
-        val window = compose.onRoot().fetchSemanticsNode().boundsInRoot
+        // Focusing the password adds the cursor handle's popup as a second root; the window is
+        // the first.
+        val window = compose.onAllNodes(isRoot()).onFirst().fetchSemanticsNode().boundsInRoot
         val keyboardTop = window.bottom - keyboardPx()
         val signIn = compose.onNode(hasText("Sign in") and hasClickAction()).fetchSemanticsNode().boundsInRoot
         assertTrue("Sign in ends at ${signIn.bottom}, under the keyboard at $keyboardTop", signIn.bottom <= keyboardTop)
@@ -87,7 +90,7 @@ class SignInKeyboardTest {
         assertTrue("the header is not compact: logo is ${logo.height}px tall", logo.height <= compactLogo + 1f)
 
         val theme = if (dark) "dark" else "light"
-        compose.onRoot().captureRoboImage(
+        compose.onAllNodes(isRoot()).onFirst().captureRoboImage(
             filePath = "${ScreenshotMatrix.outputDirectory}/sign_in_keyboard_up_small_${theme}_font100.png",
         )
     }
