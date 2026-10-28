@@ -40,6 +40,7 @@ import com.waivera.waivera.core.designsystem.icon.WaiveraIcons
 import com.waivera.waivera.core.designsystem.preview.WaiveraPreviews
 import com.waivera.waivera.core.designsystem.theme.WaiveraSpacing
 import com.waivera.waivera.core.designsystem.theme.WaiveraTheme
+import com.waivera.waivera.core.designsystem.theme.isLargeFontScale
 import com.waivera.waivera.feature.chat.R
 import kotlinx.coroutines.delay
 
@@ -191,15 +192,18 @@ private fun Header(state: ChatListUiState, actions: ChatListActions, connectingP
                 null
             },
         )
-        val refreshErrorRes = state.refreshErrorRes
-        if (refreshErrorRes != null && bannerState == ConnectionBannerState.Connected) {
+        if (state.refreshErrorRes != null && bannerState == ConnectionBannerState.Connected) {
+            // A "showing saved data" status banner, like Schedule's: a title that says what
+            // happened, and compact at large font with the detail a tap away (UI4-05, UI5-08).
             WaiveraBanner(
-                message = stringResource(R.string.feature_chat_list_refresh_failed, stringResource(refreshErrorRes)),
+                title = stringResource(R.string.feature_chat_list_refresh_failed_title),
+                message = stringResource(R.string.feature_chat_list_refresh_failed),
                 // Saved rows are still on screen: a warning, not a failure of something the person did.
                 tone = BannerTone.Warning,
                 actionLabel = stringResource(R.string.feature_chat_list_retry),
                 onAction = actions.onRetryLoad,
                 actionIcon = WaiveraIcons.Refresh,
+                compact = isLargeFontScale(),
             )
         }
         Column(

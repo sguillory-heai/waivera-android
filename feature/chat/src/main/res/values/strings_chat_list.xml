@@ -27,7 +27,8 @@
     <string name="feature_chat_list_empty_action">Start a chat</string>
     <string name="feature_chat_list_error_title">Conversations didn\'t load</string>
     <string name="feature_chat_list_retry">Retry</string>
-    <string name="feature_chat_list_refresh_failed">Showing saved conversations. %1$s</string>
+    <string name="feature_chat_list_refresh_failed_title">Couldn\'t refresh your chats</string>
+    <string name="feature_chat_list_refresh_failed">Showing saved conversations.</string>
     <string name="feature_chat_list_offline_saved">Showing your saved conversations. New messages arrive when you\'re back online.</string>
     <string name="feature_chat_list_loading">Loading conversations</string>
 
