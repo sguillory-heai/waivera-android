@@ -14,7 +14,9 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.toggleable
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -49,6 +51,7 @@ import com.waivera.waivera.core.designsystem.component.rememberSkeletonPulse
 import com.waivera.waivera.core.designsystem.component.rememberSkeletonVisible
 import com.waivera.waivera.core.designsystem.icon.WaiveraIcons
 import com.waivera.waivera.core.designsystem.preview.WaiveraPreviews
+import com.waivera.waivera.core.designsystem.text.withBreaksAfterHyphens
 import com.waivera.waivera.core.designsystem.theme.WaiveraShapes
 import com.waivera.waivera.core.designsystem.theme.WaiveraSizes
 import com.waivera.waivera.core.designsystem.theme.WaiveraSpacing
@@ -160,16 +163,22 @@ fun ColumnScope.NewChatSheetContent(
                     val pulse = rememberSkeletonPulse()
                     Column { repeat(SKELETON_ROWS) { SkeletonListRow(pulse = pulse) } }
                 }
-                state.loadErrorRes != null -> WaiveraErrorState(
-                    title = stringResource(R.string.feature_chat_newchat_load_error_title),
-                    message = stringResource(state.loadErrorRes),
-                    onRetry = onRetryLoad,
-                )
-                !state.isLoading && state.people.isEmpty() -> WaiveraEmptyState(
-                    title = stringResource(R.string.feature_chat_newchat_empty_title),
-                    message = stringResource(R.string.feature_chat_newchat_empty),
-                    icon = WaiveraIcons.People,
-                )
+                // At 200% the space under the header is a couple of lines tall, so the empty and
+                // error states scroll instead of clipping their message and "Try again" (UI5-07).
+                state.loadErrorRes != null -> Box(Modifier.verticalScroll(rememberScrollState())) {
+                    WaiveraErrorState(
+                        title = stringResource(R.string.feature_chat_newchat_load_error_title),
+                        message = stringResource(state.loadErrorRes),
+                        onRetry = onRetryLoad,
+                    )
+                }
+                !state.isLoading && state.people.isEmpty() -> Box(Modifier.verticalScroll(rememberScrollState())) {
+                    WaiveraEmptyState(
+                        title = stringResource(R.string.feature_chat_newchat_empty_title),
+                        message = stringResource(R.string.feature_chat_newchat_empty),
+                        icon = WaiveraIcons.People,
+                    )
+                }
                 else -> LazyColumn(state = listState) {
                     items(state.people, key = { it.userId }) { person ->
                         PersonOption(
@@ -242,7 +251,7 @@ private fun PersonOption(person: PersonOptionUi, avatar: ImageBitmap?, onToggle:
             contentDescription = null,
         )
         Text(
-            text = person.name,
+            text = person.name.withBreaksAfterHyphens(),
             style = MaterialTheme.typography.titleSmall,
             color = colors.text,
             maxLines = 2,
