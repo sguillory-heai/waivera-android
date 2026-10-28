@@ -205,7 +205,7 @@ private fun PersonHero(state: PersonDetailUiState) {
 private fun PersonDetailsCard(section: Section<PersonDetails>, onRetry: () -> Unit) {
     when (section) {
         Section.Loading -> if (rememberDelayedSkeleton(loading = true)) {
-            ProfileCard { SectionSkeleton(lines = 3) }
+            ProfileCard { SectionSkeleton(rows = 3) }
         }
         is Section.Failed -> ProfileCard(title = stringResource(R.string.feature_profile_person_error_title)) {
             SectionError(section.error, onRetry)

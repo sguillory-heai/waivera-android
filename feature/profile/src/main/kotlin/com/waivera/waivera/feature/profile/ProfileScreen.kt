@@ -302,7 +302,7 @@ private fun DetailsSections(profile: EmployeeProfile?, state: ProfileUiState.Rea
     // The first group sits right under the sheet's curve, as Today's first section does (UI10-01).
     ProfileCard(title = stringResource(R.string.feature_profile_personal_title), first = true) {
         if (profile == null) {
-            if (skeleton) SectionSkeleton(lines = 4)
+            if (skeleton) SectionSkeleton(rows = 4)
         } else {
             InfoRow(stringResource(R.string.feature_profile_email), profile.email ?: state.user.email, address = true)
             InfoRow(stringResource(R.string.feature_profile_phone), profile.phoneNumber ?: state.user.phoneNumber)
@@ -319,7 +319,7 @@ private fun DetailsSections(profile: EmployeeProfile?, state: ProfileUiState.Rea
     }
     ProfileCard(title = stringResource(R.string.feature_profile_professional_title)) {
         if (profile == null) {
-            if (skeleton) SectionSkeleton(lines = 5)
+            if (skeleton) SectionSkeleton(rows = 7)
         } else {
             InfoRow(
                 stringResource(R.string.feature_profile_hire_date),

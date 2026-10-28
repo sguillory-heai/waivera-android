@@ -25,7 +25,7 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.style.TextOverflow
 import com.waivera.waivera.core.designsystem.component.SKELETON_DELAY_MILLIS
-import com.waivera.waivera.core.designsystem.component.SkeletonLine
+import com.waivera.waivera.core.designsystem.component.SkeletonText
 import com.waivera.waivera.core.designsystem.component.WaiveraAddressText
 import com.waivera.waivera.core.designsystem.component.WaiveraCardGroup
 import com.waivera.waivera.core.designsystem.component.WaiveraIconButton
@@ -110,20 +110,35 @@ internal val LocalSkeletonDelayMillis = staticCompositionLocalOf { SKELETON_DELA
 internal fun rememberDelayedSkeleton(loading: Boolean): Boolean =
     rememberSkeletonVisible(loading = loading, delayMillis = LocalSkeletonDelayMillis.current)
 
-/** Placeholder lines for a section still loading (shown only after the skeleton delay). */
+/**
+ * Placeholder [InfoRow]s for a section still loading (shown only after the skeleton delay): each
+ * bone pair has the row's padding and its label and value line heights, so the card is as tall as
+ * the [rows] fields that replace it, at every font scale.
+ */
 @Composable
-internal fun SectionSkeleton(modifier: Modifier = Modifier, lines: Int = 3) {
+internal fun SectionSkeleton(modifier: Modifier = Modifier, rows: Int = 3) {
     val pulse = rememberSkeletonPulse()
     val loading = stringResource(R.string.feature_profile_loading_section)
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = WaiveraSpacing.Medium)
             .semantics { contentDescription = loading },
         verticalArrangement = Arrangement.spacedBy(WaiveraSpacing.Small),
     ) {
-        repeat(lines) { index ->
-            SkeletonLine(widthFraction = if (index % 2 == 0) WIDE_LINE else NARROW_LINE, pulse = pulse)
+        repeat(rows) { index ->
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = WaiveraSpacing.Medium, vertical = WaiveraSpacing.ExtraSmall),
+                verticalArrangement = Arrangement.spacedBy(WaiveraSpacing.XxSmall),
+            ) {
+                SkeletonText(style = WaiveraTextStyles.Kicker, widthFraction = LABEL_LINE, pulse = pulse)
+                SkeletonText(
+                    style = MaterialTheme.typography.bodyLarge,
+                    widthFraction = if (index % 2 == 0) WIDE_LINE else NARROW_LINE,
+                    pulse = pulse,
+                )
+            }
         }
     }
 }
@@ -191,6 +206,7 @@ internal fun ProfileSearchField(
     )
 }
 
+private const val LABEL_LINE = 0.3f
 private const val WIDE_LINE = 0.8f
 private const val NARROW_LINE = 0.55f
 

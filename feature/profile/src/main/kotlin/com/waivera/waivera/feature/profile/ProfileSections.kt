@@ -37,7 +37,7 @@ internal fun TimeOffSection(section: Section<TimeOffSummary>, onRetry: () -> Uni
     when (section) {
         Section.Loading -> {
             if (rememberDelayedSkeleton(loading = true)) {
-                ProfileCard(title = title) { SectionSkeleton(lines = 3) }
+                ProfileCard(title = title) { SectionSkeleton(rows = 3) }
             }
         }
         is Section.Failed -> ProfileCard(title = title) { SectionError(section.error, onRetry) }
@@ -138,7 +138,7 @@ private fun TimeOffRow(request: TimeOffRequest) {
 internal fun FilesSection(section: Section<List<EmployeeFile>>, zone: ZoneId, onRetry: () -> Unit) {
     ProfileCard(title = stringResource(R.string.feature_profile_files_title)) {
         when (section) {
-            Section.Loading -> if (rememberDelayedSkeleton(loading = true)) SectionSkeleton(lines = 3)
+            Section.Loading -> if (rememberDelayedSkeleton(loading = true)) SectionSkeleton(rows = 3)
             is Section.Failed -> SectionError(section.error, onRetry)
             is Section.Ready -> {
                 val visible = section.value.take(ProfileViewModel.VISIBLE_FILES)
@@ -174,7 +174,7 @@ internal fun FilesSection(section: Section<List<EmployeeFile>>, zone: ZoneId, on
 internal fun OrganizationSection(section: Section<OrganizationInfo?>, onRetry: () -> Unit) {
     ProfileCard(title = stringResource(R.string.feature_profile_organization_title)) {
         when (section) {
-            Section.Loading -> if (rememberDelayedSkeleton(loading = true)) SectionSkeleton(lines = 2)
+            Section.Loading -> if (rememberDelayedSkeleton(loading = true)) SectionSkeleton(rows = 2)
             is Section.Failed -> SectionError(section.error, onRetry)
             is Section.Ready -> {
                 val org = section.value

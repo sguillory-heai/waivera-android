@@ -24,7 +24,6 @@ import com.waivera.waivera.core.data.image.AvatarModel
 import com.waivera.waivera.core.designsystem.component.BannerTone
 import com.waivera.waivera.core.designsystem.component.ConnectionBanner
 import com.waivera.waivera.core.designsystem.component.ConnectionBannerState
-import com.waivera.waivera.core.designsystem.component.SkeletonList
 import com.waivera.waivera.core.designsystem.component.WaiveraAvatar
 import com.waivera.waivera.core.designsystem.component.WaiveraBanner
 import com.waivera.waivera.core.designsystem.component.WaiveraEmptyState
@@ -101,7 +100,7 @@ internal fun PeopleContent(
                 .refreshAction(refreshLabel, onRefresh),
         ) {
             when (state.phase) {
-                ListPhase.Loading -> if (rememberDelayedSkeleton(loading = true)) SkeletonList()
+                ListPhase.Loading -> if (rememberDelayedSkeleton(loading = true)) PeopleSkeleton()
                 ListPhase.Error -> WaiveraErrorState(
                     title = stringResource(R.string.feature_profile_people_error_title),
                     message = stringResource(requireNotNull(state.error).messageRes),

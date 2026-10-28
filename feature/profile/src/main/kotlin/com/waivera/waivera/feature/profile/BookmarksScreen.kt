@@ -39,7 +39,6 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.waivera.waivera.core.data.image.AvatarModel
 import com.waivera.waivera.core.designsystem.component.BannerTone
 import com.waivera.waivera.core.designsystem.component.ConnectionBanner
-import com.waivera.waivera.core.designsystem.component.SkeletonList
 import com.waivera.waivera.core.designsystem.component.WaiveraAvatar
 import com.waivera.waivera.core.designsystem.component.WaiveraBanner
 import com.waivera.waivera.core.designsystem.component.WaiveraEmptyState
@@ -168,7 +167,7 @@ internal fun BookmarksContent(
                 modifier = Modifier.weight(1f),
             ) {
                 when (state.phase) {
-                    ListPhase.Loading -> if (rememberDelayedSkeleton(loading = true)) SkeletonList()
+                    ListPhase.Loading -> if (rememberDelayedSkeleton(loading = true)) BookmarksSkeleton()
                     // The raw error is never shown here (spec 06 §B3); the copy is fixed.
                     ListPhase.Error -> WaiveraErrorState(
                         title = stringResource(R.string.feature_profile_bookmarks_error_title),
