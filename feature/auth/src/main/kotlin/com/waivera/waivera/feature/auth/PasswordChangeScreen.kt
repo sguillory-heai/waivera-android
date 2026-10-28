@@ -34,6 +34,7 @@ import com.waivera.waivera.core.designsystem.component.WaiveraBanner
 import com.waivera.waivera.core.designsystem.component.WaiveraButton
 import com.waivera.waivera.core.designsystem.component.WaiveraButtonVariant
 import com.waivera.waivera.core.designsystem.component.WaiveraEmptyState
+import com.waivera.waivera.core.designsystem.component.WaiveraIllustration
 import com.waivera.waivera.core.designsystem.component.WaiveraTopBar
 import com.waivera.waivera.core.designsystem.feedback.rememberHaptics
 import com.waivera.waivera.core.designsystem.icon.WaiveraIcons
@@ -170,7 +171,7 @@ private fun PasswordChangeDone(state: PasswordChangeUiState, onDismiss: () -> Un
     WaiveraEmptyState(
         title = stringResource(R.string.feature_auth_password_change_done_title),
         message = stringResource(R.string.feature_auth_password_change_done_message),
-        icon = WaiveraIcons.Check,
+        illustration = WaiveraIllustration.CaughtUp,
         modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
     )
     // The password is saved either way; only the move into the app failed.

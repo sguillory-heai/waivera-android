@@ -38,6 +38,7 @@ import com.waivera.waivera.core.designsystem.theme.WaiveraShapes
 import com.waivera.waivera.core.designsystem.theme.WaiveraSizes
 import com.waivera.waivera.core.designsystem.theme.WaiveraSpacing
 import com.waivera.waivera.core.designsystem.theme.WaiveraTheme
+import com.waivera.waivera.core.designsystem.theme.isLargeFontScale
 
 /**
  * The one-time value primer shown after the first sign-in on Android 13+ (and after any
@@ -107,6 +108,11 @@ internal val PrimerKinds: List<PrimerKind> = listOf(
     ),
 )
 
+/**
+ * The primer's whole point is "Turn on notifications", so that button stays pinned in thumb
+ * reach at every font size. At large font two pinned buttons would crowd out the benefits, so
+ * there "Not now" moves to the end of the scrolling content instead.
+ */
 @Composable
 internal fun NotificationPrimerContent(
     onEnable: () -> Unit,
@@ -114,8 +120,19 @@ internal fun NotificationPrimerContent(
     modifier: Modifier = Modifier,
     requesting: Boolean = false,
 ) {
+    val notNowInline = isLargeFontScale()
+    val notNow: @Composable () -> Unit = {
+        WaiveraButton(
+            text = stringResource(R.string.feature_auth_primer_not_now),
+            onClick = onNotNow,
+            variant = WaiveraButtonVariant.Text,
+            enabled = !requesting,
+            fullWidth = true,
+        )
+    }
     AuthScaffold(
         modifier = modifier,
+        pinnedAtLargeFont = true,
         bottomBar = {
             WaiveraButton(
                 text = stringResource(R.string.feature_auth_primer_enable),
@@ -123,13 +140,7 @@ internal fun NotificationPrimerContent(
                 loadingText = stringResource(R.string.feature_auth_primer_requesting).takeIf { requesting },
                 fullWidth = true,
             )
-            WaiveraButton(
-                text = stringResource(R.string.feature_auth_primer_not_now),
-                onClick = onNotNow,
-                variant = WaiveraButtonVariant.Text,
-                enabled = !requesting,
-                fullWidth = true,
-            )
+            if (!notNowInline) notNow()
         },
     ) {
         AuthHeader(
@@ -137,6 +148,7 @@ internal fun NotificationPrimerContent(
             message = stringResource(R.string.feature_auth_primer_message),
             icon = WaiveraIcons.Notifications,
             tone = WaiveraTileTone.Amber,
+            welcome = true,
         )
         // Tighter on a short window so the kinds and the control note fit above the pinned actions.
         val gap = if (LocalCompactAuthWindow.current) WaiveraSpacing.MediumSmall else WaiveraSpacing.Medium
@@ -154,6 +166,7 @@ internal fun NotificationPrimerContent(
                 color = WaiveraTheme.colors.textSecondary,
                 modifier = Modifier.padding(top = WaiveraSpacing.ExtraSmall),
             )
+            if (notNowInline) notNow()
         }
     }
 }

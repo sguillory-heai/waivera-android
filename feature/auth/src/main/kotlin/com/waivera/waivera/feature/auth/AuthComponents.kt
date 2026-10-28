@@ -43,8 +43,10 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import com.waivera.waivera.core.designsystem.component.WaiveraBottomActionLayout
+import com.waivera.waivera.core.designsystem.component.WaiveraBrandSurface
 import com.waivera.waivera.core.designsystem.component.WaiveraIconButton
 import com.waivera.waivera.core.designsystem.component.WaiveraIconTile
+import com.waivera.waivera.core.designsystem.component.WaiveraLogo
 import com.waivera.waivera.core.designsystem.component.WaiveraTextField
 import com.waivera.waivera.core.designsystem.component.WaiveraTileTone
 import com.waivera.waivera.core.designsystem.theme.WaiveraSizes
@@ -60,14 +62,16 @@ import com.waivera.waivera.core.designsystem.theme.WaiveraTheme
  *
  * [bottomBar] holds the screen's primary actions in a [WaiveraBottomActionLayout]: pinned at the
  * bottom of the screen, in thumb reach, with the content scrolling above them; after the content
- * at large font. [LocalCompactAuthWindow] tells the content when the window is short, so it can
- * drop optional copy.
+ * at large font, unless [pinnedAtLargeFont] keeps a single action pinned there too.
+ * [LocalCompactAuthWindow] tells the content when the window is short, so it can drop optional
+ * copy.
  */
 @Composable
 internal fun AuthScaffold(
     modifier: Modifier = Modifier,
     insets: WindowInsets = WindowInsets.safeDrawing,
     bottomBar: (@Composable ColumnScope.() -> Unit)? = null,
+    pinnedAtLargeFont: Boolean = false,
     content: @Composable ColumnScope.() -> Unit,
 ) {
     BoxWithConstraints(
@@ -82,7 +86,12 @@ internal fun AuthScaffold(
             .fillMaxSize()
         CompositionLocalProvider(LocalCompactAuthWindow provides (maxHeight < WaiveraSizes.CompactWindowHeight)) {
             if (bottomBar != null) {
-                WaiveraBottomActionLayout(actions = bottomBar, modifier = frame, content = content)
+                WaiveraBottomActionLayout(
+                    actions = bottomBar,
+                    modifier = frame,
+                    pinnedAtLargeFont = pinnedAtLargeFont,
+                    content = content,
+                )
             } else {
                 Column(
                     modifier = frame
@@ -102,7 +111,14 @@ internal val LocalCompactAuthWindow = compositionLocalOf { false }
 /** Gutter padding for scaffold children that are not full-width banners. */
 internal val GutterPadding = Modifier.padding(horizontal = WaiveraSpacing.Gutter)
 
-/** Icon tile, heading and supporting text at the top of a gate screen. */
+/**
+ * Icon tile, heading and supporting text at the top of a gate screen.
+ *
+ * [welcome] is for a screen that invites rather than reports (finishing signup, the
+ * notification primer): the header sits on the brand-gradient wash, as on sign-in, and with
+ * [showLogo] the real Waivera mark takes the tile's place. Errors, offline and password screens
+ * stay plain and calm.
+ */
 @Composable
 internal fun AuthHeader(
     title: String,
@@ -110,15 +126,16 @@ internal fun AuthHeader(
     @DrawableRes icon: Int,
     modifier: Modifier = Modifier,
     tone: WaiveraTileTone = WaiveraTileTone.Brand,
+    welcome: Boolean = false,
+    showLogo: Boolean = false,
 ) {
     val colors = WaiveraTheme.colors
-    Column(
-        modifier = modifier
-            .fillMaxWidth()
-            .then(GutterPadding),
-        verticalArrangement = Arrangement.spacedBy(WaiveraSpacing.MediumSmall),
-    ) {
-        WaiveraIconTile(icon = icon, tone = tone, size = WaiveraSizes.StateIconTile)
+    val body: @Composable ColumnScope.() -> Unit = {
+        if (showLogo) {
+            WaiveraLogo(height = WaiveraSizes.StateIconTile)
+        } else {
+            WaiveraIconTile(icon = icon, tone = tone, size = WaiveraSizes.StateIconTile)
+        }
         Text(
             text = title,
             style = MaterialTheme.typography.headlineSmall,
@@ -126,6 +143,18 @@ internal fun AuthHeader(
             modifier = Modifier.semantics { heading() },
         )
         Text(text = message, style = MaterialTheme.typography.bodyLarge, color = colors.textSecondary)
+    }
+    val frame = modifier
+        .fillMaxWidth()
+        .then(GutterPadding)
+    if (welcome) {
+        WaiveraBrandSurface(
+            modifier = frame,
+            verticalArrangement = Arrangement.spacedBy(WaiveraSpacing.MediumSmall),
+            content = body,
+        )
+    } else {
+        Column(modifier = frame, verticalArrangement = Arrangement.spacedBy(WaiveraSpacing.MediumSmall), content = body)
     }
 }
 

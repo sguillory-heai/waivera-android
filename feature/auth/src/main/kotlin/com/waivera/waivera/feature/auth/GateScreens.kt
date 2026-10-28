@@ -131,6 +131,8 @@ internal fun OnboardingRequiredContent(
             title = stringResource(R.string.feature_auth_onboarding_title),
             message = stringResource(R.string.feature_auth_onboarding_message),
             icon = WaiveraIcons.Person,
+            welcome = true,
+            showLogo = true,
         )
         AuthAnimatedVisibility(visible = state.stillPending) {
             WaiveraBanner(
