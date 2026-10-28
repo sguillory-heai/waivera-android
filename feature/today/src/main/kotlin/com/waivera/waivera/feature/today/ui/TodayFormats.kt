@@ -17,8 +17,18 @@ internal class TodayFormats(private val locale: Locale) {
     private val longDay = DateTimeFormatter.ofPattern("EEEE, MMMM d", locale)
     private val hour = DateTimeFormatter.ofPattern("h a", locale)
     private val bareHour = DateTimeFormatter.ofPattern("h", locale)
+    private val clock = DateTimeFormatter.ofPattern("h:mm", locale)
+    private val meridiem = DateTimeFormatter.ofPattern("a", locale)
 
     fun time(value: LocalTime): String = time.format(value)
+
+    /**
+     * The two parts of [time] for a display clock: "11:00" set large and "AM" set small beside it,
+     * so the period does not weigh the numeral down (UI10-10). Times are always 12-hour here.
+     */
+    fun clock(value: LocalTime): String = clock.format(value)
+
+    fun meridiem(value: LocalTime): String = meridiem.format(value)
 
     fun day(value: LocalDate): String = day.format(value)
 

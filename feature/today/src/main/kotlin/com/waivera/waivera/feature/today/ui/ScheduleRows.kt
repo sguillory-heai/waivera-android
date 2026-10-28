@@ -151,7 +151,23 @@ internal fun UpNextCard(item: NextUpItem, onClick: () -> Unit, modifier: Modifie
                         horizontalArrangement = Arrangement.spacedBy(WaiveraSpacing.Small),
                         verticalAlignment = Alignment.Bottom,
                     ) {
-                        Text(text = formats.time(start), style = WaiveraTextStyles.DisplayTime, color = colors.text)
+                        // "11:00" large with a small "AM", as concept A sets it (UI10-10).
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(WaiveraSpacing.ExtraSmall),
+                            verticalAlignment = Alignment.Bottom,
+                        ) {
+                            Text(
+                                text = formats.clock(start),
+                                style = WaiveraTextStyles.DisplayTime,
+                                color = colors.text,
+                            )
+                            Text(
+                                text = formats.meridiem(start),
+                                style = WaiveraTextStyles.ClockTime,
+                                color = colors.textSecondary,
+                                modifier = Modifier.padding(bottom = WaiveraSpacing.XxSmall),
+                            )
+                        }
                         item.end?.let { end ->
                             Text(
                                 text = stringResource(
