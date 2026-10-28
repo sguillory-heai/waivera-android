@@ -24,9 +24,14 @@ internal object CalendarSizes {
     val DaySquareLarge: Dp = 40.dp
     val DaySquareCorner: Dp = 12.dp
 
-    /** The short dash under today's number (v5 decision 4, option C): 14 × 3, 4 above the square's foot. */
+    /**
+     * The short dash under today's number (v5 decision 4, option C): 14 × 3, in its own slot
+     * [TodayDashGap] under the number and [TodayDashInset] above the square's foot, so it keeps
+     * its breathing room inside the square at every font size.
+     */
     val TodayDashWidth: Dp = 14.dp
     val TodayDashHeight: Dp = 3.dp
+    val TodayDashGap: Dp = 2.dp
     val TodayDashInset: Dp = 4.dp
 
     /** Owner-colour bar on the leading edge of an event card. */

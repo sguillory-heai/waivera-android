@@ -23,11 +23,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.CornerRadius
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
-import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
@@ -175,7 +172,6 @@ private fun DayCell(cell: GridCell, showWeekday: Boolean, onClick: () -> Unit, m
                     .defaultMinSize(minWidth = square, minHeight = square)
                     // The selected day's tint fades in on the state token and snaps under reduced
                     // motion; at large font a wide number stretches the square rather than clipping.
-                    // Today's dash sits on the card, or on the tint when today is also selected.
                     .drawBehind {
                         if (tint > 0f) {
                             drawRoundRect(
@@ -184,19 +180,28 @@ private fun DayCell(cell: GridCell, showWeekday: Boolean, onClick: () -> Unit, m
                                 cornerRadius = CornerRadius(CalendarSizes.DaySquareCorner.toPx()),
                             )
                         }
-                        if (today) drawTodayDash(mark)
                     }
-                    .padding(horizontal = WaiveraSpacing.ExtraSmall),
+                    .padding(horizontal = WaiveraSpacing.ExtraSmall, vertical = CalendarSizes.TodayDashInset),
                 contentAlignment = Alignment.Center,
             ) {
-                Text(
-                    text = ScheduleText.dayOfMonth(cell.date, locale),
-                    style = numberStyle,
-                    fontWeight = if (cell.isToday || cell.isSelected) FontWeight.ExtraBold else FontWeight.SemiBold,
-                    color = numberColor,
-                    maxLines = 1,
-                    softWrap = false,
-                )
+                // The dash has its own slot under the number, inside the square, on every day: the
+                // square grows around both at large font, so the dash keeps the same gap to the
+                // number and to the square's foot at every size, and the numbers in a row share a
+                // line whether or not one of them is today.
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(CalendarSizes.TodayDashGap),
+                ) {
+                    Text(
+                        text = ScheduleText.dayOfMonth(cell.date, locale),
+                        style = numberStyle,
+                        fontWeight = if (cell.isToday || cell.isSelected) FontWeight.ExtraBold else FontWeight.SemiBold,
+                        color = numberColor,
+                        maxLines = 1,
+                        softWrap = false,
+                    )
+                    TodayDash(color = mark, visible = today)
+                }
             }
             Row(
                 horizontalArrangement = Arrangement.spacedBy(CalendarSizes.DotGap),
@@ -212,16 +217,16 @@ private fun DayCell(cell: GridCell, showWeekday: Boolean, onClick: () -> Unit, m
     }
 }
 
-/** The short dash centred under today's number, [CalendarSizes.TodayDashInset] above the square's foot. */
-private fun DrawScope.drawTodayDash(color: Color) {
-    val width = CalendarSizes.TodayDashWidth.toPx()
-    val height = CalendarSizes.TodayDashHeight.toPx()
-    val top = size.height - CalendarSizes.TodayDashInset.toPx() - height
-    drawRoundRect(
-        color = color,
-        topLeft = Offset((size.width - width) / 2f, top),
-        size = Size(width, height),
-        cornerRadius = CornerRadius(height / 2f),
+/**
+ * Today's short dash, centred under the number. Every other day keeps the same empty slot, so the
+ * numbers line up. It sits on the card, or on the tint when today is also selected.
+ */
+@Composable
+private fun TodayDash(color: Color, visible: Boolean) {
+    Box(
+        modifier = Modifier
+            .size(width = CalendarSizes.TodayDashWidth, height = CalendarSizes.TodayDashHeight)
+            .then(if (visible) Modifier.background(color, WaiveraShapes.Circle) else Modifier),
     )
 }
 
