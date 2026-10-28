@@ -135,10 +135,27 @@ class CompactBannerLayoutTest {
         val title = compose.onNodeWithText(banner.title).assertIsDisplayed()
         val message = compose.onNodeWithText(banner.message).assertIsDisplayed()
         val titleLayout = title.fetchTextLayoutResult()
-        assertFalse("\"${banner.title}\" overflows", titleLayout.hasVisualOverflow)
+        assertTitleFits(banner.title, titleLayout)
         assertBreaksOnlyBetweenWords(banner.title, titleLayout)
         assertBreaksOnlyBetweenWords(banner.message, message.fetchTextLayoutResult())
         banner.actionLabel?.let { compose.onNodeWithContentDescription(it).assertHasClickAction() }
+    }
+
+    /**
+     * Every character is laid out and no line runs past the text's own width or height.
+     * `hasVisualOverflow` is not used: a one-line title narrower than the row is sized to its
+     * text while its paragraph keeps the row's width, which Compose reports as a width overflow
+     * even though nothing is cut.
+     */
+    private fun assertTitleFits(text: String, layout: TextLayoutResult) {
+        assertFalse("\"$text\" is cut vertically", layout.didOverflowHeight)
+        assertTrue("\"$text\" is not fully laid out", layout.getLineEnd(layout.lineCount - 1) == text.length)
+        for (line in 0 until layout.lineCount) {
+            assertTrue(
+                "\"$text\" line $line ends at ${layout.getLineRight(line)} past ${layout.size.width}",
+                layout.getLineRight(line) <= layout.size.width,
+            )
+        }
     }
 
     private fun assertBreaksOnlyBetweenWords(text: String, layout: TextLayoutResult) {
