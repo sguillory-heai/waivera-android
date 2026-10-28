@@ -21,7 +21,6 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import com.waivera.waivera.core.data.image.AvatarModel
-import com.waivera.waivera.core.designsystem.component.MilestoneKind
 import com.waivera.waivera.core.designsystem.component.WaiveraAvatar
 import com.waivera.waivera.core.designsystem.component.WaiveraButton
 import com.waivera.waivera.core.designsystem.component.WaiveraButtonVariant
@@ -41,13 +40,15 @@ import com.waivera.waivera.feature.today.model.DayPart
 import com.waivera.waivera.feature.today.model.Greeting
 
 /**
- * "Good morning, Alex ☀️" at the top of Today. A heading for TalkBack; the emoji is decoration
- * and is not read out.
+ * "Good morning, Alex" at the top of Today, a heading for TalkBack. No emoji: they belong to
+ * celebrations only (`docs/design/voice.md`).
  */
 @Composable
 internal fun TodayGreeting(greeting: Greeting, modifier: Modifier = Modifier) {
-    val text = greetingText(greeting)
-    Row(
+    Text(
+        text = greetingText(greeting),
+        style = WaiveraTextStyles.Greeting,
+        color = WaiveraTheme.colors.text,
         modifier = modifier
             .fillMaxWidth()
             .padding(
@@ -55,24 +56,9 @@ internal fun TodayGreeting(greeting: Greeting, modifier: Modifier = Modifier) {
                 end = WaiveraSpacing.Gutter,
                 top = WaiveraSpacing.MediumLarge,
                 bottom = WaiveraSpacing.ExtraSmall,
-            ),
-        horizontalArrangement = Arrangement.spacedBy(WaiveraSpacing.Small),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Text(
-            text = text,
-            style = WaiveraTextStyles.Greeting,
-            color = WaiveraTheme.colors.text,
-            modifier = Modifier
-                .weight(1f, fill = false)
-                .semantics { heading() },
-        )
-        Text(
-            text = stringResource(greetingEmoji(greeting.part)),
-            style = WaiveraTextStyles.Greeting,
-            modifier = Modifier.clearAndSetSemantics { },
-        )
-    }
+            )
+            .semantics { heading() },
+    )
 }
 
 @Composable
@@ -88,16 +74,9 @@ internal fun greetingText(greeting: Greeting): String {
     }
 }
 
-@StringRes
-private fun greetingEmoji(part: DayPart): Int = when (part) {
-    DayPart.MORNING -> R.string.feature_today_brand_greeting_emoji_morning
-    DayPart.AFTERNOON -> R.string.feature_today_brand_greeting_emoji_afternoon
-    DayPart.EVENING -> R.string.feature_today_brand_greeting_emoji_evening
-}
-
 /**
- * A birthday or work anniversary today, as a small moment rather than a list row: the person,
- * a celebration emoji, the sentence on a soft brand-gradient card, and an easy "Send wishes"
+ * A birthday or work anniversary today, as a small moment rather than a list row: the person's
+ * plain avatar, the one celebration emoji, the sentence on a soft brand-gradient card, and an easy "Send wishes"
  * that opens a direct chat with them. Confetti bursts over the card the first time it shows
  * (nothing with reduced motion). The card body opens the schedule, as the row did; the button
  * is its own 48dp target so TalkBack reaches it separately.
@@ -146,7 +125,6 @@ internal fun CelebrationCard(
                         name = name,
                         imageModel = AvatarModel.of(item.userId),
                         size = WaiveraSizes.AvatarMedium,
-                        milestone = if (item.isBirthday) MilestoneKind.Birthday else MilestoneKind.WorkAnniversary,
                         contentDescription = null,
                     )
                     Column(

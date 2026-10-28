@@ -8,9 +8,6 @@
     <string name="feature_today_brand_greeting_morning">Good morning</string>
     <string name="feature_today_brand_greeting_afternoon">Good afternoon</string>
     <string name="feature_today_brand_greeting_evening">Good evening</string>
-    <string name="feature_today_brand_greeting_emoji_morning" translatable="false">☀️</string>
-    <string name="feature_today_brand_greeting_emoji_afternoon" translatable="false">🌤️</string>
-    <string name="feature_today_brand_greeting_emoji_evening" translatable="false">🌙</string>
 
     <!-- Celebrations -->
     <string name="feature_today_brand_celebration_emoji_birthday" translatable="false">🎂</string>
@@ -22,7 +19,4 @@
     <string name="feature_today_brand_send_wishes">Send wishes</string>
     <string name="feature_today_brand_send_wishes_a11y">Send wishes to %1$s</string>
     <string name="feature_today_brand_wishes_failed">We couldn\'t open the chat. Try again in a moment.</string>
-
-    <!-- All caught up: the existing title with a little celebration on the end -->
-    <string name="feature_today_brand_caught_up_title">%1$s 🎉</string>
 </resources>

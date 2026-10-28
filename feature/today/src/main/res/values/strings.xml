@@ -107,7 +107,7 @@
     <string name="feature_today_milestones_failed">Celebrations didn\'t load.</string>
 
     <!-- All caught up: the one celebrated empty state -->
-    <string name="feature_today_all_caught_up_title">You\'re all caught up 🎉</string>
+    <string name="feature_today_all_caught_up_title">You\'re all caught up\u00A0🎉</string>
     <string name="feature_today_all_caught_up_message">Enjoy the calm. Anything new will show up here.</string>
 
     <!-- Activity -->

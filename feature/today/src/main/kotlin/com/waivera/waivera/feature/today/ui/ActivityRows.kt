@@ -23,7 +23,6 @@ import com.waivera.waivera.core.designsystem.component.WaiveraBusyIndicator
 import com.waivera.waivera.core.designsystem.component.WaiveraButton
 import com.waivera.waivera.core.designsystem.component.WaiveraButtonVariant
 import com.waivera.waivera.core.designsystem.component.WaiveraCountBadge
-import com.waivera.waivera.core.designsystem.component.WaiveraEmojiTile
 import com.waivera.waivera.core.designsystem.component.WaiveraFilterChip
 import com.waivera.waivera.core.designsystem.component.WaiveraIconButton
 import com.waivera.waivera.core.designsystem.component.WaiveraIconTile
@@ -172,22 +171,18 @@ internal fun ActivityItemRow(row: ActivityRow, onClick: () -> Unit, modifier: Mo
 }
 
 /**
- * A reaction shows the real emoji someone reacted with; other kinds show their glyph. Read rows
- * fall back to the neutral tint, so unread ones stand out.
+ * Every kind shows its outlined glyph in the tile. A reaction's emoji is what the person sent, so
+ * it stays once, in the sentence; tiles hold emoji for celebrations only (`docs/design/voice.md`).
+ * Read rows fall back to the neutral tint, so unread ones stand out.
  */
 @Composable
 private fun ActivityTile(row: ActivityRow) {
-    val emoji = (row.summary as? ActivitySummary.Reaction)?.emoji?.takeIf(String::isNotBlank)
     val tone = when {
         row.read -> WaiveraTileTone.Neutral
         row.type == ChatActivityType.THREAD_REPLY || row.type == ChatActivityType.UNKNOWN -> WaiveraTileTone.Brand
         else -> WaiveraTileTone.Rose
     }
-    if (emoji != null) {
-        WaiveraEmojiTile(emoji = emoji, tone = tone)
-    } else {
-        WaiveraIconTile(icon = activityIcon(row.type), tone = tone)
-    }
+    WaiveraIconTile(icon = activityIcon(row.type), tone = tone)
 }
 
 private fun activityIcon(type: ChatActivityType): Int = when (type) {

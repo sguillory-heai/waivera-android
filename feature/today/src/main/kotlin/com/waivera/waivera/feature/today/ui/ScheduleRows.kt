@@ -39,10 +39,8 @@ internal fun NextUpRow(item: NextUpItem, onClick: () -> Unit, modifier: Modifier
         showChevron = true,
         modifier = modifier,
         leading = {
-            WaiveraIconTile(
-                icon = WaiveraIcons.Schedule,
-                tone = if (soon) WaiveraTileTone.Teal else WaiveraTileTone.Neutral,
-            )
+            // Teal means "schedule" on every screen (UI8-11); "soon" is the accent eyebrow above.
+            WaiveraIconTile(icon = WaiveraIcons.Schedule, tone = WaiveraTileTone.Teal)
         },
     )
 }

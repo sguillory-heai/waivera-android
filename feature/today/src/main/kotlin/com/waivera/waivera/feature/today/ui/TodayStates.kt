@@ -9,7 +9,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -18,7 +17,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.clearAndSetSemantics
@@ -31,7 +29,9 @@ import com.waivera.waivera.core.designsystem.component.WaiveraButton
 import com.waivera.waivera.core.designsystem.component.WaiveraButtonVariant
 import com.waivera.waivera.core.designsystem.component.WaiveraCelebrationBurst
 import com.waivera.waivera.core.designsystem.component.WaiveraEmptyState
+import com.waivera.waivera.core.designsystem.component.WaiveraIconTile
 import com.waivera.waivera.core.designsystem.component.WaiveraIllustration
+import com.waivera.waivera.core.designsystem.component.WaiveraTileTone
 import com.waivera.waivera.core.designsystem.component.rememberSkeletonPulse
 import com.waivera.waivera.core.designsystem.icon.WaiveraIcons
 import com.waivera.waivera.core.designsystem.preview.WaiveraPreviews
@@ -58,10 +58,8 @@ internal fun AllCaughtUp(day: LocalDate?, modifier: Modifier = Modifier) {
     }
     Box(modifier = modifier) {
         WaiveraEmptyState(
-            title = stringResource(
-                R.string.feature_today_brand_caught_up_title,
-                stringResource(R.string.feature_today_all_caught_up_title),
-            ),
+            // The title carries the one 🎉, tied to its last word so it never wraps alone (UI8-02).
+            title = stringResource(R.string.feature_today_all_caught_up_title),
             message = stringResource(R.string.feature_today_all_caught_up_message),
             illustration = WaiveraIllustration.CaughtUp,
             modifier = Modifier.graphicsLayer {
@@ -90,11 +88,12 @@ internal fun SectionError(message: String, onRetry: () -> Unit, modifier: Modifi
         horizontalArrangement = Arrangement.spacedBy(WaiveraSpacing.MediumSmall),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Icon(
-            painter = painterResource(WaiveraIcons.Error),
-            contentDescription = null,
-            tint = colors.textSecondary,
-            modifier = Modifier.size(WaiveraSizes.Icon),
+        // The standard tile, in its quiet neutral tone: a section that didn't load is calm (UI8-10).
+        WaiveraIconTile(
+            icon = WaiveraIcons.Error,
+            tone = WaiveraTileTone.Neutral,
+            size = WaiveraSizes.IconTileSmall,
+            iconSize = WaiveraSizes.IconTileSmallGlyph,
         )
         Text(
             text = message,
