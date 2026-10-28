@@ -202,7 +202,7 @@ fun ColumnScope.NewChatSheetContent(
         }
         // With no coworkers loaded there is nobody to pick, so the error state gets the space (UI2-01).
         if (!loadFailed) {
-            // The sheet's one CTA: the 56dp solid violet button.
+            // The sheet's one CTA: the 56dp violet primary.
             WaiveraButton(
                 text = stringResource(
                     when (state.action) {

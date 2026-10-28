@@ -60,7 +60,7 @@ enum class WaiveraIllustration(@param:DrawableRes internal val drawable: Int) {
 /**
  * The shared empty-state block: a small brand illustration (or an icon tile), title, message
  * and one clear action that invites the next step. In concept A's type: the title is the sheet's
- * 18 / 800 heading and the action is the solid violet primary. Every screen uses this so copy and spacing
+ * 18 / 800 heading and the action is the violet primary. Every screen uses this so copy and spacing
  * stay consistent. [illustration] wins over [icon] when both are set.
  */
 @Composable

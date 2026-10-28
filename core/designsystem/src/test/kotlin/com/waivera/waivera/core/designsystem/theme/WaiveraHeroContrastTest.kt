@@ -14,7 +14,8 @@ import org.junit.Test
 /**
  * The hero's text pairs hold 4.5:1 at every point of their gradient, sampled along it, in both
  * themes: the header ink (with the glow composited at full strength) and the page text on the
- * sheet. The sheet's action is the solid violet primary (v5), checked on the sheet here.
+ * sheet. The sheet's action is the violet primary (v5), checked on the sheet here, its label also
+ * under the sheen's brightest point.
  */
 class WaiveraHeroContrastTest {
     private val themes = listOf(
@@ -22,10 +23,16 @@ class WaiveraHeroContrastTest {
         Triple("dark", DarkWaiveraHeroColors, DarkWaiveraColors),
     )
 
-    /** Sign in is the solid violet primary (v5 decision 2): its white label reads on the fill. */
+    /** Sign in is the violet primary (v5 decision 2, option C): its white label reads on the fill and the sheen. */
     @Test
-    fun buttonLabel_readsOnTheSolidFill() = themes.forEach { (name, _, colors) ->
+    fun buttonLabel_readsOnTheFillAndTheSheen() = themes.forEach { (name, _, colors) ->
         assertAtLeast("$name button label", colors.onAccent, colors.accentFill, TEXT_MIN)
+        assertAtLeast(
+            "$name button label under the sheen",
+            colors.onAccent,
+            colors.buttonSheen.compositeOver(colors.accentFill),
+            TEXT_MIN,
+        )
     }
 
     @Test
