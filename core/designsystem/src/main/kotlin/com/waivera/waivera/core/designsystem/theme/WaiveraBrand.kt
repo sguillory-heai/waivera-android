@@ -24,13 +24,13 @@ object WaiveraBrand {
     val Colors: List<Color> = listOf(Violet, Pink, Gold)
 
     /** Top to bottom, as in the logo. */
-    fun verticalGradient(alpha: Float = 1f): Brush = Brush.verticalGradient(stops(alpha))
+    fun verticalGradient(alpha: Float = 1f): Brush = Brush.verticalGradient(*stops(alpha))
 
     /** Start to end, for bands and card edges. */
-    fun horizontalGradient(alpha: Float = 1f): Brush = Brush.horizontalGradient(stops(alpha))
+    fun horizontalGradient(alpha: Float = 1f): Brush = Brush.horizontalGradient(*stops(alpha))
 
     /** Top start to bottom end, for washes behind a hero or a celebration card. */
-    fun diagonalGradient(alpha: Float = 1f): Brush = Brush.linearGradient(stops(alpha))
+    fun diagonalGradient(alpha: Float = 1f): Brush = Brush.linearGradient(*stops(alpha))
 
     /**
      * The gradient as a soft wash over a surface, at the theme's [WaiveraColors.brandWashAlpha].

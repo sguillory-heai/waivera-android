@@ -7,7 +7,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.TransformOrigin
-import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.layout.layout
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.LayoutDirection
 import com.waivera.waivera.core.designsystem.theme.WaiveraTheme
@@ -53,13 +53,22 @@ fun rememberBubbleArrival(isLiveArrival: Boolean, mine: Boolean): Float {
     return progress.value
 }
 
-/** Draws [progress] as a [BubbleArrival] frame: own bubbles grow from their bottom end corner. */
-fun Modifier.bubbleArrival(progress: Float, mine: Boolean, offset: Dp): Modifier = graphicsLayer {
-    val frame = BubbleArrival.frame(progress, mine)
+/**
+ * Draws [progress] as a [BubbleArrival] frame: own bubbles grow from their bottom end corner.
+ * The layer is placed from a layout modifier because the graphics layer scope has no layout
+ * direction, and the end corner flips in right-to-left layouts.
+ */
+fun Modifier.bubbleArrival(progress: Float, mine: Boolean, offset: Dp): Modifier = layout { measurable, constraints ->
+    val placeable = measurable.measure(constraints)
     val endX = if (layoutDirection == LayoutDirection.Rtl) 0f else 1f
-    transformOrigin = TransformOrigin(pivotFractionX = if (mine) endX else 0f, pivotFractionY = 1f)
-    scaleX = frame.scale
-    scaleY = frame.scale
-    translationY = frame.offsetFraction * offset.toPx()
-    alpha = frame.alpha
+    layout(placeable.width, placeable.height) {
+        placeable.placeWithLayer(0, 0) {
+            val frame = BubbleArrival.frame(progress, mine)
+            transformOrigin = TransformOrigin(pivotFractionX = if (mine) endX else 0f, pivotFractionY = 1f)
+            scaleX = frame.scale
+            scaleY = frame.scale
+            translationY = frame.offsetFraction * offset.toPx()
+            alpha = frame.alpha
+        }
+    }
 }
