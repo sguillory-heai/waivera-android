@@ -111,6 +111,7 @@ private fun WaiveraBrandSurfacePreview() {
                     style = MaterialTheme.typography.bodyMedium,
                     color = WaiveraTheme.colors.textSecondary,
                 )
+                WaiveraButton(text = "Send wishes", onClick = {}, variant = WaiveraButtonVariant.TonalOnWash)
             }
             WaiveraCelebrationNote(emoji = "🎂", text = "Happy birthday, Priya Raman!")
             WaiveraCelebrationNote(
