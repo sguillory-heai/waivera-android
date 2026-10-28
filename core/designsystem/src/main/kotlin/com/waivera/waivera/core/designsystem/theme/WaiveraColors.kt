@@ -67,6 +67,11 @@ data class WaiveraColors(
     /** Secondary (outlined) button: a tonal raised step in dark instead of a stark outlined block. */
     val secondaryContainer: Color,
     val secondaryBorder: Color,
+    /**
+     * The chosen segment of a segmented control: a white step on the lilac track in light, the
+     * soft accent in dark (a darker surface step there read as the unselected one).
+     */
+    val segmentSelected: Color,
     /** Category tints for [com.waivera.waivera.core.designsystem.component.WaiveraIconTile]. */
     val tiles: WaiveraTileColors,
     /** Opacity of the brand gradient when it washes a surface (celebration cards, sign-in hero). */
@@ -137,6 +142,7 @@ internal val LightWaiveraColors = WaiveraColors(
     skeletonHighlight = WaiveraPalette.SkeletonHighlightLight,
     secondaryContainer = WaiveraPalette.SurfaceLight,
     secondaryBorder = WaiveraPalette.BorderStrongLight,
+    segmentSelected = WaiveraPalette.SurfaceLight,
     tiles = WaiveraTileColors(
         brand = WaiveraTileTint(WaiveraPalette.AccentSoftLight, WaiveraPalette.PurpleDeep),
         rose = WaiveraTileTint(WaiveraPalette.TileRoseLight, WaiveraPalette.OnTileRoseLight),
@@ -197,6 +203,7 @@ internal val DarkWaiveraColors = WaiveraColors(
     skeletonHighlight = WaiveraPalette.SkeletonHighlightDark,
     secondaryContainer = WaiveraPalette.SurfaceMutedDark,
     secondaryBorder = WaiveraPalette.BorderDark,
+    segmentSelected = WaiveraPalette.AccentSoftDark,
     tiles = WaiveraTileColors(
         brand = WaiveraTileTint(WaiveraPalette.AccentSoftDark, WaiveraPalette.OnAccentSoftDark),
         rose = WaiveraTileTint(WaiveraPalette.TileRoseDark, WaiveraPalette.OnTileRoseDark),

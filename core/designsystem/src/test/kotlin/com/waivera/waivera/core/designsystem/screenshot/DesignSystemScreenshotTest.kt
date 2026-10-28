@@ -42,10 +42,12 @@ import com.waivera.waivera.core.designsystem.component.WaiveraAvatar
 import com.waivera.waivera.core.designsystem.component.WaiveraBanner
 import com.waivera.waivera.core.designsystem.component.WaiveraBottomActionBar
 import com.waivera.waivera.core.designsystem.component.WaiveraBottomActionLayout
+import com.waivera.waivera.core.designsystem.component.WaiveraBrandSurface
 import com.waivera.waivera.core.designsystem.component.WaiveraBusyIndicator
 import com.waivera.waivera.core.designsystem.component.WaiveraButton
 import com.waivera.waivera.core.designsystem.component.WaiveraButtonVariant
 import com.waivera.waivera.core.designsystem.component.WaiveraCelebrationBurst
+import com.waivera.waivera.core.designsystem.component.WaiveraCelebrationNote
 import com.waivera.waivera.core.designsystem.component.WaiveraCountBadge
 import com.waivera.waivera.core.designsystem.component.WaiveraDivider
 import com.waivera.waivera.core.designsystem.component.WaiveraEmojiTile
@@ -102,6 +104,14 @@ class DesignSystemScreenshotTest {
         WaiveraButton(text = "Sign out", onClick = {}, loadingText = "Signing out…", fullWidth = true)
         WaiveraButton(text = "Sign in", onClick = {}, enabled = false, fullWidth = true)
         WaiveraButton(text = "Cancel", onClick = {}, variant = WaiveraButtonVariant.Secondary, fullWidth = true)
+        // An outlined action's glyph takes the accent, never a heavy near-black fill.
+        WaiveraButton(
+            text = "Message organizer",
+            onClick = {},
+            variant = WaiveraButtonVariant.Secondary,
+            leadingIcon = WaiveraIcons.Chat,
+            fullWidth = true,
+        )
         WaiveraButton(text = "Join on web", onClick = {}, variant = WaiveraButtonVariant.Tonal)
         WaiveraButton(
             text = "Delete message",
@@ -244,6 +254,26 @@ class DesignSystemScreenshotTest {
         }
     }
 
+    /** The wash container for brand moments and the celebration note with its emoji tile. */
+    @Test
+    fun brandSurfaces() = capture("BrandSurfaces") {
+        WaiveraBrandSurface {
+            WaiveraSectionHeader(text = "Event")
+            WaiveraListRow(
+                headline = "Mon, Nov 2, 9:00 AM",
+                supporting = "Until 10:00 AM",
+                leading = { WaiveraIconTile(icon = WaiveraIcons.Schedule, tone = WaiveraTileTone.Teal) },
+            )
+        }
+        WaiveraCelebrationNote(emoji = "🎂", text = "Happy birthday, Priya Raman!")
+        WaiveraCelebrationNote(
+            emoji = "🎉",
+            text = "Happy 5-year work anniversary, Jordan Lee!",
+            tone = WaiveraTileTone.Brand,
+            centered = true,
+        )
+    }
+
     @Test
     fun switchRows() = capture("SwitchRows") {
         WaiveraSwitchRow(
@@ -253,6 +283,13 @@ class DesignSystemScreenshotTest {
             onCheckedChange = {},
         )
         WaiveraSwitchRow(title = "Group activity", checked = false, onCheckedChange = {})
+        WaiveraSwitchRow(
+            title = "Schedule reminders",
+            subtitle = "Shifts and events starting soon.",
+            checked = true,
+            onCheckedChange = {},
+            leading = { WaiveraIconTile(icon = WaiveraIcons.Schedule, tone = WaiveraTileTone.Teal) },
+        )
         // Blocked by Android while on: the muted accent track (UI3-12), then blocked while off.
         WaiveraSwitchRow(title = "Mentions", checked = true, onCheckedChange = {}, enabled = false)
         WaiveraSwitchRow(title = "Digest", checked = false, onCheckedChange = {}, enabled = false)
@@ -411,6 +448,15 @@ class DesignSystemScreenshotTest {
                 NavigationBarItemModel(key = "schedule", label = "Schedule", icon = WaiveraIcons.Calendar),
             ),
             selectedKey = "chat",
+            onSelect = {},
+        )
+        WaiveraNavigationBar(
+            items = listOf(
+                NavigationBarItemModel(key = "today", label = "Today", icon = WaiveraIcons.Today),
+                NavigationBarItemModel(key = "chat", label = "Chat", icon = WaiveraIcons.Chat, badgeCount = 120),
+                NavigationBarItemModel(key = "schedule", label = "Schedule", icon = WaiveraIcons.Calendar),
+            ),
+            selectedKey = "today",
             onSelect = {},
         )
     }

@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -70,6 +71,9 @@ enum class WaiveraButtonVariant {
  * state: the button keeps its size, shows a small spinner next to the text, ignores taps and
  * announces it (never a blocking overlay). Loading has no other switch, so a busy button
  * always says what it is doing (UI2-21).
+ *
+ * A [Secondary][WaiveraButtonVariant.Secondary] button's leading icon takes the accent, so an
+ * outlined action never pairs a heavy near-black glyph with its softer label.
  */
 @Composable
 fun WaiveraButton(
@@ -114,6 +118,7 @@ fun WaiveraButton(
                 text = text,
                 leadingIcon = leadingIcon,
                 regularWeight = variant == WaiveraButtonVariant.Unselected,
+                iconTint = if (variant == WaiveraButtonVariant.Secondary && enabled) colors.accent else null,
                 modifier = Modifier.alpha(if (loading) 0f else 1f),
             )
             if (loadingText != null) {
@@ -128,6 +133,7 @@ private fun ButtonLabel(
     text: String,
     @DrawableRes leadingIcon: Int?,
     regularWeight: Boolean,
+    iconTint: Color?,
     modifier: Modifier = Modifier,
 ) {
     Row(
@@ -136,7 +142,12 @@ private fun ButtonLabel(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         if (leadingIcon != null) {
-            Icon(painterResource(leadingIcon), contentDescription = null, modifier = Modifier.size(WaiveraSizes.Icon))
+            Icon(
+                painter = painterResource(leadingIcon),
+                contentDescription = null,
+                tint = iconTint ?: LocalContentColor.current,
+                modifier = Modifier.size(WaiveraSizes.Icon),
+            )
         }
         Text(
             text = text,
@@ -148,33 +159,20 @@ private fun ButtonLabel(
 }
 
 /**
- * Spinner and the progress label. The button's semantics announce it. At large font the label
- * can wrap, and a wrapped label fills the row, so a spinner beside it sat at the button's edge
- * away from the centred lines; there the spinner goes above the label instead (UI5-10).
+ * Spinner and the progress label, side by side. The button's semantics announce it. At large
+ * font the label can wrap, and a spinner beside a wrapped, centred label sat stranded at the
+ * edge (UI5-10), while stacking it above the label read as a layout fault; there the label
+ * alone says what is happening, and the button still ignores taps.
  */
 @Composable
 private fun ButtonProgress(label: String, color: Color) {
-    val text: @Composable () -> Unit = {
+    Row(
+        modifier = Modifier.clearAndSetSemantics { },
+        horizontalArrangement = Arrangement.spacedBy(WaiveraSpacing.Small),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        if (!isLargeFontScale()) WaiveraBusyIndicator(color = color, size = WaiveraSizes.IconSmall)
         Text(text = label, style = MaterialTheme.typography.labelLarge, color = color, textAlign = TextAlign.Center)
-    }
-    if (isLargeFontScale()) {
-        Column(
-            modifier = Modifier.clearAndSetSemantics { },
-            verticalArrangement = Arrangement.spacedBy(WaiveraSpacing.ExtraSmall),
-            horizontalAlignment = Alignment.CenterHorizontally,
-        ) {
-            WaiveraBusyIndicator(color = color, size = WaiveraSizes.IconSmall)
-            text()
-        }
-    } else {
-        Row(
-            modifier = Modifier.clearAndSetSemantics { },
-            horizontalArrangement = Arrangement.spacedBy(WaiveraSpacing.Small),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            WaiveraBusyIndicator(color = color, size = WaiveraSizes.IconSmall)
-            text()
-        }
     }
 }
 

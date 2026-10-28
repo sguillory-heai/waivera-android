@@ -81,6 +81,10 @@ fun WaiveraBottomActionBar(
  * pushes them to the bottom when everything fits. The fade then shows only while the actions
  * are entirely below the viewport edge, so it never covers one.
  *
+ * [pinnedAtLargeFont] keeps the bar pinned at every font size, for a screen whose whole point
+ * is one action (the notification primer): the caller then passes a single action in [actions]
+ * at large font and puts the rest after its content.
+ *
  * [insets] shrink the viewport (navigation bar, keyboard) when the screen does not own them
  * already. Text fields inside bring themselves into view when focused or in error (see
  * [WaiveraTextField]).
@@ -92,12 +96,15 @@ fun WaiveraBottomActionLayout(
     scrollState: ScrollState = rememberScrollState(),
     contentArrangement: Arrangement.Vertical = Arrangement.spacedBy(WaiveraSpacing.Medium),
     insets: WindowInsets = WindowInsets(0),
+    pinnedAtLargeFont: Boolean = false,
     content: @Composable ColumnScope.() -> Unit,
 ) {
     val frame = modifier
         .fillMaxSize()
         .windowInsetsPadding(insets)
-    if (bottomActionMode(isLargeFontScale()) == BottomActionMode.Pinned) {
+    if (bottomActionMode(largeFont = isLargeFontScale(), pinnedAtLargeFont = pinnedAtLargeFont) ==
+        BottomActionMode.Pinned
+    ) {
         PinnedActionLayout(frame, scrollState, contentArrangement, actions, content)
     } else {
         InlineActionLayout(frame, scrollState, contentArrangement, actions, content)
@@ -113,9 +120,12 @@ internal enum class BottomActionMode {
     Inline,
 }
 
-/** Pinned up to [LARGE_FONT_SCALE]; inline above it, where a pinned bar would crowd the content out. */
-internal fun bottomActionMode(largeFont: Boolean): BottomActionMode =
-    if (largeFont) BottomActionMode.Inline else BottomActionMode.Pinned
+/**
+ * Pinned up to [LARGE_FONT_SCALE]; inline above it, where a pinned bar would crowd the content
+ * out, unless the caller keeps its one action pinned.
+ */
+internal fun bottomActionMode(largeFont: Boolean, pinnedAtLargeFont: Boolean = false): BottomActionMode =
+    if (largeFont && !pinnedAtLargeFont) BottomActionMode.Inline else BottomActionMode.Pinned
 
 @Composable
 private fun PinnedActionLayout(

@@ -8,7 +8,8 @@ import androidx.compose.ui.graphics.Color
 /**
  * The brand gradient from the logo's looped "W": violet, pink, then gold, with the logo's own
  * stop positions. It is the signature, used with restraint: the logo, the sign-in hero,
- * celebration cards, empty-state art and the confetti. Never on body text or dense UI.
+ * celebration cards, empty-state art, the confetti, the selected tab and the unread ring in the
+ * navigation bar. Never on body text or dense UI.
  */
 // The gradients take their stops as varargs; spreading four pairs once per brush is cheap.
 @Suppress("SpreadOperator")
@@ -28,8 +29,9 @@ object WaiveraBrand {
     /** Top to bottom, as in the logo. */
     fun verticalGradient(alpha: Float = 1f): Brush = Brush.verticalGradient(*stops(alpha))
 
-    /** Start to end, for bands and card edges. */
-    fun horizontalGradient(alpha: Float = 1f): Brush = Brush.horizontalGradient(*stops(alpha))
+    /** Start to end, for bands and card edges; [startX] and [endX] place it on a shape inside a larger area. */
+    fun horizontalGradient(alpha: Float = 1f, startX: Float = 0f, endX: Float = Float.POSITIVE_INFINITY): Brush =
+        Brush.horizontalGradient(*stops(alpha), startX = startX, endX = endX)
 
     /** Top start to bottom end, for washes behind a hero or a celebration card. */
     fun diagonalGradient(alpha: Float = 1f): Brush = Brush.linearGradient(*stops(alpha))
@@ -41,6 +43,12 @@ object WaiveraBrand {
     @Composable
     @ReadOnlyComposable
     fun wash(): Brush = diagonalGradient(WaiveraTheme.colors.brandWashAlpha)
+
+    /**
+     * The gradient over a soft accent fill, a little stronger than [wash] so it still reads on a
+     * small shape: the selected tab's indicator. Glyphs on it keep 3:1 (`WaiveraColorsContrastTest`).
+     */
+    const val ACCENT_WASH_ALPHA = 0.3f
 
     private fun stops(alpha: Float): Array<Pair<Float, Color>> = arrayOf(
         0f to Violet.copy(alpha = alpha),

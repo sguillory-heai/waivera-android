@@ -33,6 +33,8 @@ class ComponentLogicTest {
     fun `bottom actions stay pinned up to large font and flow inline above it`() {
         assertEquals(BottomActionMode.Pinned, bottomActionMode(largeFont = false))
         assertEquals(BottomActionMode.Inline, bottomActionMode(largeFont = true))
+        assertEquals(BottomActionMode.Pinned, bottomActionMode(largeFont = true, pinnedAtLargeFont = true))
+        assertEquals(BottomActionMode.Pinned, bottomActionMode(largeFont = false, pinnedAtLargeFont = true))
     }
 
     @Test

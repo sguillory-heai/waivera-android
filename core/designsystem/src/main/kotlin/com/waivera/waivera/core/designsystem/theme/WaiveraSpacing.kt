@@ -79,6 +79,16 @@ object WaiveraSizes {
     /** Anniversary badges show the year count only on avatars at least this big. */
     val MilestoneYearsMinAvatar: Dp = 40.dp
     val BadgeMin: Dp = 20.dp
+
+    /** The unread count on a bottom tab: smaller than a row badge, inside its brand-gradient ring. */
+    val NavBadgeMin: Dp = 16.dp
+
+    /** Width of the brand-gradient ring around the tab's unread count. */
+    val NavBadgeRing: Dp = 1.5.dp
+
+    /** The selected tab's indicator pill (the Material 3 active indicator size). */
+    val NavIndicatorWidth: Dp = 64.dp
+    val NavIndicatorHeight: Dp = 32.dp
     val ProgressSmall: Dp = 20.dp
     val ProgressStroke: Dp = 2.dp
 

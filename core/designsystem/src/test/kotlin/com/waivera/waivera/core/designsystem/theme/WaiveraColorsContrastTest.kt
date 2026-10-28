@@ -32,6 +32,7 @@ class WaiveraColorsContrastTest {
         text("onAccent on accent (badges)", colors.onAccent, colors.accent)
         text("onAccentSoft on accentSoft", colors.onAccentSoft, colors.accentSoft)
         text("text on secondaryContainer", colors.text, colors.secondaryContainer)
+        text("onAccentSoft on segmentSelected (chosen segment)", colors.onAccentSoft, colors.segmentSelected)
         text("onDangerFill on dangerFill", colors.onDangerFill, colors.dangerFill)
         text("onDangerContainer on dangerContainer", colors.onDangerContainer, colors.dangerContainer)
         text("onWarningContainer on warningContainer", colors.onWarningContainer, colors.warningContainer)
@@ -64,6 +65,15 @@ class WaiveraColorsContrastTest {
             val wash = stop.copy(alpha = colors.brandWashAlpha).compositeOver(colors.surface)
             text("text on wash $stop", colors.text, wash)
             text("textSecondary on wash $stop", colors.textSecondary, wash)
+        }
+    }
+
+    /** The selected tab's indicator: the brand gradient over the soft accent, glyph at 3:1 or more. */
+    @Test
+    fun selectedTab_glyphReadsOnTheBrandWash() = forEachTheme { colors ->
+        for (stop in WaiveraBrand.Colors) {
+            val wash = stop.copy(alpha = WaiveraBrand.ACCENT_WASH_ALPHA).compositeOver(colors.accentSoft)
+            ui("selected tab glyph on wash $stop", colors.onAccentSoft, wash)
         }
     }
 

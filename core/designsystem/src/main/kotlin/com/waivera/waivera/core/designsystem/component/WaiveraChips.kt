@@ -3,6 +3,7 @@ package com.waivera.waivera.core.designsystem.component
 import androidx.annotation.DrawableRes
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -27,6 +28,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.Role
@@ -141,7 +143,7 @@ private fun Segment(label: String, selected: Boolean, onSelect: () -> Unit, modi
     val haptics = rememberHaptics()
     val colors = WaiveraTheme.colors
     val background by animateColorAsState(
-        targetValue = if (selected) colors.surface else colors.surfaceMuted,
+        targetValue = if (selected) colors.segmentSelected else colors.surfaceMuted,
         animationSpec = WaiveraTheme.motion.state(),
         label = "segmentBackground",
     )
@@ -150,6 +152,13 @@ private fun Segment(label: String, selected: Boolean, onSelect: () -> Unit, modi
             .heightIn(min = WaiveraSizes.SegmentMinHeight)
             .clip(WaiveraShapes.Chip)
             .background(background)
+            // The chosen segment also has an accent edge and accent text, so the choice never
+            // rests on a fill step alone.
+            .border(
+                WaiveraSpacing.Hairline,
+                if (selected) colors.accentBorder else Color.Transparent,
+                WaiveraShapes.Chip,
+            )
             .selectable(
                 selected = selected,
                 role = Role.Tab,
@@ -166,7 +175,7 @@ private fun Segment(label: String, selected: Boolean, onSelect: () -> Unit, modi
         Text(
             text = label,
             style = MaterialTheme.typography.labelLarge,
-            color = if (selected) colors.text else colors.textSecondary,
+            color = if (selected) colors.onAccentSoft else colors.textSecondary,
             textAlign = TextAlign.Center,
             maxLines = 1,
             softWrap = false,

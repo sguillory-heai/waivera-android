@@ -98,7 +98,10 @@ fun WaiveraListRow(
     }
 }
 
-/** A switch row for settings. The whole row toggles, and toggling fires the toggle haptic. */
+/**
+ * A switch row for settings. The whole row toggles, and toggling fires the toggle haptic.
+ * [leading] is the row's icon tile, so switch rows share the icon language of every other row.
+ */
 @Composable
 fun WaiveraSwitchRow(
     title: String,
@@ -107,6 +110,7 @@ fun WaiveraSwitchRow(
     modifier: Modifier = Modifier,
     subtitle: String? = null,
     enabled: Boolean = true,
+    leading: (@Composable () -> Unit)? = null,
 ) {
     val haptics = rememberHaptics()
     val colors = WaiveraTheme.colors
@@ -127,6 +131,7 @@ fun WaiveraSwitchRow(
         horizontalArrangement = Arrangement.spacedBy(WaiveraSpacing.MediumSmall),
         verticalAlignment = Alignment.CenterVertically,
     ) {
+        leading?.invoke()
         RowText(title = title, subtitle = subtitle, enabled = enabled, modifier = Modifier.weight(1f))
         // The row owns the toggle semantics, so the switch itself is not separately focusable.
         Switch(
