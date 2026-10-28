@@ -402,15 +402,19 @@ private fun Footer(
     }
 }
 
-/** Large-font failed actions: Retry, then Edit and Discard behind one 48dp "More" button. */
+/** Large-font failed actions: the Retry primary, then Edit and Discard behind one 48dp "More" button. */
 @Composable
 private fun FailedActionsCompact(message: Message, clientId: String, callbacks: MessageRowCallbacks) {
     var menuOpen by remember { mutableStateOf(false) }
-    Row(verticalAlignment = Alignment.CenterVertically) {
+    Row(
+        modifier = Modifier.padding(top = WaiveraSpacing.ExtraSmall),
+        horizontalArrangement = Arrangement.spacedBy(WaiveraSpacing.ExtraSmall),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
         WaiveraButton(
             text = stringResource(R.string.feature_chat_failed_retry),
             onClick = { callbacks.onRetry(clientId) },
-            variant = WaiveraButtonVariant.Text,
+            leadingIcon = WaiveraIcons.Refresh,
         )
         Box {
             WaiveraIconButton(
@@ -495,8 +499,10 @@ private fun SavedPill() {
 private const val SAVED_POP_START = 0.75f
 
 /**
- * Retry, Edit and Discard, end-aligned. At large font the three would wrap and leave Discard on a
- * line of its own, so Retry stays a button and Edit and Discard move into a "More" menu (UI3-11).
+ * Discard, Edit and Retry, end-aligned, as on the v5 board: Discard and Edit are the raised
+ * secondary and Retry, the one way forward, the primary with its refresh glyph at the end (v5
+ * decision 2, option C). At large font the three would wrap and leave one on a line of its own,
+ * so Retry stays the primary and Edit and Discard move into a "More" menu (UI3-11).
  */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -522,23 +528,27 @@ private fun PendingMeta(message: Message, callbacks: MessageRowCallbacks) {
         if (message.sendState == SendState.FAILED && clientId != null && isLargeFontScale()) {
             FailedActionsCompact(message = message, clientId = clientId, callbacks = callbacks)
         } else if (message.sendState == SendState.FAILED && clientId != null) {
-            FlowRow(horizontalArrangement = Arrangement.spacedBy(WaiveraSpacing.XxSmall, Alignment.End)) {
+            FlowRow(
+                modifier = Modifier.padding(top = WaiveraSpacing.ExtraSmall),
+                horizontalArrangement = Arrangement.spacedBy(WaiveraSpacing.ExtraSmall, Alignment.End),
+                verticalArrangement = Arrangement.spacedBy(WaiveraSpacing.ExtraSmall),
+            ) {
                 WaiveraButton(
-                    text = stringResource(R.string.feature_chat_failed_retry),
-                    onClick = { callbacks.onRetry(clientId) },
-                    variant = WaiveraButtonVariant.Text,
+                    text = stringResource(R.string.feature_chat_failed_discard),
+                    onClick = { callbacks.onDiscard(clientId) },
+                    variant = WaiveraButtonVariant.Secondary,
                 )
                 if (message.attachment == null) {
                     WaiveraButton(
                         text = stringResource(R.string.feature_chat_failed_edit),
                         onClick = { callbacks.onEditFailed(message) },
-                        variant = WaiveraButtonVariant.Text,
+                        variant = WaiveraButtonVariant.Secondary,
                     )
                 }
                 WaiveraButton(
-                    text = stringResource(R.string.feature_chat_failed_discard),
-                    onClick = { callbacks.onDiscard(clientId) },
-                    variant = WaiveraButtonVariant.Text,
+                    text = stringResource(R.string.feature_chat_failed_retry),
+                    onClick = { callbacks.onRetry(clientId) },
+                    leadingIcon = WaiveraIcons.Refresh,
                 )
             }
         }
