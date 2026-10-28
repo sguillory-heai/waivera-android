@@ -81,11 +81,12 @@ fun String.asAddressDisplay(breaks: AddressBreaks = AddressBreaks()): String {
     val out = StringBuilder(length * 2)
     forEachIndexed { index, char ->
         val last = index == length - 1
-        val breakAfter = !last && when {
+        val breakAt = when {
             index == at -> true
             at in 0 until index -> char == DOT && breaks.domainDots
             else -> char in LOCAL_PART_BREAKS && breaks.localPart
         }
+        val breakAfter = !last && breakAt
         val guarded = !char.isLetterOrDigit()
         if (guarded && out.isNotEmpty() && out.last().isLetterOrDigit()) out.append(WORD_JOINER)
         out.append(char)
