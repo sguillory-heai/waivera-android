@@ -45,9 +45,14 @@ internal fun BootstrapFailedContent(
     onSignOut: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    // As on the onboarding gate: at large font Try again stays pinned, with the fade over the
+    // copy scrolling above it, and Sign out moves to the end of the content, so no action is
+    // ever drawn cut in half at the fold (UI11-05).
+    val signOutInline = isLargeFontScale()
     AuthScaffold(
         modifier = modifier,
         hero = true,
+        pinnedAtLargeFont = true,
         bottomBar = {
             GateActions(
                 primaryLabel = stringResource(R.string.feature_auth_try_again),
@@ -55,6 +60,7 @@ internal fun BootstrapFailedContent(
                 primaryLoadingLabel = stringResource(R.string.feature_auth_retrying),
                 onPrimary = onRetry,
                 onSignOut = onSignOut,
+                showSignOut = !signOutInline,
             )
         },
     ) {
@@ -77,6 +83,9 @@ internal fun BootstrapFailedContent(
             state.lastFailedRetryAt?.let { RetryFailedBanner(it) }
         }
         GateHelp(stringResource(R.string.feature_auth_bootstrap_help))
+        if (signOutInline) {
+            GateSignOut(onSignOut = onSignOut, enabled = !state.retrying, modifier = GutterPadding)
+        }
     }
 }
 
