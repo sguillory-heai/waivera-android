@@ -2,6 +2,7 @@ package com.waivera.waivera.feature.profile
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -52,6 +53,7 @@ import com.waivera.waivera.core.designsystem.theme.WaiveraSizes
 import com.waivera.waivera.core.designsystem.theme.WaiveraSpacing
 import com.waivera.waivera.core.designsystem.theme.WaiveraTextStyles
 import com.waivera.waivera.core.designsystem.theme.WaiveraTheme
+import com.waivera.waivera.core.designsystem.theme.isLargeFontScale
 import com.waivera.waivera.core.network.error.WaiveraError
 
 /**
@@ -321,18 +323,53 @@ private fun DetailsSections(profile: EmployeeProfile?, state: ProfileUiState.Rea
  * Small error inside one section; the rest of the profile stays usable. Quiet, like Today's
  * section errors (UI2-18): a muted icon, secondary text and a text Retry, so red stays for
  * something the person did that failed.
+ *
+ * At large font "Try again" moves to its own row under the message, end-aligned, as banner
+ * actions do: beside the text it took over half the card and left the reason a one-word column
+ * that split "conne / ction" (UI5-03).
  */
 @Composable
 internal fun SectionError(error: WaiveraError, onRetry: () -> Unit, modifier: Modifier = Modifier) {
-    val colors = WaiveraTheme.colors
-    Row(
+    val stacked = isLargeFontScale()
+    val retry: @Composable () -> Unit = {
+        WaiveraButton(
+            text = stringResource(R.string.feature_profile_try_again),
+            onClick = onRetry,
+            variant = WaiveraButtonVariant.Text,
+        )
+    }
+    Column(
         modifier = modifier
             .fillMaxWidth()
             .heightIn(min = WaiveraSizes.ListRowMinHeight)
             .padding(start = WaiveraSpacing.Medium, end = WaiveraSpacing.Small)
             .semantics(mergeDescendants = true) {},
+        verticalArrangement = Arrangement.Center,
+    ) {
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(WaiveraSpacing.MediumSmall),
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = if (stacked) WaiveraSpacing.MediumSmall else WaiveraSpacing.None),
+        ) {
+            SectionErrorMessage(error = error, alignTop = stacked, modifier = Modifier.weight(1f))
+            if (!stacked) retry()
+        }
+        if (stacked) {
+            Box(modifier = Modifier.align(Alignment.End)) { retry() }
+        }
+    }
+}
+
+@Composable
+private fun SectionErrorMessage(error: WaiveraError, alignTop: Boolean, modifier: Modifier = Modifier) {
+    val colors = WaiveraTheme.colors
+    Row(
+        modifier = modifier,
         horizontalArrangement = Arrangement.spacedBy(WaiveraSpacing.MediumSmall),
-        verticalAlignment = Alignment.CenterVertically,
+        // A wrapped reason keeps its icon by the first line, not floating mid-paragraph.
+        verticalAlignment = if (alignTop) Alignment.Top else Alignment.CenterVertically,
     ) {
         Icon(
             painter = painterResource(WaiveraIcons.Error),
@@ -345,11 +382,6 @@ internal fun SectionError(error: WaiveraError, onRetry: () -> Unit, modifier: Mo
             style = MaterialTheme.typography.bodyMedium,
             color = colors.textSecondary,
             modifier = Modifier.weight(1f),
-        )
-        WaiveraButton(
-            text = stringResource(R.string.feature_profile_try_again),
-            onClick = onRetry,
-            variant = WaiveraButtonVariant.Text,
         )
     }
 }
