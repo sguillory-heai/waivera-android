@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
@@ -34,6 +35,7 @@ import androidx.compose.ui.semantics.ProgressBarRangeInfo
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.progressBarRangeInfo
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.Dp
 import com.waivera.waivera.core.designsystem.preview.WaiveraPreviews
@@ -56,6 +58,9 @@ fun ringFraction(done: Int, total: Int): Float = if (total <= 0) 0f else (done.t
  * TalkBack reads it once, as [contentDescription] (for example "5 of 9 handled today") with the
  * progress, never the separate numbers. The count inside keeps its size up to 130% font: the
  * ring is a fixed graphic, and the same numbers are in the text beside it at any size.
+ *
+ * [compact] is the small ring on a short window: its caption is set smaller and kept to one
+ * line within [ringCaptionMaxWidth], so it never touches the arc (UI10-06).
  */
 @Composable
 fun WaiveraProgressRing(
@@ -66,6 +71,7 @@ fun WaiveraProgressRing(
     modifier: Modifier = Modifier,
     size: Dp = WaiveraSizes.Ring,
     stroke: Dp = WaiveraSizes.RingStroke,
+    compact: Boolean = false,
 ) {
     val target = ringFraction(done, total)
     val progress = rememberRingProgress(target)
@@ -94,7 +100,14 @@ fun WaiveraProgressRing(
                         modifier = Modifier.padding(bottom = WaiveraSpacing.XxSmall),
                     )
                 }
-                Text(text = caption, style = WaiveraTextStyles.RingCaption, color = hero.onHeaderSecondary)
+                Text(
+                    text = caption,
+                    style = if (compact) WaiveraTextStyles.RingCaptionCompact else WaiveraTextStyles.RingCaption,
+                    color = hero.onHeaderSecondary,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.widthIn(max = ringCaptionMaxWidth(size, stroke)),
+                )
             }
         }
     }
@@ -227,6 +240,12 @@ private fun DrawScope.drawCheck(progress: Float, color: Color) {
         )
     }
 }
+
+/**
+ * The widest the caption may set inside a ring of [size] with [stroke]: the inner diameter less a
+ * 4dp clearance from the track on each side.
+ */
+internal fun ringCaptionMaxWidth(size: Dp, stroke: Dp): Dp = size - stroke * 2 - WaiveraSpacing.Small
 
 /** Keeps the ring's count at its size up to [RING_MAX_FONT_SCALE]: the ring itself does not grow. */
 @Composable

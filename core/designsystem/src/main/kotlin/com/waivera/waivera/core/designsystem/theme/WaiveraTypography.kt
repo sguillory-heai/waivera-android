@@ -266,6 +266,19 @@ object WaiveraTextStyles {
         hyphens = WaiveraHyphens,
     )
 
+    /**
+     * The caption in the compact ring on a short window: 10 / 600 with no tracking, so "handled"
+     * clears the arc inside a 72dp ring (UI10-06).
+     */
+    val RingCaptionCompact = TextStyle(
+        fontFamily = Jakarta,
+        fontSize = 10.sp,
+        lineHeight = 12.sp,
+        fontWeight = FontWeight.SemiBold,
+        letterSpacing = 0.sp,
+        hyphens = WaiveraHyphens,
+    )
+
     /** A stat tile's number ("14"): 20 / 800. */
     val StatNumeral = TextStyle(
         fontFamily = Jakarta,

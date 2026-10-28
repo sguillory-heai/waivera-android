@@ -6,7 +6,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -16,6 +15,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
@@ -25,9 +25,11 @@ import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.withStyle
 import com.waivera.waivera.core.designsystem.component.WaiveraCelebrationBurst
 import com.waivera.waivera.core.designsystem.component.WaiveraHeroCard
 import com.waivera.waivera.core.designsystem.component.WaiveraHeroSection
@@ -36,8 +38,8 @@ import com.waivera.waivera.core.designsystem.component.WaiveraHeroTrail
 import com.waivera.waivera.core.designsystem.component.WaiveraPressable
 import com.waivera.waivera.core.designsystem.component.WaiveraProgressRing
 import com.waivera.waivera.core.designsystem.component.WaiveraRewardRing
-import com.waivera.waivera.core.designsystem.component.WaiveraStatRow
-import com.waivera.waivera.core.designsystem.component.WaiveraStatTile
+import com.waivera.waivera.core.designsystem.component.WaiveraStat
+import com.waivera.waivera.core.designsystem.component.WaiveraStatGroup
 import com.waivera.waivera.core.designsystem.component.rememberTopBarAccount
 import com.waivera.waivera.core.designsystem.icon.WaiveraIcons
 import com.waivera.waivera.core.designsystem.preview.WaiveraPreviews
@@ -47,6 +49,7 @@ import com.waivera.waivera.core.designsystem.theme.WaiveraSizes
 import com.waivera.waivera.core.designsystem.theme.WaiveraSpacing
 import com.waivera.waivera.core.designsystem.theme.WaiveraTextStyles
 import com.waivera.waivera.core.designsystem.theme.WaiveraTheme
+import com.waivera.waivera.core.designsystem.theme.isExtraLargeFontScale
 import com.waivera.waivera.core.designsystem.theme.isLargeFontScale
 import com.waivera.waivera.core.designsystem.theme.isShortWindow
 import com.waivera.waivera.feature.today.R
@@ -130,11 +133,15 @@ private fun DayHeroBody(state: TodayUiState, onOpenEvent: (String) -> Unit) {
         else -> Unit
     }
     Spacer(Modifier.height(if (compact) WaiveraSpacing.Small else WaiveraSpacing.Small + WaiveraSpacing.XxSmall))
-    WaiveraStatRow(modifier = Modifier.padding(horizontal = WaiveraSpacing.Gutter)) {
-        CountTile(state.stats.eventsToday, R.plurals.feature_today_brand_stat_events_today, compactTiles)
-        CountTile(state.stats.unreadChats, R.plurals.feature_today_brand_stat_unread_chats, compactTiles)
-        CountTile(state.stats.eventsThisWeek, R.plurals.feature_today_brand_stat_events_week, compactTiles)
-    }
+    WaiveraStatGroup(
+        stats = listOf(
+            countStat(state.stats.eventsToday, R.plurals.feature_today_brand_stat_events_today),
+            countStat(state.stats.unreadChats, R.plurals.feature_today_brand_stat_unread_chats),
+            countStat(state.stats.eventsThisWeek, R.plurals.feature_today_brand_stat_events_week),
+        ),
+        compact = compactTiles,
+        modifier = Modifier.padding(horizontal = WaiveraSpacing.Gutter),
+    )
     Spacer(Modifier.height(WaiveraSpacing.MediumSmall))
 }
 
@@ -157,6 +164,7 @@ private fun SummaryCard(
             WaiveraProgressRing(
                 size = if (smallRing) WaiveraSizes.RingCompact else WaiveraSizes.Ring,
                 stroke = if (smallRing) WaiveraSizes.RingStrokeCompact else WaiveraSizes.RingStroke,
+                compact = smallRing,
                 done = progress.handled,
                 total = progress.total,
                 caption = stringResource(R.string.feature_today_brand_ring_caption),
@@ -190,6 +198,9 @@ private fun SummaryCard(
 @Composable
 private fun SummaryText(progress: TodayProgress) {
     val hero = WaiveraHero.colors
+    // At 150% and up the ring already says how many are handled, so its sentence gives the
+    // room back and the sheet starts sooner (UI10-08).
+    val showHandled = !isExtraLargeFontScale()
     Text(
         text = if (progress.open > 0) {
             pluralStringResource(R.plurals.feature_today_brand_needs_you_count, progress.open, progress.open)
@@ -199,6 +210,7 @@ private fun SummaryText(progress: TodayProgress) {
         style = WaiveraTextStyles.HeroTitle,
         color = hero.onHeader,
     )
+    if (!showHandled) return
     Text(
         text = if (progress.handled > 0) {
             stringResource(R.string.feature_today_brand_handled_since, progress.handled)
@@ -229,6 +241,7 @@ private fun NextRow(item: NextUpItem, compact: Boolean, onClick: () -> Unit) {
         else -> stringResource(R.string.feature_today_brand_next, upcoming)
     }
     val description = stringResource(R.string.feature_today_brand_next_a11y, title, upcoming)
+    val inline = isExtraLargeFontScale()
     Column(modifier = Modifier.fillMaxWidth()) {
         Box(
             modifier = Modifier
@@ -258,20 +271,41 @@ private fun NextRow(item: NextUpItem, compact: Boolean, onClick: () -> Unit) {
                     tint = hero.nextIcon,
                     modifier = Modifier.size(WaiveraSizes.IconTileSmallGlyph),
                 )
-                Column(modifier = Modifier.weight(1f)) {
+                if (inline) {
+                    // One wrapping line at 150% and up: "NEXT · 11:00 AM Client home visit" (UI10-08).
+                    val kickerStyle = WaiveraTextStyles.HeroEyebrow.toSpanStyle().copy(color = hero.onHeaderSecondary)
+                    val line = remember(kicker, title, kickerStyle, formats) {
+                        buildAnnotatedString {
+                            withStyle(kickerStyle) { append(formats.upper(kicker)) }
+                            append(' ')
+                            append(title)
+                        }
+                    }
                     Text(
-                        text = formats.upper(kicker),
-                        style = WaiveraTextStyles.HeroEyebrow,
-                        color = hero.onHeaderSecondary,
-                    )
-                    Text(
-                        text = title,
+                        text = line,
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.Bold,
                         color = hero.onHeader,
-                        maxLines = 2,
+                        maxLines = INLINE_NEXT_LINES,
                         overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f),
                     )
+                } else {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = formats.upper(kicker),
+                            style = WaiveraTextStyles.HeroEyebrow,
+                            color = hero.onHeaderSecondary,
+                        )
+                        Text(
+                            text = title,
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = hero.onHeader,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
                 }
                 if (countdown) {
                     Text(
@@ -326,16 +360,15 @@ private fun PlaceholderLine(fraction: Float) {
     )
 }
 
-/** A stat tile for a count; a dash (and "still loading" for TalkBack) until its source loads. */
+/** A stat for a count; a dash (and "still loading" for TalkBack) until its source loads. */
 @Composable
-private fun RowScope.CountTile(value: Int?, @PluralsRes label: Int, compact: Boolean = false) {
+private fun countStat(value: Int?, @PluralsRes label: Int): WaiveraStat {
     val words = pluralStringResource(label, value ?: 0)
-    WaiveraStatTile(
+    return WaiveraStat(
         value = value?.toString() ?: stringResource(R.string.feature_today_brand_stat_unknown),
         label = words,
         contentDescription = value?.let { stringResource(R.string.feature_today_brand_stat_a11y, it, words) }
             ?: stringResource(R.string.feature_today_brand_stat_loading_a11y, words),
-        compact = compact,
     )
 }
 
@@ -387,18 +420,21 @@ private fun RewardHeroBody(state: TodayUiState) {
         WaiveraCelebrationBurst(trigger = state.date ?: Unit, modifier = Modifier.matchParentSize())
     }
     Spacer(Modifier.height(WaiveraSpacing.MediumLarge + WaiveraSpacing.XxSmall))
-    WaiveraStatRow(modifier = Modifier.padding(horizontal = WaiveraSpacing.Gutter)) {
-        HandledTile(progress)
-        CountTile(value = state.stats.eventsToday, label = R.plurals.feature_today_brand_stat_events_today)
-        CountTile(value = state.stats.eventsThisWeek, label = R.plurals.feature_today_brand_stat_events_week)
-    }
+    WaiveraStatGroup(
+        stats = listOf(
+            handledStat(progress),
+            countStat(value = state.stats.eventsToday, label = R.plurals.feature_today_brand_stat_events_today),
+            countStat(value = state.stats.eventsThisWeek, label = R.plurals.feature_today_brand_stat_events_week),
+        ),
+        modifier = Modifier.padding(horizontal = WaiveraSpacing.Gutter),
+    )
     Spacer(Modifier.height(WaiveraSpacing.MediumSmall))
 }
 
 @Composable
-private fun RowScope.HandledTile(progress: TodayProgress?) {
+private fun handledStat(progress: TodayProgress?): WaiveraStat {
     val label = stringResource(R.string.feature_today_brand_stat_handled)
-    WaiveraStatTile(
+    return WaiveraStat(
         value = progress?.let {
             stringResource(R.string.feature_today_brand_stat_fraction, it.handled, it.total)
         } ?: stringResource(R.string.feature_today_brand_stat_unknown),
@@ -410,6 +446,7 @@ private fun RowScope.HandledTile(progress: TodayProgress?) {
 }
 
 private const val PLACEHOLDER_TITLE = 0.8f
+private const val INLINE_NEXT_LINES = 3
 private const val PLACEHOLDER_BODY = 0.55f
 
 @WaiveraPreviews

@@ -131,6 +131,12 @@ object WaiveraSizes {
     val RingCompact: Dp = 72.dp
     val RingStrokeCompact: Dp = 8.dp
 
+    /**
+     * At 150% font and up, a stat group narrower than this (a phone's hero) lays its stats out as
+     * rows on one card instead of three tiles (UI10-04, UI10-08).
+     */
+    val StatStackMaxWidth: Dp = 480.dp
+
     /** The all-caught-up ring, its stroke, its halo's reach beyond it and its check. */
     val RewardRing: Dp = 132.dp
     val RewardRingStroke: Dp = 12.dp
