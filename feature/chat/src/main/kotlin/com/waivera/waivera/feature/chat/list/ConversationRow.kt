@@ -17,7 +17,10 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -145,6 +148,9 @@ fun ConversationRow(
 @Composable
 private fun RowBody(row: ChatRowUi, avatar: ImageBitmap?, onJoinCall: () -> Unit) {
     val colors = WaiveraTheme.colors
+    // At large font a live call's chip gets the text column to itself and the unread count moves
+    // up beside the time, so "Join call" never loses its verb to the badge (UI10-03).
+    val callOwnLine = row.isCallLive && isLargeFontScale()
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -185,6 +191,7 @@ private fun RowBody(row: ChatRowUi, avatar: ImageBitmap?, onJoinCall: () -> Unit
                         maxLines = 1,
                     )
                 }
+                if (callOwnLine && row.isUnread) WaiveraCountBadge(count = row.unreadCount)
             }
             Row(
                 horizontalArrangement = Arrangement.spacedBy(WaiveraSpacing.Small),
@@ -206,7 +213,7 @@ private fun RowBody(row: ChatRowUi, avatar: ImageBitmap?, onJoinCall: () -> Unit
                         else -> PreviewLine(row)
                     }
                 }
-                if (row.isUnread) WaiveraCountBadge(count = row.unreadCount)
+                if (row.isUnread && !callOwnLine) WaiveraCountBadge(count = row.unreadCount)
             }
         }
     }
@@ -278,12 +285,17 @@ private fun PreviewLine(row: ChatRowUi) {
 
 /**
  * "Call in progress · Join" as a tonal pill with a 48dp target. Its own tap target, so tapping
- * it never opens the conversation.
+ * it never opens the conversation. At large font, or whenever the full line would be cut, the
+ * pill says "Join call": the verb is why the pill exists, so it is the description that goes
+ * (UI10-03). TalkBack always hears the full "Call in progress · Join".
  */
 @Composable
 private fun CallJoin(opening: Boolean, onJoin: () -> Unit) {
     val colors = WaiveraTheme.colors
     val label = stringResource(R.string.feature_chat_list_call_join)
+    val shortLabel = stringResource(R.string.feature_chat_list_call_join_short)
+    var cut by remember(label) { mutableStateOf(false) }
+    val short = cut || isLargeFontScale()
     val openingLabel = stringResource(R.string.feature_chat_list_call_opening)
     Row(
         modifier = Modifier
@@ -314,15 +326,14 @@ private fun CallJoin(opening: Boolean, onJoin: () -> Unit) {
                 modifier = Modifier.size(WaiveraSizes.IconSmall),
             )
         }
-        // At large font "· Join" would wrap onto its own line; the pill itself joins, and its
-        // content description still says so (UI3-11).
         Text(
-            text = if (isLargeFontScale()) stringResource(R.string.feature_chat_call_in_progress) else label,
+            text = if (short) shortLabel else label,
             style = MaterialTheme.typography.bodySmall,
             fontWeight = FontWeight.Bold,
             color = colors.onAccentSoft,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
+            onTextLayout = { layout -> if (!short && layout.hasVisualOverflow) cut = true },
         )
     }
 }

@@ -44,6 +44,8 @@
     <string name="feature_chat_list_typing_several">Several people are typing…</string>
     <string name="feature_chat_list_call_join">Call in progress · Join</string>
     <string name="feature_chat_list_call_join_action">Join call</string>
+    <!-- The call pill at large font, or when the full line would be cut: the verb stays. -->
+    <string name="feature_chat_list_call_join_short">Join call</string>
     <string name="feature_chat_list_call_opening">Opening call</string>
     <string name="feature_chat_list_call_failed">Couldn\'t open the video call. Try again.</string>
     <string name="feature_chat_list_call_no_browser">Couldn\'t open the call. Check that a web browser is installed and turned on.</string>
