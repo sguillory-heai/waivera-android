@@ -41,6 +41,19 @@ fun String.withUnbreakableExtension(): String {
 }
 
 /**
+ * A file name split before the last part of its stem, for showing on two lines: the head runs
+ * up to and including the last "-", "_", "." or space before the extension, and the tail is the
+ * rest ("north-roster-" and "wk43.pdf"). The tail is what tells one file from the next and says
+ * what kind it is, so it is the part that must never be cut (UI6-06). A name with no such break
+ * has an empty head.
+ */
+fun String.fileNameHeadAndTail(): Pair<String, String> {
+    val dot = lastIndexOf(DOT).takeIf { it > 0 } ?: length
+    val split = substring(0, dot).indexOfLast { it in FILE_NAME_BREAKS }
+    return if (split <= 0) "" to this else substring(0, split + 1) to substring(split + 1)
+}
+
+/**
  * Where an email address or handle may wrap besides after its "@" ("alex.rivera@" /
  * "example.org"). Each extra set of break points is turned on only when the part it splits is
  * wider than the line ([addressBreaksFor]).
@@ -100,6 +113,7 @@ internal fun String.addressParts(): Pair<String, String> {
 
 private const val AT = '@'
 private const val LOCAL_PART_BREAKS = ".-_+"
+private const val FILE_NAME_BREAKS = "-_. "
 private const val DOT = '.'
 private const val WORD_JOINER = '\u2060'
 private const val HYPHEN = '-'

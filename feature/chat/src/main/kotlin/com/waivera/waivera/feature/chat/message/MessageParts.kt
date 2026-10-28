@@ -33,8 +33,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
@@ -60,7 +62,7 @@ import com.waivera.waivera.core.designsystem.component.WaiveraDivider
 import com.waivera.waivera.core.designsystem.component.WaiveraPressable
 import com.waivera.waivera.core.designsystem.component.WaiveraStatusBadge
 import com.waivera.waivera.core.designsystem.icon.WaiveraIcons
-import com.waivera.waivera.core.designsystem.text.withBreaksAfterHyphens
+import com.waivera.waivera.core.designsystem.text.fileNameHeadAndTail
 import com.waivera.waivera.core.designsystem.text.withNonBreakingHyphens
 import com.waivera.waivera.core.designsystem.text.withUnbreakableExtension
 import com.waivera.waivera.core.designsystem.theme.WaiveraShapes
@@ -346,18 +348,12 @@ private fun FileAttachment(message: Message, attachment: Attachment, onOpen: () 
             // the room instead, and the tap's label still says what it does (UI3-11). At 100%
             // the name is one line cut in the middle, so the extension stays visible ("north-
             // ros…wk43.pdf", UI4-08). At large font one line left almost none of it
-            // ("north…3.pdf"), so it gets two lines that break after a hyphen, with the
-            // extension glued to the part before it ("north-roster- / wk43.pdf", UI5-11).
+            // ("north…3.pdf", UI5-11), and two wrapping lines with an end ellipsis dropped the
+            // week number and the extension ("north- / roster-wk4…", UI6-06): see FileCardName.
             val largeFont = isLargeFontScale()
             Column(Modifier.weight(1f, fill = false)) {
                 if (largeFont) {
-                    Text(
-                        text = name.withBreaksAfterHyphens().withUnbreakableExtension(),
-                        style = MaterialTheme.typography.titleSmall,
-                        color = colors.text,
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis,
-                    )
+                    FileCardName(name = name, color = colors.text)
                 } else {
                     Text(
                         text = name,
@@ -384,6 +380,35 @@ private fun FileAttachment(message: Message, attachment: Attachment, onOpen: () 
         }
     }
 }
+
+/**
+ * The file card's name at large font, on up to two lines: the head of the name, cut in the
+ * middle when it is too long, then the tail with the extension ("nor…ter-" / "wk43.pdf"), which
+ * is never cut while it fits a line. The two sit on one line when they fit together. The
+ * description gives TalkBack the whole name in one piece instead of the two halves.
+ */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+internal fun FileCardName(name: String, color: Color, modifier: Modifier = Modifier) {
+    val (head, tail) = remember(name) { name.fileNameHeadAndTail() }
+    val style = MaterialTheme.typography.titleSmall
+    FlowRow(modifier = modifier.semantics { contentDescription = name }) {
+        if (head.isNotEmpty()) {
+            Text(text = head, style = style, color = color, maxLines = 1, overflow = TextOverflow.MiddleEllipsis)
+        }
+        Text(
+            text = tail.withUnbreakableExtension(),
+            style = style,
+            color = color,
+            maxLines = 1,
+            overflow = TextOverflow.MiddleEllipsis,
+            modifier = Modifier.testTag(FILE_NAME_TAIL_TAG),
+        )
+    }
+}
+
+/** Test tag for the never-cut tail of the file card's name. */
+internal const val FILE_NAME_TAIL_TAG = "chat_file_name_tail"
 
 // Ticket card -------------------------------------------------------------------------------
 

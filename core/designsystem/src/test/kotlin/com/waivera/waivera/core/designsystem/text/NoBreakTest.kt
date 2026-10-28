@@ -45,6 +45,22 @@ class NoBreakTest {
     }
 
     @Test
+    fun aFileNameSplitsBeforeTheLastPartOfItsStem() {
+        assertEquals("north-roster-" to "wk43.pdf", "north-roster-wk43.pdf".fileNameHeadAndTail())
+        assertEquals("Hughes care " to "plan.pdf", "Hughes care plan.pdf".fileNameHeadAndTail())
+        assertEquals("site_" to "photo.jpg", "site_photo.jpg".fileNameHeadAndTail())
+        assertEquals("roster." to "v2.pdf", "roster.v2.pdf".fileNameHeadAndTail())
+    }
+
+    @Test
+    fun aFileNameWithoutABreakIsAllTail() {
+        assertEquals("" to "Rosterweek43.pdf", "Rosterweek43.pdf".fileNameHeadAndTail())
+        assertEquals("" to "README", "README".fileNameHeadAndTail())
+        assertEquals("" to "-draft.pdf", "-draft.pdf".fileNameHeadAndTail())
+        assertEquals("" to ".env", ".env".fileNameHeadAndTail())
+    }
+
+    @Test
     fun anAddressWrapsOnlyAfterItsAtSignByDefault() {
         assertEquals(
             "alex\u2060.\u2060rivera\u2060@\u200Bexample\u2060.\u2060org",
