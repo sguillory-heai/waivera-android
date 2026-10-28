@@ -164,7 +164,7 @@ private fun buttonBorder(variant: WaiveraButtonVariant, enabled: Boolean, colors
     !enabled -> BorderStroke(WaiveraSpacing.Hairline, colors.border)
     variant == WaiveraButtonVariant.Secondary -> BorderStroke(WaiveraSpacing.Hairline, colors.borderStrong)
     variant == WaiveraButtonVariant.DestructiveOutline -> BorderStroke(WaiveraSpacing.Hairline, colors.danger)
-    variant == WaiveraButtonVariant.Selected -> BorderStroke(WaiveraSpacing.SelectedOutline, colors.accent)
+    variant == WaiveraButtonVariant.Selected -> BorderStroke(WaiveraSizes.SelectedOutline, colors.accent)
     variant == WaiveraButtonVariant.Unselected -> BorderStroke(WaiveraSpacing.Hairline, colors.border)
     else -> null
 }
