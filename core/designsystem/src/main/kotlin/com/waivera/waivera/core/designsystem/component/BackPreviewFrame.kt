@@ -218,7 +218,8 @@ internal fun backPreviewGeometry(role: BackPreviewRole, fraction: Float, swipeFr
         )
         BackPreviewRole.Revealed -> BackPreviewGeometry(
             scale = 1f,
-            shift = -away * (1f - f) * BACK_PARALLAX,
+            // Adding 0 turns -0.0 at rest into 0.0, so the settled screen equals Rest.
+            shift = -away * (1f - f) * BACK_PARALLAX + 0f,
             corner = 0f,
             scrim = 1f - f,
             outlined = false,
