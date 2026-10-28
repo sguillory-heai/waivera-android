@@ -80,8 +80,13 @@ enum class WaiveraButtonVariant {
     Unselected,
 }
 
-/** How tall a [WaiveraButton] is: [Large] is the 56dp full-width action a screen exists for (Sign in). */
-enum class WaiveraButtonSize { Regular, Large }
+/**
+ * How big a [WaiveraButton] is: [Large] is the 56dp full-width action a screen exists for (Sign in).
+ * [Compact] keeps the 48dp height and the full-size label but tightens the side padding, the icon
+ * and its gap, for a short run of actions that has to share one line in a narrow column (a failed
+ * send's Discard, Edit and Retry on a 360dp phone).
+ */
+enum class WaiveraButtonSize { Regular, Large, Compact }
 
 /**
  * The app's button.
@@ -119,6 +124,7 @@ fun WaiveraButton(
     val colors = WaiveraTheme.colors
     val style = variant.styleFrom(colors)
     val large = size == WaiveraButtonSize.Large
+    val compact = size == WaiveraButtonSize.Compact
     val shape = if (large) WaiveraShapes.Cta else WaiveraShapes.Button
     val interactionSource = remember { MutableInteractionSource() }
     val scale by animatePressScale(interactionSource)
@@ -145,7 +151,10 @@ fun WaiveraButton(
             disabledContentColor = colors.textSecondary,
         ),
         border = buttonBorder(variant, enabled, colors),
-        contentPadding = PaddingValues(horizontal = WaiveraSpacing.MediumLarge, vertical = WaiveraSpacing.MediumSmall),
+        contentPadding = PaddingValues(
+            horizontal = if (compact) WaiveraSpacing.MediumSmall else WaiveraSpacing.MediumLarge,
+            vertical = WaiveraSpacing.MediumSmall,
+        ),
         interactionSource = interactionSource,
     ) {
         Box(contentAlignment = Alignment.Center) {
@@ -154,6 +163,7 @@ fun WaiveraButton(
                 maxLines = maxLines,
                 leadingIcon = leadingIcon,
                 regularWeight = variant == WaiveraButtonVariant.Unselected,
+                compact = compact,
                 modifier = Modifier.alpha(if (loading) 0f else 1f),
             )
             if (loadingText != null) {
@@ -169,11 +179,12 @@ private fun ButtonLabel(
     maxLines: Int,
     @DrawableRes leadingIcon: Int?,
     regularWeight: Boolean,
+    compact: Boolean,
     modifier: Modifier = Modifier,
 ) {
     Row(
         modifier = modifier,
-        horizontalArrangement = Arrangement.spacedBy(WaiveraSpacing.Small),
+        horizontalArrangement = Arrangement.spacedBy(if (compact) WaiveraSpacing.ExtraSmall else WaiveraSpacing.Small),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         if (leadingIcon != null) {
@@ -181,7 +192,7 @@ private fun ButtonLabel(
                 painter = painterResource(leadingIcon),
                 contentDescription = null,
                 tint = LocalContentColor.current,
-                modifier = Modifier.size(WaiveraSizes.Icon),
+                modifier = Modifier.size(if (compact) WaiveraSizes.IconSmall else WaiveraSizes.Icon),
             )
         }
         Text(
