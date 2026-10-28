@@ -37,17 +37,27 @@ class CelebrationLabelsRobolectricTest {
     @Test
     fun fullLabelsUseTheNameOrTheFallback() {
         assertEquals(
-            "Happy birthday, Priya Raman! 🎂",
+            "Happy birthday, Priya Raman!",
             CelebrationText.full(Celebration(CelebrationType.BIRTHDAY, null, "Priya Raman"), fallback).resolve(context),
         )
         assertEquals(
-            "Happy 5-year work anniversary, Teammate! 🎉",
+            "Happy 5-year work anniversary, Teammate!",
             CelebrationText.full(Celebration(CelebrationType.WORK_ANNIVERSARY, 5, " "), fallback).resolve(context),
         )
         assertEquals(
-            "Happy birthday and 5-year work anniversary, Jordan Lee! 🎉",
+            "Happy birthday and 5-year work anniversary, Jordan Lee!",
             CelebrationText.full(Celebration(CelebrationType.MULTIPLE, 5, "Jordan Lee"), fallback).resolve(context),
         )
+    }
+
+    @Test
+    fun emojiMatchesTheCelebrationAndLivesOnlyInTheTile() {
+        assertEquals("🎂", CelebrationText.emoji(Celebration(CelebrationType.BIRTHDAY, null, "Sam")).resolve(context))
+        assertEquals(
+            "🎉",
+            CelebrationText.emoji(Celebration(CelebrationType.WORK_ANNIVERSARY, 3, "Sam")).resolve(context),
+        )
+        assertEquals("🎉", CelebrationText.emoji(Celebration(CelebrationType.MULTIPLE, 3, "Sam")).resolve(context))
     }
 
     @Test

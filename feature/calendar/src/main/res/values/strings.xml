@@ -61,9 +61,13 @@
     <string name="feature_calendar_celebration_compact_multiple">Birthday + %1$d-yr anniversary</string>
     <string name="feature_calendar_celebration_compact_birthday">Birthday today</string>
     <string name="feature_calendar_celebration_compact_anniversary">%1$d-year anniversary</string>
-    <string name="feature_calendar_celebration_full_multiple">Happy birthday and %2$d-year work anniversary, %1$s! 🎉</string>
-    <string name="feature_calendar_celebration_full_birthday">Happy birthday, %1$s! 🎂</string>
-    <string name="feature_calendar_celebration_full_anniversary">Happy %2$d-year work anniversary, %1$s! 🎉</string>
+    <!-- The card shows the emoji in its own tile, so the sentence carries none. -->
+    <string name="feature_calendar_celebration_full_multiple">Happy birthday and %2$d-year work anniversary, %1$s!</string>
+    <string name="feature_calendar_celebration_full_birthday">Happy birthday, %1$s!</string>
+    <string name="feature_calendar_celebration_full_anniversary">Happy %2$d-year work anniversary, %1$s!</string>
+    <string name="feature_calendar_celebration_emoji_multiple" translatable="false">🎉</string>
+    <string name="feature_calendar_celebration_emoji_birthday" translatable="false">🎂</string>
+    <string name="feature_calendar_celebration_emoji_anniversary" translatable="false">🎉</string>
     <string name="feature_calendar_celebration_a11y_multiple">%1$s has a birthday and a %2$d-year work anniversary today.</string>
     <string name="feature_calendar_celebration_a11y_birthday">%1$s has a birthday today.</string>
     <string name="feature_calendar_celebration_a11y_anniversary">%1$s has a %2$d-year work anniversary today.</string>

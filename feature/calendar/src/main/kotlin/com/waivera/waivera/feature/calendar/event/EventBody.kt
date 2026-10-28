@@ -43,6 +43,7 @@ import com.waivera.waivera.core.designsystem.component.BannerTone
 import com.waivera.waivera.core.designsystem.component.SkeletonLine
 import com.waivera.waivera.core.designsystem.component.SkeletonListRow
 import com.waivera.waivera.core.designsystem.component.WaiveraBanner
+import com.waivera.waivera.core.designsystem.component.WaiveraBrandSurface
 import com.waivera.waivera.core.designsystem.component.WaiveraButton
 import com.waivera.waivera.core.designsystem.component.WaiveraButtonVariant
 import com.waivera.waivera.core.designsystem.component.WaiveraIconTile
@@ -108,15 +109,8 @@ internal fun EventBody(
             bottom = navBar.calculateBottomPadding() + WaiveraSpacing.Large,
         ),
     ) {
-        item(key = "title") {
-            Text(
-                text =
-                event.title?.takeIf(String::isNotBlank) ?: stringResource(R.string.feature_calendar_untitled_event),
-                style = MaterialTheme.typography.headlineSmall,
-                color = WaiveraTheme.colors.text,
-                modifier = sectionModifier.semantics { heading() },
-            )
-        }
+        // First, so the top bar takes over the title once this item scrolls away (UI2-20).
+        item(key = "hero") { EventHero(details, actions, sectionModifier) }
         details.refreshError?.let {
             item(key = "refreshError") {
                 // A stale-data notice, so it follows the status-banner rule the chat list and
@@ -131,32 +125,6 @@ internal fun EventBody(
                     compact = isLargeFontScale(),
                     modifier = sectionModifier,
                     gutter = false,
-                )
-            }
-        }
-        item(key = "time") { TimeBlock(details, sectionModifier) }
-        locationText(details)?.let { location ->
-            item(key = "location") {
-                val online = event.online || event.isSprout
-                // An address opens in maps; the row is the whole 48dp target, so the click wraps the padding.
-                val openMaps = Modifier
-                    .clickable(
-                        onClickLabel = stringResource(R.string.feature_calendar_location_open),
-                        role = Role.Button,
-                    ) { actions.onOpenLocation(location) }
-                    .heightIn(min = WaiveraSizes.ButtonMinHeight)
-                DetailRow(
-                    icon = if (online) WaiveraIcons.Video else CalendarIcons.Place,
-                    iconLabel = stringResource(
-                        if (online) {
-                            R.string.feature_calendar_event_online
-                        } else {
-                            R.string.feature_calendar_event_location
-                        },
-                    ),
-                    primary = location,
-                    modifier = if (online) sectionModifier else openMaps.then(sectionModifier),
-                    trailingIcon = WaiveraIcons.OpenExternal.takeUnless { online },
                 )
             }
         }
@@ -175,7 +143,9 @@ internal fun EventBody(
                         },
                     ),
                     onClick = actions.onOpenChat,
-                    variant = WaiveraButtonVariant.Secondary,
+                    // Tonal, with an accent glyph: the outlined block with a near-black icon read
+                    // as the heaviest thing on the screen.
+                    variant = WaiveraButtonVariant.Tonal,
                     loadingText = stringResource(R.string.feature_calendar_opening_chat).takeIf { chat.isBusy },
                     fullWidth = true,
                     leadingIcon = WaiveraIcons.Chat,
@@ -222,6 +192,47 @@ internal fun EventBody(
             items(details.attendees, key = { "attendee:${it.id}" }) { attendee ->
                 AttendeeItem(attendee, actions)
             }
+        }
+    }
+}
+
+/**
+ * The event's title, when and where, on the brand wash: the screen's one brand moment, so the
+ * event reads as something to look forward to rather than a form.
+ */
+@Composable
+private fun EventHero(details: EventDetails, actions: EventActions, modifier: Modifier = Modifier) {
+    val event = details.event
+    WaiveraBrandSurface(modifier = modifier, verticalArrangement = Arrangement.spacedBy(WaiveraSpacing.MediumSmall)) {
+        Text(
+            text = event.title?.takeIf(String::isNotBlank) ?: stringResource(R.string.feature_calendar_untitled_event),
+            style = MaterialTheme.typography.headlineSmall,
+            color = WaiveraTheme.colors.text,
+            modifier = Modifier.semantics { heading() },
+        )
+        TimeBlock(details)
+        locationText(details)?.let { location ->
+            val online = event.online || event.isSprout
+            // An address opens in maps; the row is the whole 48dp target.
+            val openMaps = Modifier
+                .clickable(
+                    onClickLabel = stringResource(R.string.feature_calendar_location_open),
+                    role = Role.Button,
+                ) { actions.onOpenLocation(location) }
+                .heightIn(min = WaiveraSizes.ButtonMinHeight)
+            DetailRow(
+                icon = if (online) WaiveraIcons.Video else CalendarIcons.Place,
+                iconLabel = stringResource(
+                    if (online) {
+                        R.string.feature_calendar_event_online
+                    } else {
+                        R.string.feature_calendar_event_location
+                    },
+                ),
+                primary = location,
+                modifier = if (online) Modifier else openMaps,
+                trailingIcon = WaiveraIcons.OpenExternal.takeUnless { online },
+            )
         }
     }
 }
@@ -390,8 +401,9 @@ private fun InvitationBlock(invitation: InvitationUi, actions: EventActions, mod
  * "Not going" and "Going" as one single-choice group: the chosen answer has the accent-soft fill,
  * an accent outline and a check, and is announced as selected; the other has a subtle outline and
  * regular-weight text, so the chosen one is always the heavier, in dark mode too (UI4-04). The
- * pair reads as a state rather than two calls to action. Above 130% font the pair stacks and the
- * check is dropped so labels stay whole.
+ * pair reads as a state rather than two calls to action. Before an answer both are soft tonal
+ * buttons, an invitation to choose, never two stark outlined blocks. Above 130% font the pair
+ * stacks and the check is dropped so labels stay whole.
  */
 @Composable
 private fun ResponseChoices(saving: Boolean, accepted: Boolean, declined: Boolean, actions: EventActions) {
@@ -451,9 +463,9 @@ private fun ResponseChoice(
     WaiveraButton(
         text = text,
         onClick = onClick,
-        // Before an answer both are plain outlined choices; after one, the chosen side is the heavier.
+        // Before an answer both are soft tonal choices; after one, the chosen side is the heavier.
         variant = when {
-            !answered -> WaiveraButtonVariant.Secondary
+            !answered -> WaiveraButtonVariant.Tonal
             chosen -> WaiveraButtonVariant.Selected
             else -> WaiveraButtonVariant.Unselected
         },

@@ -29,10 +29,10 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.waivera.waivera.core.designsystem.R as DesignR
 import com.waivera.waivera.core.designsystem.component.WaiveraEmptyState
 import com.waivera.waivera.core.designsystem.component.WaiveraErrorState
+import com.waivera.waivera.core.designsystem.component.WaiveraIllustration
 import com.waivera.waivera.core.designsystem.component.WaiveraSnackbarHost
 import com.waivera.waivera.core.designsystem.component.WaiveraTopBar
 import com.waivera.waivera.core.designsystem.feedback.rememberHaptics
-import com.waivera.waivera.core.designsystem.icon.WaiveraIcons
 import com.waivera.waivera.core.designsystem.preview.WaiveraPreviews
 import com.waivera.waivera.core.designsystem.theme.WaiveraSpacing
 import com.waivera.waivera.core.designsystem.theme.WaiveraTheme
@@ -182,7 +182,7 @@ fun EventContent(
                 EventUiState.NotFound -> WaiveraEmptyState(
                     title = stringResource(R.string.feature_calendar_event_not_found_title),
                     message = stringResource(R.string.feature_calendar_event_not_found_message),
-                    icon = WaiveraIcons.Calendar,
+                    illustration = WaiveraIllustration.Schedule,
                     actionLabel = stringResource(DesignR.string.core_designsystem_go_back),
                     onAction = actions.onBack,
                     modifier = Modifier.padding(WaiveraSpacing.Gutter),

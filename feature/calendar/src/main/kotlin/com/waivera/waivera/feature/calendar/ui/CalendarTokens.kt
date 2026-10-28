@@ -19,8 +19,12 @@ internal object CalendarSizes {
     /** Celebration diamond; a little larger than [Dot] so both read as the same visual weight. */
     val MilestoneDot: Dp = 6.dp
 
-    /** The today ring is always drawn at this width, transparent when not today. */
+    /** The selected day's edge is always drawn at this width, transparent when not selected. */
     val CellBorder: Dp = 1.5.dp
+
+    /** The filled disc behind today's number in the month grid, and in the taller week strip. */
+    val TodayDisc: Dp = 28.dp
+    val TodayDiscLarge: Dp = 36.dp
 
     /** Owner-colour bar on the leading edge of an event card. */
     val EventAccentBar: Dp = 4.dp

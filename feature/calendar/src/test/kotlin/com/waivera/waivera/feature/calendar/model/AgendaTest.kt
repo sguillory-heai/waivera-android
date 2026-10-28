@@ -247,6 +247,24 @@ class AgendaTest {
     }
 
     @Test
+    fun eventDotsTakeEachDaysFirstDistinctOwnerColoursInAgendaOrder() {
+        val day = LocalDate.of(2026, 10, 15)
+        // Listed out of order on purpose: the dots follow start time, like the agenda.
+        val events = listOf(
+            timed("d", "2026-10-15T18:00:00Z", null).copy(ownerColor = "#FF0000"),
+            timed("a", "2026-10-15T14:00:00Z", null).copy(ownerColor = "#7E57C2"),
+            timed("b", "2026-10-15T15:00:00Z", null).copy(ownerColor = "7E57C2"),
+            timed("c", "2026-10-15T16:00:00Z", null).copy(ownerColor = "not a colour"),
+            timed("e", "2026-10-15T19:00:00Z", null).copy(ownerColor = "#00FF00"),
+        )
+        val cells = SchedulePeriods.cellsFor(ScheduleView.WEEK, day)
+        val marker = Agenda.markers(feed(*events.toTypedArray()), chicago, MilestoneIndex.Empty, cells).getValue(day)
+        assertEquals(5, marker.events)
+        assertEquals(listOf(0xFF7E57C2, null, 0xFFFF0000), marker.eventColors)
+        assertTrue(Agenda.markers(feed(), chicago, MilestoneIndex.Empty, cells).getValue(day).eventColors.isEmpty())
+    }
+
+    @Test
     fun multiDayEventIsCountedOnEveryDayItTouches() {
         val overnight = timed("overnight", "2026-11-01T03:00:00Z", "2026-11-01T12:00:00Z")
         val cells = SchedulePeriods.cellsFor(ScheduleView.WEEK, LocalDate.of(2026, 10, 31))

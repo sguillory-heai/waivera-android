@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -30,10 +31,13 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.style.TextOverflow
+import com.waivera.waivera.core.designsystem.component.WaiveraBrandSurface
+import com.waivera.waivera.core.designsystem.component.WaiveraEmojiTile
 import com.waivera.waivera.core.designsystem.component.WaiveraIconTile
 import com.waivera.waivera.core.designsystem.component.WaiveraPressable
 import com.waivera.waivera.core.designsystem.component.WaiveraTileTone
 import com.waivera.waivera.core.designsystem.icon.WaiveraIcons
+import com.waivera.waivera.core.designsystem.theme.WaiveraBrand
 import com.waivera.waivera.core.designsystem.theme.WaiveraShapes
 import com.waivera.waivera.core.designsystem.theme.WaiveraSizes
 import com.waivera.waivera.core.designsystem.theme.WaiveraSpacing
@@ -101,7 +105,7 @@ internal fun AgendaCard(
 /**
  * The thin "Now · 10:30 AM" line in today's agenda, before the first item that has not ended,
  * so the day reads as before and after at a glance (UI4-12). The time is in the employee's
- * saved zone.
+ * saved zone. The line is the brand gradient: a small bit of life on the one moving mark.
  */
 @Composable
 internal fun NowDivider(time: ZonedDateTime, modifier: Modifier = Modifier) {
@@ -121,33 +125,52 @@ internal fun NowDivider(time: ZonedDateTime, modifier: Modifier = Modifier) {
             modifier = Modifier
                 .weight(1f)
                 .height(CalendarSizes.NowLine)
-                .background(colors.accent),
+                .background(WaiveraBrand.horizontalGradient(), WaiveraShapes.Pill),
         )
     }
 }
 
+/**
+ * A birthday or anniversary on the day: a small brand moment, on the gradient wash with the
+ * celebration emoji in its own tile (the sentence carries none, so it shows once).
+ */
 @Composable
 private fun MilestoneCard(item: AgendaItem.MilestoneCard, modifier: Modifier = Modifier) {
     val fallbackName = stringResource(R.string.feature_calendar_celebration_name_fallback)
     val name = item.occurrence.milestone.displayName?.takeIf(String::isNotBlank) ?: fallbackName
-    CardSurface(modifier = modifier.semantics(mergeDescendants = true) { }) {
-        MilestoneAvatar(
-            name = name,
-            celebration = item.celebration,
-            size = CalendarSizes.MilestoneCardAvatar,
-            userId = item.occurrence.milestone.userId,
-        )
-        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(WaiveraSpacing.XxSmall)) {
-            Text(
-                text = CelebrationText.full(item.celebration, fallbackName).resolve(),
-                style = MaterialTheme.typography.titleSmall,
-                color = WaiveraTheme.colors.text,
+    WaiveraBrandSurface(
+        modifier = modifier
+            .heightIn(min = WaiveraSizes.ListRowMinHeight)
+            .semantics(mergeDescendants = true) { },
+        shape = WaiveraShapes.ListCard,
+        contentPadding = PaddingValues(WaiveraSpacing.MediumSmall),
+    ) {
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(WaiveraSpacing.MediumSmall),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            MilestoneAvatar(
+                name = name,
+                celebration = item.celebration,
+                size = CalendarSizes.MilestoneCardAvatar,
+                userId = item.occurrence.milestone.userId,
             )
-            Text(
-                text = milestoneSubtitle(item.occurrence),
-                style = MaterialTheme.typography.labelMedium,
-                color = WaiveraTheme.colors.textSecondary,
-            )
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(WaiveraSpacing.XxSmall),
+            ) {
+                Text(
+                    text = CelebrationText.full(item.celebration, fallbackName).resolve(),
+                    style = MaterialTheme.typography.titleSmall,
+                    color = WaiveraTheme.colors.text,
+                )
+                Text(
+                    text = milestoneSubtitle(item.occurrence),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = WaiveraTheme.colors.textSecondary,
+                )
+            }
+            WaiveraEmojiTile(emoji = CelebrationText.emoji(item.celebration).resolve())
         }
     }
 }

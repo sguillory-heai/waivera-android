@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
@@ -38,6 +39,7 @@ import com.waivera.waivera.core.designsystem.theme.WaiveraSpacing
 import com.waivera.waivera.core.designsystem.theme.WaiveraTextStyles
 import com.waivera.waivera.core.designsystem.theme.WaiveraTheme
 import com.waivera.waivera.feature.calendar.R
+import com.waivera.waivera.feature.calendar.model.DayMarker
 import com.waivera.waivera.feature.calendar.model.ScheduleText
 import com.waivera.waivera.feature.calendar.model.ScheduleView
 import com.waivera.waivera.feature.calendar.ui.CalendarShapes
@@ -51,6 +53,10 @@ private const val DAYS_PER_WEEK = 7
  * Month grid (always 42 cells) or week strip (7 cells). Each cell is one selectable control at
  * least 48dp tall whose label says the date, whether it is today, and how many events and
  * celebrations it has, so the dots are never the only signal.
+ *
+ * Today's number sits on a filled accent disc, the one bold mark on the grid; the selected day
+ * is the soft accent cell. Event dots take their owners' colours (accent when none), so a busy
+ * week reads at a glance.
  */
 @Composable
 internal fun ScheduleGrid(
@@ -114,6 +120,7 @@ private fun DayCell(cell: GridCell, showWeekday: Boolean, onClick: () -> Unit, m
         label = "cellBackground",
     )
     val numberColor = when {
+        cell.isToday -> colors.onAccent
         cell.isSelected -> colors.onAccentSoft
         !cell.inPeriod -> colors.textSecondary
         else -> colors.text
@@ -126,7 +133,7 @@ private fun DayCell(cell: GridCell, showWeekday: Boolean, onClick: () -> Unit, m
             .heightIn(min = if (showWeekday) CalendarSizes.WeekCellMinHeight else WaiveraSpacing.MinTouchTarget)
             .clip(shape)
             .background(background)
-            .border(CalendarSizes.CellBorder, if (cell.isToday) colors.accent else Color.Transparent, shape)
+            .border(CalendarSizes.CellBorder, if (cell.isSelected) colors.accentBorder else Color.Transparent, shape)
             .selectable(selected = cell.isSelected, role = Role.Button, onClick = onClick)
             .semantics { contentDescription = label }
             .padding(vertical = WaiveraSpacing.ExtraSmall),
@@ -150,26 +157,46 @@ private fun DayCell(cell: GridCell, showWeekday: Boolean, onClick: () -> Unit, m
                     softWrap = false,
                 )
             }
-            Text(
-                text = ScheduleText.dayOfMonth(cell.date, locale),
-                style = if (showWeekday) MaterialTheme.typography.titleLarge else MaterialTheme.typography.titleSmall,
-                fontWeight = if (cell.isToday || cell.isSelected) FontWeight.Black else FontWeight.SemiBold,
-                color = numberColor,
-                maxLines = 1,
-                softWrap = false,
-            )
+            val disc = if (showWeekday) CalendarSizes.TodayDiscLarge else CalendarSizes.TodayDisc
+            val type = MaterialTheme.typography
+            val numberStyle = if (showWeekday) type.titleLarge else type.titleSmall
+            Box(
+                modifier = Modifier
+                    .defaultMinSize(minWidth = disc, minHeight = disc)
+                    .background(if (cell.isToday) colors.accentFill else Color.Transparent, WaiveraShapes.Pill)
+                    .padding(horizontal = WaiveraSpacing.ExtraSmall),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    text = ScheduleText.dayOfMonth(cell.date, locale),
+                    style = numberStyle,
+                    fontWeight = if (cell.isToday || cell.isSelected) FontWeight.Black else FontWeight.SemiBold,
+                    color = numberColor,
+                    maxLines = 1,
+                    softWrap = false,
+                )
+            }
             Row(
                 horizontalArrangement = Arrangement.spacedBy(CalendarSizes.DotGap),
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.heightIn(min = CalendarSizes.MilestoneDot),
             ) {
-                if (cell.marker.events > 0) Dot(colors.accent, WaiveraShapes.Circle, CalendarSizes.Dot)
+                EventDots(cell.marker)
                 if (cell.marker.milestones > 0) {
                     Dot(colors.milestoneDot, CalendarShapes.Diamond, CalendarSizes.MilestoneDot)
                 }
             }
         }
     }
+}
+
+/** One circle per event colour on the day (accent for an event without one). */
+@Composable
+private fun EventDots(marker: DayMarker) {
+    if (marker.events == 0) return
+    val accent = WaiveraTheme.colors.accent
+    val dots = marker.eventColors.ifEmpty { listOf(null) }
+    dots.forEach { argb -> Dot(argb?.let { Color(it) } ?: accent, WaiveraShapes.Circle, CalendarSizes.Dot) }
 }
 
 /** Events are circles and celebrations diamonds, so the two read apart without colour. */

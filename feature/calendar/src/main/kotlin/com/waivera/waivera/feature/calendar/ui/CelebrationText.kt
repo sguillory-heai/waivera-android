@@ -49,6 +49,15 @@ object CelebrationText {
         }
     }
 
+    /** The emoji for the card's tile; the sentence from [full] carries none. */
+    fun emoji(celebration: Celebration): TextSpec = TextSpec(
+        when (celebration.type) {
+            CelebrationType.MULTIPLE -> R.string.feature_calendar_celebration_emoji_multiple
+            CelebrationType.BIRTHDAY -> R.string.feature_calendar_celebration_emoji_birthday
+            CelebrationType.WORK_ANNIVERSARY -> R.string.feature_calendar_celebration_emoji_anniversary
+        },
+    )
+
     /** The avatar's TalkBack label: the full celebration sentence. */
     fun accessible(celebration: Celebration, fallbackName: String): TextSpec {
         val name = celebration.displayName?.takeIf(String::isNotBlank) ?: fallbackName

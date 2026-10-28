@@ -42,16 +42,21 @@ import com.waivera.waivera.core.designsystem.component.BannerTone
 import com.waivera.waivera.core.designsystem.component.SkeletonListRow
 import com.waivera.waivera.core.designsystem.component.TopBarAction
 import com.waivera.waivera.core.designsystem.component.WaiveraBanner
+import com.waivera.waivera.core.designsystem.component.WaiveraBrandSurface
 import com.waivera.waivera.core.designsystem.component.WaiveraEmptyState
 import com.waivera.waivera.core.designsystem.component.WaiveraIconButton
+import com.waivera.waivera.core.designsystem.component.WaiveraIconTile
+import com.waivera.waivera.core.designsystem.component.WaiveraIllustration
 import com.waivera.waivera.core.designsystem.component.WaiveraSegmentedControl
 import com.waivera.waivera.core.designsystem.component.WaiveraStatusBadge
+import com.waivera.waivera.core.designsystem.component.WaiveraTileTone
 import com.waivera.waivera.core.designsystem.component.WaiveraTopBar
 import com.waivera.waivera.core.designsystem.component.rememberSkeletonPulse
 import com.waivera.waivera.core.designsystem.component.rememberSkeletonVisible
 import com.waivera.waivera.core.designsystem.component.rememberTopBarAccount
 import com.waivera.waivera.core.designsystem.icon.WaiveraIcons
 import com.waivera.waivera.core.designsystem.preview.WaiveraPreviews
+import com.waivera.waivera.core.designsystem.theme.WaiveraShapes
 import com.waivera.waivera.core.designsystem.theme.WaiveraSpacing
 import com.waivera.waivera.core.designsystem.theme.WaiveraTheme
 import com.waivera.waivera.core.designsystem.theme.isLargeFontScale
@@ -194,7 +199,7 @@ private fun LazyListScope.agendaItems(state: ScheduleUiState, actions: ScheduleA
             WaiveraEmptyState(
                 title = stringResource(R.string.feature_calendar_empty_title),
                 message = stringResource(R.string.feature_calendar_empty_message),
-                icon = WaiveraIcons.Calendar,
+                illustration = WaiveraIllustration.Schedule,
                 modifier = Modifier.padding(WaiveraSpacing.Gutter),
             )
         }
@@ -388,30 +393,38 @@ private fun PreferWeekAtLargeFont(view: ScheduleView, onSelectView: (ScheduleVie
     }
 }
 
+/**
+ * The selected day above its agenda, as a small brand moment: the gradient wash with the day in
+ * a calendar tile, and the Today chip when it is today.
+ */
 @Composable
 private fun AgendaHeader(state: ScheduleUiState) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(
-                start = WaiveraSpacing.Gutter,
-                end = WaiveraSpacing.Gutter,
-                top = WaiveraSpacing.Medium,
-                bottom = WaiveraSpacing.Small,
-            ),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(WaiveraSpacing.Small),
+    WaiveraBrandSurface(
+        modifier = Modifier.padding(
+            start = WaiveraSpacing.Gutter,
+            end = WaiveraSpacing.Gutter,
+            top = WaiveraSpacing.Medium,
+            bottom = WaiveraSpacing.Small,
+        ),
+        shape = WaiveraShapes.ListCard,
+        contentPadding = PaddingValues(horizontal = WaiveraSpacing.MediumSmall, vertical = WaiveraSpacing.Small),
     ) {
-        Text(
-            text = ScheduleText.fullDay(state.selectedDate, currentLocale()),
-            style = MaterialTheme.typography.titleMedium,
-            color = WaiveraTheme.colors.text,
-            modifier = Modifier
-                .weight(1f, fill = false)
-                .semantics { heading() },
-        )
-        if (state.isTodaySelected) {
-            WaiveraStatusBadge(text = stringResource(R.string.feature_calendar_today), tone = BadgeTone.Accent)
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(WaiveraSpacing.MediumSmall),
+        ) {
+            WaiveraIconTile(icon = WaiveraIcons.Calendar, tone = WaiveraTileTone.Teal)
+            Text(
+                text = ScheduleText.fullDay(state.selectedDate, currentLocale()),
+                style = MaterialTheme.typography.titleMedium,
+                color = WaiveraTheme.colors.text,
+                modifier = Modifier
+                    .weight(1f, fill = false)
+                    .semantics { heading() },
+            )
+            if (state.isTodaySelected) {
+                WaiveraStatusBadge(text = stringResource(R.string.feature_calendar_today), tone = BadgeTone.Accent)
+            }
         }
     }
 }

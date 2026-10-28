@@ -54,10 +54,19 @@ sealed interface EventTiming {
     ) : EventTiming
 }
 
-/** What a grid cell marks: counts so the label can say "2 events, 1 celebration", not just a dot. */
+/**
+ * What a grid cell marks: counts so the label can say "2 events, 1 celebration", not just a dot.
+ * [eventColors] are the day's distinct event owner colours (ARGB, null for an event without a
+ * usable one), in agenda order and at most [MAX_EVENT_DOTS], one dot each under the date.
+ */
 @Immutable
-data class DayMarker(val events: Int = 0, val milestones: Int = 0) {
+data class DayMarker(val events: Int = 0, val milestones: Int = 0, val eventColors: List<Long?> = emptyList()) {
     val isEmpty: Boolean get() = events == 0 && milestones == 0
+
+    companion object {
+        /** Three dots fit under a date at every font size; the cell's label still gives the full count. */
+        const val MAX_EVENT_DOTS = 3
+    }
 }
 
 /**
@@ -86,12 +95,15 @@ object Agenda {
 
     /** Events touching [date], sorted by parsed instant (never by string), all-day first. */
     fun eventsOn(events: List<ScheduleEvent>, zone: ZoneId, date: LocalDate): List<ScheduleEvent> =
-        events.filter { CalendarMath.occursOn(it, date, zone) }
-            .sortedWith(
-                compareBy<ScheduleEvent>({ !it.isAllDay }, { it.allDayStart }, { it.startAt }, { it.title.orEmpty() }),
-            )
+        events.filter { CalendarMath.occursOn(it, date, zone) }.sortedWith(EVENT_ORDER)
 
-    /** Event and milestone counts for each of [cells], bucketing each event once. */
+    private val EVENT_ORDER: Comparator<ScheduleEvent> =
+        compareBy({ !it.isAllDay }, { it.allDayStart }, { it.startAt }, { it.title.orEmpty() })
+
+    /**
+     * Event and milestone counts for each of [cells], bucketing each event once, with the owner
+     * colours of each day's first events for the grid dots.
+     */
     fun markers(
         feed: ScheduleFeed,
         zone: ZoneId,
@@ -102,17 +114,25 @@ object Agenda {
         val first = cells.first()
         val last = cells.last()
         val eventCounts = HashMap<LocalDate, Int>()
-        feed.events.forEach { event ->
+        val eventColors = HashMap<LocalDate, MutableList<Long?>>()
+        feed.events.sortedWith(EVENT_ORDER).forEach { event ->
             val span = daysOf(event, zone) ?: return@forEach
+            val color = ScheduleLabels.parseOwnerColor(event.ownerColor)
             var day = maxOf(span.start, first)
             val end = minOf(span.endInclusive, last)
             while (!day.isAfter(end)) {
                 eventCounts[day] = (eventCounts[day] ?: 0) + 1
+                val colors = eventColors.getOrPut(day) { mutableListOf() }
+                if (colors.size < DayMarker.MAX_EVENT_DOTS && color !in colors) colors += color
                 day = day.plusDays(1)
             }
         }
         return cells.associateWith { day ->
-            DayMarker(events = eventCounts[day] ?: 0, milestones = milestones.on(day).size)
+            DayMarker(
+                events = eventCounts[day] ?: 0,
+                milestones = milestones.on(day).size,
+                eventColors = eventColors[day].orEmpty(),
+            )
         }
     }
 
