@@ -10,6 +10,7 @@ import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import com.waivera.waivera.core.designsystem.component.BannerTone
 import com.waivera.waivera.core.designsystem.component.WaiveraBanner
+import com.waivera.waivera.core.designsystem.icon.WaiveraIcons
 import com.waivera.waivera.feature.chat.R
 
 /** [SendErrorUi.of] against the live list, recomputed only when visibility actually changes. */
@@ -56,9 +57,9 @@ fun SendErrorSignal(
             tone = BannerTone.Error,
             actionLabel = stringResource(R.string.feature_chat_not_sent_show),
             onAction = { onShow(ui.index) },
+            actionIcon = WaiveraIcons.ArrowUp,
             onDismiss = onDismiss,
             modifier = modifier,
-            compact = true,
         )
     }
 }

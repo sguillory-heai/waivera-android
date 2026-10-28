@@ -1,5 +1,6 @@
 package com.waivera.waivera.feature.chat.thread
 
+import app.cash.turbine.Event
 import app.cash.turbine.test
 import com.waivera.waivera.core.data.model.Message
 import com.waivera.waivera.core.data.model.SyncStatus
@@ -151,6 +152,27 @@ class ThreadViewModelTest {
         assertEquals("Count me in", newest.text)
         assertEquals(DemoData.THREAD_ROOT, newest.parentMessageId)
         assertEquals(3, s.graph.backend.message(DemoData.THREAD_ROOT)?.threadReplyCount)
+    }
+
+    @Test
+    fun editingAnOwnReplySavesTheNewTextWithoutAVibration() = runTest {
+        val s = subject()
+        s.viewModel.send("Count me in")
+        runCurrent()
+        val mine = s.viewModel.state.value.replyRows.last().message
+        s.viewModel.startEdit(mine)
+        assertEquals(mine.id, s.viewModel.state.value.editingMessageId)
+        s.viewModel.effects.test {
+            s.viewModel.send("Count me in for Saturday")
+            runCurrent()
+            // UI4-09: saving an edit is a send, and a successful send has no vibration.
+            val events = cancelAndConsumeRemainingEvents()
+            assertTrue(events.none { it is Event.Item && it.value is ChatEffect.Haptic }, "no saved cue")
+        }
+        val edited = s.viewModel.state.value.replyRows.single { it.message.id == mine.id }.message
+        assertEquals("Count me in for Saturday", edited.text)
+        assertTrue(edited.isEdited)
+        assertNull(s.viewModel.state.value.editingMessageId)
     }
 
     @Test

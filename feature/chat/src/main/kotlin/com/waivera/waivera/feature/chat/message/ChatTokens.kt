@@ -38,10 +38,9 @@ internal object ChatDimens {
     val LiveDot: Dp = 7.dp
     val CallBannerMinHeight: Dp = 48.dp
     val SkeletonBubbleHeight: Dp = 54.dp
-    val JumpPillBottomGap: Dp = 12.dp
 
-    /** Timeline bottom inset while the pill shows: its gap, its 48dp height and a small margin. */
-    val JumpPillInset: Dp = JumpPillBottomGap + WaiveraSpacing.MinTouchTarget + WaiveraSpacing.Small
+    /** The strip under the timeline that holds "Jump to latest": the 48dp pill and a margin on each side. */
+    val JumpPillStrip: Dp = WaiveraSpacing.MinTouchTarget + WaiveraSpacing.Small * 2
     val ArrivalOffset: Dp = 18.dp
     val PreviewMaxHeight: Dp = 220.dp
     val EmojiTarget: Dp = 48.dp

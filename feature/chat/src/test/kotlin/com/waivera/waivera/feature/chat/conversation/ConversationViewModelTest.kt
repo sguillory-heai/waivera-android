@@ -308,8 +308,13 @@ class ConversationViewModelTest {
         }.message
         s.viewModel.startEdit(mine)
         assertEquals(mine.id, s.viewModel.state.value.editingMessageId)
-        s.viewModel.send("Corrected text")
-        runCurrent()
+        s.viewModel.effects.test {
+            s.viewModel.send("Corrected text")
+            runCurrent()
+            // UI4-09: saving an edit is a send, and a successful send has no vibration.
+            val events = cancelAndConsumeRemainingEvents()
+            assertTrue(events.none { it is Event.Item && it.value is ChatEffect.Haptic }, "no saved cue")
+        }
         val edited = s.viewModel.state.value.rows.single { it.message.id == mine.id }.message
         assertEquals("Corrected text", edited.text)
         assertTrue(edited.isEdited)

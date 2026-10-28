@@ -412,8 +412,8 @@ class ThreadViewModel @AssistedInject constructor(
             messages.edit(messageId, outgoing.text, outgoing.doc)
                 .onSuccess {
                     _state.update { it.copy(editingMessageId = null) }
+                    // No vibration: saving an edit is a send, and sends that work are silent (UI4-09).
                     emit(ChatEffect.SetDraft(""))
-                    emit(ChatEffect.Haptic(HapticMoment.Success))
                 }
                 .onFailure { error ->
                     val typed = error as? WaiveraError ?: WaiveraError.from(error)

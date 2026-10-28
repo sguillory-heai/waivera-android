@@ -9,9 +9,11 @@ import com.waivera.waivera.core.data.repository.ConversationRepository
 import com.waivera.waivera.core.data.repository.PeopleRepository
 import com.waivera.waivera.core.data.repository.RealtimeStatusRepository
 import com.waivera.waivera.core.data.repository.SessionRepository
+import com.waivera.waivera.feature.chat.message.ChatComputeDispatcher
 import dagger.hilt.android.lifecycle.HiltViewModel
 import java.time.Clock
 import javax.inject.Inject
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
@@ -26,9 +28,16 @@ class ChatListViewModel @Inject constructor(
     people: PeopleRepository,
     text: ChatListText,
     clock: Clock,
+    // Injected so tests decode on their own dispatcher instead of racing a real thread.
+    @ChatComputeDispatcher decodeDispatcher: CoroutineDispatcher,
 ) : ViewModel() {
     private val holder = ChatListStateHolder(viewModelScope, conversations, session, realtime, text, clock)
-    private val avatarCache = AvatarCache(people, ::decodeAvatar, viewModelScope)
+    private val avatarCache = AvatarCache(
+        people = people,
+        decode = ::decodeAvatar,
+        scope = viewModelScope,
+        decodeDispatcher = decodeDispatcher,
+    )
 
     val state: StateFlow<ChatListUiState> = holder.state
     val effects: Flow<ChatListEffect> = holder.effects

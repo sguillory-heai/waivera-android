@@ -155,7 +155,8 @@ class ChatListScreenshotTest {
     fun rowActions() = captureScreenshots("chat_list_row_actions") {
         SheetSurface {
             RowActionsContent(
-                row = sample.rows.first().copy(isCallLive = true),
+                // The group with a live call, so "Join call" shows where a call really is (UI4-10).
+                row = sample.rows.first { it.leading == RowLeading.Group && it.isCallLive },
                 onOpen = {},
                 onMarkRead = {},
                 onJoinCall = {},

@@ -72,6 +72,9 @@ class ChatListViewModelDemoTest {
             people = graph.people,
             text = EnglishText,
             clock = graph.backend.clock,
+            // The avatar decode used to run on Dispatchers.Default and resume on this test's
+            // Main dispatcher from a real thread, which made the tests flaky (UI4-10).
+            decodeDispatcher = dispatcher,
         ),
     )
 

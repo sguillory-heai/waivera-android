@@ -330,6 +330,7 @@ fun ThreadScreenContent(
                         tone = BannerTone.Warning,
                         actionLabel = stringResource(R.string.feature_chat_retry),
                         onAction = actions.onRetryLoad,
+                        actionIcon = WaiveraIcons.Refresh,
                     )
                 }
                 if (stale || connectionBanner != ConnectionBannerState.Connected) WaiveraDivider()

@@ -199,6 +199,7 @@ private fun Header(state: ChatListUiState, actions: ChatListActions, connectingP
                 tone = BannerTone.Warning,
                 actionLabel = stringResource(R.string.feature_chat_list_retry),
                 onAction = actions.onRetryLoad,
+                actionIcon = WaiveraIcons.Refresh,
             )
         }
         Column(

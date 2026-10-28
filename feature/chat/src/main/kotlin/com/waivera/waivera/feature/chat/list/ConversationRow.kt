@@ -44,6 +44,7 @@ import com.waivera.waivera.core.designsystem.component.WaiveraCountBadge
 import com.waivera.waivera.core.designsystem.component.WaiveraPressable
 import com.waivera.waivera.core.designsystem.icon.WaiveraIcons
 import com.waivera.waivera.core.designsystem.preview.WaiveraPreviews
+import com.waivera.waivera.core.designsystem.text.withBreaksAfterHyphens
 import com.waivera.waivera.core.designsystem.theme.WaiveraShapes
 import com.waivera.waivera.core.designsystem.theme.WaiveraSizes
 import com.waivera.waivera.core.designsystem.theme.WaiveraSpacing
@@ -154,8 +155,9 @@ private fun RowBody(row: ChatRowUi, avatar: ImageBitmap?, onJoinCall: () -> Unit
                 horizontalArrangement = Arrangement.spacedBy(WaiveraSpacing.ExtraSmall),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
+                // Long hyphenated channel names wrap after a hyphen, never mid-word (UI4-02).
                 Text(
-                    text = row.title,
+                    text = row.title.withBreaksAfterHyphens(),
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = if (row.isUnread) FontWeight.ExtraBold else FontWeight.SemiBold,
                     color = colors.text,

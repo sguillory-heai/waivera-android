@@ -516,6 +516,7 @@ fun OlderMessagesRow(failed: Boolean, onRetry: () -> Unit, modifier: Modifier = 
             tone = BannerTone.Warning,
             actionLabel = stringResource(R.string.feature_chat_retry),
             onAction = onRetry,
+            actionIcon = WaiveraIcons.Refresh,
             modifier = modifier,
         )
     } else {

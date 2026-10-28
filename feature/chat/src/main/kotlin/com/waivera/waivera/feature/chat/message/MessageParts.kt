@@ -341,15 +341,17 @@ private fun FileAttachment(message: Message, attachment: Attachment, onOpen: () 
                 )
             }
             // At large font the helper line would wrap into a column of words; the name gets
-            // the room instead, and the tap's label still says what it does (UI3-11).
+            // the room instead, and the tap's label still says what it does (UI3-11). The name
+            // is one line cut in the middle, so the extension stays visible and a hyphenated
+            // name never wraps before its own hyphen ("north-ros…wk43.pdf", UI4-08).
             val largeFont = isLargeFontScale()
             Column(Modifier.weight(1f, fill = false)) {
                 Text(
                     text = name,
                     style = MaterialTheme.typography.titleSmall,
                     color = colors.text,
-                    maxLines = if (largeFont) LARGE_FONT_FILE_NAME_LINES else 1,
-                    overflow = TextOverflow.Ellipsis,
+                    maxLines = 1,
+                    overflow = TextOverflow.MiddleEllipsis,
                 )
                 if (!largeFont) {
                     Text(
@@ -658,5 +660,3 @@ fun CallLogCard(item: TimelineItem.CallLog, time: RowTime, highlighted: Boolean,
 private const val HALF_TURN = 180f
 
 private const val PERCENT = 100
-
-private const val LARGE_FONT_FILE_NAME_LINES = 2

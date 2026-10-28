@@ -4,16 +4,20 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.StringRes
-import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.displayCutout
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.only
@@ -41,6 +45,7 @@ import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
@@ -62,7 +67,6 @@ import com.waivera.waivera.core.designsystem.component.WaiveraSnackbarHost
 import com.waivera.waivera.core.designsystem.component.WaiveraTopBar
 import com.waivera.waivera.core.designsystem.icon.WaiveraIcons
 import com.waivera.waivera.core.designsystem.preview.WaiveraPreviews
-import com.waivera.waivera.core.designsystem.theme.WaiveraSpacing
 import com.waivera.waivera.core.designsystem.theme.WaiveraTheme
 import com.waivera.waivera.core.network.R as NetworkR
 import com.waivera.waivera.feature.chat.conversation.CallUi
@@ -324,6 +328,7 @@ fun ConversationScreenContent(
                         tone = BannerTone.Warning,
                         actionLabel = stringResource(R.string.feature_chat_retry),
                         onAction = actions.onRetryLoad,
+                        actionIcon = WaiveraIcons.Refresh,
                     )
                 }
                 // An edge under the banners, so messages scrolling up to them never read as an overlap.
@@ -456,12 +461,6 @@ private fun MessageList(
         }
     }
     val showJump = scrolledAway && onJumpToLatest != null
-    // Room under the newest rows while the pill floats there, so it never sits on the last bubble.
-    val pillInset by animateDpAsState(
-        targetValue = if (showJump) ChatDimens.JumpPillInset else WaiveraSpacing.None,
-        animationSpec = motion.layout(),
-        label = "jumpPillInset",
-    )
 
     HideKeyboardOnDrag(listState)
     // A new newest row keeps the list pinned when the person was already at (or next to) it.
@@ -488,13 +487,16 @@ private fun MessageList(
     }
 
     val listLabel = stringResource(R.string.feature_chat_messages_list)
-    Box(Modifier.fillMaxSize()) {
+    // The pill gets a strip of its own under the list instead of floating over it: the list's
+    // visible area ends above the pill, so no message text is ever drawn under it (UI4-03).
+    Column(Modifier.fillMaxSize()) {
         LazyColumn(
             state = listState,
             reverseLayout = true,
-            contentPadding = PaddingValues(bottom = pillInset),
             modifier = Modifier
-                .fillMaxSize()
+                .weight(1f)
+                .fillMaxWidth()
+                .testTag(MESSAGE_LIST_TAG)
                 .semantics { contentDescription = listLabel },
         ) {
             items(items = newestFirst, key = { it.key }, contentType = { it::class }) { item ->
@@ -515,18 +517,27 @@ private fun MessageList(
                 }
             }
         }
-        if (showJump && onJumpToLatest != null) {
-            JumpToLatestPill(
-                onClick = onJumpToLatest,
+        AnimatedVisibility(
+            visible = showJump,
+            enter = expandVertically(motion.layout()) + fadeIn(motion.state()),
+            exit = shrinkVertically(motion.layout()) + fadeOut(motion.state()),
+        ) {
+            Box(
                 modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .padding(bottom = ChatDimens.JumpPillBottomGap),
-            )
+                    .fillMaxWidth()
+                    .heightIn(min = ChatDimens.JumpPillStrip),
+                contentAlignment = Alignment.Center,
+            ) {
+                JumpToLatestPill(onClick = { onJumpToLatest?.invoke() })
+            }
         }
     }
 }
 
 private const val OLDER_KEY = "older"
+
+/** The conversation's message list, for tests that check what is drawn inside it. */
+internal const val MESSAGE_LIST_TAG = "conversation_message_list"
 
 /** The screen's one send-failure signal and how "Show" scrolls to the failed row. */
 @Immutable
