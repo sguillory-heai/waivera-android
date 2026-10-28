@@ -328,7 +328,11 @@ private fun BubbleBody(row: TimelineItem.MessageRow, callbacks: MessageRowCallba
             color = colors.textSecondary,
         )
         row.ticket != null -> TicketCard(row.ticket, onOpen = callbacks.onLink)
-        row.rich != null -> RichText(document = row.rich, onLink = callbacks.onLink)
+        row.rich != null -> RichText(
+            document = row.rich,
+            onLink = callbacks.onLink,
+            onGradient = row.isMine && !row.isBot,
+        )
         !message.text.isNullOrBlank() -> Text(
             text = message.text.orEmpty(),
             style = MaterialTheme.typography.bodyMedium,

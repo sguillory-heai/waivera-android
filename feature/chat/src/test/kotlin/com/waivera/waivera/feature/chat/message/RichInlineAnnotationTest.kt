@@ -65,6 +65,17 @@ class RichInlineAnnotationTest {
         assertEquals(FontWeight.ExtraBold, style.fontWeight)
         assertEquals(Color.Magenta, style.color)
         assertEquals(Color.Yellow, style.background)
+        assertEquals(null, style.textDecoration)
+    }
+
+    @Test
+    fun mentionOnTheGradientIsUnderlinedWithoutABlock() {
+        val onGradient = RichInlineColors(accent = Color.White, mentionBackground = null)
+        val style = annotateInlines(listOf(RichInline.Mention("Priya Raman")), onGradient) {}.spanStyles.single().item
+        assertEquals(FontWeight.ExtraBold, style.fontWeight)
+        assertEquals(Color.White, style.color)
+        assertEquals(Color.Unspecified, style.background, "a square block on the gradient reads as a selection")
+        assertEquals(TextDecoration.Underline, style.textDecoration)
     }
 
     @Test

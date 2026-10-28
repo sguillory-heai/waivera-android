@@ -19,8 +19,10 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -44,9 +46,13 @@ import com.waivera.waivera.core.designsystem.theme.WaiveraTheme
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 
-/** Colours the inline builder needs; resolved from the theme by [RichText]. */
+/**
+ * Colours the inline builder needs; resolved from the theme by [RichText]. A null
+ * [mentionBackground] sets mentions underlined instead of on a wash: on the gradient bubble a
+ * square dark block reads like a text selection, not a mention (UI10-14).
+ */
 @Immutable
-data class RichInlineColors(val accent: Color, val mentionBackground: Color)
+data class RichInlineColors(val accent: Color, val mentionBackground: Color?)
 
 /**
  * Inline content to an [AnnotatedString]. Marks compose in order; a link is applied last, so a
@@ -78,17 +84,21 @@ fun annotateInlines(inlines: List<RichInline>, colors: RichInlineColors, onLink:
                         withStyle(style) { append(inline.text) }
                     }
                 }
-                is RichInline.Mention -> withStyle(
-                    SpanStyle(
-                        fontWeight = FontWeight.ExtraBold,
-                        color = colors.accent,
-                        background = colors.mentionBackground,
-                    ),
-                ) { append("@${inline.label}") }
+                is RichInline.Mention -> withStyle(mentionSpan(colors)) { append("@${inline.label}") }
                 RichInline.HardBreak -> append('\n')
             }
         }
     }
+
+private fun mentionSpan(colors: RichInlineColors): SpanStyle {
+    val background = colors.mentionBackground
+    return SpanStyle(
+        fontWeight = FontWeight.ExtraBold,
+        color = colors.accent,
+        background = background ?: Color.Unspecified,
+        textDecoration = if (background == null) TextDecoration.Underline else null,
+    )
+}
 
 private fun spanFor(marks: Set<RichMark>): SpanStyle {
     var decoration: TextDecoration? = null
@@ -112,16 +122,25 @@ fun RichText(
     onLink: (String) -> Unit,
     modifier: Modifier = Modifier,
     color: Color = WaiveraTheme.colors.text,
+    onGradient: Boolean = false,
 ) {
-    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(WaiveraSpacing.ExtraSmall)) {
-        document.blocks.forEach { RichBlockView(it, onLink, color) }
+    CompositionLocalProvider(LocalOnGradient provides onGradient) {
+        Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(WaiveraSpacing.ExtraSmall)) {
+            document.blocks.forEach { RichBlockView(it, onLink, color) }
+        }
     }
 }
+
+/** True inside my own gradient bubble, where mentions are underlined rather than washed. */
+private val LocalOnGradient = staticCompositionLocalOf { false }
 
 @Composable
 private fun RichBlockView(block: RichBlock, onLink: (String) -> Unit, color: Color) {
     val colors = WaiveraTheme.colors
-    val inlineColors = RichInlineColors(colors.accent, colors.accentWash)
+    val inlineColors = RichInlineColors(
+        accent = colors.accent,
+        mentionBackground = if (LocalOnGradient.current) null else colors.accentWash,
+    )
     when (block) {
         is RichBlock.Paragraph -> InlineText(
             block.inlines,
