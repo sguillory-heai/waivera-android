@@ -47,8 +47,11 @@ internal object WaiveraPalette {
     val BorderLight = Color(0xFFE8E3EE)
     val BorderStrongLight = Color(0xFF867E93)
 
-    /** A field's edge: lilac-tinted, the lightest that still holds 3:1 on the sheet and the field. */
-    val FieldBorderLight = Color(0xFF8E82A8)
+    /**
+     * A field's edge: lilac-tinted, the lightest that still holds 3:1 on every page surface and
+     * the field (3.14:1 on the muted sheet, the weakest).
+     */
+    val FieldBorderLight = Color(0xFF8A7EA4)
     val TextLight = Color(0xFF1A1324)
     val TextSecondaryLight = Color(0xFF5B5169)
 

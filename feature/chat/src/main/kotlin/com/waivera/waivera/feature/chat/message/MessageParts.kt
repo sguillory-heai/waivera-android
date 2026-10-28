@@ -330,26 +330,38 @@ private fun FileAttachment(message: Message, attachment: Attachment, onOpen: () 
         shape = WaiveraShapes.Card,
         modifier = modifier.widthIn(max = ChatDimens.FileCardWidth),
     ) {
-        Row(
-            modifier = Modifier
-                .border(WaiveraSpacing.Hairline, colors.border, WaiveraShapes.Card)
-                .background(colors.surface, WaiveraShapes.Card)
-                .padding(WaiveraSpacing.Small),
-            horizontalArrangement = Arrangement.spacedBy(WaiveraSpacing.Small),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            WaiveraIconTile(icon = icon, tone = WaiveraTileTone.Neutral)
-            // At large font the helper line would wrap into a column of words; the name gets
-            // the room instead, and the tap's label still says what it does (UI3-11). At 100%
-            // the name is one line cut in the middle, so the extension stays visible ("north-
-            // ros…wk43.pdf", UI4-08). At large font one line left almost none of it
-            // ("north…3.pdf", UI5-11), and two wrapping lines with an end ellipsis dropped the
-            // week number and the extension ("north- / roster-wk4…", UI6-06): see FileCardName.
-            val largeFont = isLargeFontScale()
-            Column(Modifier.weight(1f, fill = false)) {
-                if (largeFont) {
-                    FileCardName(name = name, color = colors.text)
-                } else {
+        val card = Modifier
+            .border(WaiveraSpacing.Hairline, colors.border, WaiveraShapes.Card)
+            .background(colors.surface, WaiveraShapes.Card)
+            .padding(WaiveraSpacing.Small)
+        // At large font the helper line would wrap into a column of words; the name gets the
+        // room instead, and the tap's label still says what it does (UI3-11). At 100% the name
+        // is one line cut in the middle, so the extension stays visible ("north-ros…wk43.pdf",
+        // UI4-08). At large font one line left almost none of it ("north…3.pdf", UI5-11), and
+        // two wrapping lines with an end ellipsis dropped the week number and the extension
+        // ("north- / roster-wk4…", UI6-06): see FileCardName. Beside the tile and the download
+        // glyph, concept A's wider face then cut even the tail ("wk43.pdf"), so at large font
+        // the tile and glyph share a top row and the name takes the card's whole width.
+        if (isLargeFontScale()) {
+            Column(modifier = card, verticalArrangement = Arrangement.spacedBy(WaiveraSpacing.Small)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    WaiveraIconTile(icon = icon, tone = WaiveraTileTone.Neutral)
+                    DownloadGlyph()
+                }
+                FileCardName(name = name, color = colors.text)
+            }
+        } else {
+            Row(
+                modifier = card,
+                horizontalArrangement = Arrangement.spacedBy(WaiveraSpacing.Small),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                WaiveraIconTile(icon = icon, tone = WaiveraTileTone.Neutral)
+                Column(Modifier.weight(1f, fill = false)) {
                     Text(
                         text = name,
                         style = MaterialTheme.typography.titleSmall,
@@ -357,23 +369,26 @@ private fun FileAttachment(message: Message, attachment: Attachment, onOpen: () 
                         maxLines = 1,
                         overflow = TextOverflow.MiddleEllipsis,
                     )
-                }
-                if (!largeFont) {
                     Text(
                         text = stringResource(R.string.feature_chat_file_caption),
                         style = MaterialTheme.typography.labelMedium,
                         color = colors.textSecondary,
                     )
                 }
+                DownloadGlyph()
             }
-            Icon(
-                painterResource(ChatIcons.Download),
-                contentDescription = null,
-                tint = colors.textSecondary,
-                modifier = Modifier.size(WaiveraSizes.Icon),
-            )
         }
     }
+}
+
+@Composable
+private fun DownloadGlyph() {
+    Icon(
+        painterResource(ChatIcons.Download),
+        contentDescription = null,
+        tint = WaiveraTheme.colors.textSecondary,
+        modifier = Modifier.size(WaiveraSizes.Icon),
+    )
 }
 
 /**
