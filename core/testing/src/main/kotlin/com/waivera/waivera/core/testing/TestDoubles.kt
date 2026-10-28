@@ -4,12 +4,16 @@ import com.waivera.waivera.core.data.auth.AuthGateway
 import com.waivera.waivera.core.data.auth.AuthUser
 import com.waivera.waivera.core.data.model.AppSettings
 import com.waivera.waivera.core.data.model.CurrentUser
+import com.waivera.waivera.core.data.model.HandledObservation
+import com.waivera.waivera.core.data.model.HandledTally
+import com.waivera.waivera.core.data.model.HandledToday
 import com.waivera.waivera.core.data.model.NotificationPreferences
 import com.waivera.waivera.core.data.model.SessionState
 import com.waivera.waivera.core.data.model.ThemePreference
 import com.waivera.waivera.core.data.outbox.OutboxScheduler
 import com.waivera.waivera.core.data.realtime.AppForegroundMonitor
 import com.waivera.waivera.core.data.realtime.ConnectivityMonitor
+import com.waivera.waivera.core.data.repository.HandledTodayRepository
 import com.waivera.waivera.core.data.repository.SessionRepository
 import com.waivera.waivera.core.data.store.SecureStore
 import com.waivera.waivera.core.data.store.SettingsStore
@@ -151,4 +155,19 @@ class TestSessionRepository(
 
     override suspend fun changePassword(currentPassword: String, newPassword: String): Result<Unit> =
         Result.success(Unit)
+}
+
+/** The handled-today tally in memory, advanced by the real rules. */
+class InMemoryHandledTodayRepository(initial: HandledTally? = null) : HandledTodayRepository {
+    private val saved = MutableStateFlow(initial)
+    val recorded = mutableListOf<HandledObservation>()
+
+    override val tally: Flow<HandledTally?> = saved
+
+    val current: HandledTally? get() = saved.value
+
+    override suspend fun record(observation: HandledObservation): HandledTally {
+        recorded += observation
+        return HandledToday.advance(saved.value, observation).also { saved.value = it }
+    }
 }

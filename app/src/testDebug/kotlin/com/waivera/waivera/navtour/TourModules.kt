@@ -14,6 +14,7 @@ import com.waivera.waivera.core.data.db.PersonDao
 import com.waivera.waivera.core.data.db.TransactionRunner
 import com.waivera.waivera.core.data.db.WaiveraDatabase
 import com.waivera.waivera.core.data.di.DataInfrastructureModule
+import com.waivera.waivera.core.data.di.HandledTodayModule
 import com.waivera.waivera.core.data.image.AuthenticatedImageLoader
 import com.waivera.waivera.core.data.live.AttachmentCacheDirectory
 import com.waivera.waivera.core.data.live.ChatCache
@@ -37,6 +38,7 @@ import com.waivera.waivera.core.data.repository.CalendarRepository
 import com.waivera.waivera.core.data.repository.ConversationRepository
 import com.waivera.waivera.core.data.repository.DataLayerStarter
 import com.waivera.waivera.core.data.repository.DurableMessageSender
+import com.waivera.waivera.core.data.repository.HandledTodayRepository
 import com.waivera.waivera.core.data.repository.MessageRepository
 import com.waivera.waivera.core.data.repository.PeopleRepository
 import com.waivera.waivera.core.data.repository.ProfileRepository
@@ -67,6 +69,7 @@ import com.waivera.waivera.core.network.AuthTokenProvider
 import com.waivera.waivera.core.notifications.PushMessageHandler
 import com.waivera.waivera.core.notifications.channel.NotificationChannelInstaller
 import com.waivera.waivera.core.realtime.RealtimeClient
+import com.waivera.waivera.core.testing.InMemoryHandledTodayRepository
 import dagger.Binds
 import dagger.Module
 import dagger.Provides
@@ -245,6 +248,18 @@ abstract class TourInfrastructureModule {
         fun outboxCleaner(store: OutboxStore, @OutboxDirectory directory: File): SignOutCleaner =
             SignOutCleaner { store.clear(directory) }
     }
+}
+
+/**
+ * The handled-today tally in memory: the DataStore file outlives a Robolectric test in the same
+ * process, so each tour starts at "0 handled" and its captures stay deterministic.
+ */
+@Module
+@TestInstallIn(components = [SingletonComponent::class], replaces = [HandledTodayModule::class])
+object TourHandledTodayModule {
+    @Provides
+    @Singleton
+    fun handledToday(): HandledTodayRepository = InMemoryHandledTodayRepository()
 }
 
 /** What a tour test reaches into: the shared demo state, the session gates, the clock and push. */
