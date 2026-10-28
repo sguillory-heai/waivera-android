@@ -90,7 +90,7 @@ class TodayViewModel @Inject constructor(
      */
     private val range: Flow<DateRange> = combine(zone, ticks) { z, now -> now.atZone(z).toLocalDate() }
         .distinctUntilChanged()
-        .map(::scheduleRange)
+        .map(::todayScheduleRange)
 
     /** The latest complete observation of Needs you, saved to the tally by one collector. */
     private val observations = MutableStateFlow<HandledObservation?>(null)
