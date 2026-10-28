@@ -119,7 +119,9 @@ class WaiveraMotionScheme internal constructor(val reduced: Boolean) {
                 scaleOut(navigate(), targetScale = BACK_PREVIEW_SCALE, transformOrigin = TransformOrigin.Center) +
                 slideOutHorizontally(navigate<IntOffset>()) { direction * it / BACK_SHIFT_DIVISOR }
         }
-        // The screen being revealed sits underneath the one being dismissed.
+        // The screen being revealed sits underneath the one being dismissed. NavDisplay replaces
+        // this with its own z-index (one below the leaving scene); a plain AnimatedContent has to
+        // keep its settled content at 0, or both screens get -1 and the revealed one draws on top.
         transform.targetContentZIndex = BACK_TARGET_Z_INDEX
         return transform
     }
