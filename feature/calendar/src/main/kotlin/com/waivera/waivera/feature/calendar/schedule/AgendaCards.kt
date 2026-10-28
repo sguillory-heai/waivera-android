@@ -5,6 +5,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.PaddingValues
@@ -20,17 +21,12 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.onSizeChanged
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
@@ -170,17 +166,12 @@ private fun MilestoneCard(
     val sentence = CelebrationText.self(item.celebration)?.takeIf { !showWishes }?.resolve()
         ?: CelebrationText.full(item.celebration, fallbackName).resolve()
     val emoji = CelebrationText.emoji(item.celebration).resolve()
-    // Not BoxWithConstraints: the card's own width is all it needs, and a SubcomposeLayout throws
-    // if any parent ever asks it for intrinsics. The card is always full width, so its measured
-    // width settles in one frame and never depends on the narrow choice; the Day rail takes the
-    // height the card draws at (UI11-02).
-    val narrowBelowPx = with(LocalDensity.current) { CalendarSizes.CelebrationNarrowCard.roundToPx() }
-    var narrow by remember { mutableStateOf(false) }
-    Box(
-        modifier = modifier
-            .fillMaxWidth()
-            .onSizeChanged { narrow = it.width < narrowBelowPx },
-    ) {
+    // BoxWithConstraints, so the narrow choice is made in the first measure. Reading the width
+    // after layout (onSizeChanged) laid the list out once at the wide card's height, and the
+    // Day list's animateItem then slid the entries below up into place. No parent asks this card
+    // for intrinsics now that the Day rail measures its card directly (UI11-02).
+    BoxWithConstraints(modifier = modifier.fillMaxWidth()) {
+        val narrow = maxWidth < CalendarSizes.CelebrationNarrowCard
         // Today's celebration card, so a celebration looks the same wherever it shows (concept A, 22dp).
         WaiveraBrandSurface(
             modifier = Modifier.heightIn(min = WaiveraSizes.ListRowMinHeight),
