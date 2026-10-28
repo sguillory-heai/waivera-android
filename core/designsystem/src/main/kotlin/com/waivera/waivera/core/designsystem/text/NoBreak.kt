@@ -29,6 +29,19 @@ fun String.withBreaksAfterHyphens(): String {
     return out.toString()
 }
 
+/**
+ * The same file name with its extension glued to the part before it by word joiners (U+2060)
+ * around the last dot, so a wrap never leaves ".jpg" or "pdf" alone on a line ("site-photo. /
+ * jpg", UI5-11). Visible text only.
+ */
+fun String.withUnbreakableExtension(): String {
+    val dot = lastIndexOf(DOT)
+    if (dot <= 0 || dot == length - 1) return this
+    return substring(0, dot) + WORD_JOINER + DOT + WORD_JOINER + substring(dot + 1)
+}
+
+private const val DOT = '.'
+private const val WORD_JOINER = '\u2060'
 private const val HYPHEN = '-'
 private const val NON_BREAKING_HYPHEN = '‑'
 private const val ZERO_WIDTH_SPACE = '\u200B'

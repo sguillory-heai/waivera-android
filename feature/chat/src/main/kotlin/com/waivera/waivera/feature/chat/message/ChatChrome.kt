@@ -209,7 +209,14 @@ private fun StagedImageCard(image: StagedImage, onRemove: () -> Unit) {
             .padding(horizontal = WaiveraSpacing.Gutter, vertical = WaiveraSpacing.ExtraSmall)
             .fillMaxWidth()
             .border(WaiveraSpacing.Hairline, colors.border, WaiveraShapes.Card)
-            .padding(start = WaiveraSpacing.ExtraSmall),
+            // One touch target tall with padding inside the border, so a large-font name
+            // never touches the chip's edge (UI5-11).
+            .heightIn(min = WaiveraSpacing.MinTouchTarget)
+            .padding(
+                start = WaiveraSpacing.ExtraSmall,
+                top = WaiveraSpacing.ExtraSmall,
+                bottom = WaiveraSpacing.ExtraSmall,
+            ),
         horizontalArrangement = Arrangement.spacedBy(WaiveraSpacing.Small),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -231,12 +238,13 @@ private fun StagedImageCard(image: StagedImage, onRemove: () -> Unit) {
                 Icon(painterResource(ChatIcons.Image), contentDescription = null, tint = colors.textSecondary)
             }
         }
+        // One line cut in the middle: two lines broke the name at its dot ("site-photo. / jpg").
         Text(
             text = image.fileName ?: stringResource(R.string.feature_chat_selected_image),
             style = MaterialTheme.typography.bodySmall,
             color = colors.text,
-            maxLines = 2,
-            overflow = TextOverflow.Ellipsis,
+            maxLines = 1,
+            overflow = TextOverflow.MiddleEllipsis,
             modifier = Modifier.weight(1f),
         )
         WaiveraButton(

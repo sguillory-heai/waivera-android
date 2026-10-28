@@ -33,4 +33,13 @@ class NoBreakTest {
         val name = "Priya Raman"
         assertSame(name, name.withBreaksAfterHyphens())
     }
+
+    @Test
+    fun fileExtensionStaysWithTheName() {
+        assertEquals("site-photo\u2060.\u2060jpg", "site-photo.jpg".withUnbreakableExtension())
+        assertEquals("roster.v2\u2060.\u2060pdf", "roster.v2.pdf".withUnbreakableExtension())
+        assertEquals("README", "README".withUnbreakableExtension())
+        assertEquals(".env", ".env".withUnbreakableExtension())
+        assertEquals("ends.", "ends.".withUnbreakableExtension())
+    }
 }

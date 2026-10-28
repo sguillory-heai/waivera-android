@@ -60,7 +60,9 @@ import com.waivera.waivera.core.designsystem.component.WaiveraDivider
 import com.waivera.waivera.core.designsystem.component.WaiveraPressable
 import com.waivera.waivera.core.designsystem.component.WaiveraStatusBadge
 import com.waivera.waivera.core.designsystem.icon.WaiveraIcons
+import com.waivera.waivera.core.designsystem.text.withBreaksAfterHyphens
 import com.waivera.waivera.core.designsystem.text.withNonBreakingHyphens
+import com.waivera.waivera.core.designsystem.text.withUnbreakableExtension
 import com.waivera.waivera.core.designsystem.theme.WaiveraShapes
 import com.waivera.waivera.core.designsystem.theme.WaiveraSizes
 import com.waivera.waivera.core.designsystem.theme.WaiveraSpacing
@@ -341,18 +343,30 @@ private fun FileAttachment(message: Message, attachment: Attachment, onOpen: () 
                 )
             }
             // At large font the helper line would wrap into a column of words; the name gets
-            // the room instead, and the tap's label still says what it does (UI3-11). The name
-            // is one line cut in the middle, so the extension stays visible and a hyphenated
-            // name never wraps before its own hyphen ("north-ros…wk43.pdf", UI4-08).
+            // the room instead, and the tap's label still says what it does (UI3-11). At 100%
+            // the name is one line cut in the middle, so the extension stays visible ("north-
+            // ros…wk43.pdf", UI4-08). At large font one line left almost none of it
+            // ("north…3.pdf"), so it gets two lines that break after a hyphen, with the
+            // extension glued to the part before it ("north-roster- / wk43.pdf", UI5-11).
             val largeFont = isLargeFontScale()
             Column(Modifier.weight(1f, fill = false)) {
-                Text(
-                    text = name,
-                    style = MaterialTheme.typography.titleSmall,
-                    color = colors.text,
-                    maxLines = 1,
-                    overflow = TextOverflow.MiddleEllipsis,
-                )
+                if (largeFont) {
+                    Text(
+                        text = name.withBreaksAfterHyphens().withUnbreakableExtension(),
+                        style = MaterialTheme.typography.titleSmall,
+                        color = colors.text,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                } else {
+                    Text(
+                        text = name,
+                        style = MaterialTheme.typography.titleSmall,
+                        color = colors.text,
+                        maxLines = 1,
+                        overflow = TextOverflow.MiddleEllipsis,
+                    )
+                }
                 if (!largeFont) {
                     Text(
                         text = stringResource(R.string.feature_chat_file_caption),
