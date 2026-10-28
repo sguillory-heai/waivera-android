@@ -20,7 +20,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -40,7 +39,6 @@ import androidx.compose.ui.graphics.painter.BitmapPainter
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
@@ -57,8 +55,10 @@ import com.waivera.waivera.core.designsystem.component.WaiveraButton
 import com.waivera.waivera.core.designsystem.component.WaiveraButtonVariant
 import com.waivera.waivera.core.designsystem.component.WaiveraFilterChip
 import com.waivera.waivera.core.designsystem.component.WaiveraIconButton
+import com.waivera.waivera.core.designsystem.component.WaiveraIconTile
 import com.waivera.waivera.core.designsystem.component.WaiveraListRow
 import com.waivera.waivera.core.designsystem.component.WaiveraPressable
+import com.waivera.waivera.core.designsystem.component.WaiveraTileTone
 import com.waivera.waivera.core.designsystem.icon.WaiveraIcons
 import com.waivera.waivera.core.designsystem.preview.WaiveraPreviews
 import com.waivera.waivera.core.designsystem.theme.WaiveraShapes
@@ -204,6 +204,7 @@ fun MessageActionsContent(
                     },
                 ),
                 onClick = onBookmark,
+                tone = WaiveraTileTone.Rose,
             )
             if (model.canDelete) {
                 ActionRow(
@@ -217,10 +218,21 @@ fun MessageActionsContent(
     }
 }
 
+/**
+ * One message action, led by the shared icon tile like every other row: brand for chat
+ * actions, rose for bookmarks (about you), danger for delete.
+ */
 @Composable
-private fun ActionRow(icon: Int, label: String, onClick: () -> Unit, danger: Boolean = false, accent: Boolean = false) {
+private fun ActionRow(
+    icon: Int,
+    label: String,
+    onClick: () -> Unit,
+    danger: Boolean = false,
+    accent: Boolean = false,
+    tone: WaiveraTileTone = WaiveraTileTone.Brand,
+) {
     val colors = WaiveraTheme.colors
-    val tint = when {
+    val textColor = when {
         danger -> colors.dangerText
         accent -> colors.accent
         else -> colors.text
@@ -230,17 +242,12 @@ private fun ActionRow(icon: Int, label: String, onClick: () -> Unit, danger: Boo
             modifier = Modifier
                 .fillMaxWidth()
                 .heightIn(min = WaiveraSizes.ListRowMinHeight)
-                .padding(horizontal = WaiveraSpacing.Gutter, vertical = WaiveraSpacing.MediumSmall),
-            horizontalArrangement = Arrangement.spacedBy(WaiveraSpacing.Medium),
+                .padding(horizontal = WaiveraSpacing.Gutter, vertical = WaiveraSpacing.Small),
+            horizontalArrangement = Arrangement.spacedBy(WaiveraSpacing.MediumSmall),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Icon(
-                painterResource(icon),
-                contentDescription = null,
-                tint = tint,
-                modifier = Modifier.size(WaiveraSizes.Icon),
-            )
-            Text(text = label, style = MaterialTheme.typography.titleSmall, color = tint)
+            WaiveraIconTile(icon = icon, tone = if (danger) WaiveraTileTone.Danger else tone)
+            Text(text = label, style = MaterialTheme.typography.titleSmall, color = textColor)
         }
     }
 }

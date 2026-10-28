@@ -35,6 +35,7 @@ import com.waivera.waivera.core.designsystem.component.SkeletonCircle
 import com.waivera.waivera.core.designsystem.component.SkeletonLine
 import com.waivera.waivera.core.designsystem.component.WaiveraDivider
 import com.waivera.waivera.core.designsystem.component.WaiveraIconButton
+import com.waivera.waivera.core.designsystem.component.WaiveraIconTile
 import com.waivera.waivera.core.designsystem.component.WaiveraListRow
 import com.waivera.waivera.core.designsystem.component.rememberSkeletonPulse
 import com.waivera.waivera.core.designsystem.icon.WaiveraIcons
@@ -228,14 +229,10 @@ fun RowActionsContent(
     }
 }
 
+/** The shared icon tile, so the row actions read like every other list of actions. */
 @Composable
 private fun ActionIcon(icon: Int) {
-    Icon(
-        painter = painterResource(icon),
-        contentDescription = null,
-        tint = WaiveraTheme.colors.accent,
-        modifier = Modifier.size(WaiveraSizes.Icon),
-    )
+    WaiveraIconTile(icon = icon)
 }
 
 @WaiveraPreviews
