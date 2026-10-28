@@ -24,6 +24,9 @@ internal object CalendarSizes {
 
     /** Owner-colour bar on the leading edge of an event card. */
     val EventAccentBar: Dp = 4.dp
+
+    /** The line of today's "Now" divider in the agenda. */
+    val NowLine: Dp = 1.5.dp
     val EventCardMinHeight: Dp = 66.dp
     val WeekCellMinHeight: Dp = 76.dp
 

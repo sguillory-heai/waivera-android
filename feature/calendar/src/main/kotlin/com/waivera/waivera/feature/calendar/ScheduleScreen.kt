@@ -10,7 +10,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
-import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -55,10 +54,13 @@ import com.waivera.waivera.core.designsystem.icon.WaiveraIcons
 import com.waivera.waivera.core.designsystem.preview.WaiveraPreviews
 import com.waivera.waivera.core.designsystem.theme.WaiveraSpacing
 import com.waivera.waivera.core.designsystem.theme.WaiveraTheme
+import com.waivera.waivera.core.designsystem.theme.isLargeFontScale
+import com.waivera.waivera.feature.calendar.model.AgendaNow
 import com.waivera.waivera.feature.calendar.model.ScheduleText
 import com.waivera.waivera.feature.calendar.model.ScheduleView
 import com.waivera.waivera.feature.calendar.schedule.AgendaCard
 import com.waivera.waivera.feature.calendar.schedule.AgendaState
+import com.waivera.waivera.feature.calendar.schedule.NowDivider
 import com.waivera.waivera.feature.calendar.schedule.ScheduleGrid
 import com.waivera.waivera.feature.calendar.schedule.SchedulePreviewData
 import com.waivera.waivera.feature.calendar.schedule.ScheduleUiState
@@ -69,6 +71,7 @@ import com.waivera.waivera.feature.calendar.ui.currentLocale
 import com.waivera.waivera.feature.calendar.ui.periodTitleText
 import com.waivera.waivera.feature.calendar.ui.zoneNoticeText
 import java.time.LocalDate
+import kotlinx.coroutines.delay
 
 /**
  * Entry point for the schedule tab. Owned by `:feature:calendar`; routed by `:app`.
@@ -80,6 +83,13 @@ fun ScheduleScreen(onAccountClick: () -> Unit, onOpenEvent: (eventId: String) ->
     LifecycleResumeEffect(viewModel) {
         viewModel.onResume()
         onPauseOrDispose { }
+    }
+    // Keeps today's "Now" divider and the ended cards current while the screen stays open.
+    LaunchedEffect(viewModel) {
+        while (true) {
+            delay(NOW_TICK_MILLIS)
+            viewModel.onResume()
+        }
     }
     PreferWeekAtLargeFont(view = state.view, onSelectView = viewModel::selectView)
     ScheduleContent(
@@ -188,21 +198,42 @@ private fun LazyListScope.agendaItems(state: ScheduleUiState, actions: ScheduleA
                 modifier = Modifier.padding(WaiveraSpacing.Gutter),
             )
         }
-        is AgendaState.Content -> items(agenda.items, key = { it.key }) { item ->
-            val motion = WaiveraTheme.motion
-            AgendaCard(
-                item = item,
-                currentYear = state.today.year,
-                onOpenEvent = actions.onOpenEvent,
-                modifier = itemModifier.animateItem(
-                    fadeInSpec = motion.state(),
-                    placementSpec = motion.layout(),
-                    fadeOutSpec = motion.state(),
-                ),
-            )
+        is AgendaState.Content -> {
+            val now = state.agendaNow
+            agenda.items.forEach { card ->
+                if (now != null && now.beforeKey == card.key) nowItem(now)
+                item(key = card.key) {
+                    val motion = WaiveraTheme.motion
+                    AgendaCard(
+                        item = card,
+                        currentYear = state.today.year,
+                        onOpenEvent = actions.onOpenEvent,
+                        ended = now != null && card.key in now.endedKeys,
+                        modifier = itemModifier.animateItem(
+                            fadeInSpec = motion.state(),
+                            placementSpec = motion.layout(),
+                            fadeOutSpec = motion.state(),
+                        ),
+                    )
+                }
+            }
+            if (now != null && now.beforeKey == null) nowItem(now)
         }
     }
 }
+
+private fun LazyListScope.nowItem(now: AgendaNow) {
+    item(key = NOW_KEY) {
+        NowDivider(
+            time = now.time,
+            modifier = Modifier
+                .padding(horizontal = WaiveraSpacing.Gutter, vertical = WaiveraSpacing.ExtraSmall)
+                .animateItem(),
+        )
+    }
+}
+
+private const val NOW_KEY = "now"
 
 /**
  * One status signal under the view picker, above the grid, so a failure is seen without
@@ -229,14 +260,20 @@ private fun ScheduleBanners(state: ScheduleUiState, actions: ScheduleActions) {
                 tone = BannerTone.Offline,
                 actionLabel = retry,
                 onAction = actions.onRetry,
+                actionIcon = WaiveraIcons.Refresh,
                 modifier = bannerModifier,
             )
+            // A stale-data notice, so it follows the status-banner rule: compact at large font,
+            // with the title saying what happened and the detail a tap away (UI4-05).
             state.feedError != null -> WaiveraBanner(
-                message = stringResource(R.string.feature_calendar_feed_refresh_failed),
+                title = stringResource(R.string.feature_calendar_feed_refresh_failed_title),
+                message = stringResource(R.string.feature_calendar_feed_refresh_failed_detail),
                 // The saved schedule is still on screen, so this is a warning; red is for a failed action.
                 tone = BannerTone.Warning,
                 actionLabel = retry,
                 onAction = actions.onRetry,
+                actionIcon = WaiveraIcons.Refresh,
+                compact = isLargeFontScale(),
                 modifier = bannerModifier,
             )
         }
@@ -246,6 +283,7 @@ private fun ScheduleBanners(state: ScheduleUiState, actions: ScheduleActions) {
                 tone = BannerTone.Warning,
                 actionLabel = retry,
                 onAction = actions.onRetryMilestones,
+                actionIcon = WaiveraIcons.Refresh,
                 modifier = bannerModifier,
             )
         }
@@ -385,6 +423,7 @@ private fun ScheduleView.labelRes(): Int = when (this) {
 }
 
 private const val SKELETON_ROWS = 3
+private const val NOW_TICK_MILLIS = 60_000L
 
 @WaiveraPreviews
 @Composable
@@ -399,5 +438,14 @@ private fun ScheduleContentPreview() {
 private fun ScheduleContentWeekPreview() {
     WaiveraTheme {
         ScheduleContent(state = SchedulePreviewData.week(), actions = ScheduleActions())
+    }
+}
+
+/** Today in the Day view: the "Now" divider and the ended overnight shift (UI4-12). */
+@WaiveraPreviews
+@Composable
+private fun ScheduleContentDayPreview() {
+    WaiveraTheme {
+        ScheduleContent(state = SchedulePreviewData.state(ScheduleView.DAY), actions = ScheduleActions())
     }
 }

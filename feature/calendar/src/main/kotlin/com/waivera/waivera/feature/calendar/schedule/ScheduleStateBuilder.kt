@@ -4,16 +4,27 @@ import com.waivera.waivera.core.data.model.ScheduleFeed
 import com.waivera.waivera.core.data.model.Synced
 import com.waivera.waivera.core.network.error.WaiveraError
 import com.waivera.waivera.feature.calendar.model.Agenda
+import com.waivera.waivera.feature.calendar.model.AgendaNowRules
 import com.waivera.waivera.feature.calendar.model.MilestoneIndex
 import com.waivera.waivera.feature.calendar.model.SchedulePeriods
 import com.waivera.waivera.feature.calendar.model.ScheduleView
 import com.waivera.waivera.feature.calendar.model.ZoneNotice
+import java.time.Instant
 import java.time.LocalDate
 import java.time.YearMonth
 import java.time.ZoneId
 
-/** The view and dates the screen is on, all literal dates in [zone]. */
-internal data class SchedulePeriod(val view: ScheduleView, val date: LocalDate, val today: LocalDate, val zone: ZoneId)
+/**
+ * The view and dates the screen is on, all literal dates in [zone]. [now] places the "Now"
+ * divider in today's agenda; null leaves it out.
+ */
+internal data class SchedulePeriod(
+    val view: ScheduleView,
+    val date: LocalDate,
+    val today: LocalDate,
+    val zone: ZoneId,
+    val now: Instant? = null,
+)
 
 /** Pure mapping from repository values to [ScheduleUiState], shared by the ViewModel and previews. */
 internal object ScheduleStateBuilder {
@@ -51,6 +62,9 @@ internal object ScheduleStateBuilder {
             )
         }
         val agenda = agendaState(feed, feedData, period, milestones)
+        val agendaNow = (agenda as? AgendaState.Content)?.let { content ->
+            period.now?.let { now -> AgendaNowRules.of(content.items, now, period.zone, period.date) }
+        }
         return ScheduleUiState(
             view = period.view,
             selectedDate = period.date,
@@ -60,6 +74,7 @@ internal object ScheduleStateBuilder {
             title = SchedulePeriods.title(period.view, period.date),
             cells = cells,
             agenda = agenda,
+            agendaNow = agendaNow,
             isRefreshing = isRefreshing,
             feedError = feed?.error?.takeIf { agenda !is AgendaState.Error },
             milestonesError = milestonesError,

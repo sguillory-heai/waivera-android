@@ -56,6 +56,32 @@ class ScheduleStateBuilderTest {
     )
 
     @Test
+    fun todayWithANowGetsTheDividerAndOtherDaysDoNot() {
+        val tenThirty = Instant.parse("2026-11-01T16:30:00Z")
+        val visit = ScheduleEvent(
+            id = "visit",
+            title = "Client home visit",
+            startAt = Instant.parse("2026-11-01T17:00:00Z"),
+            endAt = Instant.parse("2026-11-01T18:00:00Z"),
+        )
+        val todayState = build(
+            Synced(feed(overnight, visit), lastSyncedAt = synced),
+            period = SchedulePeriod(ScheduleView.MONTH, today, today, chicago, now = tenThirty),
+        )
+        val now = assertNotNull(todayState.agendaNow)
+        assertEquals("event:visit", now.beforeKey)
+        assertEquals(setOf("event:overnight"), now.endedKeys)
+
+        val tomorrow = today.plusDays(1)
+        val otherDay = build(
+            Synced(feed(overnight, visit, date = tomorrow), lastSyncedAt = synced),
+            period = SchedulePeriod(ScheduleView.MONTH, tomorrow, today, chicago, now = tenThirty),
+        )
+        assertNull(otherDay.agendaNow)
+        assertNull(build(Synced(feed(overnight, visit), lastSyncedAt = synced)).agendaNow, "no clock, no divider")
+    }
+
+    @Test
     fun unknownFeedIsLoading() {
         assertEquals(AgendaState.Loading, build(feed = null).agenda)
         assertEquals(AgendaState.Loading, build(Synced(feed(), SyncStatus.Refreshing)).agenda)

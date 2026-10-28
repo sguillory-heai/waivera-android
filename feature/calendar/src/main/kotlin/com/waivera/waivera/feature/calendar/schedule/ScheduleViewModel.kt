@@ -66,7 +66,7 @@ class ScheduleViewModel @Inject constructor(
     private val period: StateFlow<Period> = combine(view, selection, zone, now) { v, picked, z, instant ->
         val today = today(instant, z)
         val date = picked ?: today
-        Period(v, date, today, z, SchedulePeriods.rangeFor(v, date))
+        Period(v, date, today, z, SchedulePeriods.rangeFor(v, date), now = instant)
     }.stateIn(viewModelScope, SharingStarted.Eagerly, initialPeriod(clock.instant(), initialZone))
 
     @OptIn(ExperimentalCoroutinesApi::class)
@@ -141,7 +141,10 @@ class ScheduleViewModel @Inject constructor(
         viewModelScope.launch { calendar.refreshMilestones() }
     }
 
-    /** The screen calls this when it resumes, so "today" moves on after midnight or a long pause. */
+    /**
+     * The screen calls this when it resumes and once a minute while it shows, so "today" moves on
+     * after midnight or a long pause and the "Now" divider moves along (UI4-12).
+     */
     fun onResume() {
         now.value = clock.instant()
     }
@@ -165,6 +168,7 @@ class ScheduleViewModel @Inject constructor(
         val today: LocalDate,
         val zone: ZoneId,
         val range: DateRange,
+        val now: Instant,
     )
 
     private data class FeedSnapshot(val range: DateRange, val zone: ZoneId, val synced: Synced<ScheduleFeed>)
@@ -181,12 +185,19 @@ class ScheduleViewModel @Inject constructor(
 
         fun initialPeriod(instant: Instant, zone: ZoneId): Period {
             val today = today(instant, zone)
-            return Period(ScheduleView.MONTH, today, today, zone, SchedulePeriods.rangeFor(ScheduleView.MONTH, today))
+            return Period(
+                view = ScheduleView.MONTH,
+                date = today,
+                today = today,
+                zone = zone,
+                range = SchedulePeriods.rangeFor(ScheduleView.MONTH, today),
+                now = instant,
+            )
         }
 
         fun buildState(p: Period, f: FeedSnapshot?, m: MilestoneState?, c: Chrome?, deviceZone: DeviceZone) =
             ScheduleStateBuilder.build(
-                period = SchedulePeriod(p.view, p.date, p.today, p.zone),
+                period = SchedulePeriod(view = p.view, date = p.date, today = p.today, zone = p.zone, now = p.now),
                 feed = f?.takeIf { it.range == p.range && it.zone == p.zone }?.synced,
                 milestones = m?.index ?: MilestoneIndex.Empty,
                 milestonesError = m?.synced?.error,

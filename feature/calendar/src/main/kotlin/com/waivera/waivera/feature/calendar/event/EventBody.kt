@@ -120,6 +120,7 @@ internal fun EventBody(
                     tone = BannerTone.Warning,
                     actionLabel = stringResource(R.string.feature_calendar_retry),
                     onAction = actions.onRetry,
+                    actionIcon = WaiveraIcons.Refresh,
                     modifier = sectionModifier,
                     gutter = false,
                 )
@@ -378,9 +379,11 @@ private fun InvitationBlock(invitation: InvitationUi, actions: EventActions, mod
 }
 
 /**
- * "Not going" and "Going" as one single-choice group: the chosen answer is tonal with a check and
- * announced as selected, the other is outlined, so the pair reads as a state rather than two
- * calls to action. Above 130% font the pair stacks and the check is dropped so labels stay whole.
+ * "Not going" and "Going" as one single-choice group: the chosen answer has the accent-soft fill,
+ * an accent outline and a check, and is announced as selected; the other has a subtle outline and
+ * regular-weight text, so the chosen one is always the heavier, in dark mode too (UI4-04). The
+ * pair reads as a state rather than two calls to action. Above 130% font the pair stacks and the
+ * check is dropped so labels stay whole.
  */
 @Composable
 private fun ResponseChoices(saving: Boolean, accepted: Boolean, declined: Boolean, actions: EventActions) {
@@ -389,6 +392,7 @@ private fun ResponseChoices(saving: Boolean, accepted: Boolean, declined: Boolea
         ResponseChoice(
             text = stringResource(R.string.feature_calendar_decline),
             chosen = declined,
+            answered = accepted || declined,
             saving = saving,
             showCheck = !large,
             onClick = actions.onDecline,
@@ -399,6 +403,7 @@ private fun ResponseChoices(saving: Boolean, accepted: Boolean, declined: Boolea
         ResponseChoice(
             text = stringResource(R.string.feature_calendar_accept),
             chosen = accepted,
+            answered = accepted || declined,
             saving = saving,
             showCheck = !large,
             onClick = actions.onAccept,
@@ -429,6 +434,7 @@ private fun ResponseChoices(saving: Boolean, accepted: Boolean, declined: Boolea
 private fun ResponseChoice(
     text: String,
     chosen: Boolean,
+    answered: Boolean,
     saving: Boolean,
     showCheck: Boolean,
     onClick: () -> Unit,
@@ -437,7 +443,12 @@ private fun ResponseChoice(
     WaiveraButton(
         text = text,
         onClick = onClick,
-        variant = if (chosen) WaiveraButtonVariant.Tonal else WaiveraButtonVariant.Secondary,
+        // Before an answer both are plain outlined choices; after one, the chosen side is the heavier.
+        variant = when {
+            !answered -> WaiveraButtonVariant.Secondary
+            chosen -> WaiveraButtonVariant.Selected
+            else -> WaiveraButtonVariant.Unselected
+        },
         enabled = !saving,
         loadingText = stringResource(R.string.feature_calendar_response_saving).takeIf { saving && chosen },
         leadingIcon = if (chosen && showCheck) WaiveraIcons.Check else null,

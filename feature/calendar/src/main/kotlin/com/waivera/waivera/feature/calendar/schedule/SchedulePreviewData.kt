@@ -24,6 +24,9 @@ internal object SchedulePreviewData {
     val zone: ZoneId = ZoneId.of("America/Chicago")
     val today: LocalDate = LocalDate.of(2026, 11, 1)
 
+    /** 10:30 AM in Chicago, after the overnight shift and before the home visit. */
+    val now: Instant = Instant.parse("2026-11-01T16:30:00Z")
+
     private val events = listOf(
         ScheduleEvent(
             id = "preview_overnight",
@@ -77,7 +80,7 @@ internal object SchedulePreviewData {
     fun state(view: ScheduleView, date: LocalDate = today): ScheduleUiState {
         val range = SchedulePeriods.rangeFor(view, date)
         return ScheduleStateBuilder.build(
-            period = SchedulePeriod(view, date, today, zone),
+            period = SchedulePeriod(view = view, date = date, today = today, zone = zone, now = now),
             feed = Synced(ScheduleFeed(range, zone.id, events, timeOff, holidays), lastSyncedAt = Instant.EPOCH),
             milestones = MilestoneIndex(milestones),
             milestonesError = null,

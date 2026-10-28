@@ -10,7 +10,8 @@
     <string name="feature_calendar_today">Today</string>
     <string name="feature_calendar_go_to_today">Jump to today</string>
     <string name="feature_calendar_refresh">Refresh schedule</string>
-    <string name="feature_calendar_period_week_in_month">%1$s–%2$s, %3$s</string>
+    <!-- The year is held to the range by a no-break space, so a wrap never leaves it alone (UI4-07). -->
+    <string name="feature_calendar_period_week_in_month">%1$s–%2$s,\u00A0%3$s</string>
     <string name="feature_calendar_period_week_across_months">%1$s – %2$s</string>
     <string name="feature_calendar_zone_notice">Times shown in %1$s</string>
     <string name="feature_calendar_zone_notice_fallback">Your profile has no time zone, so times are shown in %1$s.</string>
@@ -18,7 +19,8 @@
     <string name="feature_calendar_error_title">Your schedule didn\'t load</string>
     <string name="feature_calendar_empty_title">Nothing scheduled</string>
     <string name="feature_calendar_empty_message">This day is clear.</string>
-    <string name="feature_calendar_feed_refresh_failed">Couldn\'t refresh your schedule. Showing what was saved.</string>
+    <string name="feature_calendar_feed_refresh_failed_title">Couldn\'t refresh your schedule</string>
+    <string name="feature_calendar_feed_refresh_failed_detail">Showing what was saved.</string>
     <string name="feature_calendar_milestones_failed">Team celebrations didn\'t load.</string>
     <string name="feature_calendar_offline">You\'re offline. Showing your saved schedule.</string>
     <string name="feature_calendar_retry">Retry</string>
@@ -124,4 +126,8 @@
     <string name="feature_calendar_event_not_found_message">This event isn\'t on your schedule anymore, or it\'s outside the dates that can be looked up.</string>
     <string name="feature_calendar_event_error_title">This event didn\'t load</string>
     <string name="feature_calendar_event_refresh_failed">Couldn\'t refresh this event. Showing what was saved.</string>
+    <!-- Today's agenda: the divider before what is still ahead, and items that already ended (UI4-12). -->
+    <string name="feature_calendar_now_marker">Now · %1$s</string>
+    <string name="feature_calendar_now_marker_a11y">Now, %1$s</string>
+    <string name="feature_calendar_item_ended">Ended</string>
 </resources>

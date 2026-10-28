@@ -27,7 +27,10 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.style.TextOverflow
 import com.waivera.waivera.core.designsystem.component.WaiveraIconTile
 import com.waivera.waivera.core.designsystem.component.WaiveraPressable
@@ -38,24 +41,34 @@ import com.waivera.waivera.core.designsystem.theme.WaiveraSpacing
 import com.waivera.waivera.core.designsystem.theme.WaiveraTheme
 import com.waivera.waivera.feature.calendar.R
 import com.waivera.waivera.feature.calendar.model.AgendaItem
+import com.waivera.waivera.feature.calendar.model.ScheduleClock
 import com.waivera.waivera.feature.calendar.model.ScheduleLabels
 import com.waivera.waivera.feature.calendar.ui.CalendarIcons
 import com.waivera.waivera.feature.calendar.ui.CalendarSizes
 import com.waivera.waivera.feature.calendar.ui.CelebrationText
 import com.waivera.waivera.feature.calendar.ui.MilestoneAvatar
 import com.waivera.waivera.feature.calendar.ui.agendaTimeText
+import com.waivera.waivera.feature.calendar.ui.currentLocale
 import com.waivera.waivera.feature.calendar.ui.milestoneSubtitle
 import com.waivera.waivera.feature.calendar.ui.resolve
 import com.waivera.waivera.feature.calendar.ui.timeOffSubtitle
+import java.time.ZonedDateTime
 
-/** One agenda card. Rows grow with the font scale; titles wrap to two lines instead of clipping. */
+/**
+ * One agenda card. Rows grow with the font scale; titles wrap to two lines instead of clipping.
+ * An [ended] event or time off (today, before now) is drawn quieter: secondary text, no accent
+ * bar, and announced as ended (UI4-12).
+ */
 @Composable
 internal fun AgendaCard(
     item: AgendaItem,
     currentYear: Int,
     onOpenEvent: (String) -> Unit,
     modifier: Modifier = Modifier,
+    ended: Boolean = false,
 ) {
+    val endedLabel = stringResource(R.string.feature_calendar_item_ended)
+    val endedModifier = if (ended) modifier.semantics { stateDescription = endedLabel } else modifier
     when (item) {
         is AgendaItem.MilestoneCard -> MilestoneCard(item, modifier)
         is AgendaItem.HolidayCard -> InfoCard(
@@ -73,9 +86,44 @@ internal fun AgendaCard(
             title = item.entry.leaveType?.takeIf(String::isNotBlank)
                 ?: stringResource(R.string.feature_calendar_time_off_default),
             subtitle = timeOffSubtitle(item.entry),
-            modifier = modifier,
+            ended = ended,
+            modifier = endedModifier,
         )
-        is AgendaItem.EventCard -> EventCard(item, currentYear, onOpenEvent, modifier)
+        is AgendaItem.EventCard -> EventCard(
+            item = item,
+            currentYear = currentYear,
+            onOpenEvent = onOpenEvent,
+            ended = ended,
+            modifier = endedModifier,
+        )
+    }
+}
+
+/**
+ * The thin "Now · 10:30 AM" line in today's agenda, before the first item that has not ended,
+ * so the day reads as before and after at a glance (UI4-12). The time is in the employee's
+ * saved zone.
+ */
+@Composable
+internal fun NowDivider(time: ZonedDateTime, modifier: Modifier = Modifier) {
+    val colors = WaiveraTheme.colors
+    val clock = ScheduleClock.clock(time, currentLocale())
+    val label = stringResource(R.string.feature_calendar_now_marker, clock)
+    val spoken = stringResource(R.string.feature_calendar_now_marker_a11y, clock)
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .clearAndSetSemantics { contentDescription = spoken },
+        horizontalArrangement = Arrangement.spacedBy(WaiveraSpacing.Small),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(text = label, style = MaterialTheme.typography.labelMedium, color = colors.accent)
+        Box(
+            modifier = Modifier
+                .weight(1f)
+                .height(CalendarSizes.NowLine)
+                .background(colors.accent),
+        )
     }
 }
 
@@ -112,6 +160,7 @@ private fun InfoCard(
     title: String,
     subtitle: String,
     modifier: Modifier = Modifier,
+    ended: Boolean = false,
 ) {
     CardSurface(modifier = modifier.semantics(mergeDescendants = true) { }) {
         Box(
@@ -128,7 +177,11 @@ private fun InfoCard(
             )
         }
         Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(WaiveraSpacing.XxSmall)) {
-            Text(text = title, style = MaterialTheme.typography.titleSmall, color = WaiveraTheme.colors.text)
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleSmall,
+                color = if (ended) WaiveraTheme.colors.textSecondary else WaiveraTheme.colors.text,
+            )
             Text(
                 text = subtitle,
                 style = MaterialTheme.typography.labelMedium,
@@ -148,6 +201,7 @@ private fun EventCard(
     currentYear: Int,
     onOpenEvent: (String) -> Unit,
     modifier: Modifier = Modifier,
+    ended: Boolean = false,
 ) {
     val colors = WaiveraTheme.colors
     val event = item.event
@@ -175,7 +229,8 @@ private fun EventCard(
                 modifier = Modifier
                     .width(CalendarSizes.EventAccentBar)
                     .fillMaxHeight()
-                    .background(ownerColor ?: colors.accent),
+                    // An ended item drops its colour bar, so what is still ahead stands out.
+                    .background(if (ended) colors.border else ownerColor ?: colors.accent),
             )
             Row(
                 modifier = Modifier
@@ -201,7 +256,7 @@ private fun EventCard(
                         text = event.title?.takeIf(String::isNotBlank)
                             ?: stringResource(R.string.feature_calendar_untitled_event),
                         style = MaterialTheme.typography.titleSmall,
-                        color = colors.text,
+                        color = if (ended) colors.textSecondary else colors.text,
                         maxLines = 2,
                         overflow = TextOverflow.Ellipsis,
                     )

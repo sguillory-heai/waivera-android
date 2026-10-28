@@ -53,7 +53,8 @@ class ScheduleScreenshotTest {
         deviceZone: ZoneId = zone,
         isOffline: Boolean = false,
     ): ScheduleUiState = ScheduleStateBuilder.build(
-        period = SchedulePeriod(view, date, today, zone),
+        // The demo clock, so today's agenda shows the "Now" divider and its ended items (UI4-12).
+        period = SchedulePeriod(view = view, date = date, today = today, zone = zone, now = DemoData.NOW),
         feed = synced,
         milestones = milestones,
         milestonesError = milestonesError,

@@ -3,6 +3,7 @@ package com.waivera.waivera.feature.calendar.schedule
 import androidx.compose.runtime.Immutable
 import com.waivera.waivera.core.network.error.WaiveraError
 import com.waivera.waivera.feature.calendar.model.AgendaItem
+import com.waivera.waivera.feature.calendar.model.AgendaNow
 import com.waivera.waivera.feature.calendar.model.DayMarker
 import com.waivera.waivera.feature.calendar.model.PeriodTitle
 import com.waivera.waivera.feature.calendar.model.ScheduleView
@@ -21,6 +22,8 @@ data class ScheduleUiState(
     val title: PeriodTitle,
     val cells: List<GridCell>,
     val agenda: AgendaState,
+    /** Today's "Now" divider and which items have ended; null on other days. */
+    val agendaNow: AgendaNow? = null,
     val isRefreshing: Boolean = false,
     /** A refresh failed while older data is on screen; shown as a banner with Retry. */
     val feedError: WaiveraError? = null,
