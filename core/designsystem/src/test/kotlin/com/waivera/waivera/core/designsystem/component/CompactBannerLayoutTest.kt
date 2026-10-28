@@ -2,12 +2,16 @@ package com.waivera.waivera.core.designsystem.component
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.SemanticsNodeInteraction
 import androidx.compose.ui.test.assertHasClickAction
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.getBoundsInRoot
+import androidx.compose.ui.test.hasContentDescription
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
@@ -114,6 +118,35 @@ class CompactBannerLayoutTest {
     @Test
     fun notSentOffscreenKeepsNotSentInTheTitle() = assertFull(NOT_SENT_OFFSCREEN)
 
+    /**
+     * The offscreen not-sent banner as the conversation shows it at 200%: compact, with "Show"
+     * as a labelled text button and the dismiss in a row under the title, about a quarter of the
+     * small phone's height at most (UI5-06).
+     */
+    @Test
+    fun offscreenNotSentStaysSmallAndLabelsItsAction() {
+        render {
+            WaiveraBanner(
+                title = NOT_SENT_OFFSCREEN.title,
+                message = "Retry, edit or discard it in the conversation.",
+                tone = NOT_SENT_OFFSCREEN.tone,
+                actionLabel = NOT_SENT_OFFSCREEN.actionLabel,
+                onAction = {},
+                actionIcon = NOT_SENT_OFFSCREEN.actionIcon,
+                onDismiss = {},
+                compact = true,
+                modifier = Modifier.testTag(BANNER_TAG),
+            )
+        }
+        val banner = compose.onNodeWithTag(BANNER_TAG).getBoundsInRoot()
+        assertTrue("banner is ${banner.height} tall", banner.height <= QUARTER_SCREEN_MAX)
+        compose.onNode(hasText(checkNotNull(NOT_SENT_OFFSCREEN.actionLabel))).assertIsDisplayed().assertHasClickAction()
+        compose.onNodeWithContentDescription("Dismiss").assertHasClickAction()
+        val title = compose.onNodeWithTag(BANNER_COMPACT_TITLE_TAG, useUnmergedTree = true).getBoundsInRoot()
+        val show = compose.onNode(hasText(checkNotNull(NOT_SENT_OFFSCREEN.actionLabel))).getBoundsInRoot()
+        assertTrue("Show is beside the title, not under it", show.top >= title.bottom)
+    }
+
     @Test
     fun notificationsBlockedSaysTheyAreOff() = assertFull(NOTIFICATIONS_BLOCKED)
 
@@ -140,7 +173,8 @@ class CompactBannerLayoutTest {
         assertTitleFits(banner.title, titleLayout)
         assertBreaksOnlyBetweenWords(banner.title, titleLayout)
         assertBreaksOnlyBetweenWords(banner.message, message.fetchTextLayoutResult())
-        banner.actionLabel?.let { compose.onNodeWithContentDescription(it).assertHasClickAction() }
+        // An icon action is named by its description, a text action by its label.
+        banner.actionLabel?.let { compose.onNode(hasContentDescription(it) or hasText(it)).assertHasClickAction() }
         banner.detail?.let { assertDetailOnOneLine(it) }
     }
 
@@ -207,6 +241,11 @@ class CompactBannerLayoutTest {
 
         // One 15sp title line at 200% is 40dp tall (20sp line height).
         val ONE_TITLE_LINE_MAX = 48.dp
+
+        // About a quarter of the 640dp small phone; a two-line compact title, its padding and
+        // the 48dp action row come to about 164dp.
+        val QUARTER_SCREEN_MAX = 172.dp
+        const val BANNER_TAG = "banner"
 
         val SIGN_IN_FAILED = InAppBanner(
             title = "Couldn't sign in",

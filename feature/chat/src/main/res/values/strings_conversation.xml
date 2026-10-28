@@ -149,7 +149,7 @@
         <item quantity="one">%d reply not sent</item>
         <item quantity="other">%d replies not sent</item>
     </plurals>
-    <string name="feature_chat_not_sent_offscreen">Retry, edit or discard it where it sits in the conversation.</string>
+    <string name="feature_chat_not_sent_offscreen">Retry, edit or discard it in the conversation.</string>
     <string name="feature_chat_not_sent_show">Show</string>
     <string name="feature_chat_dismiss_send_error">Dismiss send error</string>
     <string name="feature_chat_send_error_archived">This conversation is archived, so your message could not be sent.</string>

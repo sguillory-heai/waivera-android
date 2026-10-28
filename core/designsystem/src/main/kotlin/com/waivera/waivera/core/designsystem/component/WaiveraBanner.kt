@@ -9,10 +9,12 @@ import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -40,6 +42,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.testTag
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Constraints
@@ -47,6 +50,7 @@ import androidx.compose.ui.unit.dp
 import com.waivera.waivera.core.designsystem.R
 import com.waivera.waivera.core.designsystem.icon.WaiveraIcons
 import com.waivera.waivera.core.designsystem.preview.WaiveraPreviews
+import com.waivera.waivera.core.designsystem.theme.TitleLineBreak
 import com.waivera.waivera.core.designsystem.theme.WaiveraColors
 import com.waivera.waivera.core.designsystem.theme.WaiveraShapes
 import com.waivera.waivera.core.designsystem.theme.WaiveraSizes
@@ -101,7 +105,11 @@ fun WaiveraBanner(
     val style = tone.style(WaiveraTheme.colors)
     val action = if (actionLabel != null && onAction != null) BannerActionModel(actionLabel, onAction) else null
     val collapsible = compact && title != null
-    val iconAction = if (action != null && isLargeFontScale()) actionIcon else null
+    val largeFont = isLargeFontScale()
+    // An action and a dismiss beside the text took two 48dp buttons out of a 200% line and left
+    // the reason a ragged four-word column; they go in a row under the text instead (UI5-06).
+    val actionsBelow = action != null && onDismiss != null && largeFont
+    val iconAction = if (action != null && largeFont && !actionsBelow) actionIcon else null
     var expanded by rememberSaveable(message) { mutableStateOf(false) }
     BoxWithConstraints(
         modifier = modifier
@@ -112,6 +120,7 @@ fun WaiveraBanner(
             ),
     ) {
         val stacked = action != null &&
+            !actionsBelow &&
             iconAction == null &&
             !collapsible &&
             rememberBannerActionStacks(
@@ -120,7 +129,7 @@ fun WaiveraBanner(
                 hasDismiss = onDismiss != null,
                 availableWidthPx = constraints.maxWidth,
             )
-        val trailingInline = (action != null && !stacked) || onDismiss != null
+        val trailingInline = !actionsBelow && ((action != null && !stacked) || onDismiss != null)
         Column(
             modifier = Modifier
                 .fillMaxWidth()
@@ -133,15 +142,22 @@ fun WaiveraBanner(
                 )
                 .semantics(mergeDescendants = false) { liveRegion = LiveRegionMode.Polite },
         ) {
+            // Top-aligned, so the icon and buttons stay by the first line of a wrapped message
+            // instead of floating mid-paragraph (UI5-09). A compact banner stays centred: its
+            // text column is already one touch target tall.
             Row(
                 horizontalArrangement = Arrangement.spacedBy(WaiveraSpacing.MediumSmall),
-                verticalAlignment = Alignment.CenterVertically,
+                verticalAlignment = if (collapsible) Alignment.CenterVertically else Alignment.Top,
             ) {
-                Icon(
-                    painterResource(style.icon),
-                    contentDescription = null,
-                    tint = style.content,
-                    modifier = Modifier.size(WaiveraSizes.Icon),
+                BannerIcon(
+                    icon = style.icon,
+                    color = style.content,
+                    firstLineStyle = if (title != null) {
+                        MaterialTheme.typography.titleSmall
+                    } else {
+                        MaterialTheme.typography.bodySmall
+                    },
+                    centred = collapsible,
                 )
                 val textModifier = Modifier.weight(1f)
                 if (collapsible) {
@@ -164,7 +180,7 @@ fun WaiveraBanner(
                     )
                 }
                 when {
-                    action == null || stacked -> Unit
+                    action == null || stacked || actionsBelow -> Unit
                     iconAction != null -> WaiveraIconButton(
                         icon = iconAction,
                         contentDescription = action.label,
@@ -173,7 +189,16 @@ fun WaiveraBanner(
                     )
                     else -> BannerAction(action = action, color = style.content)
                 }
-                if (onDismiss != null) BannerDismiss(onDismiss = onDismiss, color = style.content)
+                if (onDismiss != null && !actionsBelow) BannerDismiss(onDismiss = onDismiss, color = style.content)
+            }
+            if (action != null && onDismiss != null && actionsBelow) {
+                Row(
+                    modifier = Modifier.align(Alignment.End),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    BannerAction(action = action, color = style.content)
+                    BannerDismiss(onDismiss = onDismiss, color = style.content)
+                }
             }
             if (action != null && stacked) {
                 BannerAction(
@@ -260,7 +285,7 @@ private fun CompactBannerText(
                 }
                 Text(
                     text = message,
-                    style = MaterialTheme.typography.bodySmall,
+                    style = bannerMessageStyle(),
                     color = color,
                     modifier = Modifier.clearAndSetSemantics {},
                 )
@@ -282,14 +307,45 @@ private class BannerActionModel(val label: String, val onClick: () -> Unit)
 @Composable
 private fun BannerText(title: String?, message: String, detail: String?, color: Color, modifier: Modifier = Modifier) {
     Column(
-        modifier = modifier.padding(vertical = WaiveraSpacing.Small),
-        verticalArrangement = Arrangement.spacedBy(WaiveraSpacing.XxSmall),
+        modifier = modifier
+            .heightIn(min = WaiveraSpacing.MinTouchTarget)
+            .padding(vertical = WaiveraSpacing.Small),
+        verticalArrangement = Arrangement.spacedBy(WaiveraSpacing.XxSmall, Alignment.CenterVertically),
     ) {
         if (title != null) {
             Text(text = title, style = MaterialTheme.typography.titleSmall, color = color)
         }
         if (detail != null) BannerDetail(detail = detail, color = color)
-        Text(text = message, style = MaterialTheme.typography.bodySmall, color = color)
+        Text(text = message, style = bannerMessageStyle(), color = color)
+    }
+}
+
+/**
+ * The message wraps greedily: in a banner's narrow column the balancing breaker left a one-word
+ * first line ("Showing / your saved / conversations.") where "Showing your" fits (UI5-09).
+ */
+@Composable
+private fun bannerMessageStyle(): TextStyle = MaterialTheme.typography.bodySmall.copy(lineBreak = TitleLineBreak)
+
+/**
+ * The leading icon, centred on the first line of the text beside it: a slot as tall as the
+ * text's top padding, first line and bottom padding, and never shorter than one touch target,
+ * which is how tall a one-line banner's text column is.
+ */
+@Composable
+private fun BannerIcon(@DrawableRes icon: Int, color: Color, firstLineStyle: TextStyle, centred: Boolean) {
+    val firstLine = with(LocalDensity.current) { firstLineStyle.lineHeight.toDp() }
+    val slot = maxOf(WaiveraSpacing.MinTouchTarget, firstLine + WaiveraSpacing.Small * 2)
+    Box(
+        modifier = if (centred) Modifier else Modifier.height(slot),
+        contentAlignment = Alignment.Center,
+    ) {
+        Icon(
+            painterResource(icon),
+            contentDescription = null,
+            tint = color,
+            modifier = Modifier.size(WaiveraSizes.Icon),
+        )
     }
 }
 
@@ -327,7 +383,7 @@ private fun rememberBannerActionStacks(
 ): Boolean {
     val measurer = rememberTextMeasurer()
     val labelStyle = MaterialTheme.typography.labelLarge
-    val messageStyle = MaterialTheme.typography.bodySmall
+    val messageStyle = bannerMessageStyle()
     val density = LocalDensity.current
     val labelWidthPx = remember(label, labelStyle, density) {
         measurer.measure(text = label, style = labelStyle).size.width

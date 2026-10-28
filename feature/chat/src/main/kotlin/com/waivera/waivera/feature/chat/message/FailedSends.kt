@@ -11,6 +11,7 @@ import androidx.compose.ui.res.stringResource
 import com.waivera.waivera.core.designsystem.component.BannerTone
 import com.waivera.waivera.core.designsystem.component.WaiveraBanner
 import com.waivera.waivera.core.designsystem.icon.WaiveraIcons
+import com.waivera.waivera.core.designsystem.theme.isLargeFontScale
 import com.waivera.waivera.feature.chat.R
 
 /** [SendErrorUi.of] against the live list, recomputed only when visibility actually changes. */
@@ -59,6 +60,10 @@ fun SendErrorSignal(
             onAction = { onShow(ui.index) },
             actionIcon = WaiveraIcons.ArrowUp,
             onDismiss = onDismiss,
+            // At large font the title says what happened and "Show" goes where it is; the
+            // message folds behind the chevron (TalkBack still reads it), so the banner stays
+            // near a quarter of the screen instead of 40% of the conversation (UI5-06).
+            compact = isLargeFontScale(),
             modifier = modifier,
         )
     }
