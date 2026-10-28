@@ -3,7 +3,12 @@ package com.waivera.waivera.feature.auth
 import android.view.View
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.ime
+import androidx.compose.foundation.layout.windowInsetsBottomHeight
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.test.hasClickAction
@@ -37,7 +42,8 @@ import org.robolectric.annotation.GraphicsMode
  * Sign-in with the keyboard up on the small phone (UI9-11). Robolectric has no soft keyboard, so
  * the test focuses the password and dispatches IME insets to the compose view, the same path the
  * platform takes: the header goes compact, the frame pads for the keyboard, and Sign in is
- * brought fully into view above it. It also records `sign_in_keyboard_up_small_*_font100`.
+ * brought fully into view above it. It also records `sign_in_keyboard_up_small_*_font100`, with
+ * a plain block standing in for the keyboard over the inset.
  */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
@@ -68,6 +74,15 @@ class SignInKeyboardTest {
                         state = SignInUiState(email = "alex.rivera@example.org", password = "correct horse"),
                         actions = SignInActions(),
                         legalLinks = LegalLinks(termsOfService = "terms", privacyPolicy = "privacy"),
+                    )
+                    // A stand-in for the keyboard, drawn over the IME inset only, so the capture
+                    // shows where the keyboard sits instead of a blank band (UI9-11).
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.BottomCenter)
+                            .fillMaxWidth()
+                            .windowInsetsBottomHeight(WindowInsets.ime)
+                            .background(WaiveraTheme.colors.surfaceMuted),
                     )
                 }
             }
