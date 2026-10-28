@@ -25,7 +25,7 @@ import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
 /**
- * The selected tab shows one solid tonal pill (v5 decision 5; UI8-01 for the single pill).
+ * The selected tab shows one solid violet pill (v5 decision 5, option A; UI8-01 for the single pill).
  * Material's own indicator used to sit inside the brand wash at a different width, which read as
  * a crescent at each end; v5 then took the gradient off every control. Probed along the pill's
  * middle row, beside the glyph: the pill fills its own width in the selected fill, nothing is
@@ -58,7 +58,7 @@ class NavigationBarPillTest {
     }
 
     @Test
-    fun theSelectedTabHasOneSolidTonalPill() {
+    fun theSelectedTabHasOneSolidVioletPill() {
         showBar()
         val icons = compose.onAllNodesWithTag(NAV_ICON_TEST_TAG, useUnmergedTree = true)
         val pixels = compose.onRoot().captureToImage().toPixelMap()

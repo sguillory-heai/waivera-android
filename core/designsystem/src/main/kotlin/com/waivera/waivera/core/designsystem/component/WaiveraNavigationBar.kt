@@ -58,8 +58,8 @@ data class NavigationBarItemModel(
  * for the navigation bar again.
  *
  * Concept A's bar: the bar's own fill under a top hairline, and the selected tab's one pill
- * behind its glyph. v5 decision 5 makes it tonal: a solid deeper lilac with violet ink in both
- * themes, and the selected label in the heavier weight, never a gradient. An unread count sits on
+ * behind its glyph. v5 decision 5, option A (owner pick), makes it the solid brand violet with a
+ * white glyph in both themes, and the selected label in the heavier weight, never a gradient. An unread count sits on
  * the glyph's top-end corner in the attention rose, ringed in the bar's colour so it reads as cut
  * out of it. The pill is decoration; the label, the selected state and the count carry the meaning.
  */

@@ -113,8 +113,9 @@ data class WaiveraColors(
     val navBarBorder: Color,
     /**
      * The selected state, shared by the tab pill, the chosen segment and a selected filter chip:
-     * a solid deeper lilac with [onSelectedFill] violet ink in both themes (v5 decision 5, tonal),
-     * so a selection never reads as an action. It is never a gradient.
+     * the solid brand violet with [onSelectedFill] white ink in both themes (v5 decision 5, option
+     * A, owner pick), drawn in the heavier weight and, on chips, with a check. It is never a
+     * gradient, and unlike a button it has no sheen, edge or glow.
      */
     val selectedFill: Color,
     val onSelectedFill: Color,
@@ -220,8 +221,8 @@ internal val LightWaiveraColors = WaiveraColors(
     tonalOnWash = WaiveraPalette.TonalOnWashLight,
     navBar = WaiveraPalette.SurfaceLight,
     navBarBorder = WaiveraPalette.BorderLight,
-    selectedFill = WaiveraPalette.SelectedFillLight,
-    onSelectedFill = WaiveraPalette.TonalInkLight,
+    selectedFill = WaiveraPalette.Violet,
+    onSelectedFill = WaiveraPalette.White,
     dayTint = WaiveraPalette.DayTintLight,
     onDayTint = WaiveraPalette.TonalInkLight,
     todayMark = WaiveraPalette.Violet,
@@ -301,8 +302,8 @@ internal val DarkWaiveraColors = WaiveraColors(
     tonalOnWash = WaiveraPalette.TonalOnWashDark,
     navBar = WaiveraPalette.NavBarDark,
     navBarBorder = WaiveraPalette.BorderDark,
-    selectedFill = WaiveraPalette.SelectedFillDark,
-    onSelectedFill = WaiveraPalette.OnAccentSoftDark,
+    selectedFill = WaiveraPalette.VioletDarkFill,
+    onSelectedFill = WaiveraPalette.White,
     dayTint = WaiveraPalette.DayTintDark,
     onDayTint = WaiveraPalette.VioletDarkLink,
     // The board's #8048E6 dash fell to 2.0:1 on the dark tint; the link lilac keeps 5.3:1 there.

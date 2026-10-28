@@ -165,8 +165,8 @@ class WaiveraColorsContrastTest {
     }
 
     /**
-     * The tonal selected state (v5 decision 5), shared by the tab pill, segments and chips: violet
-     * ink on the selected fill; the tab's rose count with white; and the snackbar's text and
+     * The solid selected state (v5 decision 5, option A), shared by the tab pill, segments and
+     * chips: white ink on the violet; the tab's rose count with white; and the snackbar's text and
      * action on its plum.
      */
     @Test
@@ -179,16 +179,21 @@ class WaiveraColorsContrastTest {
     }
 
     /**
-     * The fill alone is under 3:1 against its track (v5: 1.3 / 1.6:1), so the selection must not
-     * rest on it: the selected ink stands well apart from the resting ink on the same track, and
-     * the fill is still a visible step off the track and the bar.
+     * The solid violet selection (v5 decision 5, option A) clears 3:1 against the nav bar and the
+     * page surfaces its chips sit on. On the segment track it does in light (5.7:1); in dark the
+     * raised track puts it at 2.99:1, so there the selection is also carried by its white
+     * ExtraBold label against the resting secondary SemiBold one, and the fill is held to the
+     * visible-step floor the tonal fill had.
      */
     @Test
-    fun selectedState_isCarriedByItsInkNotItsFillAlone() = forEachTheme { colors ->
-        for ((name, track) in listOf("segment track" to colors.surfaceMuted, "nav bar" to colors.navBar)) {
-            text("onSelectedFill on $name", colors.onSelectedFill, track)
-            check("selectedFill on $name", colors.selectedFill, track, SELECTED_FILL_MIN)
+    fun selectedState_standsOffItsTrackOrIsCarriedByItsInk() = forEachTheme { colors ->
+        text("onSelectedFill on selectedFill", colors.onSelectedFill, colors.selectedFill)
+        for ((name, track) in listOf("nav bar" to colors.navBar) + pageSurfaces(colors).take(2)) {
+            ui("selectedFill on $name", colors.selectedFill, track)
         }
+        check("selectedFill on segment track", colors.selectedFill, colors.surfaceMuted, SELECTED_FILL_MIN)
+        text("resting segment ink on segment track", colors.textSecondary, colors.surfaceMuted)
+        if (!colors.isDark) ui("selectedFill on segment track", colors.selectedFill, colors.surfaceMuted)
     }
 
     /**
@@ -299,7 +304,7 @@ class WaiveraColorsContrastTest {
         const val SKELETON_MIN = 1.3
         const val AVATAR_FILL_MIN = 1.3
 
-        /** The tonal selected fill against its track: a visible step, not the state's only signal. */
+        /** A fill against its track that is not the state's only signal: a visible step at least. */
         const val SELECTED_FILL_MIN = 1.2
         const val PLUM_MAX_BLUE_LEAD = 0.07f
 

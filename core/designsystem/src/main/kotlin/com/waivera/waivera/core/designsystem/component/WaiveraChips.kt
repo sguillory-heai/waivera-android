@@ -49,10 +49,11 @@ import com.waivera.waivera.core.designsystem.theme.WaiveraTheme
  * Filter chip (All, Mentions, Unread...). Selecting fires the selection haptic. [leadingIcon]
  * is shown at rest; a selected chip always leads with a check.
  *
- * v5 decision 5, shared with [WaiveraSegmentedControl] and the tab pill: the selected chip is the
- * tonal selected fill with violet ink, the bold weight and the check, so the choice reads by its
- * ink, its weight and its glyph, never by a faint tint alone (UI8-13), and never as an action.
- * At rest the chip is the surface with a hairline. It draws 36dp tall and keeps a 48dp target.
+ * v5 decision 5, option A (owner pick), shared with [WaiveraSegmentedControl] and the tab pill:
+ * the selected chip is the solid violet selected fill with white ink, the bold weight and the
+ * check, so the choice reads by its fill, its weight and its glyph (UI8-13). It is flat, with
+ * none of a button's sheen or glow. At rest the chip is the surface with a hairline. It draws
+ * 36dp tall and keeps a 48dp target.
  */
 @Composable
 fun WaiveraFilterChip(
@@ -131,7 +132,7 @@ fun WaiveraFilterChip(
 
 /**
  * Segmented control (Day | Week | Month, All | Unread | Channels). Each segment is a radio-style
- * selectable with a 48dp minimum height; the selected tonal fill animates with the state token.
+ * selectable with a 48dp minimum height; the selected solid violet fill animates with the state token.
  *
  * Labels are always one line. Segments share the width equally while the longest label fits.
  * When it does not (large font) but all labels fit side by side, each segment's share follows
@@ -189,9 +190,9 @@ private fun Segment(label: String, selected: Boolean, onSelect: () -> Unit, modi
         modifier = modifier
             .heightIn(min = WaiveraSizes.SegmentMinHeight)
             .clip(WaiveraShapes.Segment)
-            // The chosen segment is the tonal selected fill with violet ink in the heavier weight, so
-            // the choice never rests on a fill step alone; it fades in on the state token and snaps
-            // under reduced motion.
+            // The chosen segment is the solid violet with white ink in the heavier weight. In dark the
+            // fill is 3.0:1 on the raised track, a hair under the line, so the ink and weight carry it
+            // too. It fades in on the state token and snaps under reduced motion.
             .drawBehind { if (pill > 0f) drawRect(color = fill, alpha = pill) }
             .selectable(
                 selected = selected,
