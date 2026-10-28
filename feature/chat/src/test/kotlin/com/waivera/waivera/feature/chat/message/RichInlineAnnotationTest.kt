@@ -69,12 +69,12 @@ class RichInlineAnnotationTest {
     }
 
     @Test
-    fun mentionOnMyVioletBubbleIsUnderlinedWithoutABlock() {
-        val onFill = RichInlineColors(accent = Color.White, mentionBackground = null)
-        val style = annotateInlines(listOf(RichInline.Mention("Priya Raman")), onFill) {}.spanStyles.single().item
+    fun mentionInMyTintedBubbleIsUnderlinedWithoutABlock() {
+        val inBubble = RichInlineColors(accent = Color.Magenta, mentionBackground = null)
+        val style = annotateInlines(listOf(RichInline.Mention("Priya Raman")), inBubble) {}.spanStyles.single().item
         assertEquals(FontWeight.ExtraBold, style.fontWeight)
-        assertEquals(Color.White, style.color)
-        assertEquals(Color.Unspecified, style.background, "a square block on the violet reads as a selection")
+        assertEquals(Color.Magenta, style.color)
+        assertEquals(Color.Unspecified, style.background, "a square block on the tint reads as a selection")
         assertEquals(TextDecoration.Underline, style.textDecoration)
     }
 

@@ -48,8 +48,9 @@ import kotlinx.serialization.json.JsonObject
 
 /**
  * Colours the inline builder needs; resolved from the theme by [RichText]. A null
- * [mentionBackground] sets mentions underlined instead of on a wash: on my violet bubble a
- * square dark block reads like a text selection, not a mention (UI10-14).
+ * [mentionBackground] sets mentions underlined instead of on a wash: in my tinted bubble a wash
+ * block barely shows on the tint and a square block reads like a text selection (UI10-14), so the
+ * mention is the bold violet with an underline, a cue that does not rest on colour alone.
  */
 @Immutable
 data class RichInlineColors(val accent: Color, val mentionBackground: Color?)
@@ -122,24 +123,24 @@ fun RichText(
     onLink: (String) -> Unit,
     modifier: Modifier = Modifier,
     color: Color = WaiveraTheme.colors.text,
-    onAccentFill: Boolean = false,
+    inMyBubble: Boolean = false,
 ) {
-    CompositionLocalProvider(LocalOnAccentFill provides onAccentFill) {
+    CompositionLocalProvider(LocalInMyBubble provides inMyBubble) {
         Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(WaiveraSpacing.ExtraSmall)) {
             document.blocks.forEach { RichBlockView(it, onLink, color) }
         }
     }
 }
 
-/** True inside my own violet bubble, where mentions are underlined rather than washed. */
-private val LocalOnAccentFill = staticCompositionLocalOf { false }
+/** True inside my own tinted bubble, where mentions are underlined rather than washed. */
+private val LocalInMyBubble = staticCompositionLocalOf { false }
 
 @Composable
 private fun RichBlockView(block: RichBlock, onLink: (String) -> Unit, color: Color) {
     val colors = WaiveraTheme.colors
     val inlineColors = RichInlineColors(
         accent = colors.accent,
-        mentionBackground = if (LocalOnAccentFill.current) null else colors.accentWash,
+        mentionBackground = if (LocalInMyBubble.current) null else colors.accentWash,
     )
     when (block) {
         is RichBlock.Paragraph -> InlineText(

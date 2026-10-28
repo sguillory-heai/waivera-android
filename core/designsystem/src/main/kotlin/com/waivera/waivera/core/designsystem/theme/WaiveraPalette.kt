@@ -211,6 +211,19 @@ internal object WaiveraPalette {
     val ChipNeutralLight = Color(0xFFECE7F2)
     val ChipNeutralDark = Color(0xFF2B2436)
 
+    /**
+     * My own message bubble (v5 decision 3, option B): a soft violet tint with the dark ink in
+     * light, a lifted plum in dark. One step deeper than the board's #E9DFFB / #3A2D52 so it
+     * separates from the page better (1.25 / 1.60:1 against it, was 1.15 / 1.52) while every ink
+     * on it keeps 4.5:1 (`WaiveraMyBubbleContrastTest`). Ownership reads from the right alignment
+     * and the tint.
+     */
+    val MyBubbleLight = Color(0xFFE2D5FA)
+    val MyBubbleDark = Color(0xFF3E3058)
+
+    /** Danger text inside my light bubble: #B91C1C fell to 4.2:1 under the arrival wash on the tint. */
+    val DangerTextOnMyBubbleLight = Color(0xFF991B1B)
+
     /** A snackbar in light: the hero's deep plum, so a passing note carries the brand. */
     val SnackbarLight = Color(0xFF2A1145)
 

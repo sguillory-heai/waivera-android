@@ -63,7 +63,7 @@ import com.waivera.waivera.core.designsystem.theme.WaiveraSpacing
 import com.waivera.waivera.core.designsystem.theme.WaiveraTextStyles
 import com.waivera.waivera.core.designsystem.theme.WaiveraTheme
 import com.waivera.waivera.core.designsystem.theme.isLargeFontScale
-import com.waivera.waivera.core.designsystem.theme.onAccentFill
+import com.waivera.waivera.core.designsystem.theme.onMyBubble
 import com.waivera.waivera.feature.chat.R
 import java.time.Instant
 import java.time.ZoneId
@@ -226,12 +226,13 @@ private fun Bubble(
     val message = row.message
     val hasBody = message.isDeleted || row.ticket != null || row.rich != null || !message.text.isNullOrBlank()
     val shape = ChatDimens.bubbleShape(row.isMine, row.groupedWithPrevious, row.groupedWithNext)
-    // v5: my own messages are the solid brand violet with white ink; everyone else's sit on the
-    // surface. A deleted message stays quiet whoever wrote it.
-    val solid = hasBody && row.isMine && !row.isBot && !message.isDeleted
+    // v5 decision 3, option B: my own messages are the soft violet tint (light) or the lifted plum
+    // (dark) with the theme's ink, and read as mine by the tint and the right alignment; everyone
+    // else's sit on the surface with a hairline. A deleted message stays quiet whoever wrote it.
+    val tinted = hasBody && row.isMine && !row.isBot && !message.isDeleted
     val (fill, border) = when {
         !hasBody -> Color.Transparent to Color.Transparent
-        solid -> colors.accentFill to Color.Transparent
+        tinted -> colors.myBubble to Color.Transparent
         row.isBot -> colors.surface to colors.accentBorder
         row.isMine -> colors.surface to colors.accentBorder
         else -> colors.surface to colors.border
@@ -253,7 +254,7 @@ private fun Bubble(
             modifier = Modifier
                 .background(color = fill, shape = shape)
                 .background(wash, shape)
-                .then(if (hasBody && !solid) Modifier.border(WaiveraSpacing.Hairline, border, shape) else Modifier)
+                .then(if (hasBody && !tinted) Modifier.border(WaiveraSpacing.Hairline, border, shape) else Modifier)
                 .defaultMinSize(minWidth = if (hasBody) ChatDimens.BubbleMinWidth else 0.dp)
                 .padding(
                     horizontal = if (hasBody) WaiveraSpacing.MediumSmall - WaiveraSpacing.Hairline else 0.dp,
@@ -262,22 +263,22 @@ private fun Bubble(
             horizontalAlignment = if (row.isMine) Alignment.End else Alignment.Start,
             verticalArrangement = Arrangement.spacedBy(WaiveraSpacing.ExtraSmall + WaiveraSpacing.XxSmall),
         ) {
-            OnBubbleColors(onFill = solid) { BubbleContent(row, callbacks) }
+            InMyBubbleColors(inMyBubble = tinted) { BubbleContent(row, callbacks) }
         }
     }
 }
 
-/** White inks and dark nested tints inside my violet bubble; the theme's own colours elsewhere. */
+/** The inks that keep 4.5:1 on my tinted bubble ([onMyBubble]); the theme's own colours elsewhere. */
 @Composable
-private fun OnBubbleColors(onFill: Boolean, content: @Composable () -> Unit) {
-    if (!onFill) {
+private fun InMyBubbleColors(inMyBubble: Boolean, content: @Composable () -> Unit) {
+    if (!inMyBubble) {
         content()
         return
     }
-    val onAccentFill = WaiveraTheme.colors.onAccentFill()
+    val onMyBubble = WaiveraTheme.colors.onMyBubble()
     CompositionLocalProvider(
-        LocalWaiveraColors provides onAccentFill,
-        LocalContentColor provides onAccentFill.text,
+        LocalWaiveraColors provides onMyBubble,
+        LocalContentColor provides onMyBubble.text,
         content = content,
     )
 }
@@ -326,7 +327,7 @@ private fun BubbleBody(row: TimelineItem.MessageRow, callbacks: MessageRowCallba
         row.rich != null -> RichText(
             document = row.rich,
             onLink = callbacks.onLink,
-            onAccentFill = row.isMine && !row.isBot,
+            inMyBubble = row.isMine && !row.isBot,
         )
         !message.text.isNullOrBlank() -> Text(
             text = message.text.orEmpty(),

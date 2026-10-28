@@ -37,11 +37,16 @@ data class WaiveraColors(
     /** Text links ("Forgot password?", "Show all"): the accent in light, a lighter lilac in dark. */
     val link: Color,
     /**
-     * Fill of primary buttons and other solid accent controls, my own message bubble and the
-     * selected calendar day; [onAccent] (white) sits on it. Controls are never a gradient (v5).
+     * Fill of primary buttons and other solid accent controls; [onAccent] (white) sits on it.
+     * Controls are never the brand gradient (v5).
      */
     val accentFill: Color,
     val onAccent: Color,
+    /**
+     * My own message bubble (v5 decision 3, option B): a soft violet tint in light, a lifted plum
+     * in dark, with the theme's [text] on it. Content nested in it takes [onMyBubble].
+     */
+    val myBubble: Color,
     /**
      * The filled buttons' construction (v5 decision 2, option C), on [accentFill] and
      * [dangerFill]: a [buttonSheen] that fades out down the top half, a 1dp [buttonEdge] along the
@@ -164,6 +169,7 @@ internal val LightWaiveraColors = WaiveraColors(
     link = WaiveraPalette.Violet,
     accentFill = WaiveraPalette.Violet,
     onAccent = WaiveraPalette.White,
+    myBubble = WaiveraPalette.MyBubbleLight,
     buttonSheen = WaiveraPalette.White.copy(alpha = WaiveraPalette.BUTTON_SHEEN_ALPHA_LIGHT),
     buttonEdge = WaiveraPalette.White.copy(alpha = WaiveraPalette.BUTTON_EDGE_ALPHA),
     buttonGlow = WaiveraPalette.Violet.copy(alpha = WaiveraPalette.BUTTON_GLOW_ALPHA),
@@ -241,6 +247,7 @@ internal val DarkWaiveraColors = WaiveraColors(
     link = WaiveraPalette.VioletDarkLink,
     accentFill = WaiveraPalette.VioletDarkFill,
     onAccent = WaiveraPalette.White,
+    myBubble = WaiveraPalette.MyBubbleDark,
     buttonSheen = WaiveraPalette.White.copy(alpha = WaiveraPalette.BUTTON_SHEEN_ALPHA_DARK),
     buttonEdge = WaiveraPalette.White.copy(alpha = WaiveraPalette.BUTTON_EDGE_ALPHA),
     buttonGlow = WaiveraPalette.VioletDarkFill.copy(alpha = WaiveraPalette.BUTTON_GLOW_ALPHA),
