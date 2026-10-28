@@ -29,9 +29,11 @@ import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.drawOutline
 import androidx.compose.ui.graphics.lerp
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.Dp
 import com.waivera.waivera.core.designsystem.R
 import com.waivera.waivera.core.designsystem.preview.WaiveraPreviews
@@ -85,6 +87,50 @@ fun SkeletonLine(modifier: Modifier = Modifier, widthFraction: Float = 1f, pulse
         shape = WaiveraShapes.Chip,
         pulse = pulse,
     )
+}
+
+/**
+ * The height one line of [style] takes on screen, at the current font scale. Skeleton rows are
+ * built from it so a loading row is as tall as the text row it stands in for, at 100% and 200%.
+ */
+@Composable
+fun skeletonLineHeight(style: TextStyle): Dp {
+    val density = LocalDensity.current
+    return with(density) {
+        when {
+            style.lineHeight.isSp -> style.lineHeight.toDp()
+            style.fontSize.isSp -> style.fontSize.toDp() * FALLBACK_LINE_HEIGHT_RATIO
+            else -> WaiveraSizes.SkeletonLine
+        }
+    }
+}
+
+/**
+ * A bone for one line of text in [style]: it takes the line's full height, so stacked bones keep
+ * the real text's rhythm, and draws a rounded bar through the middle of it.
+ */
+@Composable
+fun SkeletonText(
+    style: TextStyle,
+    modifier: Modifier = Modifier,
+    widthFraction: Float = 1f,
+    pulse: Float = rememberSkeletonPulse(),
+) {
+    val line = skeletonLineHeight(style)
+    Box(
+        modifier = modifier
+            .fillMaxWidth(widthFraction)
+            .height(line),
+        contentAlignment = Alignment.CenterStart,
+    ) {
+        SkeletonBlock(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(line * TEXT_BONE_RATIO),
+            shape = WaiveraShapes.Chip,
+            pulse = pulse,
+        )
+    }
 }
 
 /** An avatar's bone, in the one avatar shape, so loading rows match what lands. */
@@ -156,6 +202,12 @@ private const val SKELETON_PULSE_MILLIS = 650
 private const val HEADLINE_FRACTION = 0.6f
 private const val SUPPORTING_FRACTION = 0.85f
 private const val DEFAULT_ROWS = 6
+
+/** The bar fills this much of its line, like a run of lowercase and capital letters. */
+private const val TEXT_BONE_RATIO = 0.6f
+
+/** Line height for a style that only sets its font size: the platform default leading. */
+private const val FALLBACK_LINE_HEIGHT_RATIO = 1.2f
 const val SKELETON_DELAY_MILLIS = 300L
 const val SKELETON_MIN_VISIBLE_MILLIS = 300L
 

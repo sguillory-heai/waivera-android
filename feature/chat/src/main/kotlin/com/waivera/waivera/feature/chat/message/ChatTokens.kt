@@ -37,7 +37,6 @@ internal object ChatDimens {
     val ReadOnlyTile: Dp = 34.dp
     val LiveDot: Dp = 7.dp
     val CallBannerMinHeight: Dp = 48.dp
-    val SkeletonBubbleHeight: Dp = 54.dp
 
     /** The strip under the timeline that holds "Jump to latest": the 48dp pill and a margin on each side. */
     val JumpPillStrip: Dp = WaiveraSpacing.MinTouchTarget + WaiveraSpacing.Small * 2
@@ -61,6 +60,9 @@ internal object ChatDimens {
     const val MAX_ZOOM = 5f
     const val DOUBLE_TAP_ZOOM = 2.5f
     const val SKELETON_FRACTIONS_COUNT = 5
+
+    /** Enough message bones to fill a tall window at 100% font; the oldest is clipped at the top. */
+    const val SKELETON_FILL_ROWS = 12
     val SkeletonWidths: List<Float> = listOf(0.66f, 0.51f, 0.78f, 0.62f, 0.47f)
 
     /** Bubble corners tighten on the author's side when a neighbour is grouped with it. */

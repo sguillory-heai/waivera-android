@@ -6,7 +6,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
@@ -31,14 +30,12 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.LiveRegionMode
-import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.style.TextOverflow
 import com.waivera.waivera.core.designsystem.component.BannerTone
-import com.waivera.waivera.core.designsystem.component.SkeletonBlock
 import com.waivera.waivera.core.designsystem.component.WaiveraBanner
 import com.waivera.waivera.core.designsystem.component.WaiveraBusyIndicator
 import com.waivera.waivera.core.designsystem.component.WaiveraButton
@@ -46,7 +43,6 @@ import com.waivera.waivera.core.designsystem.component.WaiveraButtonVariant
 import com.waivera.waivera.core.designsystem.component.WaiveraDivider
 import com.waivera.waivera.core.designsystem.component.WaiveraIconButton
 import com.waivera.waivera.core.designsystem.component.WaiveraPressable
-import com.waivera.waivera.core.designsystem.component.rememberSkeletonPulse
 import com.waivera.waivera.core.designsystem.component.rememberSkeletonVisible
 import com.waivera.waivera.core.designsystem.icon.WaiveraIcons
 import com.waivera.waivera.core.designsystem.preview.WaiveraPreviews
@@ -440,34 +436,6 @@ private fun CallJoinButton(onJoin: () -> Unit, modifier: Modifier = Modifier) {
 
 private const val CALL_BANNER_STACK_FONT_SCALE = 1.3f
 
-/** Five bubble bones, alternating sides, sharing one pulse; announced once as loading (03 §21). */
-@Composable
-fun MessageListSkeleton(modifier: Modifier = Modifier, rows: Int = ChatDimens.SKELETON_FRACTIONS_COUNT) {
-    val pulse = rememberSkeletonPulse()
-    val loading = stringResource(R.string.feature_chat_messages_loading)
-    Column(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(horizontal = WaiveraSpacing.Gutter, vertical = WaiveraSpacing.Small)
-            .clearAndSetSemantics { contentDescription = loading },
-        verticalArrangement = Arrangement.spacedBy(WaiveraSpacing.Small, Alignment.Bottom),
-    ) {
-        repeat(rows) { index ->
-            val mine = index % 2 == 1
-            val fraction = ChatDimens.SkeletonWidths[index % ChatDimens.SkeletonWidths.size]
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = if (mine) Arrangement.End else Arrangement.Start) {
-                SkeletonBlock(
-                    modifier = Modifier
-                        .fillMaxWidth(fraction)
-                        .heightIn(min = ChatDimens.SkeletonBubbleHeight),
-                    shape = if (mine) ChatDimens.SkeletonMineShape else ChatDimens.SkeletonOtherShape,
-                    pulse = pulse,
-                )
-            }
-        }
-    }
-}
-
 /**
  * Floats over the timeline, so it is lifted off the bubbles with a shadow and a strong border:
  * in dark mode a flat surface pill had almost the same value as an incoming bubble (UI3-03).
@@ -518,10 +486,8 @@ fun DelayedListSkeleton(label: String, modifier: Modifier = Modifier, delayMilli
     }
     if (visible) {
         MessageListSkeleton(
-            modifier = modifier
-                .fillMaxSize()
-                .semantics { contentDescription = label }
-                .padding(vertical = WaiveraSpacing.Medium),
+            modifier = modifier.semantics { contentDescription = label },
+            fillHeight = true,
         )
     }
 }

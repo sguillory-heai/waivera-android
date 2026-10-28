@@ -44,10 +44,11 @@ enum class MilestoneKind { Birthday, WorkAnniversary, NewHire, Multiple }
 
 /**
  * Avatar with an initials fallback (person icon when there are no initials). Every avatar is the
- * same soft rounded square ([WaiveraShapes.avatar]) with no border, ring or outline: the owner's rule. The fallback's [WaiveraColors.avatarFill] alone sets
- * it apart from every surface and the brand wash. There is no online or presence marker: the
- * product does not track presence. A milestone is announced in the content description; its
- * visible marker is the caller's one badge or emoji tile.
+ * same soft rounded square ([WaiveraShapes.avatar]) with no border, ring or outline: the owner's
+ * rule. The fallback's [WaiveraColors.avatarFill] alone sets it apart from every surface and the
+ * brand wash. There is no online or presence marker: the product does not track presence. A
+ * milestone is announced in the content description; its visible marker is the caller's one
+ * badge or emoji tile.
  *
  * @param painter an already loaded image; wins over [imageModel].
  * @param imageModel a Coil model (for example `AvatarModel(userId)` from core:data) loaded through
