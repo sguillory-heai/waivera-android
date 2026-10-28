@@ -130,7 +130,8 @@ class ScheduleScreenshotTest {
 
     /**
      * Another day picked in a week whose events carry owner colours: today is the bold violet
-     * number, the picked day the solid violet circle, and each day's dots take their owners' colours.
+     * number with its dash, the picked day the lilac square with its bold violet number, and each
+     * day's dots take their owners' colours.
      */
     @Test
     fun weekWithOwnerColours() {
@@ -147,7 +148,7 @@ class ScheduleScreenshotTest {
         )
     }
 
-    /** The month with another day picked, so today's bold number and the picked circle show side by side. */
+    /** The month with another day picked, so today's number and dash and the picked square show side by side. */
     @Test
     fun monthOtherDay() = capture("schedule_month_other_day", state(date = today.plusDays(4)))
 

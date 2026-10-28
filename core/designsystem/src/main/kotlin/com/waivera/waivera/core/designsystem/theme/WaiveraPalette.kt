@@ -224,6 +224,15 @@ internal object WaiveraPalette {
     /** Danger text inside my light bubble: #B91C1C fell to 4.2:1 under the arrival wash on the tint. */
     val DangerTextOnMyBubbleLight = Color(0xFF991B1B)
 
+    /**
+     * The calendar's selected day (v5 decision 4, option C): a soft lilac rounded square. The tint
+     * alone is 1.6 / 1.7:1 against the card, under the 3:1 for UI, so the selected number is also
+     * bold violet ([TonalInkLight] 6.8:1 / [VioletDarkLink] 5.3:1 on it): the state never rests on
+     * the fill alone.
+     */
+    val DayTintLight = Color(0xFFD6C6F6)
+    val DayTintDark = Color(0xFF46356E)
+
     /** A snackbar in light: the hero's deep plum, so a passing note carries the brand. */
     val SnackbarLight = Color(0xFF2A1145)
 

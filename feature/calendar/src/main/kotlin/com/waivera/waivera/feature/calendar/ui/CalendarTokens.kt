@@ -19,9 +19,15 @@ internal object CalendarSizes {
     /** Celebration diamond; a little larger than [Dot] so both read as the same visual weight. */
     val MilestoneDot: Dp = 6.dp
 
-    /** The selected day's solid circle in the month grid (v5: 38) and in the taller week strip (40). */
-    val DayCircle: Dp = 38.dp
-    val DayCircleLarge: Dp = 40.dp
+    /** The selected day's tinted rounded square in the month grid (v5: 38) and in the taller week strip (40). */
+    val DaySquare: Dp = 38.dp
+    val DaySquareLarge: Dp = 40.dp
+    val DaySquareCorner: Dp = 12.dp
+
+    /** The short dash under today's number (v5 decision 4, option C): 14 × 3, 4 above the square's foot. */
+    val TodayDashWidth: Dp = 14.dp
+    val TodayDashHeight: Dp = 3.dp
+    val TodayDashInset: Dp = 4.dp
 
     /** Owner-colour bar on the leading edge of an event card. */
     val EventAccentBar: Dp = 4.dp

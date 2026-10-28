@@ -23,8 +23,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
@@ -55,10 +58,12 @@ private const val DAYS_PER_WEEK = 7
  * least 48dp tall whose label says the date, whether it is today, and how many events and
  * celebrations it has, so the dots are never the only signal.
  *
- * v5 decision 4: the selected day is a solid 40dp violet circle with a white number, the one bold
- * mark on the grid; today is a bold violet number (and weekday, in the week strip) with no disc,
- * and today when selected is the circle. The weekday never sits inside the selection. Event dots
- * take their owners' colours (accent when none), so a busy week reads at a glance.
+ * v5 decision 4, option C (owner pick): the selected day is a soft lilac rounded square with its
+ * number in bold violet, so the selection reads by the ink and the weight as well as the tint
+ * (the tint alone is under 3:1 on the card). Today is a bold violet number (and weekday, in the
+ * week strip) with a short violet dash under it; today when selected keeps the dash on the tint.
+ * The weekday never sits inside the selection. Event dots take their owners' colours (accent when
+ * none), so a busy week reads at a glance.
  */
 @Composable
 internal fun ScheduleGrid(
@@ -115,13 +120,13 @@ internal fun ScheduleGrid(
 private fun DayCell(cell: GridCell, showWeekday: Boolean, onClick: () -> Unit, modifier: Modifier = Modifier) {
     val colors = WaiveraTheme.colors
     val locale = currentLocale()
-    val circle by animateFloatAsState(
+    val tint by animateFloatAsState(
         targetValue = if (cell.isSelected) 1f else 0f,
         animationSpec = WaiveraTheme.motion.state(),
-        label = "dayCircle",
+        label = "dayTint",
     )
     val numberColor = when {
-        cell.isSelected -> colors.onAccent
+        cell.isSelected -> colors.onDayTint
         cell.isToday -> colors.link
         // The other month's dates recede, so this month's read as the grid (UI10-16).
         !cell.inPeriod -> colors.textTertiary
@@ -159,20 +164,27 @@ private fun DayCell(cell: GridCell, showWeekday: Boolean, onClick: () -> Unit, m
                     softWrap = false,
                 )
             }
-            val disc = if (showWeekday) CalendarSizes.DayCircleLarge else CalendarSizes.DayCircle
+            val square = if (showWeekday) CalendarSizes.DaySquareLarge else CalendarSizes.DaySquare
             val type = MaterialTheme.typography
             val numberStyle = if (showWeekday) type.titleLarge else type.titleSmall
-            val fill = colors.accentFill
+            val fill = colors.dayTint
+            val mark = colors.todayMark
+            val today = cell.isToday
             Box(
                 modifier = Modifier
-                    .defaultMinSize(minWidth = disc, minHeight = disc)
-                    // v5: the selected day is a solid violet circle with a white number. It fades in
-                    // on the state token and snaps under reduced motion. At large font a wide number
-                    // stretches it into a stadium rather than clipping.
+                    .defaultMinSize(minWidth = square, minHeight = square)
+                    // The selected day's tint fades in on the state token and snaps under reduced
+                    // motion; at large font a wide number stretches the square rather than clipping.
+                    // Today's dash sits on the card, or on the tint when today is also selected.
                     .drawBehind {
-                        if (circle > 0f) {
-                            drawRoundRect(color = fill, alpha = circle, cornerRadius = CornerRadius(size.height / 2f))
+                        if (tint > 0f) {
+                            drawRoundRect(
+                                color = fill,
+                                alpha = tint,
+                                cornerRadius = CornerRadius(CalendarSizes.DaySquareCorner.toPx()),
+                            )
                         }
+                        if (today) drawTodayDash(mark)
                     }
                     .padding(horizontal = WaiveraSpacing.ExtraSmall),
                 contentAlignment = Alignment.Center,
@@ -200,9 +212,22 @@ private fun DayCell(cell: GridCell, showWeekday: Boolean, onClick: () -> Unit, m
     }
 }
 
+/** The short dash centred under today's number, [CalendarSizes.TodayDashInset] above the square's foot. */
+private fun DrawScope.drawTodayDash(color: Color) {
+    val width = CalendarSizes.TodayDashWidth.toPx()
+    val height = CalendarSizes.TodayDashHeight.toPx()
+    val top = size.height - CalendarSizes.TodayDashInset.toPx() - height
+    drawRoundRect(
+        color = color,
+        topLeft = Offset((size.width - width) / 2f, top),
+        size = Size(width, height),
+        cornerRadius = CornerRadius(height / 2f),
+    )
+}
+
 /**
  * One circle per event colour on the day (accent for an event without one). The dots sit under
- * the selection circle, on the card, so they keep their owners' colours on the selected day too.
+ * the selected square, on the card, so they keep their owners' colours on the selected day too.
  */
 @Composable
 private fun EventDots(marker: DayMarker) {

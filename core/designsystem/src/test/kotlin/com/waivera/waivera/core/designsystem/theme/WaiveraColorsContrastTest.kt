@@ -192,6 +192,22 @@ class WaiveraColorsContrastTest {
     }
 
     /**
+     * The calendar's selected day (v5 decision 4, option C). The lilac tint alone is under 3:1 on
+     * the card (the owner's pick, documented), so the selected number is bold violet at 4.5:1 on the
+     * tint and the tint is still a visible step off the card. Today's dash keeps 3:1 on the card
+     * and on the tint, so today plus selected still shows it.
+     */
+    @Test
+    fun selectedDay_isCarriedByItsNumberAndTodayByItsDash() = forEachTheme { colors ->
+        text("onDayTint on dayTint (selected number)", colors.onDayTint, colors.dayTint)
+        ui("todayMark on dayTint (today and selected)", colors.todayMark, colors.dayTint)
+        for ((name, card) in listOf("background" to colors.background, "surface" to colors.surface)) {
+            check("dayTint on $name", colors.dayTint, card, SELECTED_FILL_MIN)
+            ui("todayMark on $name (today's dash)", colors.todayMark, card)
+        }
+    }
+
+    /**
      * Avatars carry no border or ring, so a fallback avatar's fill alone sets it apart from every
      * page surface and every point of the brand wash (UI8-05), and its initials stay readable.
      */

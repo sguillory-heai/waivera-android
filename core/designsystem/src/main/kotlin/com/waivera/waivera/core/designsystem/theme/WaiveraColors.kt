@@ -118,6 +118,15 @@ data class WaiveraColors(
      */
     val selectedFill: Color,
     val onSelectedFill: Color,
+    /**
+     * The calendar's selected day (v5 decision 4, option C): [dayTint], a soft lilac rounded
+     * square, with the number in [onDayTint], bold violet, so the selection is carried by the ink
+     * and the weight as well as the fill. [todayMark] is the short dash under today's number, at
+     * least 3:1 on the card and on the tint, so today plus selected keeps it.
+     */
+    val dayTint: Color,
+    val onDayTint: Color,
+    val todayMark: Color,
     /** The tab's unread count; white sits on it. */
     val navBadge: Color,
     /** A snackbar's plum fill, its text and its action. */
@@ -213,6 +222,9 @@ internal val LightWaiveraColors = WaiveraColors(
     navBarBorder = WaiveraPalette.BorderLight,
     selectedFill = WaiveraPalette.SelectedFillLight,
     onSelectedFill = WaiveraPalette.TonalInkLight,
+    dayTint = WaiveraPalette.DayTintLight,
+    onDayTint = WaiveraPalette.TonalInkLight,
+    todayMark = WaiveraPalette.Violet,
     navBadge = WaiveraPalette.AttentionLight,
     snackbar = WaiveraPalette.SnackbarLight,
     onSnackbar = WaiveraPalette.White,
@@ -291,6 +303,10 @@ internal val DarkWaiveraColors = WaiveraColors(
     navBarBorder = WaiveraPalette.BorderDark,
     selectedFill = WaiveraPalette.SelectedFillDark,
     onSelectedFill = WaiveraPalette.OnAccentSoftDark,
+    dayTint = WaiveraPalette.DayTintDark,
+    onDayTint = WaiveraPalette.VioletDarkLink,
+    // The board's #8048E6 dash fell to 2.0:1 on the dark tint; the link lilac keeps 5.3:1 there.
+    todayMark = WaiveraPalette.VioletDarkLink,
     navBadge = WaiveraPalette.AttentionDark,
     snackbar = WaiveraPalette.SnackbarDark,
     onSnackbar = WaiveraPalette.White,
