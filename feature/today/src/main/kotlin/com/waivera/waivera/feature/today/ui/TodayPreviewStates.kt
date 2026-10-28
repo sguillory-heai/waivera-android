@@ -5,6 +5,8 @@ import com.waivera.waivera.feature.today.model.ActivityRow
 import com.waivera.waivera.feature.today.model.ActivitySection
 import com.waivera.waivera.feature.today.model.ActivitySummary
 import com.waivera.waivera.feature.today.model.CelebrationItem
+import com.waivera.waivera.feature.today.model.DayPart
+import com.waivera.waivera.feature.today.model.Greeting
 import com.waivera.waivera.feature.today.model.MessageSnippet
 import com.waivera.waivera.feature.today.model.NeedsYouItem
 import com.waivera.waivera.feature.today.model.NeedsYouSection
@@ -23,6 +25,7 @@ internal object TodayPreviewStates {
 
     fun populated() = TodayUiState(
         accountName = "Alex Rivera",
+        greeting = Greeting(DayPart.MORNING, firstName = "Alex"),
         date = LocalDate.of(2026, 11, 1),
         isInitialLoad = false,
         needsYou = needsYou(),

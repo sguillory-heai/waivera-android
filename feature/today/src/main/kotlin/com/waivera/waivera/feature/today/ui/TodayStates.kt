@@ -2,6 +2,7 @@ package com.waivera.waivera.feature.today.ui
 
 import androidx.compose.animation.core.Animatable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -28,7 +29,9 @@ import com.waivera.waivera.core.designsystem.component.SkeletonLine
 import com.waivera.waivera.core.designsystem.component.SkeletonListRow
 import com.waivera.waivera.core.designsystem.component.WaiveraButton
 import com.waivera.waivera.core.designsystem.component.WaiveraButtonVariant
+import com.waivera.waivera.core.designsystem.component.WaiveraCelebrationBurst
 import com.waivera.waivera.core.designsystem.component.WaiveraEmptyState
+import com.waivera.waivera.core.designsystem.component.WaiveraIllustration
 import com.waivera.waivera.core.designsystem.component.rememberSkeletonPulse
 import com.waivera.waivera.core.designsystem.icon.WaiveraIcons
 import com.waivera.waivera.core.designsystem.preview.WaiveraPreviews
@@ -36,14 +39,16 @@ import com.waivera.waivera.core.designsystem.theme.WaiveraSizes
 import com.waivera.waivera.core.designsystem.theme.WaiveraSpacing
 import com.waivera.waivera.core.designsystem.theme.WaiveraTheme
 import com.waivera.waivera.feature.today.R
+import java.time.LocalDate
 import kotlinx.coroutines.launch
 
 /**
- * "You're all caught up": the one place the celebrate motion token is used. It settles in with
- * a soft spring once; with animations off it simply appears.
+ * "You're all caught up 🎉": the small reward. The art settles in on the celebrate spring and
+ * confetti bursts once over it (once per day, not on every scroll back); with animations off it
+ * simply appears, with no confetti.
  */
 @Composable
-internal fun AllCaughtUp(modifier: Modifier = Modifier) {
+internal fun AllCaughtUp(day: LocalDate?, modifier: Modifier = Modifier) {
     val motion = WaiveraTheme.motion
     val scale = remember { Animatable(if (motion.reduced) 1f else CELEBRATE_START_SCALE) }
     val alpha = remember { Animatable(if (motion.reduced) 1f else 0f) }
@@ -51,16 +56,22 @@ internal fun AllCaughtUp(modifier: Modifier = Modifier) {
         launch { scale.animateTo(1f, motion.celebrate()) }
         alpha.animateTo(1f, motion.state())
     }
-    WaiveraEmptyState(
-        title = stringResource(R.string.feature_today_all_caught_up_title),
-        message = stringResource(R.string.feature_today_all_caught_up_message),
-        icon = R.drawable.feature_today_ic_celebration,
-        modifier = modifier.graphicsLayer {
-            scaleX = scale.value
-            scaleY = scale.value
-            this.alpha = alpha.value
-        },
-    )
+    Box(modifier = modifier) {
+        WaiveraEmptyState(
+            title = stringResource(
+                R.string.feature_today_brand_caught_up_title,
+                stringResource(R.string.feature_today_all_caught_up_title),
+            ),
+            message = stringResource(R.string.feature_today_all_caught_up_message),
+            illustration = WaiveraIllustration.CaughtUp,
+            modifier = Modifier.graphicsLayer {
+                scaleX = scale.value
+                scaleY = scale.value
+                this.alpha = alpha.value
+            },
+        )
+        WaiveraCelebrationBurst(trigger = day ?: Unit, modifier = Modifier.matchParentSize())
+    }
 }
 
 /**
@@ -159,7 +170,7 @@ private const val SKELETON_HEADER_FRACTION = 0.3f
 private fun TodayStatesPreview() {
     WaiveraTheme {
         Column(Modifier.heightIn(min = WaiveraSizes.AvatarHero)) {
-            AllCaughtUp()
+            AllCaughtUp(day = null)
             SectionError(message = "Your schedule couldn't load.", onRetry = {})
             TodaySkeleton()
         }

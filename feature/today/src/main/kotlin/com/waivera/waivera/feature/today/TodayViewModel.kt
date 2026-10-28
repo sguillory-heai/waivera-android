@@ -17,6 +17,7 @@ import com.waivera.waivera.core.data.repository.SessionRepository
 import com.waivera.waivera.core.network.di.ApplicationScope
 import com.waivera.waivera.core.network.error.WaiveraError
 import com.waivera.waivera.feature.today.model.ActivityFilter
+import com.waivera.waivera.feature.today.model.GreetingRules
 import com.waivera.waivera.feature.today.model.TodayAssembler
 import com.waivera.waivera.feature.today.model.TodayContext
 import com.waivera.waivera.feature.today.model.TodayLocalState
@@ -27,6 +28,7 @@ import java.time.Duration
 import javax.inject.Inject
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.channels.Channel
@@ -67,6 +69,7 @@ class TodayViewModel @Inject constructor(
     private val pager = ActivityPager(viewModelScope, activity, local)
     private val effectChannel = Channel<TodayEffect>(Channel.BUFFERED)
     private val invitations = InvitationAnswers(viewModelScope, appScope, calendar, local, effectChannel)
+    private var wishesJob: Job? = null
 
     /** Snackbar and haptic moments, delivered once. */
     val effects: Flow<TodayEffect> = effectChannel.receiveAsFlow()
@@ -92,7 +95,16 @@ class TodayViewModel @Inject constructor(
             conversations.observeFailedSends(),
         ) { chats, feed, events, milestones, failed -> TodaySources(chats, feed, events, milestones, failed) },
         combine(session.state, zone, ticks, realtimeStatus.status, local) { s, z, now, realtime, l ->
-            TodayContext(accountName(s), s.currentUserId, z, now, realtime, l, titles)
+            TodayContext(
+                accountName = accountName(s),
+                myUserId = s.currentUserId,
+                zone = z,
+                now = now,
+                realtime = realtime,
+                local = l,
+                titles = titles,
+                firstName = s.currentUser?.let { GreetingRules.firstName(it.firstName, it.displayName) },
+            )
         },
     ) { sources, context -> TodayAssembler.assemble(sources, context) }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS), TodayUiState())
@@ -116,10 +128,35 @@ class TodayViewModel @Inject constructor(
             TodayAction.ShowAllActivity -> local.update { it.copy(filter = ActivityFilter.ALL, unreadOnly = false) }
             TodayAction.LoadMoreActivity -> pager.loadMore()
             TodayAction.ToggleNeedsYouExpanded -> local.update { it.copy(needsYouExpanded = !it.needsYouExpanded) }
+            is TodayAction.RespondToInvitation,
+            is TodayAction.RetryInvitation,
+            is TodayAction.UndoInvitation,
+            is TodayAction.InvitationUndoClosed,
+            -> onInvitationAction(action)
+            is TodayAction.SendWishes -> sendWishes(action.userId)
+        }
+    }
+
+    private fun onInvitationAction(action: TodayAction) {
+        when (action) {
             is TodayAction.RespondToInvitation -> invitations.respond(action.eventId, action.accept)
             is TodayAction.RetryInvitation -> invitations.retry(action.eventId, action.accept)
             is TodayAction.UndoInvitation -> invitations.undo(action.eventId, action.token)
             is TodayAction.InvitationUndoClosed -> invitations.sendNow(action.eventId, action.token)
+            else -> Unit
+        }
+    }
+
+    /**
+     * Opens (or starts) the direct conversation with someone celebrating today. A second tap
+     * while the first is still opening is ignored, so one tap never opens two chats.
+     */
+    private fun sendWishes(userId: String) {
+        if (wishesJob?.isActive == true) return
+        wishesJob = viewModelScope.launch {
+            conversations.openConversation(listOf(userId))
+                .onSuccess { effectChannel.send(TodayEffect.OpenConversation(it)) }
+                .onFailure { effectChannel.send(TodayEffect.WishesFailed(userId)) }
         }
     }
 

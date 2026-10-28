@@ -54,6 +54,8 @@ data class TodayContext(
     val local: TodayLocalState,
     /** The shared conversation-title copy, so a Today row names a chat the way the inbox does. */
     val titles: ConversationTitleText,
+    /** Who the greeting names; null greets without a name. */
+    val firstName: String? = null,
 )
 
 /** Builds [TodayUiState] from the cache. Pure, so every rule is unit tested without Android. */
@@ -73,6 +75,7 @@ object TodayAssembler {
         val firstError = primary.firstNotNullOfOrNull { it?.error }
         return TodayUiState(
             accountName = context.accountName,
+            greeting = GreetingRules.greeting(context.now, context.zone, context.firstName),
             date = today,
             isInitialLoad = nothingCached && stillLoading,
             loadError = if (nothingCached && !stillLoading) firstError else null,
@@ -82,7 +85,8 @@ object TodayAssembler {
             isRefreshing = context.local.isRefreshing,
             needsYou = needsYou,
             nextUp = nextUp,
-            milestones = ScheduleRules.celebrations(sources.milestones.data, today),
+            milestones = ScheduleRules.celebrations(sources.milestones.data, today)
+                .map { it.copy(isMe = it.userId == context.myUserId) },
             milestonesFailed = sources.milestones.error != null && sources.milestones.data.isEmpty(),
             activity = activity,
         )

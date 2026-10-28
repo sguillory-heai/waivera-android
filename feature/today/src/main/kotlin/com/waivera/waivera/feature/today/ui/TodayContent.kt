@@ -12,6 +12,7 @@ import androidx.compose.foundation.lazy.LazyItemScope
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -157,6 +158,9 @@ private fun TodayList(state: TodayUiState, callbacks: TodayCallbacks, listState:
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(bottom = WaiveraSpacing.ExtraLarge),
     ) {
+        state.greeting?.let { greeting ->
+            item(key = "greeting", contentType = "greeting") { TodayGreeting(greeting) }
+        }
         if (staleLine != null) item(key = "stale", contentType = "quiet") { QuietLine(staleLine) }
         needsYouItems(state, callbacks)
         nextUpItems(state, callbacks)
@@ -169,7 +173,7 @@ private fun LazyListScope.needsYouItems(state: TodayUiState, callbacks: TodayCal
     val section = state.needsYou
     when {
         state.isAllCaughtUp -> item(key = "caught-up", contentType = "caught-up") {
-            AllCaughtUp(Modifier.animateTodayItem(this, WaiveraTheme.motion))
+            AllCaughtUp(day = state.date, modifier = Modifier.animateTodayItem(this, WaiveraTheme.motion))
         }
         section.failed -> {
             header("needs-header", R.string.feature_today_section_needs_you)
@@ -261,10 +265,16 @@ private fun LazyListScope.celebrationItems(state: TodayUiState, callbacks: Today
             )
         }
     }
-    items(state.milestones, key = { "celebration-${it.userId}" }, contentType = { "celebration" }) { item ->
-        CelebrationRow(
+    itemsIndexed(
+        items = state.milestones,
+        key = { _, item -> "celebration-${item.userId}" },
+        contentType = { _, _ -> "celebration" },
+    ) { index, item ->
+        CelebrationCard(
             item = item,
-            onClick = callbacks.onOpenSchedule,
+            onOpen = callbacks.onOpenSchedule,
+            onSendWishes = { callbacks.onAction(TodayAction.SendWishes(item.userId)) },
+            burstSeed = index,
             modifier = Modifier.animateTodayItem(this, WaiveraTheme.motion),
         )
     }

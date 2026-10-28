@@ -34,6 +34,9 @@ sealed interface TodayAction {
 
     /** The answer's snackbar went away without Undo, so the answer can go out now. */
     data class InvitationUndoClosed(val eventId: String, val token: Long) : TodayAction
+
+    /** "Send wishes" on a celebration: opens the direct conversation with [userId]. */
+    data class SendWishes(val userId: String) : TodayAction
 }
 
 /** One-off results the screen turns into a snackbar and a haptic. */
@@ -53,4 +56,10 @@ sealed interface TodayEffect {
 
     /** The invitation is back in Needs you; Retry sends the same answer again. */
     data class InvitationFailed(val eventId: String, val accept: Boolean) : TodayEffect
+
+    /** The direct conversation for "Send wishes" is ready: open it. */
+    data class OpenConversation(val conversationId: Long) : TodayEffect
+
+    /** The conversation couldn't be opened; Retry tries "Send wishes" again. */
+    data class WishesFailed(val userId: String) : TodayEffect
 }

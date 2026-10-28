@@ -40,12 +40,18 @@ class TestNowSource(now: Instant = TEST_NOW) : NowSource {
     override val ticks: Flow<Instant> = clock
 }
 
+const val OPENED_CONVERSATION = 4242L
+
 class FakeConversationRepository(initial: Synced<List<Conversation>> = Synced(emptyList(), lastSyncedAt = TEST_NOW)) :
     ConversationRepository {
     val state = MutableStateFlow(initial)
     var refreshResult: Result<Unit> = Result.success(Unit)
     var refreshes = 0
         private set
+
+    /** What "Send wishes" gets back, and who it asked for. */
+    var openResult: Result<Long> = Result.success(OPENED_CONVERSATION)
+    val opened = mutableListOf<List<String>>()
 
     override fun observeConversations(): Flow<Synced<List<Conversation>>> = state
 
@@ -61,7 +67,10 @@ class FakeConversationRepository(initial: Synced<List<Conversation>> = Synced(em
 
     override suspend fun refreshConversation(conversationId: Long): Result<Conversation> = unused()
 
-    override suspend fun openConversation(participantIds: List<String>): Result<Long> = unused()
+    override suspend fun openConversation(participantIds: List<String>): Result<Long> {
+        opened += participantIds
+        return openResult
+    }
 
     override suspend fun conversationForEvent(calendarEventId: String): Result<Long> = unused()
 

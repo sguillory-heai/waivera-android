@@ -39,9 +39,9 @@ fun TodayScreen(
     val viewModel: TodayViewModel = hiltViewModel()
     val state by viewModel.state.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
-    TodayEffects(viewModel, snackbarHostState)
     val openMessage by rememberUpdatedState(onOpenMessage)
     val openConversation by rememberUpdatedState(onOpenConversation)
+    TodayEffects(viewModel, snackbarHostState, onOpenConversation = { id -> openConversation(id) })
     val callbacks = remember(viewModel, onAccountClick, onOpenSchedule, onOpenEvent) {
         TodayCallbacks(
             onAction = viewModel::onAction,
@@ -59,7 +59,11 @@ fun TodayScreen(
 
 /** Turns one-off results into a snackbar (with Retry where it helps) and the matching haptic. */
 @Composable
-private fun TodayEffects(viewModel: TodayViewModel, snackbarHostState: SnackbarHostState) {
+private fun TodayEffects(
+    viewModel: TodayViewModel,
+    snackbarHostState: SnackbarHostState,
+    onOpenConversation: (Long) -> Unit,
+) {
     val haptics = rememberHaptics()
     val messages = TodayMessages(
         refreshFailed = stringResource(R.string.feature_today_refresh_failed),
@@ -70,11 +74,17 @@ private fun TodayEffects(viewModel: TodayViewModel, snackbarHostState: SnackbarH
         invitationFailed = stringResource(R.string.feature_today_invitation_failed),
         retry = stringResource(R.string.feature_today_retry),
         undo = stringResource(R.string.feature_today_undo),
+        wishesFailed = stringResource(R.string.feature_today_brand_wishes_failed),
     )
     val currentMessages by rememberUpdatedState(messages)
+    val openConversation by rememberUpdatedState(onOpenConversation)
     LaunchedEffect(viewModel, snackbarHostState) {
         viewModel.effects.collect { effect ->
-            handleEffect(effect, currentMessages, haptics, snackbarHostState, viewModel::onAction)
+            if (effect is TodayEffect.OpenConversation) {
+                openConversation(effect.conversationId)
+            } else {
+                handleEffect(effect, currentMessages, haptics, snackbarHostState, viewModel::onAction)
+            }
         }
     }
 }
@@ -88,6 +98,7 @@ private data class TodayMessages(
     val invitationFailed: String,
     val retry: String,
     val undo: String,
+    val wishesFailed: String,
 )
 
 private suspend fun handleEffect(
@@ -133,6 +144,14 @@ private suspend fun handleEffect(
                 onAction(TodayAction.RetryInvitation(effect.eventId, effect.accept))
             }
         }
+        is TodayEffect.WishesFailed -> {
+            haptics.error()
+            snackbar.showRetry(messages.wishesFailed, messages.retry) {
+                onAction(TodayAction.SendWishes(effect.userId))
+            }
+        }
+        // Navigation, handled by the collector before it gets here.
+        is TodayEffect.OpenConversation -> Unit
     }
 }
 

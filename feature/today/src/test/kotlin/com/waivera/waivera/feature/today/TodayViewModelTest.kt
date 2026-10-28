@@ -19,6 +19,7 @@ import com.waivera.waivera.core.testing.EnglishConversationTitles
 import com.waivera.waivera.core.testing.MainDispatcherRule
 import com.waivera.waivera.core.testing.TestSessionRepository
 import com.waivera.waivera.feature.today.model.ActivityFilter
+import com.waivera.waivera.feature.today.model.DayPart
 import com.waivera.waivera.feature.today.model.TodayUiState
 import com.waivera.waivera.feature.today.model.UpcomingLabel
 import java.time.Instant
@@ -77,6 +78,33 @@ class TodayViewModelTest {
     }
 
     private val TodayViewModel.ui: TodayUiState get() = state.value
+
+    @Test
+    fun greeting_usesTheFirstWordOfTheDisplayNameInTheEmployeesZone() = runTest(main.testDispatcher) {
+        val (viewModel, _) = start()
+        val greeting = viewModel.ui.greeting
+        assertEquals("Alex", greeting?.firstName)
+        // 16:30 UTC on 1 November is 10:30 in Chicago (CST, the day DST ends): morning.
+        assertEquals(DayPart.MORNING, greeting?.part)
+    }
+
+    @Test
+    fun sendWishes_opensTheDirectConversation() = runTest(main.testDispatcher) {
+        val (viewModel, effects) = start()
+        viewModel.onAction(TodayAction.SendWishes("usr_jordan_lee"))
+        runCurrent()
+        assertEquals(listOf(listOf("usr_jordan_lee")), conversations.opened)
+        assertEquals(TodayEffect.OpenConversation(OPENED_CONVERSATION), effects.last())
+    }
+
+    @Test
+    fun sendWishes_failureOffersRetry() = runTest(main.testDispatcher) {
+        conversations.openResult = Result.failure(WaiveraError.Network())
+        val (viewModel, effects) = start()
+        viewModel.onAction(TodayAction.SendWishes("usr_jordan_lee"))
+        runCurrent()
+        assertEquals(TodayEffect.WishesFailed("usr_jordan_lee"), effects.last())
+    }
 
     @Test
     fun loading_nothingCachedShowsTheInitialLoad() = runTest(main.testDispatcher) {

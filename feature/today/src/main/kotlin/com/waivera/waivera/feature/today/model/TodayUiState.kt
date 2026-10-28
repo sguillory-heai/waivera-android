@@ -14,6 +14,8 @@ import java.time.LocalTime
 @Immutable
 data class TodayUiState(
     val accountName: String = "",
+    /** "Good morning, Alex", in the employee's zone; null until the clock and zone are known. */
+    val greeting: Greeting? = null,
     /** Today's date in the employee's saved zone, for the top bar. */
     val date: LocalDate? = null,
     /** Nothing is cached yet and the first load is still running: show the skeleton (after ~300 ms). */
@@ -158,6 +160,8 @@ data class CelebrationItem(
     val isBirthday: Boolean,
     /** Set when today is a work anniversary of one year or more. */
     val anniversaryYears: Int?,
+    /** The signed-in person's own day: no "Send wishes" to yourself. */
+    val isMe: Boolean = false,
 )
 
 enum class ActivityFilter { ALL, MENTIONS, REPLIES, REACTIONS }

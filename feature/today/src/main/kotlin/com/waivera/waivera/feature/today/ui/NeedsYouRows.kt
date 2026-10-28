@@ -17,6 +17,8 @@ import com.waivera.waivera.core.designsystem.component.WaiveraAvatar
 import com.waivera.waivera.core.designsystem.component.WaiveraButton
 import com.waivera.waivera.core.designsystem.component.WaiveraButtonVariant
 import com.waivera.waivera.core.designsystem.component.WaiveraCountBadge
+import com.waivera.waivera.core.designsystem.component.WaiveraIconTile
+import com.waivera.waivera.core.designsystem.component.WaiveraTileTone
 import com.waivera.waivera.core.designsystem.icon.WaiveraIcons
 import com.waivera.waivera.core.designsystem.preview.WaiveraPreviews
 import com.waivera.waivera.core.designsystem.text.withNonBreakingHyphens
@@ -97,7 +99,7 @@ private fun NotSentRow(item: NeedsYouItem.NotSent, onClick: () -> Unit, modifier
         supporting = supporting,
         emphasized = true,
         modifier = modifier,
-        leading = { TodayIconTile(icon = WaiveraIcons.Error, danger = true) },
+        leading = { WaiveraIconTile(icon = WaiveraIcons.Error, tone = WaiveraTileTone.Danger) },
     )
 }
 
@@ -119,7 +121,7 @@ private fun MentionRow(item: NeedsYouItem.Mention, onClick: () -> Unit, modifier
         modifier = modifier,
         // A single mention has no count, so bold text and the "Unread" announcement are enough;
         // a dot on top would be a third unread signal (UI review UI-09).
-        leading = { TodayIconTile(icon = R.drawable.feature_today_ic_mention) },
+        leading = { WaiveraIconTile(icon = R.drawable.feature_today_ic_mention, tone = WaiveraTileTone.Rose) },
     )
 }
 
@@ -147,7 +149,7 @@ private fun TicketRow(item: NeedsYouItem.Ticket, onClick: () -> Unit, modifier: 
         supporting = item.at?.let { joined(pastText(it, formats), visibleSnippet) } ?: visibleSnippet,
         emphasized = true,
         modifier = modifier,
-        leading = { TodayIconTile(icon = R.drawable.feature_today_ic_ticket) },
+        leading = { WaiveraIconTile(icon = R.drawable.feature_today_ic_ticket) },
         trailing = { WaiveraCountBadge(count = item.unreadCount) },
     )
 }
@@ -179,7 +181,7 @@ private fun InvitationRow(
             eyebrowColor = WaiveraTheme.colors.accent,
             supporting = details,
             emphasized = true,
-            leading = { TodayIconTile(icon = WaiveraIcons.Calendar) },
+            leading = { WaiveraIconTile(icon = WaiveraIcons.Calendar, tone = WaiveraTileTone.Teal) },
         )
         val declineLabel = stringResource(R.string.feature_today_invitation_decline_a11y, title)
         val acceptLabel = stringResource(R.string.feature_today_invitation_accept_a11y, title)

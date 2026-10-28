@@ -1,6 +1,5 @@
 package com.waivera.waivera.feature.today.ui
 
-import androidx.annotation.DrawableRes
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -25,7 +24,9 @@ import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import com.waivera.waivera.core.designsystem.component.WaiveraIconTile
 import com.waivera.waivera.core.designsystem.component.WaiveraPressable
+import com.waivera.waivera.core.designsystem.component.WaiveraTileTone
 import com.waivera.waivera.core.designsystem.icon.WaiveraIcons
 import com.waivera.waivera.core.designsystem.preview.WaiveraPreviews
 import com.waivera.waivera.core.designsystem.text.withBreaksAfterHyphens
@@ -112,43 +113,6 @@ internal fun TodayRow(
     }
 }
 
-/**
- * A 40dp icon tile: accent wash for things that need attention, muted once read, danger for
- * something that went wrong (a message that wasn't sent).
- */
-@Composable
-internal fun TodayIconTile(
-    @DrawableRes icon: Int,
-    modifier: Modifier = Modifier,
-    muted: Boolean = false,
-    danger: Boolean = false,
-) {
-    val colors = WaiveraTheme.colors
-    val fill = when {
-        danger -> colors.dangerContainer
-        muted -> colors.surfaceMuted
-        else -> colors.accentSoft
-    }
-    val tint = when {
-        danger -> colors.onDangerContainer
-        muted -> colors.textSecondary
-        else -> colors.onAccentSoft
-    }
-    Box(
-        modifier = modifier
-            .size(WaiveraSizes.IconTile)
-            .background(fill, WaiveraShapes.Button),
-        contentAlignment = Alignment.Center,
-    ) {
-        Icon(
-            painter = painterResource(icon),
-            contentDescription = null,
-            tint = tint,
-            modifier = Modifier.size(WaiveraSizes.Icon),
-        )
-    }
-}
-
 /** The unread dot. Never the only signal: rows also say "Unread" to TalkBack and bold their text. */
 @Composable
 internal fun UnreadDot(modifier: Modifier = Modifier) {
@@ -206,7 +170,7 @@ private fun TodayRowPreview() {
                 onClickLabel = "Open message",
                 supporting = "Mention · 5m",
                 emphasized = true,
-                leading = { TodayIconTile(icon = R.drawable.feature_today_ic_mention) },
+                leading = { WaiveraIconTile(icon = R.drawable.feature_today_ic_mention, tone = WaiveraTileTone.Rose) },
             )
             TodayRow(
                 headline = "Client home visit",
@@ -216,7 +180,7 @@ private fun TodayRowPreview() {
                 eyebrow = "in 25 min",
                 eyebrowColor = WaiveraTheme.colors.accent,
                 supporting = "11:00 AM – 12:00 PM · 1200 W Lake St",
-                leading = { TodayIconTile(icon = WaiveraIcons.Schedule) },
+                leading = { WaiveraIconTile(icon = WaiveraIcons.Schedule, tone = WaiveraTileTone.Teal) },
                 showChevron = true,
             )
         }

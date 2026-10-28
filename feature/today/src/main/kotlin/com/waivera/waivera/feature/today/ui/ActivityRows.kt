@@ -23,8 +23,11 @@ import com.waivera.waivera.core.designsystem.component.WaiveraBusyIndicator
 import com.waivera.waivera.core.designsystem.component.WaiveraButton
 import com.waivera.waivera.core.designsystem.component.WaiveraButtonVariant
 import com.waivera.waivera.core.designsystem.component.WaiveraCountBadge
+import com.waivera.waivera.core.designsystem.component.WaiveraEmojiTile
 import com.waivera.waivera.core.designsystem.component.WaiveraFilterChip
 import com.waivera.waivera.core.designsystem.component.WaiveraIconButton
+import com.waivera.waivera.core.designsystem.component.WaiveraIconTile
+import com.waivera.waivera.core.designsystem.component.WaiveraTileTone
 import com.waivera.waivera.core.designsystem.component.formatBadgeCount
 import com.waivera.waivera.core.designsystem.icon.WaiveraIcons
 import com.waivera.waivera.core.designsystem.preview.WaiveraPreviews
@@ -163,9 +166,28 @@ internal fun ActivityItemRow(row: ActivityRow, onClick: () -> Unit, modifier: Mo
         emphasized = !row.read,
         showChevron = true,
         modifier = modifier,
-        leading = { TodayIconTile(icon = activityIcon(row.type), muted = row.read) },
+        leading = { ActivityTile(row) },
         trailing = { if (!row.read) UnreadDot() },
     )
+}
+
+/**
+ * A reaction shows the real emoji someone reacted with; other kinds show their glyph. Read rows
+ * fall back to the neutral tint, so unread ones stand out.
+ */
+@Composable
+private fun ActivityTile(row: ActivityRow) {
+    val emoji = (row.summary as? ActivitySummary.Reaction)?.emoji?.takeIf(String::isNotBlank)
+    val tone = when {
+        row.read -> WaiveraTileTone.Neutral
+        row.type == ChatActivityType.THREAD_REPLY || row.type == ChatActivityType.UNKNOWN -> WaiveraTileTone.Brand
+        else -> WaiveraTileTone.Rose
+    }
+    if (emoji != null) {
+        WaiveraEmojiTile(emoji = emoji, tone = tone)
+    } else {
+        WaiveraIconTile(icon = activityIcon(row.type), tone = tone)
+    }
 }
 
 private fun activityIcon(type: ChatActivityType): Int = when (type) {

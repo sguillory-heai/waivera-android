@@ -1,6 +1,9 @@
 package com.waivera.waivera.feature.today.screenshot
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Column
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
 import com.waivera.waivera.core.data.calendar.CalendarMath
 import com.waivera.waivera.core.data.model.ActivityFeed
 import com.waivera.waivera.core.data.model.DateRange
@@ -10,6 +13,7 @@ import com.waivera.waivera.core.data.model.ScheduleFeed
 import com.waivera.waivera.core.data.model.SyncStatus
 import com.waivera.waivera.core.data.model.Synced
 import com.waivera.waivera.core.demo.DemoData
+import com.waivera.waivera.core.designsystem.theme.WaiveraTheme
 import com.waivera.waivera.core.network.error.WaiveraError
 import com.waivera.waivera.core.realtime.ConnectionState
 import com.waivera.waivera.core.screenshottesting.ScreenshotHeights
@@ -18,13 +22,18 @@ import com.waivera.waivera.core.screenshottesting.captureScreenshots
 import com.waivera.waivera.core.testing.EnglishConversationTitles
 import com.waivera.waivera.feature.today.activity
 import com.waivera.waivera.feature.today.conversation
+import com.waivera.waivera.feature.today.model.CelebrationItem
+import com.waivera.waivera.feature.today.model.DayPart
+import com.waivera.waivera.feature.today.model.Greeting
 import com.waivera.waivera.feature.today.model.TodayAssembler
 import com.waivera.waivera.feature.today.model.TodayContext
 import com.waivera.waivera.feature.today.model.TodayLocalState
 import com.waivera.waivera.feature.today.model.TodaySources
 import com.waivera.waivera.feature.today.model.TodayUiState
 import com.waivera.waivera.feature.today.timedEvent
+import com.waivera.waivera.feature.today.ui.CelebrationCard
 import com.waivera.waivera.feature.today.ui.TodayContent
+import com.waivera.waivera.feature.today.ui.TodayGreeting
 import com.waivera.waivera.feature.today.ui.TodayPreviewStates
 import com.waivera.waivera.feature.today.ui.TodaySkeleton
 import java.time.Instant
@@ -72,7 +81,16 @@ class TodayScreenshotTest {
         realtime: RealtimeStatus = connected,
     ): TodayUiState = TodayAssembler.assemble(
         sources,
-        TodayContext("Alex Rivera", DemoData.ME, DemoData.ZONE, now, realtime, local, EnglishConversationTitles),
+        TodayContext(
+            accountName = "Alex Rivera",
+            myUserId = DemoData.ME,
+            zone = DemoData.ZONE,
+            now = now,
+            realtime = realtime,
+            local = local,
+            titles = EnglishConversationTitles,
+            firstName = "Alex",
+        ),
     )
 
     private fun capture(name: String, heightDp: Int? = null, content: @Composable () -> Unit) =
@@ -87,6 +105,36 @@ class TodayScreenshotTest {
 
     @Test
     fun loading() = capture("loading") { TodaySkeleton() }
+
+    /** The brand moments on their own: greeting variants and celebration cards with "Send wishes". */
+    @Test
+    fun brandMoments() = capture("brand_moments") {
+        Column(Modifier.background(WaiveraTheme.colors.background)) {
+            TodayGreeting(Greeting(DayPart.MORNING, firstName = "Alex"))
+            TodayGreeting(Greeting(DayPart.EVENING, firstName = null))
+            CelebrationCard(
+                item = CelebrationItem("usr_sam", "Sam Ortiz", isBirthday = true, anniversaryYears = null),
+                onOpen = {},
+                onSendWishes = {},
+            )
+            CelebrationCard(
+                item = CelebrationItem("usr_jordan_lee", "Jordan Lee", isBirthday = false, anniversaryYears = 5),
+                onOpen = {},
+                onSendWishes = {},
+            )
+            CelebrationCard(
+                item = CelebrationItem(
+                    DemoData.ME,
+                    "Alex Rivera",
+                    isBirthday = true,
+                    anniversaryYears = 3,
+                    isMe = true,
+                ),
+                onOpen = {},
+                onSendWishes = {},
+            )
+        }
+    }
 
     @Test
     fun allCaughtUp() {

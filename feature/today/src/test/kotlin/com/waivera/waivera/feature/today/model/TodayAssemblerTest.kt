@@ -62,7 +62,8 @@ class TodayAssemblerTest {
         local: TodayLocalState = TodayLocalState(),
         now: Instant = TEST_NOW,
         realtime: RealtimeStatus = RealtimeStatus(ConnectionState.Connected, isOnline = true),
-    ) = TodayContext("Alex Rivera", ME, TEST_ZONE, now, realtime, local, EnglishConversationTitles)
+        firstName: String? = null,
+    ) = TodayContext("Alex Rivera", ME, TEST_ZONE, now, realtime, local, EnglishConversationTitles, firstName)
 
     private fun assemble(sources: TodaySources = sources(), context: TodayContext = context()) =
         TodayAssembler.assemble(sources, context)
@@ -317,6 +318,26 @@ class TodayAssemblerTest {
         val milestones = listOf(Milestone(MilestoneType.BIRTHDAY, "u1", "Sam", month = 10, day = 31))
         val state = assemble(sources(milestones = milestones), context(now = Instant.parse("2026-11-01T04:30:00Z")))
         assertEquals(listOf("u1"), state.milestones.map { it.userId })
+    }
+
+    @Test
+    fun `my own celebration is marked so it offers no wishes to myself`() {
+        val milestones = listOf(
+            Milestone(MilestoneType.BIRTHDAY, ME, "Alex Rivera", month = 11, day = 1),
+            Milestone(MilestoneType.BIRTHDAY, "u1", "Jordan Lee", month = 11, day = 1),
+        )
+        val celebrations = assemble(sources(milestones = milestones)).milestones.associateBy { it.userId }
+        assertTrue(celebrations.getValue(ME).isMe)
+        assertFalse(celebrations.getValue("u1").isMe)
+    }
+
+    @Test
+    fun `the greeting names the part of the day in the employee's zone`() {
+        // TEST_NOW is 10:30 in Chicago on the day DST ends.
+        assertEquals(Greeting(DayPart.MORNING, "Alex"), assemble(context = context(firstName = "Alex")).greeting)
+        // 22:30 UTC is 16:30 CST (afternoon); the summer offset, -05:00, would make it 17:30 (evening).
+        val boundary = context(now = Instant.parse("2026-11-01T22:30:00Z"), firstName = null)
+        assertEquals(Greeting(DayPart.AFTERNOON, null), assemble(context = boundary).greeting)
     }
 
     @Test
