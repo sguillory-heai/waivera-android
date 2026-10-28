@@ -346,8 +346,9 @@ private fun InvitationBlock(invitation: InvitationUi, actions: EventActions, mod
             .padding(WaiveraSpacing.MediumSmall),
         verticalArrangement = Arrangement.spacedBy(WaiveraSpacing.Small),
     ) {
+        // Caps, like every other eyebrow label ("ORGANIZED BY", WaiveraSectionHeader), UI6-04.
         Text(
-            text = stringResource(R.string.feature_calendar_response_heading),
+            text = stringResource(R.string.feature_calendar_response_heading).uppercase(),
             style = WaiveraTextStyles.Eyebrow,
             color = colors.textSecondary,
             modifier = Modifier.semantics { heading() },
