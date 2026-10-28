@@ -18,7 +18,7 @@
     <string name="feature_today_brand_celebration_label_both">Birthday and work anniversary</string>
     <string name="feature_today_brand_send_wishes">Send wishes</string>
     <string name="feature_today_brand_send_wishes_a11y">Send wishes to %1$s</string>
-    <string name="feature_today_brand_wishes_failed">We couldn\'t open the chat. Try again in a moment.</string>
+    <string name="feature_today_brand_wishes_failed">We couldn’t open the chat. Try again in a moment.</string>
     <!-- Hero summary card -->
     <string name="feature_today_brand_ring_caption">handled</string>
     <!-- "handled" reads the same for one and many, so these stay strings. -->
@@ -82,7 +82,7 @@
     <string name="feature_today_brand_day_minutes">%1$d min scheduled</string>
     <string name="feature_today_brand_day_open">Your day is wide open.</string>
     <string name="feature_today_brand_day_track_a11y">%1$s, from %2$s to %3$s</string>
-    <string name="feature_today_brand_day_now_a11y">It\'s %1$s now.</string>
+    <string name="feature_today_brand_day_now_a11y">It’s %1$s now.</string>
     <string name="feature_today_brand_until">Until %1$s</string>
     <string name="feature_today_brand_until_dash">– %1$s</string>
     <string name="feature_today_brand_until_next_day">– %1$s next day</string>

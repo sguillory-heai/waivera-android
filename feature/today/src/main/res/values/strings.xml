@@ -2,7 +2,7 @@
 <resources>
     <string name="feature_today_today_title">Today</string>
     <string name="feature_today_loading">Loading today</string>
-    <string name="feature_today_error_title">Today didn\'t load</string>
+    <string name="feature_today_error_title">Today didn’t load</string>
 
     <!-- Staleness: shown only when the data on screen is out of date. -->
     <string name="feature_today_stale_minutes">Updated %1$d min ago</string>
@@ -12,7 +12,7 @@
 
     <!-- Section headers -->
     <string name="feature_today_section_needs_you">Needs you</string>
-    <string name="feature_today_section_next_up">Next up</string>
+    <string name="feature_today_section_next_up">Up next</string>
     <string name="feature_today_section_celebrations">Celebrations</string>
     <string name="feature_today_section_activity">Activity</string>
     <string name="feature_today_see_schedule">See schedule</string>
@@ -24,7 +24,7 @@
         <item quantity="other">Show %d more</item>
     </plurals>
     <string name="feature_today_needs_you_show_less">Show less</string>
-    <string name="feature_today_needs_you_failed">Messages didn\'t load.</string>
+    <string name="feature_today_needs_you_failed">Messages didn’t load.</string>
     <string name="feature_today_dm_fallback_name">Direct message</string>
     <string name="feature_today_dm_a11y">%1$s, %2$s, %3$s</string>
     <string name="feature_today_kind_mention">Mention</string>
@@ -46,7 +46,7 @@
     <string name="feature_today_offline_saved_at">Showing what you had at %1$s.</string>
     <string name="feature_today_offline_saved">Showing what you had saved.</string>
     <string name="feature_today_not_sent">Not sent</string>
-    <string name="feature_today_not_sent_headline">Your message to %1$s wasn\'t sent</string>
+    <string name="feature_today_not_sent_headline">Your message to %1$s wasn’t sent</string>
     <string name="feature_today_not_sent_supporting">Open the chat to retry</string>
     <string name="feature_today_not_sent_action">Open to retry</string>
     <string name="feature_today_not_sent_a11y">%1$s. %2$s. %3$s</string>
@@ -93,9 +93,9 @@
     </plurals>
     <string name="feature_today_past_yesterday">Yesterday</string>
 
-    <!-- Next up -->
+    <!-- Up next -->
     <string name="feature_today_next_up_empty">Your next two weeks are clear.</string>
-    <string name="feature_today_next_up_failed">Your schedule didn\'t load.</string>
+    <string name="feature_today_next_up_failed">Your schedule didn’t load.</string>
     <string name="feature_today_happening_now_a11y">Happening now</string>
 
     <!-- Celebrations -->
@@ -104,10 +104,10 @@
     <string name="feature_today_celebration_birthday">Happy birthday, %1$s!</string>
     <string name="feature_today_celebration_anniversary">Happy %2$d-year work anniversary, %1$s!</string>
     <string name="feature_today_celebration_both">Happy birthday and %2$d-year work anniversary, %1$s!</string>
-    <string name="feature_today_milestones_failed">Celebrations didn\'t load.</string>
+    <string name="feature_today_milestones_failed">Celebrations didn’t load.</string>
 
     <!-- All caught up: the one celebrated empty state -->
-    <string name="feature_today_all_caught_up_title">You\'re all caught up\u00A0🎉</string>
+    <string name="feature_today_all_caught_up_title">You’re all caught up\u00A0🎉</string>
     <string name="feature_today_all_caught_up_message">Enjoy the calm. Anything new will show up here.</string>
 
     <!-- Activity -->
@@ -139,17 +139,17 @@
     <string name="feature_today_activity_empty_message">Mentions, reactions and replies to you will show up here.</string>
     <string name="feature_today_activity_filtered_title">Nothing here</string>
     <string name="feature_today_activity_filtered_message">Try a different filter.</string>
-    <string name="feature_today_activity_failed">Activity didn\'t load.</string>
-    <string name="feature_today_activity_more_failed">More activity didn\'t load.</string>
+    <string name="feature_today_activity_failed">Activity didn’t load.</string>
+    <string name="feature_today_activity_more_failed">More activity didn’t load.</string>
     <string name="feature_today_activity_loading_more">Loading more activity</string>
 
     <!-- Snackbars -->
-    <string name="feature_today_refresh_failed">Couldn\'t refresh. Showing saved updates.</string>
-    <string name="feature_today_mark_read_failed">Couldn\'t mark that as read.</string>
-    <string name="feature_today_mark_all_failed">Couldn\'t mark everything as read.</string>
+    <string name="feature_today_refresh_failed">Couldn’t refresh. Showing saved updates.</string>
+    <string name="feature_today_mark_read_failed">Couldn’t mark that as read.</string>
+    <string name="feature_today_mark_all_failed">Couldn’t mark everything as read.</string>
     <string name="feature_today_invitation_accepted">Accepted. See you there!</string>
     <string name="feature_today_invitation_declined">Invitation declined</string>
-    <string name="feature_today_invitation_failed">Your response wasn\'t saved.</string>
+    <string name="feature_today_invitation_failed">Your response wasn’t saved.</string>
     <string name="feature_today_retry">Retry</string>
     <string name="feature_today_undo">Undo</string>
 </resources>

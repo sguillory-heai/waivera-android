@@ -36,11 +36,11 @@
     <!-- Profile -->
     <string name="feature_profile_profile_title">Profile</string>
     <string name="feature_profile_refresh">Refresh profile</string>
-    <string name="feature_profile_refresh_failed">Couldn\'t refresh your profile. Showing your saved details.</string>
+    <string name="feature_profile_refresh_failed">Couldn’t refresh your profile. Showing your saved details.</string>
     <string name="feature_profile_offline_saved">Showing your saved details.</string>
-    <string name="feature_profile_error_title">Your profile didn\'t load</string>
-    <string name="feature_profile_unavailable_title">We can\'t find your profile</string>
-    <string name="feature_profile_unavailable_message">Your employee record didn\'t come up. Sign out and back in, or ask your administrator to check your account.</string>
+    <string name="feature_profile_error_title">Your profile didn’t load</string>
+    <string name="feature_profile_unavailable_title">We can’t find your profile</string>
+    <string name="feature_profile_unavailable_message">Your employee record didn’t come up. Sign out and back in, or ask your administrator to check your account.</string>
     <string name="feature_profile_personal_title">Personal information</string>
     <string name="feature_profile_professional_title">Work details</string>
     <string name="feature_profile_email">Email</string>
@@ -95,12 +95,12 @@
     <string name="feature_profile_people_refresh">Refresh people</string>
     <string name="feature_profile_people_search">Search by name or email</string>
     <string name="feature_profile_people_search_clear">Clear people search</string>
-    <string name="feature_profile_people_refresh_failed">Couldn\'t refresh the directory. Showing the last list we had.</string>
+    <string name="feature_profile_people_refresh_failed">Couldn’t refresh the directory. Showing the last list we had.</string>
     <string name="feature_profile_people_offline_saved">Showing the last list.</string>
     <string name="feature_profile_person_offline_saved">Showing the details saved on this phone.</string>
-    <string name="feature_profile_people_error_title">People didn\'t load</string>
+    <string name="feature_profile_people_error_title">People didn’t load</string>
     <string name="feature_profile_people_empty_title">No one here yet</string>
-    <string name="feature_profile_people_empty_message">Your coworkers will show up here once they\'re added.</string>
+    <string name="feature_profile_people_empty_message">Your coworkers will show up here once they’re added.</string>
     <string name="feature_profile_people_no_match_title">No one by that name</string>
     <string name="feature_profile_people_no_match_message">Check the spelling, or try their email.</string>
     <plurals name="feature_profile_people_count">
@@ -118,18 +118,18 @@
     <!-- The same direct chat as Message, named for the moment when the person is celebrating. -->
     <string name="feature_profile_person_send_wishes">Send wishes</string>
     <string name="feature_profile_person_opening_chat">Opening chat…</string>
-    <string name="feature_profile_person_message_failed">Couldn\'t open the chat. %1$s</string>
+    <string name="feature_profile_person_message_failed">Couldn’t open the chat. %1$s</string>
     <string name="feature_profile_person_roles">Roles</string>
-    <string name="feature_profile_person_error_title">This profile didn\'t load</string>
+    <string name="feature_profile_person_error_title">This profile didn’t load</string>
 
     <!-- Bookmarks -->
     <string name="feature_profile_bookmarks_title">Bookmarks</string>
     <string name="feature_profile_bookmarks_yesterday">Yesterday</string>
     <string name="feature_profile_bookmarks_search">Search by person or message</string>
     <string name="feature_profile_bookmarks_search_clear">Clear bookmark search</string>
-    <string name="feature_profile_bookmarks_refresh_failed">Couldn\'t refresh your bookmarks. Showing the last list we had.</string>
+    <string name="feature_profile_bookmarks_refresh_failed">Couldn’t refresh your bookmarks. Showing the last list we had.</string>
     <string name="feature_profile_bookmarks_offline_saved">Showing your saved bookmarks.</string>
-    <string name="feature_profile_bookmarks_error_title">Bookmarks didn\'t load</string>
+    <string name="feature_profile_bookmarks_error_title">Bookmarks didn’t load</string>
     <string name="feature_profile_bookmarks_error_message">Give it a moment, then try again.</string>
     <string name="feature_profile_bookmarks_empty_title">Nothing saved yet</string>
     <string name="feature_profile_bookmarks_empty_message">Press and hold any message, then tap Bookmark to keep it here for later.</string>
@@ -146,8 +146,8 @@
     <string name="feature_profile_bookmarks_open">Open saved message from %1$s</string>
     <string name="feature_profile_bookmarks_remove">Remove bookmark from %1$s</string>
     <string name="feature_profile_bookmarks_removed">Bookmark removed</string>
-    <string name="feature_profile_bookmarks_remove_failed">Couldn\'t remove that bookmark.</string>
-    <string name="feature_profile_bookmarks_restore_failed">Couldn\'t put that bookmark back.</string>
+    <string name="feature_profile_bookmarks_remove_failed">Couldn’t remove that bookmark.</string>
+    <string name="feature_profile_bookmarks_restore_failed">Couldn’t put that bookmark back.</string>
     <string name="feature_profile_bookmarks_thread_reply">Thread reply</string>
     <string name="feature_profile_bookmarks_photo">Photo</string>
     <string name="feature_profile_bookmarks_file">File attachment</string>
@@ -166,6 +166,6 @@
     <string name="feature_profile_bookmarks_empty_threads_title">No saved threads yet</string>
     <string name="feature_profile_bookmarks_empty_threads_message">Bookmark a message that has replies, or a reply itself, and it shows up here.</string>
     <string name="feature_profile_bookmarks_empty_messages_title">No saved messages here</string>
-    <string name="feature_profile_bookmarks_empty_messages_message">Everything you\'ve saved is part of a thread. You\'ll find it under Threads.</string>
+    <string name="feature_profile_bookmarks_empty_messages_message">Everything you’ve saved is part of a thread. You’ll find it under Threads.</string>
     <string name="feature_profile_bookmarks_show_all">Show all bookmarks</string>
 </resources>

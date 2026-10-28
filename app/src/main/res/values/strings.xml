@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Waivera</string>
-    <string name="shell_link_unopenable">That link can\'t be opened in Waivera.</string>
+    <string name="shell_link_unopenable">That link can’t be opened in Waivera.</string>
     <string name="shell_tab_today">Today</string>
     <string name="shell_tab_chat">Chat</string>
     <string name="shell_tab_schedule">Schedule</string>

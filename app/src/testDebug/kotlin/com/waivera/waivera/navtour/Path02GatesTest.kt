@@ -73,14 +73,14 @@ class Path02GatesTest : NavTourHarness() {
         launch()
 
         expectGate(AppGate.BootstrapFailed)
-        expectScreen("We couldn't reach Waivera")
+        expectScreen("We couldn’t reach Waivera")
         shot("path_02_bootstrap_01_failed")
         shotDark("path_02_bootstrap_01_failed")
 
         click("Try again")
         expectGate(AppGate.BootstrapFailed)
-        expectScreen("We couldn't reach Waivera")
-        expectScreen("Still can't reach Waivera")
+        expectScreen("We couldn’t reach Waivera")
+        expectScreen("Still can’t reach Waivera")
         shot("path_02_bootstrap_02_retry_failed")
 
         click("Try again")
@@ -95,7 +95,7 @@ class Path02GatesTest : NavTourHarness() {
         world.session().force(SessionState.BootstrapFailed(WaiveraError.Network()))
         launch()
         expectGate(AppGate.BootstrapFailed)
-        expectScreen("You're offline")
+        expectScreen("You’re offline")
         shot("path_02_bootstrap_04_offline")
     }
 

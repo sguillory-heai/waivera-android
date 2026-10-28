@@ -65,7 +65,7 @@ class SignInCopyTest {
         val message = context.getString(R.string.feature_auth_error_email_invalid)
         assertTrue("name${WORD_JOINER}@${WORD_JOINER}organization${WORD_JOINER}.${WORD_JOINER}com" in message, message)
         assertEquals(
-            "That doesn't look like an email. Try name@organization.com.",
+            "That doesn’t look like an email. Try name@organization.com.",
             message.replace(WORD_JOINER.toString(), ""),
         )
     }

@@ -61,7 +61,7 @@ class OnboardingLargeFontTest {
     }
 
     private companion object {
-        const val CHECK_AGAIN = "I'm done, check again"
+        const val CHECK_AGAIN = "I’m done, check again"
         const val LARGE_FONT = 2f
     }
 }

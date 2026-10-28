@@ -254,7 +254,7 @@ class TodayAssemblerTest {
         assertFalse(assemble(sources(synced = null)).isAllCaughtUp)
     }
 
-    // Next up
+    // Up next
 
     @Test
     fun `next up shows the next three items, all-day first, skipping ended, declined and pending ones`() {

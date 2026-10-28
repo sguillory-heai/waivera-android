@@ -17,13 +17,13 @@
     <string name="feature_calendar_zone_notice">Times shown in %1$s</string>
     <string name="feature_calendar_zone_notice_fallback">Your profile has no time zone, so times are shown in %1$s.</string>
     <string name="feature_calendar_loading">Loading your calendar…</string>
-    <string name="feature_calendar_error_title">Your schedule didn\'t load</string>
+    <string name="feature_calendar_error_title">Your schedule didn’t load</string>
     <string name="feature_calendar_empty_title">Nothing scheduled</string>
     <string name="feature_calendar_empty_message">Your day is wide open.</string>
-    <string name="feature_calendar_feed_refresh_failed_title">Couldn\'t refresh your schedule</string>
+    <string name="feature_calendar_feed_refresh_failed_title">Couldn’t refresh your schedule</string>
     <string name="feature_calendar_feed_refresh_failed_detail">Showing what was saved.</string>
-    <string name="feature_calendar_milestones_failed">Team celebrations didn\'t load.</string>
-    <string name="feature_calendar_offline">You\'re offline. Showing your saved schedule.</string>
+    <string name="feature_calendar_milestones_failed">Team celebrations didn’t load.</string>
+    <string name="feature_calendar_offline">You’re offline. Showing your saved schedule.</string>
     <string name="feature_calendar_retry">Retry</string>
     <string name="feature_calendar_grid_label">Calendar</string>
     <string name="feature_calendar_cell_today">today</string>
@@ -57,7 +57,7 @@
     <string name="feature_calendar_celebration_name_fallback">Teammate</string>
     <string name="feature_calendar_send_wishes">Send wishes</string>
     <string name="feature_calendar_send_wishes_a11y">Send wishes to %1$s</string>
-    <string name="feature_calendar_wishes_failed">We couldn\'t open the chat. Try again in a moment.</string>
+    <string name="feature_calendar_wishes_failed">We couldn’t open the chat. Try again in a moment.</string>
     <string name="feature_calendar_celebration_compact_multiple">Birthday + %1$d-yr anniversary</string>
     <string name="feature_calendar_celebration_compact_birthday">Birthday today</string>
     <string name="feature_calendar_celebration_compact_anniversary">%1$d-year anniversary</string>
@@ -75,7 +75,7 @@
     <!-- Event screen -->
     <string name="feature_calendar_calendar_event_title">Event</string>
     <string name="feature_calendar_event_organized_by">Organized by</string>
-    <string name="feature_calendar_event_you_organize">You\'re the organizer</string>
+    <string name="feature_calendar_event_you_organize">You’re the organizer</string>
     <string name="feature_calendar_event_online">Online meeting</string>
     <string name="feature_calendar_event_location">Location</string>
     <string name="feature_calendar_location_open">Open in maps</string>
@@ -87,7 +87,7 @@
         <item quantity="one">%d person</item>
         <item quantity="other">%d people</item>
     </plurals>
-    <string name="feature_calendar_event_no_attendees">It\'s just you on this one.</string>
+    <string name="feature_calendar_event_no_attendees">It’s just you on this one.</string>
     <string name="feature_calendar_event_you">%1$s (you)</string>
     <string name="feature_calendar_event_guest">Guest</string>
     <string name="feature_calendar_status_invited">Awaiting response</string>
@@ -98,8 +98,8 @@
     <string name="feature_calendar_open_profile">Open profile</string>
 
     <string name="feature_calendar_response_heading">Your response</string>
-    <string name="feature_calendar_response_pending">You haven\'t responded yet.</string>
-    <string name="feature_calendar_response_accepted">You\'re going.</string>
+    <string name="feature_calendar_response_pending">You haven’t responded yet.</string>
+    <string name="feature_calendar_response_accepted">You’re going.</string>
     <string name="feature_calendar_response_declined">You declined.</string>
     <string name="feature_calendar_response_tentative">You said maybe.</string>
     <string name="feature_calendar_opening_chat">Opening chat…</string>
@@ -109,8 +109,8 @@
     <string name="feature_calendar_accept">Going</string>
     <string name="feature_calendar_decline">Not going</string>
     <string name="feature_calendar_response_failed_title">Response not saved</string>
-    <string name="feature_calendar_undo_accepted">You\'re going. See you there!</string>
-    <string name="feature_calendar_undo_declined">You\'ve declined</string>
+    <string name="feature_calendar_undo_accepted">You’re going. See you there!</string>
+    <string name="feature_calendar_undo_declined">You’ve declined</string>
 
     <string name="feature_calendar_join">Join meeting</string>
     <string name="feature_calendar_join_opens">Join opens at %1$s</string>
@@ -118,19 +118,19 @@
     <string name="feature_calendar_join_opens_tomorrow">Join opens tomorrow at %1$s</string>
     <string name="feature_calendar_join_opens_on">Join opens %1$s at %2$s</string>
     <string name="feature_calendar_join_ended">This meeting has ended.</string>
-    <string name="feature_calendar_join_no_time">This meeting has no set time, so it can\'t be joined from here.</string>
-    <string name="feature_calendar_join_failed_title">Couldn\'t join the meeting</string>
-    <string name="feature_calendar_join_no_link">This meeting doesn\'t have a join link.</string>
-    <string name="feature_calendar_join_open_failed">Couldn\'t open the meeting. Check that a web browser is installed and turned on.</string>
+    <string name="feature_calendar_join_no_time">This meeting has no set time, so it can’t be joined from here.</string>
+    <string name="feature_calendar_join_failed_title">Couldn’t join the meeting</string>
+    <string name="feature_calendar_join_no_link">This meeting doesn’t have a join link.</string>
+    <string name="feature_calendar_join_open_failed">Couldn’t open the meeting. Check that a web browser is installed and turned on.</string>
 
     <string name="feature_calendar_chat_meeting">Open meeting chat</string>
     <string name="feature_calendar_chat_organizer">Message organizer</string>
-    <string name="feature_calendar_chat_failed">Couldn\'t open the chat.</string>
+    <string name="feature_calendar_chat_failed">Couldn’t open the chat.</string>
 
     <string name="feature_calendar_event_not_found_title">Event not found</string>
-    <string name="feature_calendar_event_not_found_message">This event isn\'t on your schedule anymore, or it\'s outside the dates that can be looked up.</string>
-    <string name="feature_calendar_event_error_title">This event didn\'t load</string>
-    <string name="feature_calendar_event_refresh_failed_title">Couldn\'t refresh this event</string>
+    <string name="feature_calendar_event_not_found_message">This event isn’t on your schedule anymore, or it’s outside the dates that can be looked up.</string>
+    <string name="feature_calendar_event_error_title">This event didn’t load</string>
+    <string name="feature_calendar_event_refresh_failed_title">Couldn’t refresh this event</string>
     <string name="feature_calendar_event_refresh_failed_detail">Showing what was saved.</string>
     <!-- Today's agenda: the divider before what is still ahead, and items that already ended (UI4-12). -->
     <string name="feature_calendar_now_marker">Now · %1$s</string>

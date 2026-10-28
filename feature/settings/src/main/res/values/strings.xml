@@ -10,14 +10,14 @@
     <string name="feature_settings_signing_out">Signing out…</string>
     <string name="feature_settings_sign_out_detail">Signing out stops notifications for this account on this device.</string>
     <string name="feature_settings_sign_out_confirm_title">Sign out of Waivera?</string>
-    <string name="feature_settings_sign_out_confirm_message">You\'ll stop getting notifications on this device until you sign in again.</string>
-    <string name="feature_settings_sign_out_failed">Couldn\'t sign out. %1$s</string>
+    <string name="feature_settings_sign_out_confirm_message">You’ll stop getting notifications on this device until you sign in again.</string>
+    <string name="feature_settings_sign_out_failed">Couldn’t sign out. %1$s</string>
 
     <!-- Appearance -->
     <string name="feature_settings_appearance_title">Appearance</string>
     <string name="feature_settings_theme_section">Theme</string>
     <string name="feature_settings_theme_system">System</string>
-    <string name="feature_settings_theme_system_detail">Match your device\'s light or dark setting</string>
+    <string name="feature_settings_theme_system_detail">Match your device’s light or dark setting</string>
     <string name="feature_settings_theme_light">Light</string>
     <string name="feature_settings_theme_light_detail">Always use the light theme</string>
     <string name="feature_settings_theme_dark">Dark</string>

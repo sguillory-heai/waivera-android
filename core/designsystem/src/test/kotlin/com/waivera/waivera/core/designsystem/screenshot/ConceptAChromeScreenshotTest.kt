@@ -128,7 +128,7 @@ class ConceptAChromeScreenshotTest {
     fun snackbarOnPlum() = captureScreenshots(name = "SnackbarPlum") {
         Column {
             WaiveraSnackbar(message = "Bookmark removed", actionLabel = "Undo")
-            WaiveraSnackbar(message = "Couldn't save your notification settings. Try again.")
+            WaiveraSnackbar(message = "Couldn’t save your notification settings. Try again.")
         }
     }
 
@@ -138,7 +138,7 @@ class ConceptAChromeScreenshotTest {
             Column(modifier = sheetFrame) {
                 ConfirmationContent(
                     title = "Sign out?",
-                    message = "You'll need your email and password to sign back in.",
+                    message = "You’ll need your email and password to sign back in.",
                     confirmLabel = "Sign out",
                     dismissLabel = "Cancel",
                     destructive = true,

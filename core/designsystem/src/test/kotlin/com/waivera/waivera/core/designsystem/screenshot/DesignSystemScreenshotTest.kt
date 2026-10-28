@@ -419,7 +419,7 @@ class DesignSystemScreenshotTest {
             onValueChange = {},
             label = "Password",
             placeholder = "Enter your password",
-            errorText = "That email and password don't match. Try again.",
+            errorText = "That email and password don’t match. Try again.",
             visualTransformation = PasswordVisualTransformation(),
         )
         WaiveraTextField(
@@ -503,7 +503,7 @@ class DesignSystemScreenshotTest {
         )
         ConfirmationContent(
             title = "Sign out?",
-            message = "You'll stop getting notifications on this device until you sign in again.",
+            message = "You’ll stop getting notifications on this device until you sign in again.",
             confirmLabel = "Sign out",
             dismissLabel = "Cancel",
             destructive = true,
@@ -548,7 +548,7 @@ class DesignSystemScreenshotTest {
             actionIcon = WaiveraIcons.OpenExternal,
         )
         WaiveraBanner(
-            title = "Couldn't sign in",
+            title = "Couldn’t sign in",
             message = "You appear to be offline. Check your connection and try again.",
             tone = BannerTone.Error,
             onDismiss = {},
@@ -562,15 +562,15 @@ class DesignSystemScreenshotTest {
     @Test
     fun bannersLongMessage() = capture("BannersLongMessage", padded = false) {
         WaiveraBanner(
-            title = "You're offline",
-            message = "Showing your saved conversations. New messages arrive when you're back online.",
+            title = "You’re offline",
+            message = "Showing your saved conversations. New messages arrive when you’re back online.",
             tone = BannerTone.Offline,
             actionLabel = "Retry now",
             onAction = {},
             actionIcon = WaiveraIcons.Refresh,
         )
         WaiveraBanner(
-            message = "Couldn't refresh. Showing saved conversations.",
+            message = "Couldn’t refresh. Showing saved conversations.",
             tone = BannerTone.Warning,
             actionLabel = "Retry",
             onAction = {},
@@ -586,7 +586,7 @@ class DesignSystemScreenshotTest {
     @Test
     fun bannersCompact() = capture("BannersCompact", padded = false) {
         WaiveraBanner(
-            title = "You're offline",
+            title = "You’re offline",
             message = "Showing your saved details.",
             tone = BannerTone.Offline,
             actionLabel = "Retry now",
@@ -595,7 +595,7 @@ class DesignSystemScreenshotTest {
             compact = true,
         )
         WaiveraBanner(
-            title = "Couldn't refresh your schedule",
+            title = "Couldn’t refresh your schedule",
             message = "Showing what was saved.",
             tone = BannerTone.Warning,
             actionLabel = "Retry",
@@ -604,7 +604,7 @@ class DesignSystemScreenshotTest {
             compact = true,
         )
         WaiveraBanner(
-            title = "Still can't reach Waivera after several tries",
+            title = "Still can’t reach Waivera after several tries",
             message = "Showing saved conversations. Pull down to try again.",
             tone = BannerTone.Offline,
             onDismiss = {},
@@ -696,7 +696,7 @@ class DesignSystemScreenshotTest {
             icon = WaiveraIcons.Check,
         )
         WaiveraErrorState(
-            message = "We couldn't load your conversations. Check your connection and try again.",
+            message = "We couldn’t load your conversations. Check your connection and try again.",
             onRetry = {},
         )
         WaiveraLoadingState(caption = "Loading your schedule…")

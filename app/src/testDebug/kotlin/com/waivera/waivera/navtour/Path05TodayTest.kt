@@ -120,7 +120,7 @@ class Path05TodayTest : NavTourHarness() {
         showAllNeedsYou()
         click(hasClickLabel("Open event") and textOrDescription(INVITE_TITLE, substring = true))
         expectStack(TodayRoute, CalendarEventRoute(INVITE))
-        expectScreen("You haven't responded yet.")
+        expectScreen("You haven’t responded yet.")
         shot("path_05_today_08_invitation_event")
 
         // The RSVP choice reads "Going" / "Not going" since the event screen fix.
@@ -129,7 +129,7 @@ class Path05TodayTest : NavTourHarness() {
         shot("path_05_today_09_invitation_accepted_undo")
 
         click("Undo")
-        expectScreen("You haven't responded yet.")
+        expectScreen("You haven’t responded yet.")
         expectStack(TodayRoute, CalendarEventRoute(INVITE))
         shot("path_05_today_10_invitation_undone")
 

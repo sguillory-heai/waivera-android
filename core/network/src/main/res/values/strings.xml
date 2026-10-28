@@ -2,13 +2,13 @@
 <resources>
     <string name="core_network_error_not_signed_in">Sign in to continue.</string>
     <string name="core_network_error_session_expired">Your session has ended. Sign in again to continue.</string>
-    <string name="core_network_error_account_not_provisioned">This account isn\'t set up for Waivera yet. Ask your administrator for access.</string>
-    <string name="core_network_error_forbidden">You don\'t have permission to do that.</string>
-    <string name="core_network_error_not_found">We couldn\'t find that. It may have been removed.</string>
+    <string name="core_network_error_account_not_provisioned">This account isn’t set up for Waivera yet. Ask your administrator for access.</string>
+    <string name="core_network_error_forbidden">You don’t have permission to do that.</string>
+    <string name="core_network_error_not_found">We couldn’t find that. It may have been removed.</string>
     <string name="core_network_error_conflict">Someone else changed this at the same time. Refresh and try again.</string>
-    <string name="core_network_error_validation">Something in that request wasn\'t accepted. Check it and try again.</string>
-    <string name="core_network_error_channel_archived">This conversation is archived, so new messages can\'t be sent.</string>
-    <string name="core_network_error_channel_read_only">You can read this conversation but can\'t post in it.</string>
+    <string name="core_network_error_validation">Something in that request wasn’t accepted. Check it and try again.</string>
+    <string name="core_network_error_channel_archived">This conversation is archived, so new messages can’t be sent.</string>
+    <string name="core_network_error_channel_read_only">You can read this conversation but can’t post in it.</string>
     <string name="core_network_error_attachment_expired">The attachment took too long to send. Attach it again.</string>
     <string name="core_network_error_attachment_rejected">This file was blocked by security scanning.</string>
     <string name="core_network_error_attachment_pending">This file is still being checked. Try again in a moment.</string>
@@ -18,8 +18,8 @@
     <string name="core_network_error_network">You appear to be offline. Check your connection and try again.</string>
     <string name="core_network_error_timeout">That took too long. Check your connection and try again.</string>
     <string name="core_network_error_configuration">This build is missing its server settings.</string>
-    <string name="core_network_error_realtime_unavailable">Reconnecting to chat. Try again once you\'re back online.</string>
-    <string name="core_network_error_invalid_credentials">That email and password don\'t match. Try again.</string>
+    <string name="core_network_error_realtime_unavailable">Reconnecting to chat. Try again once you’re back online.</string>
+    <string name="core_network_error_invalid_credentials">That email and password don’t match. Try again.</string>
     <string name="core_network_error_account_disabled">This account has been disabled. Contact your administrator.</string>
     <string name="core_network_error_too_many_attempts">Too many attempts. Wait a few minutes and try again.</string>
     <string name="core_network_error_weak_password">Choose a stronger password.</string>

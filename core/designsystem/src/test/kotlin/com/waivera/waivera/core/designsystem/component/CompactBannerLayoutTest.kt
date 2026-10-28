@@ -73,12 +73,12 @@ class CompactBannerLayoutTest {
     @Test
     fun offlineBannerIsOneRowWithAnIconAction() {
         renderCompact(
-            title = "You're offline",
+            title = "You’re offline",
             message = "Showing what you had at 10:18 AM.",
             actionLabel = "Retry now",
         )
         compose.onNodeWithContentDescription("Retry now").assertHasClickAction()
-        val text = compose.onNodeWithContentDescription("You're offline. Showing what you had at 10:18 AM.")
+        val text = compose.onNodeWithContentDescription("You’re offline. Showing what you had at 10:18 AM.")
             .getBoundsInRoot()
         // One 15sp title line at 200% plus its padding; a second line would add another 40dp.
         assertTrue("banner text is ${text.height} tall", text.height <= ONE_ROW_MAX)
@@ -88,7 +88,7 @@ class CompactBannerLayoutTest {
     @Test
     fun aLongCompactTitleWrapsInsteadOfBeingCut() {
         renderCompact(
-            title = "Still can't reach Waivera after several tries",
+            title = "Still can’t reach Waivera after several tries",
             message = "Showing saved conversations.",
             actionLabel = "Retry now",
         )
@@ -257,27 +257,27 @@ class CompactBannerLayoutTest {
         const val BANNER_TAG = "banner"
 
         val SIGN_IN_FAILED = InAppBanner(
-            title = "Couldn't sign in",
-            message = "That email and password don't match. Try again.",
+            title = "Couldn’t sign in",
+            message = "That email and password don’t match. Try again.",
             tone = BannerTone.Error,
             dismissible = true,
         )
         val SIGN_IN_OFFLINE = InAppBanner(
-            title = "Couldn't sign in",
+            title = "Couldn’t sign in",
             message = "You appear to be offline. Check your connection and try again.",
             tone = BannerTone.Error,
             dismissible = true,
         )
         val RESET_SENT = InAppBanner(
             title = "Check your email",
-            message = "If this address has a Waivera account, we've sent it a link to reset the password.",
+            message = "If this address has a Waivera account, we’ve sent it a link to reset the password.",
             tone = BannerTone.Info,
             dismissible = true,
             // Longer than the small phone's banner at 200%, so it has to wrap after the "@", whole.
             detail = "alex.rivera@example.org",
         )
         val CONFIGURATION_MISSING = InAppBanner(
-            title = "This build isn't set up yet",
+            title = "This build isn’t set up yet",
             message = "This copy of the app is missing its server settings, so sign-in is turned off. " +
                 "Ask your administrator for a supported version of Waivera.",
             tone = BannerTone.Warning,
@@ -297,7 +297,7 @@ class CompactBannerLayoutTest {
         )
         val NOT_SENT_OFFSCREEN = InAppBanner(
             title = "1 message not sent",
-            message = "It's further up the conversation.",
+            message = "It’s further up the conversation.",
             tone = BannerTone.Error,
             actionLabel = "Show",
             actionIcon = WaiveraIcons.ArrowUp,
@@ -312,7 +312,7 @@ class CompactBannerLayoutTest {
             actionIcon = WaiveraIcons.OpenExternal,
         )
         val PASSWORD_CONTINUE_FAILED = InAppBanner(
-            title = "Your password is saved, but Waivera didn't open",
+            title = "Your password is saved, but Waivera didn’t open",
             message = "You appear to be offline. Check your connection and try again.",
             tone = BannerTone.Warning,
             dismissible = true,

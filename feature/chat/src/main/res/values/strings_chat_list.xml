@@ -25,11 +25,11 @@
     <string name="feature_chat_list_empty_title">No chats yet</string>
     <string name="feature_chat_list_empty">Say hello to a coworker. Your chats will live here.</string>
     <string name="feature_chat_list_empty_action">Start a chat</string>
-    <string name="feature_chat_list_error_title">Conversations didn\'t load</string>
+    <string name="feature_chat_list_error_title">Conversations didn’t load</string>
     <string name="feature_chat_list_retry">Retry</string>
-    <string name="feature_chat_list_refresh_failed_title">Couldn\'t refresh your chats</string>
+    <string name="feature_chat_list_refresh_failed_title">Couldn’t refresh your chats</string>
     <string name="feature_chat_list_refresh_failed">Showing saved conversations.</string>
-    <string name="feature_chat_list_offline_saved">Showing your saved conversations. New messages arrive when you\'re back online.</string>
+    <string name="feature_chat_list_offline_saved">Showing your saved conversations. New messages arrive when you’re back online.</string>
     <string name="feature_chat_list_loading">Loading conversations</string>
 
     <string name="feature_chat_list_preview_none">No messages yet</string>
@@ -47,8 +47,8 @@
     <!-- The call pill at large font, or when the full line would be cut: the verb stays. -->
     <string name="feature_chat_list_call_join_short">Join call</string>
     <string name="feature_chat_list_call_opening">Opening call</string>
-    <string name="feature_chat_list_call_failed">Couldn\'t open the video call. Try again.</string>
-    <string name="feature_chat_list_call_no_browser">Couldn\'t open the call. Check that a web browser is installed and turned on.</string>
+    <string name="feature_chat_list_call_failed">Couldn’t open the video call. Try again.</string>
+    <string name="feature_chat_list_call_no_browser">Couldn’t open the call. Check that a web browser is installed and turned on.</string>
 
     <string name="feature_chat_list_time_now">Now</string>
     <string name="feature_chat_list_time_minutes">%1$dm</string>
@@ -65,14 +65,14 @@
     <string name="feature_chat_list_actions">More actions for %1$s</string>
     <string name="feature_chat_list_action_mark_read">Mark as read</string>
     <string name="feature_chat_list_action_profile">View profile</string>
-    <string name="feature_chat_list_mark_read_failed">Couldn\'t mark this chat as read.</string>
+    <string name="feature_chat_list_mark_read_failed">Couldn’t mark this chat as read.</string>
 
     <string name="feature_chat_newchat_title">New chat</string>
     <string name="feature_chat_newchat_subtitle">Pick one person to message, or a few to start a group.</string>
     <string name="feature_chat_newchat_search_label">Search people</string>
     <string name="feature_chat_newchat_search_placeholder">Search by name</string>
-    <string name="feature_chat_newchat_load_error_title">Coworkers didn\'t load</string>
-    <string name="feature_chat_newchat_create_conflict">That chat couldn\'t be started just now. Try again in a moment.</string>
+    <string name="feature_chat_newchat_load_error_title">Coworkers didn’t load</string>
+    <string name="feature_chat_newchat_create_conflict">That chat couldn’t be started just now. Try again in a moment.</string>
     <string name="feature_chat_newchat_opening">Opening chat…</string>
     <string name="feature_chat_newchat_creating">Starting your group…</string>
     <plurals name="feature_chat_newchat_selected">

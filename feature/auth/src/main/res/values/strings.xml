@@ -22,71 +22,71 @@
     <string name="feature_auth_legal_end">.</string>
     <!-- TalkBack: "Double tap to open in your browser". -->
     <string name="feature_auth_legal_open">open in your browser</string>
-    <string name="feature_auth_link_failed_title">Couldn\'t open that page</string>
+    <string name="feature_auth_link_failed_title">Couldn’t open that page</string>
     <string name="feature_auth_link_failed_message">Check that a web browser is installed and turned on, then try again.</string>
-    <string name="feature_auth_signed_out_title">You\'re signed out</string>
-    <string name="feature_auth_signed_out_message">You won\'t get notifications on this device until you sign back in.</string>
-    <string name="feature_auth_sign_in_failed_title">Couldn\'t sign in</string>
+    <string name="feature_auth_signed_out_title">You’re signed out</string>
+    <string name="feature_auth_signed_out_message">You won’t get notifications on this device until you sign back in.</string>
+    <string name="feature_auth_sign_in_failed_title">Couldn’t sign in</string>
     <string name="feature_auth_reset_sending">Sending link…</string>
     <string name="feature_auth_reset_sent_title">Check your inbox</string>
-    <string name="feature_auth_reset_sent_message">If there\'s a Waivera account for this email, a reset link is on its way.</string>
-    <string name="feature_auth_configuration_title">This version can\'t sign in</string>
+    <string name="feature_auth_reset_sent_message">If there’s a Waivera account for this email, a reset link is on its way.</string>
+    <string name="feature_auth_configuration_title">This version can’t sign in</string>
     <string name="feature_auth_configuration_message">This version of the app is missing settings it needs, so sign-in is off. Ask your administrator for the right version of Waivera.</string>
     <string name="feature_auth_configuration_details">Missing settings: %1$s</string>
 
     <!-- Validation. Word joiners (U+2060) hold the example address together, so it never wraps
          at its dot ("Try name@organization" / ".com.", UI9-10). -->
     <string name="feature_auth_error_email_required">Enter your email.</string>
-    <string name="feature_auth_error_email_invalid">That doesn\'t look like an email. Try name&#x2060;@&#x2060;organization&#x2060;.&#x2060;com.</string>
+    <string name="feature_auth_error_email_invalid">That doesn’t look like an email. Try name&#x2060;@&#x2060;organization&#x2060;.&#x2060;com.</string>
     <string name="feature_auth_error_password_required">Enter your password.</string>
     <string name="feature_auth_error_current_password_required">Enter your current password.</string>
-    <string name="feature_auth_error_current_password_wrong">That\'s not your current password. Try again.</string>
+    <string name="feature_auth_error_current_password_wrong">That’s not your current password. Try again.</string>
     <!-- The minimum length is a fixed constant above one, so the plural form never varies. -->
     <string name="feature_auth_error_new_password_short" tools:ignore="PluralsCandidate">Use at least %1$d characters.</string>
-    <string name="feature_auth_error_new_password_same">Pick a password that\'s different from your current one.</string>
-    <string name="feature_auth_error_confirm_mismatch">These don\'t match yet. Type your new password again.</string>
+    <string name="feature_auth_error_new_password_same">Pick a password that’s different from your current one.</string>
+    <string name="feature_auth_error_confirm_mismatch">These don’t match yet. Type your new password again.</string>
 
     <!-- Password change -->
     <string name="feature_auth_password_change_title">Change your password</string>
     <string name="feature_auth_password_change_required_title">Time for a new password</string>
     <string name="feature_auth_password_change_required_message">To keep your account safe, we ask for a new password when you first sign in and every six months after that.</string>
-    <string name="feature_auth_password_change_voluntary_message">Enter your current password, then pick a new one. You\'ll stay signed in here.</string>
+    <string name="feature_auth_password_change_voluntary_message">Enter your current password, then pick a new one. You’ll stay signed in here.</string>
     <string name="feature_auth_current_password_label">Current password</string>
     <string name="feature_auth_new_password_label">New password</string>
     <string name="feature_auth_new_password_hint" tools:ignore="PluralsCandidate">At least %1$d characters. A short phrase is easy to remember.</string>
     <string name="feature_auth_confirm_password_label">Confirm new password</string>
     <string name="feature_auth_password_change_save">Update password</string>
     <string name="feature_auth_password_change_saving">Saving your new password…</string>
-    <string name="feature_auth_password_change_failed_title">Your password wasn\'t changed</string>
-    <string name="feature_auth_password_change_done_title">You\'re all set</string>
+    <string name="feature_auth_password_change_failed_title">Your password wasn’t changed</string>
+    <string name="feature_auth_password_change_done_title">You’re all set</string>
     <string name="feature_auth_password_change_done_message">Use your new password next time you sign in.</string>
     <string name="feature_auth_password_change_done_action">Done</string>
     <string name="feature_auth_password_change_continue">Continue</string>
     <string name="feature_auth_password_change_continuing">Opening Waivera…</string>
-    <string name="feature_auth_password_change_continue_failed_title">Your password is saved, but Waivera didn\'t open</string>
+    <string name="feature_auth_password_change_continue_failed_title">Your password is saved, but Waivera didn’t open</string>
     <string name="feature_auth_sign_out">Sign out</string>
 
     <!-- Onboarding required -->
-    <string name="feature_auth_onboarding_title">You\'re almost there</string>
+    <string name="feature_auth_onboarding_title">You’re almost there</string>
     <string name="feature_auth_onboarding_message">Your account needs a few more details. Finish setting it up from the invitation your organization sent you, then come back here.</string>
-    <string name="feature_auth_onboarding_help">Can\'t find the invitation? Ask your administrator to send it again.</string>
-    <string name="feature_auth_onboarding_check">I\'m done, check again</string>
+    <string name="feature_auth_onboarding_help">Can’t find the invitation? Ask your administrator to send it again.</string>
+    <string name="feature_auth_onboarding_check">I’m done, check again</string>
     <string name="feature_auth_checking">Checking…</string>
     <string name="feature_auth_retrying">Trying again…</string>
     <string name="feature_auth_onboarding_still_pending">Not quite yet. It can take a few minutes after you finish setup.</string>
 
     <!-- Bootstrap failed -->
-    <string name="feature_auth_bootstrap_title">We couldn\'t reach Waivera</string>
-    <string name="feature_auth_bootstrap_offline_title">You\'re offline</string>
+    <string name="feature_auth_bootstrap_title">We couldn’t reach Waivera</string>
+    <string name="feature_auth_bootstrap_offline_title">You’re offline</string>
     <string name="feature_auth_bootstrap_offline_message">Check your connection and try again.</string>
-    <string name="feature_auth_bootstrap_still_failing_title">Still can\'t reach Waivera</string>
+    <string name="feature_auth_bootstrap_still_failing_title">Still can’t reach Waivera</string>
     <string name="feature_auth_bootstrap_still_failing_message">Last tried at %1$s. Your place is saved, so try again in a moment.</string>
-    <string name="feature_auth_bootstrap_help">You\'re signed in. We just need to finish loading your account.</string>
+    <string name="feature_auth_bootstrap_help">You’re signed in. We just need to finish loading your account.</string>
     <string name="feature_auth_try_again">Try again</string>
 
     <!-- Notification primer -->
     <string name="feature_auth_primer_title">Stay in the loop</string>
-    <string name="feature_auth_primer_message">Turn on notifications so you never miss something that needs you. Here\'s what you\'ll get.</string>
+    <string name="feature_auth_primer_message">Turn on notifications so you never miss something that needs you. Here’s what you’ll get.</string>
     <string name="feature_auth_primer_messages_title">Messages and mentions</string>
     <string name="feature_auth_primer_messages_body">Direct messages and mentions can make a sound. Group chats arrive quietly.</string>
     <string name="feature_auth_primer_schedule_title">Your schedule</string>

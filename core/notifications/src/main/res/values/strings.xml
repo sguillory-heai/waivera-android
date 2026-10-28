@@ -20,7 +20,7 @@
     <string name="core_notifications_you">You</string>
     <string name="core_notifications_someone">Someone</string>
     <string name="core_notifications_new_message">New message</string>
-    <string name="core_notifications_reply_failed">Couldn\'t send your reply. Open the chat to try again.</string>
+    <string name="core_notifications_reply_failed">Couldn’t send your reply. Open the chat to try again.</string>
     <string name="core_notifications_summary_title">Waivera</string>
     <plurals name="core_notifications_summary_text">
         <item quantity="one">%d conversation</item>

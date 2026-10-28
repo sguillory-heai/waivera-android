@@ -41,7 +41,7 @@ class Path01SignInTest : NavTourHarness() {
         typeInto("Email", "alex.rivera@example.com")
         typeInto("Password", "not-the-password")
         click("Sign in")
-        expectScreen("Couldn't sign in")
+        expectScreen("Couldn’t sign in")
         expectGate(AppGate.SignIn())
         shot("path_01_signin_04_wrong_password")
 
