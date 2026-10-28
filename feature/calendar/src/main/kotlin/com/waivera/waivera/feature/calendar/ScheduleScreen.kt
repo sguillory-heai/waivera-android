@@ -30,6 +30,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
@@ -219,7 +220,10 @@ fun ScheduleContent(state: ScheduleUiState, actions: ScheduleActions, modifier: 
                     PeriodRow(
                         state = state,
                         actions = actions,
-                        modifier = Modifier.calendarCard(if (gridShown) CalendarCardTop else WaiveraShapes.SheetCard),
+                        modifier = Modifier.calendarCard(
+                            shape = if (gridShown) CalendarCardTop else WaiveraShapes.SheetCard,
+                            surface = WaiveraTheme.colors.surface,
+                        ),
                     )
                 }
                 if (gridShown) {
@@ -229,7 +233,7 @@ fun ScheduleContent(state: ScheduleUiState, actions: ScheduleActions, modifier: 
                             cells = state.cells,
                             onSelectDate = actions.onSelectDate,
                             modifier = Modifier
-                                .calendarCard(CalendarCardBottom)
+                                .calendarCard(CalendarCardBottom, WaiveraTheme.colors.surface)
                                 .padding(bottom = WaiveraSpacing.Small),
                         )
                     }
@@ -314,11 +318,10 @@ private fun LazyListScope.nowItem(now: AgendaNow) {
 private const val NOW_KEY = "now"
 
 /** Insets a piece of the calendar card by the gutter and gives it the card's surface and corners. */
-@Composable
-private fun Modifier.calendarCard(shape: Shape): Modifier = this
+private fun Modifier.calendarCard(shape: Shape, surface: Color): Modifier = this
     .padding(horizontal = WaiveraSpacing.Gutter)
     .clip(shape)
-    .background(WaiveraTheme.colors.surface)
+    .background(surface)
 
 private val CalendarCardTop: Shape = RoundedCornerShape(
     topStart = WaiveraShapes.SheetCardRadius,

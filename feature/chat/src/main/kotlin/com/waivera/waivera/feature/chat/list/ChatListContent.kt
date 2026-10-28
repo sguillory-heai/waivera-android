@@ -25,6 +25,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.Shape
@@ -124,7 +125,9 @@ fun ChatListContent(
                     }
                     when {
                         showSkeleton -> item(key = SKELETON_KEY, contentType = SKELETON_KEY) {
-                            ChatListSkeleton(modifier = Modifier.inboxCard(InboxCardPosition.Single))
+                            ChatListSkeleton(
+                                modifier = Modifier.inboxCard(InboxCardPosition.Single, WaiveraTheme.colors.surface),
+                            )
                         }
                         state.content is ChatListContent.Error -> item(key = STATE_KEY, contentType = STATE_KEY) {
                             WaiveraErrorState(
@@ -149,7 +152,7 @@ fun ChatListContent(
                                         placementSpec = motion.layout(),
                                         fadeOutSpec = motion.state(),
                                     )
-                                    .inboxCard(position),
+                                    .inboxCard(position, WaiveraTheme.colors.surface),
                             ) {
                                 ConversationRow(
                                     row = row,
@@ -208,11 +211,10 @@ private fun InboxCardPosition.shape(): Shape = when (this) {
 }
 
 /** Insets a row by the gutter and clips it to its part of the card. */
-@Composable
-private fun Modifier.inboxCard(position: InboxCardPosition): Modifier = this
+private fun Modifier.inboxCard(position: InboxCardPosition, surface: Color): Modifier = this
     .padding(horizontal = WaiveraSpacing.Gutter)
     .clip(position.shape())
-    .background(WaiveraTheme.colors.surface)
+    .background(surface)
 
 private val InboxCardTop: Shape = RoundedCornerShape(
     topStart = WaiveraShapes.SheetCardRadius,
