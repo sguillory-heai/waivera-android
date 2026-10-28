@@ -18,7 +18,7 @@
 
     <string name="feature_chat_list_empty_search_title">No chats found</string>
     <string name="feature_chat_list_empty_search">Try a different name or word.</string>
-    <string name="feature_chat_list_empty_unread_title">All caught up 🎉</string>
+    <string name="feature_chat_list_empty_unread_title">All caught up</string>
     <string name="feature_chat_list_empty_unread">Nice work. New messages will land here.</string>
     <string name="feature_chat_list_empty_channels_title">No channels yet</string>
     <string name="feature_chat_list_empty_channels">Channels your team adds will show up here.</string>

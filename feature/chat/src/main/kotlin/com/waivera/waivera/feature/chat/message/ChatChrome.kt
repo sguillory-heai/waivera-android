@@ -119,6 +119,10 @@ fun Composer(
                             },
                         ),
                         color = colors.textSecondary,
+                        // One line even at 200%, so the empty field is not two lines tall; the
+                        // field itself still grows with typed text (UI8-12).
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
                     )
                 },
                 keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences),

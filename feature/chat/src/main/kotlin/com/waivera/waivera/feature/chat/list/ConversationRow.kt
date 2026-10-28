@@ -42,6 +42,7 @@ import com.waivera.waivera.core.designsystem.component.WaiveraAvatar
 import com.waivera.waivera.core.designsystem.component.WaiveraBusyIndicator
 import com.waivera.waivera.core.designsystem.component.WaiveraCountBadge
 import com.waivera.waivera.core.designsystem.component.WaiveraIconTile
+import com.waivera.waivera.core.designsystem.component.WaiveraLogoTile
 import com.waivera.waivera.core.designsystem.component.WaiveraPressable
 import com.waivera.waivera.core.designsystem.component.WaiveraTileTone
 import com.waivera.waivera.core.designsystem.icon.WaiveraIcons
@@ -346,11 +347,10 @@ internal fun LeadingTile(leading: RowLeading, avatar: ImageBitmap?) {
                 // An archived channel is inactive, so it takes the neutral tile (WaiveraTileTone).
                 tone = if (leading.archived) WaiveraTileTone.Neutral else WaiveraTileTone.Brand,
             )
-            RowLeading.Bot -> IconTile(
-                icon = WaiveraIcons.Bot,
-                description = stringResource(R.string.feature_chat_list_bot_icon),
-                tone = WaiveraTileTone.Brand,
-            )
+            RowLeading.Bot -> {
+                val description = stringResource(R.string.feature_chat_list_bot_icon)
+                WaiveraLogoTile(modifier = Modifier.semantics { contentDescription = description })
+            }
             RowLeading.Group -> IconTile(
                 icon = WaiveraIcons.People,
                 description = stringResource(R.string.feature_chat_list_group_icon),

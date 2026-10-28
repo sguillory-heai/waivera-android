@@ -48,6 +48,7 @@ import com.waivera.waivera.core.designsystem.component.WaiveraAvatar
 import com.waivera.waivera.core.designsystem.component.WaiveraButton
 import com.waivera.waivera.core.designsystem.component.WaiveraButtonVariant
 import com.waivera.waivera.core.designsystem.component.WaiveraIconButton
+import com.waivera.waivera.core.designsystem.component.WaiveraLogoTile
 import com.waivera.waivera.core.designsystem.component.WaiveraPressable
 import com.waivera.waivera.core.designsystem.component.WaiveraStatusBadge
 import com.waivera.waivera.core.designsystem.component.bubbleArrival
@@ -160,20 +161,8 @@ private fun AuthorAvatar(row: TimelineItem.MessageRow, authorName: String, callb
         if (row.groupedWithPrevious) {
             Spacer(Modifier.size(WaiveraSizes.AvatarSmall))
         } else if (row.isBot) {
-            Box(
-                modifier = Modifier
-                    .size(WaiveraSizes.AvatarSmall)
-                    .background(WaiveraTheme.colors.accentWash, WaiveraShapes.Circle)
-                    .border(WaiveraSpacing.Hairline, WaiveraTheme.colors.accentBorderStrong, WaiveraShapes.Circle),
-                contentAlignment = Alignment.Center,
-            ) {
-                Icon(
-                    painterResource(WaiveraIcons.Bot),
-                    contentDescription = null,
-                    tint = WaiveraTheme.colors.accent,
-                    modifier = Modifier.size(WaiveraSizes.IconSmall),
-                )
-            }
+            // The bot is Waivera itself, so it wears the mark (UI8-08); the author line names it.
+            WaiveraLogoTile(size = WaiveraSizes.AvatarSmall, logoHeight = WaiveraSizes.IconSmall)
         } else {
             val authorId = row.message.authorId
             val bitmap = rememberAvatar(authorId)
@@ -189,7 +178,7 @@ private fun AuthorAvatar(row: TimelineItem.MessageRow, authorName: String, callb
                 WaiveraPressable(
                     onClick = { callbacks.onOpenPerson(authorId) },
                     onClickLabel = stringResource(R.string.feature_chat_open_profile, authorName),
-                    shape = WaiveraShapes.Circle,
+                    shape = WaiveraShapes.avatar(WaiveraSizes.AvatarSmall),
                     modifier = Modifier.semantics {
                         contentDescription = authorName
                     },
