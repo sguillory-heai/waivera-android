@@ -1,6 +1,6 @@
 package com.waivera.waivera.feature.today.ui
 
-import androidx.compose.animation.core.Animatable
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -8,15 +8,11 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.clearAndSetSemantics
@@ -27,50 +23,16 @@ import com.waivera.waivera.core.designsystem.component.SkeletonLine
 import com.waivera.waivera.core.designsystem.component.SkeletonListRow
 import com.waivera.waivera.core.designsystem.component.WaiveraButton
 import com.waivera.waivera.core.designsystem.component.WaiveraButtonVariant
-import com.waivera.waivera.core.designsystem.component.WaiveraCelebrationBurst
-import com.waivera.waivera.core.designsystem.component.WaiveraEmptyState
 import com.waivera.waivera.core.designsystem.component.WaiveraIconTile
-import com.waivera.waivera.core.designsystem.component.WaiveraIllustration
 import com.waivera.waivera.core.designsystem.component.WaiveraTileTone
 import com.waivera.waivera.core.designsystem.component.rememberSkeletonPulse
 import com.waivera.waivera.core.designsystem.icon.WaiveraIcons
 import com.waivera.waivera.core.designsystem.preview.WaiveraPreviews
+import com.waivera.waivera.core.designsystem.theme.WaiveraShapes
 import com.waivera.waivera.core.designsystem.theme.WaiveraSizes
 import com.waivera.waivera.core.designsystem.theme.WaiveraSpacing
 import com.waivera.waivera.core.designsystem.theme.WaiveraTheme
 import com.waivera.waivera.feature.today.R
-import java.time.LocalDate
-import kotlinx.coroutines.launch
-
-/**
- * "You're all caught up 🎉": the small reward. The art settles in on the celebrate spring and
- * confetti bursts once over it (once per day, not on every scroll back); with animations off it
- * simply appears, with no confetti.
- */
-@Composable
-internal fun AllCaughtUp(day: LocalDate?, modifier: Modifier = Modifier) {
-    val motion = WaiveraTheme.motion
-    val scale = remember { Animatable(if (motion.reduced) 1f else CELEBRATE_START_SCALE) }
-    val alpha = remember { Animatable(if (motion.reduced) 1f else 0f) }
-    LaunchedEffect(motion) {
-        launch { scale.animateTo(1f, motion.celebrate()) }
-        alpha.animateTo(1f, motion.state())
-    }
-    Box(modifier = modifier) {
-        WaiveraEmptyState(
-            // The title carries the one 🎉, tied to its last word so it never wraps alone (UI8-02).
-            title = stringResource(R.string.feature_today_all_caught_up_title),
-            message = stringResource(R.string.feature_today_all_caught_up_message),
-            illustration = WaiveraIllustration.CaughtUp,
-            modifier = Modifier.graphicsLayer {
-                scaleX = scale.value
-                scaleY = scale.value
-                this.alpha = alpha.value
-            },
-        )
-        WaiveraCelebrationBurst(trigger = day ?: Unit, modifier = Modifier.matchParentSize())
-    }
-}
 
 /**
  * A section that failed while the rest of Today works: a quiet row (muted error icon, message,
@@ -123,7 +85,10 @@ internal fun QuietLine(text: String, modifier: Modifier = Modifier) {
     }
 }
 
-/** First-load skeleton shaped like the final list: two section headers with rows, one shared pulse. */
+/**
+ * First-load skeleton on the sheet, shaped like the final screen: a section header and cards,
+ * twice, on one shared pulse. The hero above shows its own placeholder card.
+ */
 @Composable
 internal fun TodaySkeleton(modifier: Modifier = Modifier) {
     val pulse = rememberSkeletonPulse()
@@ -132,34 +97,45 @@ internal fun TodaySkeleton(modifier: Modifier = Modifier) {
         modifier = modifier
             .fillMaxWidth()
             .clearAndSetSemantics { contentDescription = loading },
-        verticalArrangement = Arrangement.spacedBy(WaiveraSpacing.XxSmall),
     ) {
-        repeat(SKELETON_SECTIONS) {
+        repeat(SKELETON_SECTIONS) { section ->
             SkeletonLine(
                 widthFraction = SKELETON_HEADER_FRACTION,
                 pulse = pulse,
                 modifier = Modifier.padding(
-                    start = WaiveraSpacing.Gutter,
-                    top = WaiveraSpacing.Large,
-                    bottom = WaiveraSpacing.Small,
+                    start = WaiveraSpacing.Gutter + WaiveraSpacing.ExtraSmall,
+                    top = if (section == 0) WaiveraSpacing.MediumSmall else WaiveraSpacing.Large,
+                    bottom = WaiveraSpacing.MediumSmall,
                 ),
             )
-            repeat(SKELETON_ROWS) { SkeletonListRow(pulse = pulse) }
+            repeat(SKELETON_ROWS) { SkeletonCard(pulse = pulse) }
         }
     }
 }
 
-/** Placeholder rows for one section whose source is still loading. */
+/** Placeholder cards for one section whose source is still loading. */
 @Composable
 internal fun SectionSkeleton(modifier: Modifier = Modifier) {
     val pulse = rememberSkeletonPulse()
     val loading = stringResource(R.string.feature_today_loading)
     Column(modifier = modifier.clearAndSetSemantics { contentDescription = loading }) {
-        repeat(SKELETON_ROWS) { SkeletonListRow(pulse = pulse) }
+        repeat(SKELETON_ROWS) { SkeletonCard(pulse = pulse) }
     }
 }
 
-private const val CELEBRATE_START_SCALE = 0.85f
+/** A skeleton row inside the same card as a loaded Today card. */
+@Composable
+private fun SkeletonCard(pulse: Float) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = WaiveraSpacing.Gutter, vertical = WaiveraSpacing.ExtraSmall + WaiveraSpacing.Hairline)
+            .background(WaiveraTheme.colors.surface, WaiveraShapes.SheetCard),
+    ) {
+        SkeletonListRow(pulse = pulse, modifier = Modifier.padding(vertical = WaiveraSpacing.XxSmall))
+    }
+}
+
 private const val SKELETON_SECTIONS = 2
 private const val SKELETON_ROWS = 3
 private const val SKELETON_HEADER_FRACTION = 0.3f
@@ -169,7 +145,6 @@ private const val SKELETON_HEADER_FRACTION = 0.3f
 private fun TodayStatesPreview() {
     WaiveraTheme {
         Column(Modifier.heightIn(min = WaiveraSizes.AvatarHero)) {
-            AllCaughtUp(day = null)
             SectionError(message = "Your schedule couldn't load.", onRetry = {})
             TodaySkeleton()
         }

@@ -19,4 +19,70 @@
     <string name="feature_today_brand_send_wishes">Send wishes</string>
     <string name="feature_today_brand_send_wishes_a11y">Send wishes to %1$s</string>
     <string name="feature_today_brand_wishes_failed">We couldn\'t open the chat. Try again in a moment.</string>
+    <!-- Hero summary card -->
+    <string name="feature_today_brand_ring_caption">handled</string>
+    <string name="feature_today_brand_ring_a11y">%1$d of %2$d handled today</string>
+    <plurals name="feature_today_brand_needs_you_count">
+        <item quantity="one">%d thing needs you</item>
+        <item quantity="other">%d things need you</item>
+    </plurals>
+    <string name="feature_today_brand_needs_you_none">Nothing needs you right now</string>
+    <string name="feature_today_brand_handled_since">%1$d handled since this morning.</string>
+    <string name="feature_today_brand_handled_none">Each one you clear counts here.</string>
+    <string name="feature_today_brand_next">Next · %1$s</string>
+    <string name="feature_today_brand_next_a11y">Next: %1$s, %2$s</string>
+    <string name="feature_today_brand_now">Now · %1$s</string>
+    <string name="feature_today_brand_loading_summary">Loading what needs you</string>
+
+    <!-- Hero stat tiles. The number sits above the label, so the label has no number in it. -->
+    <plurals name="feature_today_brand_stat_events_today">
+        <item quantity="one">event today</item>
+        <item quantity="other">events today</item>
+    </plurals>
+    <plurals name="feature_today_brand_stat_unread_chats">
+        <item quantity="one">unread chat</item>
+        <item quantity="other">unread chats</item>
+    </plurals>
+    <plurals name="feature_today_brand_stat_events_week">
+        <item quantity="one">event this week</item>
+        <item quantity="other">events this week</item>
+    </plurals>
+    <string name="feature_today_brand_stat_handled">handled</string>
+    <string name="feature_today_brand_stat_fraction">%1$d/%2$d</string>
+    <string name="feature_today_brand_stat_a11y">%1$d %2$s</string>
+    <string name="feature_today_brand_stat_unknown" translatable="false">–</string>
+    <string name="feature_today_brand_stat_loading_a11y">%1$s, still loading</string>
+
+    <!-- All caught up. The emoji is in the headline only (strings.xml). -->
+    <plurals name="feature_today_brand_caught_up_named">
+        <item quantity="one">%1$d handled today. Nice work, %2$s.</item>
+        <item quantity="other">All %1$d handled today. Nice work, %2$s.</item>
+    </plurals>
+    <plurals name="feature_today_brand_caught_up">
+        <item quantity="one">%1$d handled today. Nice work.</item>
+        <item quantity="other">All %1$d handled today. Nice work.</item>
+    </plurals>
+
+    <!-- Section headers -->
+    <plurals name="feature_today_brand_needs_you_count_a11y">
+        <item quantity="one">%d item</item>
+        <item quantity="other">%d items</item>
+    </plurals>
+    <string name="feature_today_brand_show_all">Show all</string>
+
+    <!-- Your day -->
+    <string name="feature_today_brand_day_title">Your day</string>
+    <plurals name="feature_today_brand_day_events">
+        <item quantity="one">%d event</item>
+        <item quantity="other">%d events</item>
+    </plurals>
+    <string name="feature_today_brand_day_hours">%1$d hr scheduled</string>
+    <string name="feature_today_brand_day_hours_minutes">%1$d hr %2$d min scheduled</string>
+    <string name="feature_today_brand_day_minutes">%1$d min scheduled</string>
+    <string name="feature_today_brand_day_open">Your day is wide open.</string>
+    <string name="feature_today_brand_day_track_a11y">%1$s, from %2$s to %3$s</string>
+    <string name="feature_today_brand_day_now_a11y">It's %1$s now.</string>
+    <string name="feature_today_brand_until">Until %1$s</string>
+    <string name="feature_today_brand_until_dash">– %1$s</string>
+    <string name="feature_today_brand_until_next_day">– %1$s next day</string>
 </resources>

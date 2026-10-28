@@ -1,12 +1,11 @@
 package com.waivera.waivera.feature.today.ui
 
 import android.os.SystemClock
-import androidx.annotation.StringRes
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyItemScope
 import androidx.compose.foundation.lazy.LazyListScope
@@ -14,8 +13,6 @@ import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
@@ -31,19 +28,15 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.semantics
 import com.waivera.waivera.core.designsystem.component.ConnectionBanner
 import com.waivera.waivera.core.designsystem.component.ConnectionBannerState
-import com.waivera.waivera.core.designsystem.component.WaiveraButton
-import com.waivera.waivera.core.designsystem.component.WaiveraButtonVariant
 import com.waivera.waivera.core.designsystem.component.WaiveraEmptyState
 import com.waivera.waivera.core.designsystem.component.WaiveraErrorState
 import com.waivera.waivera.core.designsystem.component.WaiveraIllustration
+import com.waivera.waivera.core.designsystem.component.WaiveraSectionAction
+import com.waivera.waivera.core.designsystem.component.WaiveraSectionHeader
 import com.waivera.waivera.core.designsystem.component.WaiveraSnackbarHost
-import com.waivera.waivera.core.designsystem.component.WaiveraTopBar
 import com.waivera.waivera.core.designsystem.component.rememberSkeletonVisible
-import com.waivera.waivera.core.designsystem.component.rememberTopBarAccount
 import com.waivera.waivera.core.designsystem.theme.WaiveraMotionScheme
 import com.waivera.waivera.core.designsystem.theme.WaiveraSpacing
 import com.waivera.waivera.core.designsystem.theme.WaiveraTheme
@@ -51,6 +44,7 @@ import com.waivera.waivera.feature.today.R
 import com.waivera.waivera.feature.today.TodayAction
 import com.waivera.waivera.feature.today.model.ActivityRow
 import com.waivera.waivera.feature.today.model.NeedsYouItem
+import com.waivera.waivera.feature.today.model.NeedsYouSection
 import com.waivera.waivera.feature.today.model.TodayUiState
 import java.time.LocalTime
 
@@ -66,8 +60,10 @@ internal class TodayCallbacks(
 )
 
 /**
- * The stateless Today screen: top bar, connection banner, then one pull-to-refresh list in
- * priority order. Loads under ~300 ms show nothing rather than flashing a skeleton.
+ * The stateless Today screen (concept A): one pull-to-refresh list that opens on the plum hero
+ * (bar, greeting, summary card and stats) and continues on the rounded sheet with the connection
+ * banner and the sections in priority order. Loads under ~300 ms show nothing rather than
+ * flashing a skeleton.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -78,49 +74,20 @@ internal fun TodayContent(
     snackbarHostState: SnackbarHostState = remember { SnackbarHostState() },
     listState: LazyListState = rememberLazyListState(),
 ) {
-    val formats = rememberTodayFormats()
     val guarded = guardNavigation(callbacks)
-    Column(
+    Box(
         modifier = modifier
             .fillMaxSize()
             .background(WaiveraTheme.colors.background),
     ) {
-        WaiveraTopBar(
-            title = stringResource(R.string.feature_today_today_title),
-            subtitle = state.date?.let(formats::longDay),
-            account = rememberTopBarAccount(
-                onClick = callbacks.onAccountClick,
-                fallbackName = state.accountName,
-            ),
-        )
-        ConnectionBanner(
-            state = state.connection,
-            onRetry = { callbacks.onAction(TodayAction.RetryConnection) },
-            offlineMessage = offlineMessage(state.savedAt),
-        )
-        Box(modifier = Modifier.weight(1f)) {
-            PullToRefreshBox(
-                isRefreshing = state.isRefreshing,
-                onRefresh = { callbacks.onAction(TodayAction.Refresh) },
-                modifier = Modifier.fillMaxSize(),
-            ) {
-                val error = state.loadError
-                val showSkeleton = rememberSkeletonVisible(state.isInitialLoad)
-                when {
-                    error != null -> Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
-                        WaiveraErrorState(
-                            title = stringResource(R.string.feature_today_error_title),
-                            message = stringResource(error.messageRes),
-                            onRetry = { callbacks.onAction(TodayAction.Refresh) },
-                        )
-                    }
-                    !state.isInitialLoad -> TodayList(state, guarded, listState)
-                    showSkeleton -> TodaySkeleton()
-                    else -> Unit
-                }
-            }
-            WaiveraSnackbarHost(hostState = snackbarHostState, modifier = Modifier.align(Alignment.BottomCenter))
+        PullToRefreshBox(
+            isRefreshing = state.isRefreshing,
+            onRefresh = { callbacks.onAction(TodayAction.Refresh) },
+            modifier = Modifier.fillMaxSize(),
+        ) {
+            TodayList(state, guarded, listState)
         }
+        WaiveraSnackbarHost(hostState = snackbarHostState, modifier = Modifier.align(Alignment.BottomCenter))
     }
 }
 
@@ -153,84 +120,129 @@ private fun TodayList(state: TodayUiState, callbacks: TodayCallbacks, listState:
     val staleLine = state.staleSince
         ?.takeIf { state.connection == ConnectionBannerState.Connected }
         ?.let { staleText(it, formats) }
+    val showSkeleton = rememberSkeletonVisible(state.isInitialLoad)
+    val offline = offlineMessage(state.savedAt)
+    val error = state.loadError
     LazyColumn(
         state = listState,
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(bottom = WaiveraSpacing.ExtraLarge),
     ) {
-        state.greeting?.let { greeting ->
-            item(key = "greeting", contentType = "greeting") { TodayGreeting(greeting) }
+        item(key = "hero", contentType = "hero") { TodayHero(state, callbacks) }
+        item(key = "connection", contentType = "banner") {
+            ConnectionBanner(
+                state = state.connection,
+                onRetry = { callbacks.onAction(TodayAction.RetryConnection) },
+                offlineMessage = offline,
+            )
         }
-        if (staleLine != null) item(key = "stale", contentType = "quiet") { QuietLine(staleLine) }
-        needsYouItems(state, callbacks)
-        nextUpItems(state, callbacks)
-        celebrationItems(state, callbacks)
-        activityItems(state, callbacks)
+        when {
+            error != null -> item(key = "error", contentType = "error") {
+                WaiveraErrorState(
+                    title = stringResource(R.string.feature_today_error_title),
+                    message = stringResource(error.messageRes),
+                    onRetry = { callbacks.onAction(TodayAction.Refresh) },
+                )
+            }
+            state.isInitialLoad -> if (showSkeleton) {
+                item(key = "skeleton", contentType = "skeleton") { TodaySkeleton() }
+            }
+            else -> {
+                if (staleLine != null) item(key = "stale", contentType = "quiet") { QuietLine(staleLine) }
+                needsYouItems(state, callbacks)
+                yourDayItem(state, callbacks)
+                nextUpItems(state, callbacks)
+                celebrationItems(state, callbacks)
+                activityItems(state, callbacks)
+            }
+        }
     }
 }
 
 private fun LazyListScope.needsYouItems(state: TodayUiState, callbacks: TodayCallbacks) {
     val section = state.needsYou
-    when {
-        state.isAllCaughtUp -> item(key = "caught-up", contentType = "caught-up") {
-            AllCaughtUp(day = state.date, modifier = Modifier.animateTodayItem(this, WaiveraTheme.motion))
-        }
-        section.failed -> {
-            header("needs-header", R.string.feature_today_section_needs_you)
-            item(key = "needs-error", contentType = "error") {
-                SectionError(
-                    message = stringResource(R.string.feature_today_needs_you_failed),
-                    onRetry = { callbacks.onAction(TodayAction.Refresh) },
-                )
-            }
-        }
-        section.items.isNotEmpty() -> {
-            header("needs-header", R.string.feature_today_section_needs_you)
-            val rowCallbacks = NeedsYouCallbacks(
-                onOpenConversation = callbacks.onOpenConversation,
-                onOpenMention = { mention -> openMention(mention, callbacks) },
-                onOpenEvent = callbacks.onOpenEvent,
-                onRespond = { id, accept -> callbacks.onAction(TodayAction.RespondToInvitation(id, accept)) },
+    // All caught up is the hero's reward; the sheet goes straight on to the day.
+    if (state.isAllCaughtUp || (!section.failed && section.items.isEmpty())) return
+    item(key = "needs-header", contentType = "header") {
+        WaiveraSectionHeader(
+            title = stringResource(R.string.feature_today_section_needs_you),
+            count = section.totalCount.takeIf { !section.failed },
+            countDescription = pluralStringResource(
+                R.plurals.feature_today_brand_needs_you_count_a11y,
+                section.totalCount,
+                section.totalCount,
+            ),
+            action = needsYouToggle(section, onToggle = { callbacks.onAction(TodayAction.ToggleNeedsYouExpanded) }),
+            modifier = Modifier.sheetHeader(first = true),
+        )
+    }
+    if (section.failed) {
+        item(key = "needs-error", contentType = "error") {
+            SectionError(
+                message = stringResource(R.string.feature_today_needs_you_failed),
+                onRetry = { callbacks.onAction(TodayAction.Refresh) },
             )
-            items(section.items, key = { it.key }, contentType = { it::class.simpleName }) { item ->
-                NeedsYouRow(item, rowCallbacks, Modifier.animateTodayItem(this, WaiveraTheme.motion))
-            }
-            if (section.hiddenCount > 0 || section.isExpanded) {
-                item(key = "needs-more", contentType = "toggle") {
-                    WaiveraButton(
-                        text = if (section.isExpanded) {
-                            stringResource(R.string.feature_today_needs_you_show_less)
-                        } else {
-                            pluralStringResource(
-                                R.plurals.feature_today_needs_you_show_more,
-                                section.hiddenCount,
-                                section.hiddenCount,
-                            )
-                        },
-                        onClick = { callbacks.onAction(TodayAction.ToggleNeedsYouExpanded) },
-                        variant = WaiveraButtonVariant.Text,
-                        modifier = Modifier.animateTodayItem(this, WaiveraTheme.motion),
-                    )
-                }
-            }
         }
+    } else {
+        needsYouCards(section, callbacks)
+    }
+}
+
+private fun LazyListScope.needsYouCards(section: NeedsYouSection, callbacks: TodayCallbacks) {
+    val rowCallbacks = NeedsYouCallbacks(
+        onOpenConversation = callbacks.onOpenConversation,
+        onOpenMention = { mention -> openMention(mention, callbacks) },
+        onOpenEvent = callbacks.onOpenEvent,
+        onRespond = { id, accept -> callbacks.onAction(TodayAction.RespondToInvitation(id, accept)) },
+    )
+    items(section.items, key = { it.key }, contentType = { it::class.simpleName }) { item ->
+        NeedsYouRow(item, rowCallbacks, Modifier.animateTodayItem(this, WaiveraTheme.motion))
+    }
+}
+
+/** "Show all" (TalkBack: "Show 2 more") while items are folded away, "Show less" once open. */
+@Composable
+private fun needsYouToggle(section: NeedsYouSection, onToggle: () -> Unit): WaiveraSectionAction? = when {
+    section.isExpanded -> WaiveraSectionAction(
+        label = stringResource(R.string.feature_today_needs_you_show_less),
+        onClick = onToggle,
+    )
+    section.hiddenCount > 0 -> WaiveraSectionAction(
+        label = stringResource(R.string.feature_today_brand_show_all),
+        onClick = onToggle,
+        onClickLabel = pluralStringResource(
+            R.plurals.feature_today_needs_you_show_more,
+            section.hiddenCount,
+            section.hiddenCount,
+        ),
+    )
+    else -> null
+}
+
+private fun LazyListScope.yourDayItem(state: TodayUiState, callbacks: TodayCallbacks) {
+    val day = state.day ?: return
+    val next = state.nextUp.items.firstOrNull { it.startsToday && it.start != null }
+    item(key = "your-day", contentType = "your-day") {
+        YourDayCard(
+            day = day,
+            next = next,
+            onOpenEvent = callbacks.onOpenEvent,
+            modifier = Modifier.padding(top = WaiveraSpacing.MediumLarge, bottom = WaiveraSpacing.ExtraSmall),
+        )
     }
 }
 
 private fun LazyListScope.nextUpItems(state: TodayUiState, callbacks: TodayCallbacks) {
     val section = state.nextUp
     item(key = "next-header", contentType = "header") {
-        val seeSchedule = stringResource(R.string.feature_today_see_schedule_a11y)
-        TodaySectionHeader(
+        WaiveraSectionHeader(
             title = stringResource(R.string.feature_today_section_next_up),
-            trailing = {
-                WaiveraButton(
-                    text = stringResource(R.string.feature_today_see_schedule),
-                    onClick = callbacks.onOpenSchedule,
-                    variant = WaiveraButtonVariant.Text,
-                    modifier = Modifier.semantics { contentDescription = seeSchedule },
-                )
-            },
+            action = WaiveraSectionAction(
+                label = stringResource(R.string.feature_today_see_schedule),
+                onClick = callbacks.onOpenSchedule,
+                onClickLabel = stringResource(R.string.feature_today_open_schedule),
+            ),
+            modifier = Modifier.sheetHeader(first = state.isAllCaughtUp && state.day == null),
         )
     }
     when {
@@ -244,19 +256,29 @@ private fun LazyListScope.nextUpItems(state: TodayUiState, callbacks: TodayCallb
         section.items.isEmpty() -> item(key = "next-empty", contentType = "quiet") {
             QuietLine(stringResource(R.string.feature_today_next_up_empty))
         }
-        else -> items(section.items, key = { "next-${it.eventId}" }, contentType = { "next" }) { item ->
-            NextUpRow(
-                item = item,
-                onClick = { callbacks.onOpenEvent(item.eventId) },
-                modifier = Modifier.animateTodayItem(this, WaiveraTheme.motion),
-            )
+        else -> itemsIndexed(
+            items = section.items,
+            key = { _, item -> "next-${item.eventId}" },
+            contentType = { index, _ -> if (index == 0) "next-first" else "next" },
+        ) { index, item ->
+            val modifier = Modifier.animateTodayItem(this, WaiveraTheme.motion)
+            if (index == 0) {
+                UpNextCard(item = item, onClick = { callbacks.onOpenEvent(item.eventId) }, modifier = modifier)
+            } else {
+                NextUpRow(item = item, onClick = { callbacks.onOpenEvent(item.eventId) }, modifier = modifier)
+            }
         }
     }
 }
 
 private fun LazyListScope.celebrationItems(state: TodayUiState, callbacks: TodayCallbacks) {
     if (state.milestones.isEmpty() && !state.milestonesFailed) return
-    header("celebrations-header", R.string.feature_today_section_celebrations)
+    item(key = "celebrations-header", contentType = "header") {
+        WaiveraSectionHeader(
+            title = stringResource(R.string.feature_today_section_celebrations),
+            modifier = Modifier.sheetHeader(),
+        )
+    }
     if (state.milestonesFailed) {
         item(key = "celebrations-error", contentType = "error") {
             SectionError(
@@ -283,7 +305,11 @@ private fun LazyListScope.celebrationItems(state: TodayUiState, callbacks: Today
 private fun LazyListScope.activityItems(state: TodayUiState, callbacks: TodayCallbacks) {
     val section = state.activity
     item(key = "activity-header", contentType = "header") {
-        ActivityHeader(section, onMarkAllRead = { callbacks.onAction(TodayAction.MarkAllActivityRead) })
+        ActivityHeader(
+            section = section,
+            onMarkAllRead = { callbacks.onAction(TodayAction.MarkAllActivityRead) },
+            modifier = Modifier.padding(top = WaiveraSpacing.MediumLarge),
+        )
     }
     when {
         section.failed -> item(key = "activity-error", contentType = "error") {
@@ -334,9 +360,13 @@ private fun LazyListScope.activityItems(state: TodayUiState, callbacks: TodayCal
     }
 }
 
-private fun LazyListScope.header(key: String, @StringRes title: Int) {
-    item(key = key, contentType = "header") { TodaySectionHeader(title = stringResource(title)) }
-}
+/** A section header on the sheet: lined up with the cards' text, with room above it. */
+private fun Modifier.sheetHeader(first: Boolean = false): Modifier = padding(
+    start = WaiveraSpacing.Gutter + WaiveraSpacing.ExtraSmall,
+    end = WaiveraSpacing.Small,
+    top = if (first) WaiveraSpacing.Small else WaiveraSpacing.MediumLarge,
+    bottom = WaiveraSpacing.XxSmall,
+)
 
 /** Marks the activity read (optimistically) and opens the message, or its thread when it is a reply. */
 private fun openActivity(row: ActivityRow, callbacks: TodayCallbacks) {

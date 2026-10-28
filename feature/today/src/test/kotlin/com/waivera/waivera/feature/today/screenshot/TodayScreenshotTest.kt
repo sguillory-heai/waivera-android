@@ -7,6 +7,7 @@ import androidx.compose.ui.Modifier
 import com.waivera.waivera.core.data.calendar.CalendarMath
 import com.waivera.waivera.core.data.model.ActivityFeed
 import com.waivera.waivera.core.data.model.DateRange
+import com.waivera.waivera.core.data.model.HandledTally
 import com.waivera.waivera.core.data.model.MyInvitation
 import com.waivera.waivera.core.data.model.RealtimeStatus
 import com.waivera.waivera.core.data.model.ScheduleFeed
@@ -23,8 +24,6 @@ import com.waivera.waivera.core.testing.EnglishConversationTitles
 import com.waivera.waivera.feature.today.activity
 import com.waivera.waivera.feature.today.conversation
 import com.waivera.waivera.feature.today.model.CelebrationItem
-import com.waivera.waivera.feature.today.model.DayPart
-import com.waivera.waivera.feature.today.model.Greeting
 import com.waivera.waivera.feature.today.model.TodayAssembler
 import com.waivera.waivera.feature.today.model.TodayContext
 import com.waivera.waivera.feature.today.model.TodayLocalState
@@ -33,7 +32,6 @@ import com.waivera.waivera.feature.today.model.TodayUiState
 import com.waivera.waivera.feature.today.timedEvent
 import com.waivera.waivera.feature.today.ui.CelebrationCard
 import com.waivera.waivera.feature.today.ui.TodayContent
-import com.waivera.waivera.feature.today.ui.TodayGreeting
 import com.waivera.waivera.feature.today.ui.TodayPreviewStates
 import com.waivera.waivera.feature.today.ui.TodaySkeleton
 import java.time.Instant
@@ -75,10 +73,14 @@ class TodayScreenshotTest {
         failedSends = setOf(DemoData.DM_PRIYA),
     )
 
+    /** Five things already handled this morning, so the ring reads as it does mid-day. */
+    private val morningTally = HandledTally(userId = DemoData.ME, day = today, handled = 5, open = emptySet())
+
     private fun state(
         sources: TodaySources = demoSources(),
         local: TodayLocalState = TodayLocalState(),
         realtime: RealtimeStatus = connected,
+        handled: HandledTally? = morningTally,
     ): TodayUiState = TodayAssembler.assemble(
         sources,
         TodayContext(
@@ -90,6 +92,7 @@ class TodayScreenshotTest {
             local = local,
             titles = EnglishConversationTitles,
             firstName = "Alex",
+            handled = handled,
         ),
     )
 
@@ -103,15 +106,31 @@ class TodayScreenshotTest {
     @Test
     fun populated() = captureState("populated", state())
 
+    /** The first load past ~300 ms: the hero's placeholder card and dashes, the sheet's skeleton cards. */
     @Test
-    fun loading() = capture("loading") { TodaySkeleton() }
+    fun loading() = captureState(
+        "loading",
+        state(
+            sources = TodaySources(
+                conversations = Synced(emptyList()),
+                activity = Synced(ActivityFeed()),
+                schedule = null,
+                milestones = Synced(emptyList()),
+            ),
+        ),
+    )
 
-    /** The brand moments on their own: greeting variants and celebration cards with "Send wishes". */
+    @Test
+    fun skeleton() = capture("skeleton") { TodaySkeleton() }
+
+    /** A morning with nothing handled yet: the ring is empty and the line invites the first one. */
+    @Test
+    fun nothingHandledYet() = captureState("nothing_handled", state(handled = null))
+
+    /** The brand moments on their own: celebration cards with "Send wishes", and your own. */
     @Test
     fun brandMoments() = capture("brand_moments") {
         Column(Modifier.background(WaiveraTheme.colors.background)) {
-            TodayGreeting(Greeting(DayPart.MORNING, firstName = "Alex"))
-            TodayGreeting(Greeting(DayPart.EVENING, firstName = null))
             CelebrationCard(
                 item = CelebrationItem("usr_sam", "Sam Ortiz", isBirthday = true, anniversaryYears = null),
                 onOpen = {},

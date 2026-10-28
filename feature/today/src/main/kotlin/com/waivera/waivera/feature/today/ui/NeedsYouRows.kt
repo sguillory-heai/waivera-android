@@ -17,8 +17,10 @@ import com.waivera.waivera.core.designsystem.component.WaiveraAvatar
 import com.waivera.waivera.core.designsystem.component.WaiveraButton
 import com.waivera.waivera.core.designsystem.component.WaiveraButtonVariant
 import com.waivera.waivera.core.designsystem.component.WaiveraCountBadge
-import com.waivera.waivera.core.designsystem.component.WaiveraIconTile
+import com.waivera.waivera.core.designsystem.component.WaiveraGradientButton
+import com.waivera.waivera.core.designsystem.component.WaiveraGradientButtonSize
 import com.waivera.waivera.core.designsystem.component.WaiveraTileTone
+import com.waivera.waivera.core.designsystem.component.tint
 import com.waivera.waivera.core.designsystem.icon.WaiveraIcons
 import com.waivera.waivera.core.designsystem.preview.WaiveraPreviews
 import com.waivera.waivera.core.designsystem.text.withNonBreakingHyphens
@@ -76,7 +78,7 @@ private fun DirectMessageRow(item: NeedsYouItem.DirectMessage, onClick: () -> Un
             WaiveraAvatar(
                 name = name,
                 imageModel = AvatarModel.of(item.otherUserId),
-                size = WaiveraSizes.IconTile,
+                size = WaiveraSizes.CardTile,
                 contentDescription = null,
             )
         },
@@ -99,7 +101,7 @@ private fun NotSentRow(item: NeedsYouItem.NotSent, onClick: () -> Unit, modifier
         supporting = supporting,
         emphasized = true,
         modifier = modifier,
-        leading = { WaiveraIconTile(icon = WaiveraIcons.Error, tone = WaiveraTileTone.Danger) },
+        leading = { TodayTile(icon = WaiveraIcons.Error, tone = WaiveraTileTone.Danger) },
     )
 }
 
@@ -108,6 +110,7 @@ private fun MentionRow(item: NeedsYouItem.Mention, onClick: () -> Unit, modifier
     val formats = rememberTodayFormats()
     val summary = summaryText(item.summary)
     val kind = stringResource(R.string.feature_today_kind_mention)
+    val rose = WaiveraTileTone.Rose.tint(WaiveraTheme.colors)
     TodayRow(
         headline = summary,
         description = stringResource(
@@ -116,12 +119,13 @@ private fun MentionRow(item: NeedsYouItem.Mention, onClick: () -> Unit, modifier
         ),
         onClick = onClick,
         onClickLabel = stringResource(R.string.feature_today_open_message),
-        supporting = joined(kind, item.at?.let { pastText(it, formats) }),
+        eyebrow = joined(kind, item.at?.let { pastText(it, formats) }),
+        eyebrowColor = rose.content,
         emphasized = true,
         modifier = modifier,
         // A single mention has no count, so bold text and the "Unread" announcement are enough;
         // a dot on top would be a third unread signal (UI review UI-09).
-        leading = { WaiveraIconTile(icon = R.drawable.feature_today_ic_mention, tone = WaiveraTileTone.Rose) },
+        leading = { TodayTile(icon = R.drawable.feature_today_ic_mention, tone = WaiveraTileTone.Rose) },
     )
 }
 
@@ -149,14 +153,15 @@ private fun TicketRow(item: NeedsYouItem.Ticket, onClick: () -> Unit, modifier: 
         supporting = item.at?.let { joined(pastText(it, formats), visibleSnippet) } ?: visibleSnippet,
         emphasized = true,
         modifier = modifier,
-        leading = { WaiveraIconTile(icon = R.drawable.feature_today_ic_ticket) },
+        leading = { TodayTile(icon = R.drawable.feature_today_ic_ticket, tone = WaiveraTileTone.Amber) },
         trailing = { WaiveraCountBadge(count = item.unreadCount) },
     )
 }
 
 /**
- * A pending invitation with one-tap answers. The body opens the event; Accept and Decline are
- * separate 48dp buttons so TalkBack reaches each on its own.
+ * A pending invitation with one-tap answers. The body opens the event; Decline (tonal) and
+ * Accept (the gradient) are separate 48dp buttons inside the card so TalkBack reaches each on
+ * its own.
  */
 @Composable
 private fun InvitationRow(
@@ -171,47 +176,46 @@ private fun InvitationRow(
     val organizer = item.organizer?.let { stringResource(R.string.feature_today_invitation_from, it) }
     val eyebrow = stringResource(R.string.feature_today_invitation_label)
     val details = if (time != null && organizer != null) joined(time, organizer) else time ?: organizer
-    Column(modifier = modifier.fillMaxWidth()) {
-        TodayRow(
-            headline = title,
-            description = joined(joined(eyebrow, title), details),
-            onClick = onOpen,
-            onClickLabel = stringResource(R.string.feature_today_open_event),
-            eyebrow = eyebrow,
-            eyebrowColor = WaiveraTheme.colors.accent,
-            supporting = details,
-            emphasized = true,
-            leading = { WaiveraIconTile(icon = WaiveraIcons.Calendar, tone = WaiveraTileTone.Teal) },
-        )
-        val declineLabel = stringResource(R.string.feature_today_invitation_decline_a11y, title)
-        val acceptLabel = stringResource(R.string.feature_today_invitation_accept_a11y, title)
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(
-                    start = WaiveraSpacing.Gutter + WaiveraSizes.IconTile + WaiveraSpacing.MediumSmall,
-                    end = WaiveraSpacing.Gutter,
-                    bottom = WaiveraSpacing.MediumSmall,
-                ),
-            horizontalArrangement = Arrangement.spacedBy(WaiveraSpacing.Small),
-        ) {
-            WaiveraButton(
-                text = stringResource(R.string.feature_today_invitation_decline),
-                onClick = { onRespond(false) },
-                variant = WaiveraButtonVariant.Secondary,
-                modifier = Modifier
-                    .weight(1f)
-                    .semantics { contentDescription = declineLabel },
-            )
-            WaiveraButton(
-                text = stringResource(R.string.feature_today_invitation_accept),
-                onClick = { onRespond(true) },
-                modifier = Modifier
-                    .weight(1f)
-                    .semantics { contentDescription = acceptLabel },
-            )
-        }
-    }
+    val violet = WaiveraTileTone.Brand.tint(WaiveraTheme.colors)
+    val declineLabel = stringResource(R.string.feature_today_invitation_decline_a11y, title)
+    val acceptLabel = stringResource(R.string.feature_today_invitation_accept_a11y, title)
+    TodayRow(
+        headline = title,
+        description = joined(joined(eyebrow, title), details),
+        onClick = onOpen,
+        onClickLabel = stringResource(R.string.feature_today_open_event),
+        eyebrow = eyebrow,
+        eyebrowColor = violet.content,
+        supporting = details,
+        emphasized = true,
+        showChevron = false,
+        modifier = modifier,
+        leading = { TodayTile(icon = WaiveraIcons.Calendar, tone = WaiveraTileTone.Brand) },
+        below = {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(WaiveraSpacing.Small),
+            ) {
+                WaiveraButton(
+                    text = stringResource(R.string.feature_today_invitation_decline),
+                    onClick = { onRespond(false) },
+                    variant = WaiveraButtonVariant.Tonal,
+                    fullWidth = true,
+                    modifier = Modifier
+                        .weight(1f)
+                        .semantics { contentDescription = declineLabel },
+                )
+                WaiveraGradientButton(
+                    text = stringResource(R.string.feature_today_invitation_accept),
+                    onClick = { onRespond(true) },
+                    size = WaiveraGradientButtonSize.Compact,
+                    modifier = Modifier
+                        .weight(1f)
+                        .semantics { contentDescription = acceptLabel },
+                )
+            }
+        },
+    )
 }
 
 @WaiveraPreviews
@@ -219,7 +223,7 @@ private fun InvitationRow(
 private fun NeedsYouRowsPreview() {
     val callbacks = NeedsYouCallbacks({}, {}, {}, { _, _ -> })
     WaiveraTheme {
-        Column(Modifier.background(WaiveraTheme.colors.background)) {
+        Column(Modifier.background(WaiveraTheme.colors.background).padding(vertical = WaiveraSpacing.Small)) {
             NeedsYouRow(NeedsYouItem.NotSent(conversationId = 7, name = "Priya Raman"), callbacks)
             NeedsYouRow(
                 NeedsYouItem.DirectMessage(

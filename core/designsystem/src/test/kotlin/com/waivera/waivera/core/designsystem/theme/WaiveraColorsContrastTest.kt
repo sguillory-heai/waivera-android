@@ -59,7 +59,11 @@ class WaiveraColorsContrastTest {
             "neutral" to tiles.neutral,
             "danger" to tiles.danger,
             "celebration" to tiles.celebration,
-        ).forEach { (name, tint) -> text("tile $name glyph", tint.content, tint.container) }
+        ).forEach { (name, tint) ->
+            text("tile $name glyph", tint.content, tint.container)
+            // Today's card kickers ("Mention · 5m", "Invitation") and chips use the tile ink as text on the card.
+            text("tile $name ink on a card", tint.content, colors.surface)
+        }
     }
 
     @Test

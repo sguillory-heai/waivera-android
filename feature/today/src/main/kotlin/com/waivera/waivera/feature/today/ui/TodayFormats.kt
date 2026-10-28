@@ -11,14 +11,25 @@ import java.util.Locale
  * joined by no-break spaces (U+00A0), so at 200% a row wraps before or after them, never
  * inside (UI4-07).
  */
-internal class TodayFormats(locale: Locale) {
-    private val time = DateTimeFormatter.ofPattern("h:mm\u00A0a", locale)
-    private val day = DateTimeFormatter.ofPattern("EEE,\u00A0MMM\u00A0d", locale)
-    private val longDay = DateTimeFormatter.ofPattern("EEEE, MMMM\u00A0d", locale)
+internal class TodayFormats(private val locale: Locale) {
+    private val time = DateTimeFormatter.ofPattern("h:mm a", locale)
+    private val day = DateTimeFormatter.ofPattern("EEE, MMM d", locale)
+    private val longDay = DateTimeFormatter.ofPattern("EEEE, MMMM d", locale)
+    private val hour = DateTimeFormatter.ofPattern("h a", locale)
+    private val bareHour = DateTimeFormatter.ofPattern("h", locale)
 
     fun time(value: LocalTime): String = time.format(value)
 
     fun day(value: LocalDate): String = day.format(value)
 
     fun longDay(value: LocalDate): String = longDay.format(value)
+
+    /** The hero's date line, capitalised for the eyebrow style ("SUNDAY, NOVEMBER 1"). */
+    fun eyebrowDay(value: LocalDate): String = upper(longDay(value))
+
+    /** Capitals for an eyebrow style, in the formats' own locale (the string keeps sentence case). */
+    fun upper(text: String): String = text.uppercase(locale)
+
+    /** A whole hour on the day track: "8 AM", or the bare "10" between the ends and noon. */
+    fun hour(value: LocalTime, withPeriod: Boolean): String = (if (withPeriod) hour else bareHour).format(value)
 }

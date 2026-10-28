@@ -5,7 +5,10 @@ import com.waivera.waivera.feature.today.model.ActivityRow
 import com.waivera.waivera.feature.today.model.ActivitySection
 import com.waivera.waivera.feature.today.model.ActivitySummary
 import com.waivera.waivera.feature.today.model.CelebrationItem
+import com.waivera.waivera.feature.today.model.DayBlock
+import com.waivera.waivera.feature.today.model.DayHourLabel
 import com.waivera.waivera.feature.today.model.DayPart
+import com.waivera.waivera.feature.today.model.DayTimeline
 import com.waivera.waivera.feature.today.model.Greeting
 import com.waivera.waivera.feature.today.model.MessageSnippet
 import com.waivera.waivera.feature.today.model.NeedsYouItem
@@ -13,8 +16,11 @@ import com.waivera.waivera.feature.today.model.NeedsYouSection
 import com.waivera.waivera.feature.today.model.NextUpItem
 import com.waivera.waivera.feature.today.model.NextUpSection
 import com.waivera.waivera.feature.today.model.PastLabel
+import com.waivera.waivera.feature.today.model.TodayProgress
+import com.waivera.waivera.feature.today.model.TodayStats
 import com.waivera.waivera.feature.today.model.TodayUiState
 import com.waivera.waivera.feature.today.model.UpcomingLabel
+import java.time.Duration
 import java.time.LocalDate
 import java.time.LocalTime
 
@@ -32,11 +38,43 @@ internal object TodayPreviewStates {
         nextUp = nextUp(),
         milestones = listOf(CelebrationItem("usr_jordan_lee", "Jordan Lee", isBirthday = false, anniversaryYears = 5)),
         activity = activity(),
+        progress = TodayProgress(handled = 5, open = 2),
+        stats = TodayStats(eventsToday = 3, unreadChats = 6, eventsThisWeek = 14),
+        day = day(),
     )
 
     fun caughtUp() = populated().copy(
         needsYou = NeedsYouSection(isReady = true),
         activity = ActivitySection(isReady = true),
+        progress = TodayProgress(handled = 9, open = 0),
+    )
+
+    /** Concept B's day: 11 to 12, 2 to 2:30 and 4 to 4:30 on an 8 AM to 6 PM track, at 10:30. */
+    fun day() = DayTimeline(
+        windowStart = LocalTime.of(8, 0),
+        windowEnd = LocalTime.of(18, 0),
+        blocks = listOf(
+            DayBlock(eventId = "demo_visit", start = 0.3f, end = 0.4f, tone = 0),
+            DayBlock(eventId = "demo_call", start = 0.6f, end = 0.65f, tone = 1),
+            DayBlock(eventId = "demo_team", start = 0.8f, end = 0.85f, tone = 2),
+        ),
+        ticks = (1..9).map { it / 10f },
+        labels = (0..5).map { DayHourLabel(at = it / 5f, time = LocalTime.of(8 + it * 2, 0)) },
+        now = 0.25f,
+        eventCount = 3,
+        scheduled = Duration.ofHours(2),
+    )
+
+    fun visit() = NextUpItem(
+        eventId = "demo_visit",
+        title = "Client home visit",
+        time = UpcomingLabel.InMinutes(30),
+        start = LocalTime.of(11, 0),
+        end = LocalTime.of(12, 0),
+        endsOnLaterDay = false,
+        location = "1200 W Lake St",
+        isOnline = false,
+        startsToday = true,
     )
 
     private fun needsYou() = NeedsYouSection(
@@ -70,16 +108,7 @@ internal object TodayPreviewStates {
                 null,
                 false,
             ),
-            NextUpItem(
-                "demo_visit",
-                "Client home visit",
-                UpcomingLabel.InMinutes(30),
-                LocalTime.of(11, 0),
-                LocalTime.of(12, 0),
-                false,
-                "1200 W Lake St",
-                false,
-            ),
+            visit(),
         ),
         isReady = true,
     )

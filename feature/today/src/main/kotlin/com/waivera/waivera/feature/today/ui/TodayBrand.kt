@@ -2,7 +2,6 @@ package com.waivera.waivera.feature.today.ui
 
 import androidx.annotation.StringRes
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -18,7 +17,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import com.waivera.waivera.core.data.image.AvatarModel
 import com.waivera.waivera.core.designsystem.component.WaiveraAvatar
@@ -33,35 +31,13 @@ import com.waivera.waivera.core.designsystem.theme.WaiveraBrand
 import com.waivera.waivera.core.designsystem.theme.WaiveraShapes
 import com.waivera.waivera.core.designsystem.theme.WaiveraSizes
 import com.waivera.waivera.core.designsystem.theme.WaiveraSpacing
-import com.waivera.waivera.core.designsystem.theme.WaiveraTextStyles
 import com.waivera.waivera.core.designsystem.theme.WaiveraTheme
 import com.waivera.waivera.feature.today.R
 import com.waivera.waivera.feature.today.model.CelebrationItem
 import com.waivera.waivera.feature.today.model.DayPart
 import com.waivera.waivera.feature.today.model.Greeting
 
-/**
- * "Good morning, Alex" at the top of Today, a heading for TalkBack. No emoji: they belong to
- * celebrations only (`docs/design/voice.md`).
- */
-@Composable
-internal fun TodayGreeting(greeting: Greeting, modifier: Modifier = Modifier) {
-    Text(
-        text = greetingText(greeting),
-        style = WaiveraTextStyles.HeroGreeting,
-        color = WaiveraTheme.colors.text,
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(
-                start = WaiveraSpacing.Gutter,
-                end = WaiveraSpacing.Gutter,
-                top = WaiveraSpacing.MediumLarge,
-                bottom = WaiveraSpacing.ExtraSmall,
-            )
-            .semantics { heading() },
-    )
-}
-
+/** "Good morning, Alex", in the hero. No emoji: they belong to celebrations only (`docs/design/voice.md`). */
 @Composable
 internal fun greetingText(greeting: Greeting): String {
     val name = greeting.firstName
@@ -97,15 +73,17 @@ internal fun CelebrationCard(
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = WaiveraSpacing.Gutter, vertical = WaiveraSpacing.ExtraSmall),
+            .padding(
+                horizontal = WaiveraSpacing.Gutter,
+                vertical = WaiveraSpacing.ExtraSmall + WaiveraSpacing.Hairline,
+            ),
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .clip(WaiveraShapes.Hero)
+                .clip(WaiveraShapes.UpNextCard)
                 .background(colors.surface)
-                .background(WaiveraBrand.wash())
-                .border(WaiveraSpacing.Hairline, colors.border, WaiveraShapes.Hero),
+                .background(WaiveraBrand.wash()),
         ) {
             WaiveraPressable(
                 onClick = onOpen,
@@ -179,7 +157,6 @@ private fun celebrationLabel(item: CelebrationItem): Int = when {
 private fun TodayBrandPreview() {
     WaiveraTheme {
         Column(Modifier.background(WaiveraTheme.colors.background)) {
-            TodayGreeting(Greeting(DayPart.MORNING, firstName = "Alex"))
             CelebrationCard(
                 item = CelebrationItem("u1", "Jordan Lee", isBirthday = false, anniversaryYears = 5),
                 onOpen = {},
