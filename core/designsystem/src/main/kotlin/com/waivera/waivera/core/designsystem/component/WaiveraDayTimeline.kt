@@ -21,7 +21,6 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.semantics.clearAndSetSemantics
@@ -38,10 +37,10 @@ import com.waivera.waivera.core.designsystem.theme.WaiveraTextStyles
 import com.waivera.waivera.core.designsystem.theme.WaiveraTheme
 
 /** An event block's colour on the "Your day" track. */
-enum class WaiveraTimelineTone(internal val top: Color, internal val bottom: Color) {
-    Teal(WaiveraPalette.TimelineTealTop, WaiveraPalette.TimelineTealBottom),
-    Violet(WaiveraPalette.TimelineVioletTop, WaiveraPalette.TimelineVioletBottom),
-    Gold(WaiveraPalette.TimelineGoldTop, WaiveraPalette.TimelineGoldBottom),
+enum class WaiveraTimelineTone(internal val fill: Color) {
+    Teal(WaiveraPalette.TimelineTeal),
+    Violet(WaiveraPalette.TimelineViolet),
+    Gold(WaiveraPalette.TimelineGold),
 }
 
 /** One event on the track, from [start] to [end] as shares of the window (0 is its left edge). */
@@ -140,11 +139,7 @@ private fun TimelineTrack(blocks: List<WaiveraTimelineBlock>, ticks: List<Float>
                     val right = size.width * block.end.coerceIn(0f, 1f)
                     val width = (right - left).coerceAtLeast(inset)
                     drawRoundRect(
-                        brush = Brush.verticalGradient(
-                            colors = listOf(block.tone.top, block.tone.bottom),
-                            startY = inset,
-                            endY = size.height - inset,
-                        ),
+                        color = block.tone.fill,
                         topLeft = Offset(left, inset),
                         size = Size(width, size.height - inset * 2),
                         cornerRadius = corner,

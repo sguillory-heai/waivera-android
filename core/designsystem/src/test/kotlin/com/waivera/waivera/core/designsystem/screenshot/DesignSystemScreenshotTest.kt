@@ -14,6 +14,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -71,6 +73,7 @@ import com.waivera.waivera.core.designsystem.component.WaiveraSegmentedControl
 import com.waivera.waivera.core.designsystem.component.WaiveraSheetContent
 import com.waivera.waivera.core.designsystem.component.WaiveraSnackbar
 import com.waivera.waivera.core.designsystem.component.WaiveraStatusBadge
+import com.waivera.waivera.core.designsystem.component.WaiveraSurfaceCard
 import com.waivera.waivera.core.designsystem.component.WaiveraSwitchRow
 import com.waivera.waivera.core.designsystem.component.WaiveraSyncIndicator
 import com.waivera.waivera.core.designsystem.component.WaiveraTextField
@@ -259,16 +262,23 @@ class DesignSystemScreenshotTest {
         }
     }
 
-    /** The wash container for brand moments and the celebration note with its emoji tile. */
+    /**
+     * v5 rule B: the plain surface card for an event's title block, then the wash, kept for
+     * celebrations, on its container and on the celebration note with its emoji tile.
+     */
     @Test
     fun brandSurfaces() = capture("BrandSurfaces") {
-        WaiveraBrandSurface {
+        WaiveraSurfaceCard {
             WaiveraSectionHeader(text = "Event")
             WaiveraListRow(
                 headline = "Mon, Nov 2, 9:00 AM",
                 supporting = "Until 10:00 AM",
                 leading = { WaiveraIconTile(icon = WaiveraIcons.Schedule, tone = WaiveraTileTone.Teal) },
             )
+        }
+        WaiveraBrandSurface {
+            WaiveraSectionHeader(text = "Celebration")
+            Text(text = "Happy 5-year work anniversary, Jordan Lee!", style = MaterialTheme.typography.titleSmall)
         }
         WaiveraCelebrationNote(emoji = "🎂", text = "Happy birthday, Priya Raman!")
         WaiveraCelebrationNote(

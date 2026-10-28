@@ -50,7 +50,6 @@ import com.waivera.waivera.core.designsystem.component.BadgeTone
 import com.waivera.waivera.core.designsystem.component.BannerTone
 import com.waivera.waivera.core.designsystem.component.TopBarAction
 import com.waivera.waivera.core.designsystem.component.WaiveraBanner
-import com.waivera.waivera.core.designsystem.component.WaiveraBrandSurface
 import com.waivera.waivera.core.designsystem.component.WaiveraEmptyState
 import com.waivera.waivera.core.designsystem.component.WaiveraIconButton
 import com.waivera.waivera.core.designsystem.component.WaiveraIconTile
@@ -494,33 +493,26 @@ private fun PreferWeekAtLargeFont(view: ScheduleView, onSelectView: (ScheduleVie
 
 /**
  * The selected day above its agenda: the day in a calendar tile, and the Today chip when it is
- * today. It is a small brand moment on the gradient wash, unless the day has a celebration card:
- * then that card keeps the screen's one wash and the header is a plain card (UI8-14).
+ * today, on a plain card. It used to wear the brand wash; v5's gradient rule keeps the wash for
+ * celebrations, so the header is the same plain card on every day (UI8-14 kept one wash per screen).
  */
 @Composable
 private fun AgendaHeader(state: ScheduleUiState) {
-    val modifier = Modifier.padding(
-        start = WaiveraSpacing.Gutter,
-        end = WaiveraSpacing.Gutter,
-        top = WaiveraSpacing.Medium,
-        bottom = WaiveraSpacing.Small,
-    )
-    val padding = PaddingValues(horizontal = WaiveraSpacing.MediumSmall, vertical = WaiveraSpacing.Small)
-    if (state.hasCelebrationCard) {
-        val colors = WaiveraTheme.colors
-        Box(
-            modifier = modifier
-                .fillMaxWidth()
-                .clip(WaiveraShapes.SheetCard)
-                .background(colors.surface)
-                .padding(padding),
-        ) {
-            AgendaDayHeading(date = state.selectedDate, isToday = state.isTodaySelected)
-        }
-    } else {
-        WaiveraBrandSurface(modifier = modifier, shape = WaiveraShapes.SheetCard, contentPadding = padding) {
-            AgendaDayHeading(date = state.selectedDate, isToday = state.isTodaySelected)
-        }
+    val colors = WaiveraTheme.colors
+    Box(
+        modifier = Modifier
+            .padding(
+                start = WaiveraSpacing.Gutter,
+                end = WaiveraSpacing.Gutter,
+                top = WaiveraSpacing.Medium,
+                bottom = WaiveraSpacing.Small,
+            )
+            .fillMaxWidth()
+            .clip(WaiveraShapes.SheetCard)
+            .background(colors.surface)
+            .padding(horizontal = WaiveraSpacing.MediumSmall, vertical = WaiveraSpacing.Small),
+    ) {
+        AgendaDayHeading(date = state.selectedDate, isToday = state.isTodaySelected)
     }
 }
 

@@ -13,7 +13,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.clearAndSetSemantics
@@ -27,13 +26,9 @@ import com.waivera.waivera.core.designsystem.theme.WaiveraTextStyles
 import com.waivera.waivera.core.designsystem.theme.WaiveraTheme
 import com.waivera.waivera.core.designsystem.theme.isLargeFontScale
 
-/** The tone's block fill, top to bottom, as on the "Your day" track. */
-val WaiveraTimelineTone.brush: Brush
-    get() = Brush.verticalGradient(listOf(top, bottom))
-
 /**
  * One entry of a day read as a timeline (concept B's language, in a list): the start time in a
- * column of its own, a rail with the tone's gradient block beside it and a hairline running on
+ * column of its own, a rail with the tone's solid block beside it and a hairline running on
  * to the next entry, then [content] (the entry's card). A [tone] of null is an ended or quiet
  * entry: its block takes the border colour, so what is still ahead stands out.
  *
@@ -63,7 +58,7 @@ fun WaiveraTimelineEntry(
     content: @Composable () -> Unit,
 ) {
     val colors = WaiveraTheme.colors
-    val block = tone?.brush ?: Brush.verticalGradient(listOf(colors.borderStrong, colors.borderStrong))
+    val block = tone?.fill ?: colors.borderStrong
     if (isLargeFontScale()) {
         Column(
             modifier = modifier.fillMaxWidth(),

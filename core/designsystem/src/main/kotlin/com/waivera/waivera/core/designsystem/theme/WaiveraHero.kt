@@ -20,9 +20,9 @@ import kotlin.math.sin
  * screen, and the compact header of the post-sign-in gates. A rounded sheet rises over it.
  *
  * Every text pair keeps 4.5:1 at every point of its gradient, under both glows at full strength
- * (`WaiveraHeroContrastTest`): white and the on-hero secondary ink on the header, and white on the
- * CTA gradient in both themes. The light end of the brand gradient (`#FF6FBC`) fails with white,
- * so the CTA uses deeper stops and the trails stay decorative.
+ * (`WaiveraHeroContrastTest`): white and the on-hero secondary ink on the header. Under v5's
+ * gradient rule B the hero (with its light trails) is one of the few places the gradient lives;
+ * the sheet's actions are the solid violet primary, never a gradient CTA.
  */
 @Immutable
 data class WaiveraHeroColors(
@@ -52,15 +52,7 @@ data class WaiveraHeroColors(
     val nextIcon: Color,
     /** The sign-in sheet: white in light, the plum page in dark (fields sit on the surface step). */
     val sheet: Color,
-    val buttonStart: Color,
-    val buttonEnd: Color,
-    val onButton: Color,
-    /** The soft coloured glow under a CTA. */
-    val buttonGlow: Color,
 ) {
-    /** Start to end, violet to magenta: every primary CTA's fill. */
-    val buttonBrush: Brush get() = Brush.horizontalGradient(listOf(buttonStart, buttonEnd))
-
     /** The header gradient at the concept's 165° (top, leaning start, to bottom, leaning end). */
     fun headerBrush(size: Size): Brush =
         cssLinearGradient(size, WaiveraHeroGeometry.HEADER_ANGLE_DEGREES, listOf(headerTop, headerBottom))
@@ -102,12 +94,6 @@ internal object WaiveraHeroPalette {
     val HeaderBottomLight = Color(0xFF4C2384)
     val HeaderTopDark = Color(0xFF1B0F29)
     val HeaderBottomDark = Color(0xFF33195A)
-    val ButtonStartLight = Color(0xFF6A3DC4)
-    val ButtonEndLight = Color(0xFFB4307D)
-    val ButtonStartDark = Color(0xFF7A3BE0)
-    val ButtonEndDark = Color(0xFFB8338A)
-    val ButtonGlowLight = Color(0x477C3AC8)
-    val ButtonGlowDark = Color(0x73A03CC8)
     val Mint = Color(0xFF8EF0DC)
 
     // The concept's rgba(110,224,203,.18) lightened the chip until mint fell to 3.6:1 under the pink
@@ -147,10 +133,6 @@ internal val LightWaiveraHeroColors = WaiveraHeroColors(
     onChip = WaiveraHeroPalette.Mint,
     nextIcon = WaiveraHeroPalette.NextIcon,
     sheet = WaiveraPalette.SurfaceLight,
-    buttonStart = WaiveraHeroPalette.ButtonStartLight,
-    buttonEnd = WaiveraHeroPalette.ButtonEndLight,
-    onButton = WaiveraPalette.White,
-    buttonGlow = WaiveraHeroPalette.ButtonGlowLight,
 )
 
 internal val DarkWaiveraHeroColors = LightWaiveraHeroColors.copy(
@@ -159,9 +141,6 @@ internal val DarkWaiveraHeroColors = LightWaiveraHeroColors.copy(
     card = white(WaiveraHeroPalette.CARD_ALPHA_DARK),
     // The plum page, so the fields (the surface step) stand out on it.
     sheet = WaiveraPalette.BackgroundDark,
-    buttonStart = WaiveraHeroPalette.ButtonStartDark,
-    buttonEnd = WaiveraHeroPalette.ButtonEndDark,
-    buttonGlow = WaiveraHeroPalette.ButtonGlowDark,
 )
 
 /** Hero colours and measurements for the current theme. */

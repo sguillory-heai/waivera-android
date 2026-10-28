@@ -21,13 +21,11 @@ internal object WaiveraPalette {
     val BrandPink = Color(0xFFFF6FBC)
     val BrandGold = Color(0xFFFFD45C)
 
-    // The "Your day" track's event blocks (concept B), top to bottom.
-    val TimelineTealTop = Color(0xFF3CC4AE)
-    val TimelineTealBottom = Color(0xFF1FA08B)
-    val TimelineVioletTop = Color(0xFF9C7BF0)
-    val TimelineVioletBottom = Color(0xFF7A55DA)
-    val TimelineGoldTop = Color(0xFFF2BE5A)
-    val TimelineGoldBottom = Color(0xFFE0A032)
+    // The "Your day" track's event blocks (concept B): solid, the deeper end of the old top-to-bottom
+    // shading, since v5's gradient rule keeps gradients off everything but heroes and accents.
+    val TimelineTeal = Color(0xFF1FA08B)
+    val TimelineViolet = Color(0xFF7A55DA)
+    val TimelineGold = Color(0xFFE0A032)
 
     /** The small pink sparkle beside the all-caught-up ring. */
     val SparklePink = Color(0xFFFF8CC8)

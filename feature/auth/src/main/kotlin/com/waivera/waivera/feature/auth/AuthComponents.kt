@@ -51,12 +51,12 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import com.waivera.waivera.core.designsystem.component.WaiveraBottomActionLayout
-import com.waivera.waivera.core.designsystem.component.WaiveraBrandSurface
 import com.waivera.waivera.core.designsystem.component.WaiveraHeroLogo
 import com.waivera.waivera.core.designsystem.component.WaiveraHeroSection
 import com.waivera.waivera.core.designsystem.component.WaiveraHeroTrail
 import com.waivera.waivera.core.designsystem.component.WaiveraIconButton
 import com.waivera.waivera.core.designsystem.component.WaiveraIconTile
+import com.waivera.waivera.core.designsystem.component.WaiveraSurfaceCard
 import com.waivera.waivera.core.designsystem.component.WaiveraTextField
 import com.waivera.waivera.core.designsystem.component.WaiveraTileTone
 import com.waivera.waivera.core.designsystem.icon.WaiveraIcons
@@ -221,7 +221,8 @@ internal fun AuthHeader(
         .fillMaxWidth()
         .then(GutterPadding)
     if (welcome) {
-        WaiveraBrandSurface(
+        // A plain card: under v5's gradient rule the wash is for celebrations only.
+        WaiveraSurfaceCard(
             modifier = frame,
             verticalArrangement = Arrangement.spacedBy(WaiveraSpacing.MediumSmall),
             content = body,

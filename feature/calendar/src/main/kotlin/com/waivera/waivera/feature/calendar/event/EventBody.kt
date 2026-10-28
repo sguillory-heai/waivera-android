@@ -44,7 +44,6 @@ import com.waivera.waivera.core.designsystem.component.BannerTone
 import com.waivera.waivera.core.designsystem.component.SkeletonLine
 import com.waivera.waivera.core.designsystem.component.SkeletonListRow
 import com.waivera.waivera.core.designsystem.component.WaiveraBanner
-import com.waivera.waivera.core.designsystem.component.WaiveraBrandSurface
 import com.waivera.waivera.core.designsystem.component.WaiveraButton
 import com.waivera.waivera.core.designsystem.component.WaiveraButtonVariant
 import com.waivera.waivera.core.designsystem.component.WaiveraCardGroup
@@ -52,6 +51,7 @@ import com.waivera.waivera.core.designsystem.component.WaiveraIconTile
 import com.waivera.waivera.core.designsystem.component.WaiveraInsetDivider
 import com.waivera.waivera.core.designsystem.component.WaiveraListRow
 import com.waivera.waivera.core.designsystem.component.WaiveraSectionHeader
+import com.waivera.waivera.core.designsystem.component.WaiveraSurfaceCard
 import com.waivera.waivera.core.designsystem.component.WaiveraTileTone
 import com.waivera.waivera.core.designsystem.component.rememberSkeletonPulse
 import com.waivera.waivera.core.designsystem.component.rememberSkeletonVisible
@@ -212,14 +212,14 @@ internal fun EventBody(
 }
 
 /**
- * The event's title, when and where, on the brand wash: the screen's one brand moment, so the
- * event reads as something to look forward to rather than a form.
+ * The event's title, when and where, on a lifted card: the screen's lead block. It is solid, not
+ * the brand wash, which v5's gradient rule keeps for celebrations.
  */
 @Composable
 private fun EventHero(details: EventDetails, actions: EventActions, modifier: Modifier = Modifier) {
     val event = details.event
-    // Concept A's large Up next card: the title, when and where on the brand wash at 22dp.
-    WaiveraBrandSurface(
+    // Concept A's large Up next card: the title, when and where at 22dp.
+    WaiveraSurfaceCard(
         modifier = modifier,
         shape = WaiveraShapes.UpNextCard,
         contentPadding = PaddingValues(WaiveraSpacing.MediumLarge),

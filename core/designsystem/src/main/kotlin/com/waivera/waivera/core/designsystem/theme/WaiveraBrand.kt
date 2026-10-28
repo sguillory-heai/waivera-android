@@ -7,9 +7,11 @@ import androidx.compose.ui.graphics.Color
 
 /**
  * The brand gradient from the logo's looped "W": violet, pink, then gold, with the logo's own
- * stop positions. It is the signature, used with restraint: the logo, the sign-in hero,
- * celebration cards, empty-state art, the confetti, the selected tab and the unread ring in the
- * navigation bar. Never on body text or dense UI.
+ * stop positions. It is the signature, and under v5's gradient rule B it means "progress and
+ * celebration" and nothing else: the logo and the plum heroes' light trails, the progress ring and
+ * the reward ring, the schedule's "now" line, the soft wash behind celebration cards and the
+ * confetti. Every control is solid: buttons, bubbles, chips, segments, the tab pill, badges,
+ * spinners, sheets, the selected day and empty-state art never take it. Never on body text.
  */
 // The gradients take their stops as varargs; spreading four pairs once per brush is cheap.
 @Suppress("SpreadOperator")

@@ -13,8 +13,8 @@ import org.junit.Test
 
 /**
  * The hero's text pairs hold 4.5:1 at every point of their gradient, sampled along it, in both
- * themes: the header ink (with the glow composited at full strength), the button label, and the
- * page text on the sheet.
+ * themes: the header ink (with the glow composited at full strength) and the page text on the
+ * sheet. The sheet's action is the solid violet primary (v5), checked on the sheet here.
  */
 class WaiveraHeroContrastTest {
     private val themes = listOf(
@@ -22,11 +22,10 @@ class WaiveraHeroContrastTest {
         Triple("dark", DarkWaiveraHeroColors, DarkWaiveraColors),
     )
 
+    /** Sign in is the solid violet primary (v5 decision 2): its white label reads on the fill. */
     @Test
-    fun buttonLabel_readsAcrossTheWholeGradient() = themes.forEach { (name, hero, _) ->
-        samples(hero.buttonStart, hero.buttonEnd).forEach { fill ->
-            assertAtLeast("$name button label", hero.onButton, fill, TEXT_MIN)
-        }
+    fun buttonLabel_readsOnTheSolidFill() = themes.forEach { (name, _, colors) ->
+        assertAtLeast("$name button label", colors.onAccent, colors.accentFill, TEXT_MIN)
     }
 
     @Test
@@ -83,9 +82,8 @@ class WaiveraHeroContrastTest {
     }
 
     @Test
-    fun button_edgeStandsOffTheSheet() = themes.forEach { (name, hero, _) ->
-        assertAtLeast("$name button start on sheet", hero.buttonStart, hero.sheet, UI_MIN)
-        assertAtLeast("$name button end on sheet", hero.buttonEnd, hero.sheet, UI_MIN)
+    fun button_edgeStandsOffTheSheet() = themes.forEach { (name, hero, colors) ->
+        assertAtLeast("$name button on sheet", colors.accentFill, hero.sheet, UI_MIN)
     }
 
     /**

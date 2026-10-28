@@ -25,9 +25,11 @@ import com.waivera.waivera.core.designsystem.theme.WaiveraSpacing
 import com.waivera.waivera.core.designsystem.theme.WaiveraTheme
 
 /**
- * A surface with the soft brand-gradient wash: the one container for brand moments (a
- * celebration, a gate's welcome, an event's title block, the selected day's header). Text in
- * `text` and `textSecondary` keeps 4.5:1 on every point of the wash in both themes
+ * A surface with the soft brand-gradient wash, for celebrations only (a birthday, an
+ * anniversary, a new hire). Under v5's gradient rule B the gradient means "progress and
+ * celebration" and nothing else: the plum hero, the progress and reward rings, the schedule's
+ * "now" line and this wash. Anything else that wants to stand out uses [WaiveraSurfaceCard].
+ * Text in `text` and `textSecondary` keeps 4.5:1 on every point of the wash in both themes
  * (`WaiveraColorsContrastTest`). Use it once or twice per screen, never for lists of rows.
  */
 @Composable
@@ -45,6 +47,31 @@ fun WaiveraBrandSurface(
             .clip(shape)
             .background(colors.surface)
             .background(WaiveraBrand.wash())
+            .border(WaiveraSpacing.Hairline, colors.border, shape)
+            .padding(contentPadding),
+        verticalArrangement = verticalArrangement,
+        content = content,
+    )
+}
+
+/**
+ * A plain lifted block on the surface with a hairline edge: a gate's welcome, an event's title
+ * block. The solid counterpart of [WaiveraBrandSurface] for anything that is not a celebration.
+ */
+@Composable
+fun WaiveraSurfaceCard(
+    modifier: Modifier = Modifier,
+    shape: Shape = WaiveraShapes.Hero,
+    contentPadding: PaddingValues = PaddingValues(WaiveraSpacing.Medium),
+    verticalArrangement: Arrangement.Vertical = Arrangement.spacedBy(WaiveraSpacing.Small),
+    content: @Composable ColumnScope.() -> Unit,
+) {
+    val colors = WaiveraTheme.colors
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .clip(shape)
+            .background(colors.surface)
             .border(WaiveraSpacing.Hairline, colors.border, shape)
             .padding(contentPadding),
         verticalArrangement = verticalArrangement,
@@ -100,7 +127,7 @@ private fun WaiveraBrandSurfacePreview() {
                 .padding(WaiveraSpacing.Medium),
             verticalArrangement = Arrangement.spacedBy(WaiveraSpacing.MediumSmall),
         ) {
-            WaiveraBrandSurface {
+            WaiveraSurfaceCard {
                 Text(
                     text = "Care plan review",
                     style = MaterialTheme.typography.headlineSmall,
