@@ -42,6 +42,11 @@ class ComponentLogicTest {
     }
 
     @Test
+    fun `a sheet's dismiss is the raised white secondary, not the lilac tonal fill`() {
+        assertEquals(WaiveraButtonVariant.Secondary, ConfirmationDismissVariant)
+    }
+
+    @Test
     fun `badge count caps at 99 plus and hides zero`() {
         assertNull(formatBadgeCount(0))
         assertNull(formatBadgeCount(-3))

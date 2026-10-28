@@ -108,13 +108,19 @@ internal fun ConfirmationContent(
                 text = dismissLabel,
                 onClick = onDismiss,
                 modifier = Modifier.heightIn(min = WaiveraSizes.CtaHeight),
-                variant = WaiveraButtonVariant.Tonal,
+                variant = ConfirmationDismissVariant,
                 enabled = !confirmInProgress,
                 fullWidth = true,
             )
         }
     }
 }
+
+/**
+ * Every sheet and dialog dismiss is the raised white secondary (v5 decision 2, option C), never the
+ * lilac tonal fill, so a sheet's quiet action looks the same wherever it appears.
+ */
+internal val ConfirmationDismissVariant = WaiveraButtonVariant.Secondary
 
 @WaiveraPreviews
 @Composable
