@@ -34,6 +34,13 @@ internal object CalendarSizes {
     val EventCardMinHeight: Dp = 66.dp
     val WeekCellMinHeight: Dp = 76.dp
 
+    /**
+     * A celebration card narrower than this (the Day view's timeline on a small phone) moves its
+     * emoji into a smaller tile in the top-end corner, so the sentence gets the width back (UI10-05).
+     */
+    val CelebrationNarrowCard: Dp = 280.dp
+    val CelebrationCornerTile: Dp = 28.dp
+
     val OrganizerAvatar: Dp = 32.dp
     val AttendeeAvatar: Dp = 34.dp
 }

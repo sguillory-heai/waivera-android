@@ -5,6 +5,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.PaddingValues
@@ -146,7 +147,10 @@ internal fun NowDivider(time: ZonedDateTime, modifier: Modifier = Modifier) {
  * A birthday or anniversary on the day: a small brand moment on the gradient wash. The person's
  * plain avatar, the sentence, and the celebration emoji once, in its own tile (no avatar badge and
  * no subtitle repeating the sentence, UI8-03). "Send wishes" opens a direct chat, as on Today;
- * it is hidden on the person's own card.
+ * it is hidden on the person's own card. It sits on a row of its own from the card's content
+ * start, on one line, so the two words never wrap inside the button (UI10-05). On a card narrower
+ * than [CalendarSizes.CelebrationNarrowCard] (the Day timeline on a small phone) the emoji moves
+ * to a smaller tile in the top-end corner and the sentence takes its width.
  */
 @Composable
 private fun MilestoneCard(
@@ -161,43 +165,59 @@ private fun MilestoneCard(
     // Your own card speaks to you (UI9-05); there is no Send wishes on it either.
     val sentence = CelebrationText.self(item.celebration)?.takeIf { !showWishes }?.resolve()
         ?: CelebrationText.full(item.celebration, fallbackName).resolve()
-    // Today's celebration card, so a celebration looks the same wherever it shows (concept A, 22dp).
-    WaiveraBrandSurface(
-        modifier = modifier.heightIn(min = WaiveraSizes.ListRowMinHeight),
-        shape = WaiveraShapes.UpNextCard,
-        contentPadding = PaddingValues(WaiveraSpacing.Medium),
-        verticalArrangement = Arrangement.spacedBy(WaiveraSpacing.MediumSmall),
-    ) {
-        Row(
-            // The sentence alone: the card can sit on any day, so no "today" wording here.
-            modifier = Modifier.clearAndSetSemantics { contentDescription = sentence },
-            horizontalArrangement = Arrangement.spacedBy(WaiveraSpacing.MediumSmall),
-            verticalAlignment = Alignment.CenterVertically,
+    val emoji = CelebrationText.emoji(item.celebration).resolve()
+    BoxWithConstraints(modifier = modifier.fillMaxWidth()) {
+        val narrow = maxWidth < CalendarSizes.CelebrationNarrowCard
+        // Today's celebration card, so a celebration looks the same wherever it shows (concept A, 22dp).
+        WaiveraBrandSurface(
+            modifier = Modifier.heightIn(min = WaiveraSizes.ListRowMinHeight),
+            shape = WaiveraShapes.UpNextCard,
+            contentPadding = PaddingValues(WaiveraSpacing.Medium),
+            verticalArrangement = Arrangement.spacedBy(WaiveraSpacing.MediumSmall),
         ) {
-            WaiveraAvatar(
-                name = name,
-                imageModel = AvatarModel.of(milestone.userId),
-                size = WaiveraSizes.AvatarMedium,
-                contentDescription = null,
-            )
-            Text(
-                text = sentence,
-                style = MaterialTheme.typography.titleSmall,
-                color = WaiveraTheme.colors.text,
-                modifier = Modifier.weight(1f),
-            )
-            WaiveraEmojiTile(emoji = CelebrationText.emoji(item.celebration).resolve())
+            Row(
+                // The sentence alone: the card can sit on any day, so no "today" wording here.
+                modifier = Modifier.clearAndSetSemantics { contentDescription = sentence },
+                horizontalArrangement = Arrangement.spacedBy(WaiveraSpacing.MediumSmall),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                WaiveraAvatar(
+                    name = name,
+                    imageModel = AvatarModel.of(milestone.userId),
+                    size = WaiveraSizes.AvatarMedium,
+                    contentDescription = null,
+                )
+                Text(
+                    text = sentence,
+                    style = MaterialTheme.typography.titleSmall,
+                    color = WaiveraTheme.colors.text,
+                    modifier = Modifier
+                        .weight(1f)
+                        // Clear of the corner tile, which reaches 20dp past the card's padding.
+                        .padding(end = if (narrow) WaiveraSpacing.MediumLarge else WaiveraSpacing.None),
+                )
+                if (!narrow) WaiveraEmojiTile(emoji = emoji)
+            }
+            if (showWishes) {
+                val wishesLabel = stringResource(R.string.feature_calendar_send_wishes_a11y, name)
+                WaiveraButton(
+                    text = stringResource(R.string.feature_calendar_send_wishes),
+                    onClick = { onSendWishes(milestone.userId) },
+                    variant = WaiveraButtonVariant.TonalOnWash,
+                    leadingIcon = WaiveraIcons.Chat,
+                    maxLines = 1,
+                    modifier = Modifier.semantics { contentDescription = wishesLabel },
+                )
+            }
         }
-        if (showWishes) {
-            val wishesLabel = stringResource(R.string.feature_calendar_send_wishes_a11y, name)
-            WaiveraButton(
-                text = stringResource(R.string.feature_calendar_send_wishes),
-                onClick = { onSendWishes(milestone.userId) },
-                variant = WaiveraButtonVariant.TonalOnWash,
-                leadingIcon = WaiveraIcons.Chat,
+        if (narrow) {
+            WaiveraEmojiTile(
+                emoji = emoji,
+                size = CalendarSizes.CelebrationCornerTile,
+                emojiSize = WaiveraSizes.EmojiInTileSmall,
                 modifier = Modifier
-                    .padding(start = WaiveraSizes.AvatarMedium + WaiveraSpacing.MediumSmall)
-                    .semantics { contentDescription = wishesLabel },
+                    .align(Alignment.TopEnd)
+                    .padding(WaiveraSpacing.Small),
             )
         }
     }

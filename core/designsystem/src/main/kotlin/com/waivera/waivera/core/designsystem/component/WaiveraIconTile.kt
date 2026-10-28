@@ -93,13 +93,14 @@ fun WaiveraEmojiTile(
     modifier: Modifier = Modifier,
     tone: WaiveraTileTone = WaiveraTileTone.Celebration,
     size: Dp = WaiveraSizes.IconTile,
+    emojiSize: Dp = WaiveraSizes.EmojiInTile,
 ) {
     val tint = tone.tint(WaiveraTheme.colors)
-    val emojiSize = with(LocalDensity.current) { WaiveraSizes.EmojiInTile.toSp() }
+    val emojiSp = with(LocalDensity.current) { emojiSize.toSp() }
     TileFrame(tint = tint, size = size, modifier = modifier.clearAndSetSemantics { }) {
         Text(
             text = emoji,
-            style = TextStyle(fontSize = emojiSize, lineHeight = emojiSize, textAlign = TextAlign.Center),
+            style = TextStyle(fontSize = emojiSp, lineHeight = emojiSp, textAlign = TextAlign.Center),
         )
     }
 }

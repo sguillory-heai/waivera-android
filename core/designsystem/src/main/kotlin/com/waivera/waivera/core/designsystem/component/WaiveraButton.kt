@@ -33,6 +33,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import com.waivera.waivera.core.designsystem.icon.WaiveraIcons
 import com.waivera.waivera.core.designsystem.preview.WaiveraPreviews
 import com.waivera.waivera.core.designsystem.theme.WaiveraColors
@@ -83,6 +84,9 @@ enum class WaiveraButtonVariant {
  * An enabled [Primary][WaiveraButtonVariant.Primary] button is concept A's CTA fill: white on the
  * saturated violet-to-magenta gradient in both themes, the same fill as [WaiveraGradientButton],
  * so every primary action in the app reads as one. Never dark ink on a pastel fill.
+ *
+ * [maxLines] caps the label for a short fixed label that must not wrap inside its own button
+ * ("Send wishes" on a narrow card, UI10-05); it ends in an ellipsis rather than a second line.
  */
 @Composable
 fun WaiveraButton(
@@ -94,6 +98,7 @@ fun WaiveraButton(
     fullWidth: Boolean = false,
     @DrawableRes leadingIcon: Int? = null,
     loadingText: String? = null,
+    maxLines: Int = Int.MAX_VALUE,
 ) {
     val colors = WaiveraTheme.colors
     val hero = WaiveraHero.colors
@@ -134,6 +139,7 @@ fun WaiveraButton(
         Box(contentAlignment = Alignment.Center) {
             ButtonLabel(
                 text = text,
+                maxLines = maxLines,
                 leadingIcon = leadingIcon,
                 regularWeight = variant == WaiveraButtonVariant.Unselected,
                 iconTint = if (variant == WaiveraButtonVariant.Secondary && enabled) colors.accent else null,
@@ -149,6 +155,7 @@ fun WaiveraButton(
 @Composable
 private fun ButtonLabel(
     text: String,
+    maxLines: Int,
     @DrawableRes leadingIcon: Int?,
     regularWeight: Boolean,
     iconTint: Color?,
@@ -172,6 +179,8 @@ private fun ButtonLabel(
             style = MaterialTheme.typography.labelLarge,
             fontWeight = if (regularWeight) FontWeight.Normal else null,
             textAlign = TextAlign.Center,
+            maxLines = maxLines,
+            overflow = TextOverflow.Ellipsis,
         )
     }
 }

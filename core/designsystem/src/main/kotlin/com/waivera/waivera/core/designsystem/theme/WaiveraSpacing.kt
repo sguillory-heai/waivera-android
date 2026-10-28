@@ -38,6 +38,9 @@ object WaiveraSizes {
     /** An emoji inside an icon tile: icon size, fixed so the tile never overflows at 200%. */
     val EmojiInTile: Dp = 22.dp
 
+    /** The emoji in a small corner tile (a narrow celebration card's 28dp tile). */
+    val EmojiInTileSmall: Dp = 16.dp
+
     /** The icon tile of an empty or error state, and its glyph. */
     val StateIconTile: Dp = 56.dp
     val StateIconGlyph: Dp = 28.dp
