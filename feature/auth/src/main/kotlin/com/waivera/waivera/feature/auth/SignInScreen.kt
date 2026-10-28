@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.relocation.BringIntoViewRequester
 import androidx.compose.foundation.relocation.bringIntoViewRequester
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.MaterialTheme
@@ -135,8 +136,11 @@ internal fun SignInContent(
     val actionsInView = remember { BringIntoViewRequester() }
     var passwordFocused by remember { mutableStateOf(false) }
     KeepInViewAboveKeyboard(requester = actionsInView, active = passwordFocused)
+    val scrollState = rememberScrollState()
+    KeepInViewWhileBannerShows(requester = actionsInView, scrollState = scrollState, banner = state.bannerKey())
     SignInFrame(
         modifier = modifier,
+        scrollState = scrollState,
         footer = {
             if (legalLinks != null) LegalFooter(links = legalLinks, onOpen = actions.onOpenLink)
         },
@@ -169,6 +173,22 @@ internal fun SignInContent(
         )
     }
 }
+
+/** Which banners show, or null when none does: a new banner brings Sign in back into view. */
+private fun SignInUiState.bannerKey(): List<Any?>? {
+    val showing = listOf(
+        missingConfiguration?.let { CONFIGURATION_BANNER },
+        errorMessage,
+        SIGNED_OUT_BANNER.takeIf { signedOutNotice && errorMessage == null },
+        resetSentTo,
+        LINK_BANNER.takeIf { linkUnavailable },
+    )
+    return showing.takeIf { keys -> keys.any { it != null } }
+}
+
+private const val CONFIGURATION_BANNER = "configuration"
+private const val SIGNED_OUT_BANNER = "signedOut"
+private const val LINK_BANNER = "link"
 
 @Composable
 private fun SignInBanners(state: SignInUiState, onDismiss: () -> Unit, showConfigurationKeys: Boolean) {

@@ -4,6 +4,7 @@ import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.AnimationVector1D
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -99,6 +100,23 @@ internal fun KeepInViewAboveKeyboard(requester: BringIntoViewRequester, active: 
 }
 
 /**
+ * Keeps [requester] (Sign in and Forgot password?) in view while a banner shows (UI9-02). A
+ * banner appears after a tap on Sign in and pushes the button down; at 200% on a small phone it
+ * went below the fold, so the person retyped the password and then had to hunt for it. The
+ * scroll's extent follows the banner's expand frame by frame, outside composition, and each
+ * change brings the button back into view; it does nothing while the button is already visible.
+ * [banner] identifies what shows, so a new banner brings it into view again and none stops it.
+ */
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+internal fun KeepInViewWhileBannerShows(requester: BringIntoViewRequester, scrollState: ScrollState, banner: Any?) {
+    LaunchedEffect(requester, scrollState, banner) {
+        if (banner == null) return@LaunchedEffect
+        snapshotFlow { scrollState.maxValue }.collectLatest { requester.bringIntoView() }
+    }
+}
+
+/**
  * The sign-in frame: the brand header full bleed behind the status bar, and the curved sheet
  * rising over it with the form. One scroll holds both, so at 200% font everything is reachable,
  * and the frame pads for the keyboard before that scroll, so the focused field and the button
@@ -114,6 +132,7 @@ internal fun KeepInViewAboveKeyboard(requester: BringIntoViewRequester, active: 
 @Composable
 internal fun SignInFrame(
     modifier: Modifier = Modifier,
+    scrollState: ScrollState = rememberScrollState(),
     footer: @Composable ColumnScope.() -> Unit = {},
     content: @Composable ColumnScope.() -> Unit,
 ) {
@@ -138,7 +157,7 @@ internal fun SignInFrame(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .verticalScroll(rememberScrollState()),
+                .verticalScroll(scrollState),
         ) {
             Box {
                 SignInHeader(

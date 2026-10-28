@@ -1,15 +1,18 @@
 package com.waivera.waivera.feature.auth
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.test.SemanticsNodeInteraction
 import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.unit.Density
 import com.waivera.waivera.core.designsystem.theme.WaiveraMotionScheme
 import com.waivera.waivera.core.designsystem.theme.WaiveraSpacing
 import com.waivera.waivera.core.designsystem.theme.WaiveraTheme
@@ -26,7 +29,8 @@ import org.robolectric.annotation.Config
 /**
  * On the small phone (360×640) at 100% font, the action each one-tap screen exists for is fully
  * on the first screen, inside the window and not under the scroll fade (UI3-01). The screens
- * here are the ones whose content is taller than that window.
+ * here are the ones whose content is taller than that window. Sign-in's banners are also checked
+ * at 200% font, where the screen scrolls the button back into view (UI9-02).
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [ScreenshotSdk.VALUE], qualifiers = "w360dp-h640dp-notnight-xhdpi")
@@ -34,10 +38,13 @@ class PrimaryActionBoundsTest {
     @get:Rule
     val compose = createComposeRule()
 
-    private fun render(content: @Composable () -> Unit) {
+    private fun render(fontScale: Float = 1f, content: @Composable () -> Unit) {
         compose.setContent {
-            WaiveraTheme(darkTheme = false, motion = WaiveraMotionScheme.Reduced, hapticsEnabled = false) {
-                content()
+            val density = LocalDensity.current
+            CompositionLocalProvider(LocalDensity provides Density(density.density, fontScale)) {
+                WaiveraTheme(darkTheme = false, motion = WaiveraMotionScheme.Reduced, hapticsEnabled = false) {
+                    content()
+                }
             }
         }
         compose.waitForIdle()
@@ -102,6 +109,38 @@ class PrimaryActionBoundsTest {
         }
     }
 
+    /**
+     * At 200% on the small phone a banner pushes Sign in below the fold; the screen brings it
+     * back into view as each banner appears, so the person never hunts for it (UI9-02).
+     */
+    @Test
+    fun signInWithEveryBannerIsFullyVisibleAtLargeFont() {
+        val states = listOf(
+            SignInUiState(
+                email = "alex.rivera@example.org",
+                password = "correct horse",
+                errorMessage = NetworkR.string.core_network_error_invalid_credentials,
+            ),
+            SignInUiState(email = "a@example.org", errorMessage = NetworkR.string.core_network_error_session_expired),
+            SignInUiState(email = "a@example.org", resetSentTo = "a@example.org"),
+            SignInUiState(signedOutNotice = true),
+            SignInUiState(email = "a@example.org", linkUnavailable = true),
+        )
+        var current by mutableStateOf(SignInUiState(email = "a@example.org"))
+        render(fontScale = LARGE_FONT) {
+            SignInContent(
+                state = current,
+                actions = SignInActions(),
+                legalLinks = LegalLinks(termsOfService = "terms", privacyPolicy = "privacy"),
+            )
+        }
+        states.forEach { state ->
+            current = state
+            compose.waitForIdle()
+            assertFullyOnScreen("Sign in")
+        }
+    }
+
     /** Both legal links are full 48dp targets inside the window, and each opens its own page. */
     @Test
     fun signInLegalLinksAreFullTargetsThatOpenTheirPage() {
@@ -132,6 +171,23 @@ class PrimaryActionBoundsTest {
         assertFullyOnScreen("Sign in")
     }
 
+    /** The legal links keep their 48dp targets at 200% too, now that the sentence is one flow. */
+    @Test
+    fun signInLegalLinksAreFullTargetsAtLargeFont() {
+        render(fontScale = LARGE_FONT) {
+            SignInContent(
+                state = SignInUiState(),
+                actions = SignInActions(),
+                legalLinks = LegalLinks(termsOfService = "terms", privacyPolicy = "privacy"),
+            )
+        }
+        val minimum = with(compose.density) { WaiveraSpacing.MinTouchTarget.toPx() }
+        listOf("Terms of Service", "Privacy Policy").forEach { label ->
+            val bounds = button(label).fetchSemanticsNode().boundsInRoot
+            assertTrue("$label is ${bounds.height}px tall, under $minimum", bounds.height >= minimum)
+        }
+    }
+
     @Test
     fun passwordChangeSignOutIsFullyVisible() {
         render {
@@ -146,5 +202,9 @@ class PrimaryActionBoundsTest {
             )
         }
         assertFullyOnScreen("Sign out")
+    }
+
+    private companion object {
+        const val LARGE_FONT = 2f
     }
 }
