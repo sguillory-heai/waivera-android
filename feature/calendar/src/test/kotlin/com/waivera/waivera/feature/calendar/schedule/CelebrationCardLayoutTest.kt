@@ -85,7 +85,14 @@ class CelebrationCardLayoutTest {
         val label = context.getString(R.string.feature_calendar_send_wishes)
         val layout = layoutOf(label)
         assertEquals("\"$label\" wraps inside its button", 1, layout.lineCount)
-        assertFalse("\"$label\" is cut", layout.hasVisualOverflow)
+        // Not hasVisualOverflow: a one-line Text sized to its words keeps the paragraph at the
+        // full width it was offered, which Compose reports as width overflow though nothing is cut.
+        assertFalse("\"$label\" is cut vertically", layout.didOverflowHeight)
+        assertFalse("\"$label\" is ellipsized", layout.isLineEllipsized(0))
+        assertTrue(
+            "\"$label\" is ${layout.getLineRight(0) - layout.getLineLeft(0)} wide in ${layout.size.width}",
+            layout.getLineRight(0) - layout.getLineLeft(0) <= layout.size.width,
+        )
 
         val spoken = context.getString(R.string.feature_calendar_send_wishes_a11y, "Jordan Lee")
         val button = compose.onNode(

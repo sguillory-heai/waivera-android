@@ -142,7 +142,14 @@ class HeroStatsLayoutTest {
         )
         val layout = layoutOf(CAPTION)
         assertEquals("the caption wraps", 1, layout.lineCount)
-        assertFalse("the caption is cut", layout.hasVisualOverflow)
+        // Not hasVisualOverflow: a one-line Text sized to its words keeps the paragraph at the
+        // full width it was offered, which Compose reports as width overflow though nothing is cut.
+        assertFalse("the caption is cut vertically", layout.didOverflowHeight)
+        assertFalse("the caption is ellipsized", layout.isLineEllipsized(0))
+        assertTrue(
+            "the caption is ${layout.getLineRight(0) - layout.getLineLeft(0)} wide in ${layout.size.width}",
+            layout.getLineRight(0) - layout.getLineLeft(0) <= layout.size.width,
+        )
         val ring = compose.onNodeWithContentDescription("5 of 9 handled today").fetchSemanticsNode().boundsInRoot
         val centre = (caption.positionInRoot.x + caption.size.width / 2f)
         assertTrue("the caption is off centre", abs(centre - ring.center.x) <= 1f)
