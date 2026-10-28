@@ -7,6 +7,7 @@ import androidx.compose.runtime.CompositionLocalProvider
 import com.waivera.waivera.core.data.model.Conversation
 import com.waivera.waivera.core.data.model.ConversationTitles
 import com.waivera.waivera.core.data.model.Message
+import com.waivera.waivera.core.data.model.Reaction
 import com.waivera.waivera.core.data.model.SendState
 import com.waivera.waivera.core.demo.DemoData
 import com.waivera.waivera.core.designsystem.component.ConnectionBannerState
@@ -194,6 +195,26 @@ class ConversationScreenshotTest {
         )
         val items = TimelineBuilder.build(run + reply, DemoData.ME, DemoData.ZONE, botConversation = false)
         ConversationView(state().copy(items = items))
+    }
+
+    /**
+     * One of my own bubbles carrying a mention and other people's reactions (v5 decision 3, option
+     * B): the bold underlined mention and the reaction pills on the surface, under the lilac tint.
+     * The demo's mention is copied into the group, where two other people can react, as its newest
+     * message so it is in frame on every phone. Test data only.
+     */
+    @Test
+    fun mineWithMentionAndReactions() = captureScreenshots("conversation_mine_mention_reactions") {
+        val mine = richMessage().copy(
+            id = MINE_REACTED_ID,
+            clientMessageId = null,
+            conversationId = DemoData.GROUP,
+            createdAt = DemoData.NOW.minusSeconds(SECONDS_PER_MINUTE),
+            reactions = listOf(Reaction(DemoData.PRIYA, "👍"), Reaction(DemoData.JORDAN, "🎉")),
+        )
+        val group = messages.filter { it.conversationId == DemoData.GROUP && !it.isThreadReply } + mine
+        val items = TimelineBuilder.build(group, DemoData.ME, DemoData.ZONE, botConversation = false)
+        ConversationView(state(DemoData.GROUP).copy(items = items))
     }
 
     @Test
@@ -417,6 +438,7 @@ class ConversationScreenshotTest {
         const val SCROLLED_UP_INDEX = 6
         const val INCOMING_RUN_FIRST_ID = 99_001L
         const val INCOMING_RUN_SIZE = 3
+        const val MINE_REACTED_ID = 99_101L
     }
 }
 
