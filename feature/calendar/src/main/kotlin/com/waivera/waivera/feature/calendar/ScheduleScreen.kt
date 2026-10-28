@@ -312,10 +312,14 @@ private fun ViewPicker(state: ScheduleUiState, actions: ScheduleActions) {
 
 /**
  * Previous, the period title, next; the saved zone is a quiet caption under the title. In the Day
- * view the title is the only day heading, so it carries the Today chip.
+ * view the title is the only day heading, so it carries the Today chip. At large font the chip
+ * goes under the title, so the title has the whole width between the arrows: beside the chip,
+ * "Sun, November 1" had no room left and stranded the "1" (UI5-04).
  */
 @Composable
 private fun PeriodRow(state: ScheduleUiState, actions: ScheduleActions) {
+    val showToday = state.view == ScheduleView.DAY && state.isTodaySelected
+    val todayUnderTitle = isLargeFontScale()
     Column(modifier = Modifier.padding(horizontal = WaiveraSpacing.Gutter, vertical = WaiveraSpacing.ExtraSmall)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             WaiveraIconButton(
@@ -340,7 +344,7 @@ private fun PeriodRow(state: ScheduleUiState, actions: ScheduleActions) {
                             liveRegion = LiveRegionMode.Polite
                         },
                 )
-                if (state.view == ScheduleView.DAY && state.isTodaySelected) {
+                if (showToday && !todayUnderTitle) {
                     WaiveraStatusBadge(text = stringResource(R.string.feature_calendar_today), tone = BadgeTone.Accent)
                 }
             }
@@ -348,6 +352,13 @@ private fun PeriodRow(state: ScheduleUiState, actions: ScheduleActions) {
                 icon = WaiveraIcons.ChevronRight,
                 contentDescription = stringResource(R.string.feature_calendar_next_period),
                 onClick = { actions.onStep(1) },
+            )
+        }
+        if (showToday && todayUnderTitle) {
+            WaiveraStatusBadge(
+                text = stringResource(R.string.feature_calendar_today),
+                tone = BadgeTone.Accent,
+                modifier = Modifier.align(Alignment.CenterHorizontally),
             )
         }
         val notice = state.zoneNotice

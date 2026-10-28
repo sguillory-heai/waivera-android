@@ -10,8 +10,9 @@
     <string name="feature_calendar_today">Today</string>
     <string name="feature_calendar_go_to_today">Jump to today</string>
     <string name="feature_calendar_refresh">Refresh schedule</string>
-    <!-- The year is held to the range by a no-break space, so a wrap never leaves it alone (UI4-07). -->
-    <string name="feature_calendar_period_week_in_month">%1$s–%2$s,\u00A0%3$s</string>
+    <!-- A normal space before the year: when the range doesn't fit, the year moves down whole
+         ("November 1–7, / 2026") instead of the breaker splitting it ("2 / 026", UI5-04). -->
+    <string name="feature_calendar_period_week_in_month">%1$s–%2$s, %3$s</string>
     <string name="feature_calendar_period_week_across_months">%1$s – %2$s</string>
     <string name="feature_calendar_zone_notice">Times shown in %1$s</string>
     <string name="feature_calendar_zone_notice_fallback">Your profile has no time zone, so times are shown in %1$s.</string>
