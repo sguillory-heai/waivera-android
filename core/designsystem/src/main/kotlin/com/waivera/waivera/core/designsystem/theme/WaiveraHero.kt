@@ -187,6 +187,13 @@ object WaiveraHero {
     /** The tab sheet's first band: its curve and the padding above its first section (22 in the concept). */
     val TabSheetLip: Dp = 22.dp
 
+    /** The top bar's sheet band at large font, so the compact header keeps the screen for content. */
+    val BarSheetLipCompact: Dp = 12.dp
+
+    /** A person's avatar on a profile hero. */
+    val ProfileAvatar: Dp = 88.dp
+    val ProfileAvatarCompact: Dp = 64.dp
+
     /** Sign-in header below the status bar on a regular phone: the concept's 300 minus the bar. */
     val HeaderHeight: Dp = 260.dp
 

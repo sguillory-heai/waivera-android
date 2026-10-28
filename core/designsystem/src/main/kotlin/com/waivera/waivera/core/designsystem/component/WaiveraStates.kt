@@ -53,7 +53,8 @@ enum class WaiveraIllustration(@param:DrawableRes internal val drawable: Int) {
 
 /**
  * The shared empty-state block: a small brand illustration (or an icon tile), title, message
- * and one clear action that invites the next step. Every screen uses this so copy and spacing
+ * and one clear action that invites the next step. In concept A's type: the title is the sheet's
+ * 18 / 800 heading and the action is the CTA gradient. Every screen uses this so copy and spacing
  * stay consistent. [illustration] wins over [icon] when both are set.
  */
 @Composable
@@ -174,11 +175,12 @@ private fun StateBlock(
                 icon = icon,
                 tone = if (tone == StateTone.Error) WaiveraTileTone.Danger else WaiveraTileTone.Brand,
                 size = WaiveraSizes.StateIconTile,
+                iconSize = WaiveraSizes.StateIconGlyph,
             )
         }
         Text(
             text = title,
-            style = MaterialTheme.typography.titleMedium,
+            style = MaterialTheme.typography.titleLarge,
             color = colors.text,
             textAlign = TextAlign.Center,
             modifier = Modifier.semantics { heading() },

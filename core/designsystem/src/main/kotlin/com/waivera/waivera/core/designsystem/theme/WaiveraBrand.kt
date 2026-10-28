@@ -26,12 +26,6 @@ object WaiveraBrand {
     /** The three colours, for confetti and other art that picks one colour per piece. */
     val Colors: List<Color> = listOf(Violet, Pink, Gold)
 
-    /**
-     * The selected tab's two colours. A 32dp-tall pill is too small for the gold end, which read
-     * as a smear there (UI8-01), so it stops on pink.
-     */
-    val TabColors: List<Color> = listOf(Violet, Pink)
-
     /** Top to bottom, as in the logo. */
     fun verticalGradient(alpha: Float = 1f): Brush = Brush.verticalGradient(*stops(alpha))
 
@@ -57,20 +51,6 @@ object WaiveraBrand {
 
     /** The colours of [wash] at each stop, alpha included, for contrast checks. */
     fun washColors(colors: WaiveraColors): List<Color> = washStops(colors).map { it.second }.distinct()
-
-    /** Start to end over the selected tab only: violet to pink, no gold ([TabColors]). */
-    fun tabGradient(alpha: Float, startX: Float, endX: Float): Brush = Brush.horizontalGradient(
-        0f to Violet.copy(alpha = alpha),
-        1f to Pink.copy(alpha = alpha),
-        startX = startX,
-        endX = endX,
-    )
-
-    /**
-     * The gradient over a soft accent fill, a little stronger than [wash] so it still reads on a
-     * small shape: the selected tab's indicator. Glyphs on it keep 3:1 (`WaiveraColorsContrastTest`).
-     */
-    const val ACCENT_WASH_ALPHA = 0.3f
 
     private fun washStops(colors: WaiveraColors): Array<Pair<Float, Color>> = arrayOf(
         0f to Violet.copy(alpha = colors.brandWashAlpha),

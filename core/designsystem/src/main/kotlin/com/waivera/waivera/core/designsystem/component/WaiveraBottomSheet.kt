@@ -26,8 +26,9 @@ import com.waivera.waivera.core.designsystem.theme.WaiveraSpacing
 import com.waivera.waivera.core.designsystem.theme.WaiveraTheme
 
 /**
- * Modal bottom sheet with the app's shape, scrim and drag handle. It opens fully expanded and
- * applies the navigation bar inset itself, so content must not pad for it again.
+ * Modal bottom sheet with the app's shape (the tab sheet's 28dp curve), scrim and drag handle.
+ * It opens fully expanded and applies the navigation bar inset itself, so content must not pad
+ * for it again.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -43,7 +44,7 @@ fun WaiveraBottomSheet(
         modifier = modifier,
         sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
         sheetMaxWidth = WaiveraSizes.SheetMaxWidth,
-        shape = WaiveraShapes.Sheet,
+        shape = WaiveraShapes.ModalSheet,
         containerColor = colors.surface,
         contentColor = colors.text,
         scrimColor = colors.scrim,
@@ -95,7 +96,7 @@ fun WaiveraSheetFrame(
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .background(colors.surface, WaiveraShapes.Sheet),
+            .background(colors.surface, WaiveraShapes.ModalSheet),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         BottomSheetDefaults.DragHandle(color = colors.borderStrong)

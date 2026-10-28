@@ -1,10 +1,11 @@
 package com.waivera.waivera.core.designsystem.component
 
 import androidx.annotation.DrawableRes
-import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -17,26 +18,29 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.minimumInteractiveComponentSize
+import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextAlign
 import com.waivera.waivera.core.designsystem.feedback.rememberHaptics
 import com.waivera.waivera.core.designsystem.icon.WaiveraIcons
 import com.waivera.waivera.core.designsystem.preview.WaiveraPreviews
+import com.waivera.waivera.core.designsystem.theme.WaiveraHero
 import com.waivera.waivera.core.designsystem.theme.WaiveraShapes
 import com.waivera.waivera.core.designsystem.theme.WaiveraSizes
 import com.waivera.waivera.core.designsystem.theme.WaiveraSpacing
@@ -45,6 +49,10 @@ import com.waivera.waivera.core.designsystem.theme.WaiveraTheme
 /**
  * Filter chip (All, Mentions, Unread...). Selecting fires the selection haptic. [leadingIcon]
  * marks an on/off toggle (a check while on) so it reads apart from single-choice chips.
+ *
+ * Concept A's selected state, shared with [WaiveraSegmentedControl]: white text on the CTA
+ * gradient, so the choice reads by its fill and its ink, never by a faint tint alone (UI8-13).
+ * At rest the chip is the surface with a hairline. It draws 36dp tall and keeps a 48dp target.
  */
 @Composable
 fun WaiveraFilterChip(
@@ -57,43 +65,68 @@ fun WaiveraFilterChip(
 ) {
     val haptics = rememberHaptics()
     val colors = WaiveraTheme.colors
-    FilterChip(
-        selected = selected,
-        onClick = {
-            haptics.selection()
-            onClick()
-        },
-        label = { Text(text = label, style = MaterialTheme.typography.labelMedium) },
-        modifier = modifier,
-        enabled = enabled,
-        leadingIcon = leadingIcon?.let { icon ->
-            {
-                Icon(
-                    painter = painterResource(icon),
-                    contentDescription = null,
-                    modifier = Modifier.size(FilterChipDefaults.IconSize),
-                )
+    val hero = WaiveraHero.colors
+    val shape = WaiveraShapes.FilterChip
+    val interactionSource = remember { MutableInteractionSource() }
+    val scale by animatePressScale(interactionSource)
+    val filled = selected && enabled
+    val content = when {
+        !enabled -> colors.textSecondary
+        filled -> hero.onButton
+        else -> colors.text
+    }
+    val fill = when {
+        filled -> Modifier.background(brush = hero.buttonBrush, shape = shape)
+        selected ->
+            Modifier
+                .background(color = colors.surfaceMuted, shape = shape)
+                .border(width = WaiveraSizes.SelectedOutline, color = colors.borderStrong, shape = shape)
+        else ->
+            Modifier
+                .background(color = colors.surface, shape = shape)
+                .border(width = WaiveraSpacing.Hairline, color = colors.border, shape = shape)
+    }
+    Row(
+        modifier = modifier
+            .minimumInteractiveComponentSize()
+            .graphicsLayer {
+                scaleX = scale
+                scaleY = scale
             }
-        },
-        shape = WaiveraShapes.Chip,
-        colors = FilterChipDefaults.filterChipColors(
-            containerColor = colors.surface,
-            labelColor = colors.text,
-            selectedContainerColor = colors.accentSoft,
-            selectedLabelColor = colors.onAccentSoft,
-            selectedLeadingIconColor = colors.onAccentSoft,
-        ),
-        border = FilterChipDefaults.filterChipBorder(
-            enabled = enabled,
-            selected = selected,
-            borderColor = colors.border,
-            // The selected edge is the accent at the heavier outline (3:1 on the soft fill), so a
-            // single-choice chip never reads as selected by a faint fill alone (UI8-13). Toggle
-            // chips keep their check as the extra mark.
-            selectedBorderColor = colors.accent,
-            selectedBorderWidth = WaiveraSizes.SelectedOutline,
-        ),
-    )
+            .heightIn(min = WaiveraSizes.FilterChipHeight)
+            .then(fill)
+            .clip(shape)
+            .selectable(
+                selected = selected,
+                enabled = enabled,
+                role = Role.Checkbox,
+                interactionSource = interactionSource,
+                indication = ripple(),
+                onClick = {
+                    haptics.selection()
+                    onClick()
+                },
+            )
+            .padding(horizontal = WaiveraSpacing.MediumSmall + WaiveraSpacing.XxSmall),
+        horizontalArrangement = Arrangement.spacedBy(WaiveraSpacing.ExtraSmall + WaiveraSpacing.XxSmall),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        if (leadingIcon != null) {
+            Icon(
+                painter = painterResource(leadingIcon),
+                contentDescription = null,
+                tint = content,
+                modifier = Modifier.size(WaiveraSizes.FilterChipIcon),
+            )
+        }
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelMedium,
+            fontWeight = if (filled) FontWeight.Bold else null,
+            color = content,
+            modifier = Modifier.padding(vertical = WaiveraSpacing.ExtraSmall),
+        )
+    }
 }
 
 /**
@@ -119,7 +152,7 @@ fun WaiveraSegmentedControl(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .clip(WaiveraShapes.Button)
+                .clip(WaiveraShapes.SegmentTrack)
                 .background(colors.surfaceMuted)
                 .then(if (scrolls) Modifier.horizontalScroll(rememberScrollState()) else Modifier)
                 .padding(WaiveraSpacing.ExtraSmall)
@@ -146,23 +179,20 @@ fun WaiveraSegmentedControl(
 private fun Segment(label: String, selected: Boolean, onSelect: () -> Unit, modifier: Modifier = Modifier) {
     val haptics = rememberHaptics()
     val colors = WaiveraTheme.colors
-    val background by animateColorAsState(
-        targetValue = if (selected) colors.segmentSelected else colors.surfaceMuted,
+    val hero = WaiveraHero.colors
+    val pill by animateFloatAsState(
+        targetValue = if (selected) 1f else 0f,
         animationSpec = WaiveraTheme.motion.state(),
-        label = "segmentBackground",
+        label = "segmentPill",
     )
+    val brush = hero.buttonBrush
     Box(
         modifier = modifier
             .heightIn(min = WaiveraSizes.SegmentMinHeight)
-            .clip(WaiveraShapes.Chip)
-            .background(background)
-            // The chosen segment also has an accent edge and accent text, so the choice never
-            // rests on a fill step alone.
-            .border(
-                WaiveraSpacing.Hairline,
-                if (selected) colors.accentBorder else Color.Transparent,
-                WaiveraShapes.Chip,
-            )
+            .clip(WaiveraShapes.Segment)
+            // The chosen segment is the CTA gradient with white ink, so the choice never rests on a
+            // fill step alone; it fades in on the state token and snaps under reduced motion.
+            .drawBehind { if (pill > 0f) drawRect(brush = brush, alpha = pill) }
             .selectable(
                 selected = selected,
                 role = Role.Tab,
@@ -179,7 +209,7 @@ private fun Segment(label: String, selected: Boolean, onSelect: () -> Unit, modi
         Text(
             text = label,
             style = MaterialTheme.typography.labelLarge,
-            color = if (selected) colors.onAccentSoft else colors.textSecondary,
+            color = if (selected) hero.onButton else colors.textSecondary,
             textAlign = TextAlign.Center,
             maxLines = 1,
             softWrap = false,

@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -21,17 +22,21 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.unit.Dp
 import com.waivera.waivera.core.designsystem.feedback.rememberHaptics
 import com.waivera.waivera.core.designsystem.icon.WaiveraIcons
 import com.waivera.waivera.core.designsystem.preview.WaiveraPreviews
 import com.waivera.waivera.core.designsystem.text.withBreaksAfterHyphens
+import com.waivera.waivera.core.designsystem.theme.WaiveraElevation
+import com.waivera.waivera.core.designsystem.theme.WaiveraShapes
 import com.waivera.waivera.core.designsystem.theme.WaiveraSizes
 import com.waivera.waivera.core.designsystem.theme.WaiveraSpacing
-import com.waivera.waivera.core.designsystem.theme.WaiveraTextStyles
 import com.waivera.waivera.core.designsystem.theme.WaiveraTheme
 
 /**
@@ -192,23 +197,51 @@ private fun RowText(
     }
 }
 
-/** Section label above a group of rows. Marked as a heading for TalkBack navigation. */
+/**
+ * Section title above a group of rows: B's mixed-case 17 / 600, the same title as the sections
+ * on Today's sheet, so every screen's sections read alike. Marked as a heading for TalkBack.
+ */
 @Composable
 fun WaiveraSectionHeader(text: String, modifier: Modifier = Modifier) {
     Text(
-        text = text.uppercase(),
-        style = WaiveraTextStyles.Eyebrow,
-        color = WaiveraTheme.colors.textSecondary,
+        text = text,
+        style = MaterialTheme.typography.titleMedium,
+        color = WaiveraTheme.colors.text,
         modifier = modifier
             .fillMaxWidth()
             .padding(
-                start = WaiveraSpacing.Gutter,
+                start = WaiveraSpacing.Gutter + WaiveraSpacing.ExtraSmall,
                 end = WaiveraSpacing.Gutter,
-                top = WaiveraSpacing.Medium,
-                bottom = WaiveraSpacing.ExtraSmall,
+                top = WaiveraSpacing.MediumLarge,
+                bottom = WaiveraSpacing.Small,
             )
             .semantics { heading() },
     )
+}
+
+/**
+ * A group of rows on one card: the sheet card's surface, 20dp corners and soft lift, inset by the
+ * screen gutter, with the rows edge to edge inside it. Settings, the profile's details and the
+ * event's people use it, so grouped rows look the same on every screen. Put a [WaiveraInsetDivider]
+ * between rows.
+ */
+@Composable
+fun WaiveraCardGroup(modifier: Modifier = Modifier, content: @Composable ColumnScope.() -> Unit) {
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = WaiveraSpacing.Gutter)
+            .shadow(elevation = WaiveraElevation.Card, shape = WaiveraShapes.SheetCard, clip = false)
+            .background(WaiveraTheme.colors.surface, WaiveraShapes.SheetCard)
+            .clip(WaiveraShapes.SheetCard),
+        content = content,
+    )
+}
+
+/** The hairline between rows on a [WaiveraCardGroup], starting where the row's text starts. */
+@Composable
+fun WaiveraInsetDivider(modifier: Modifier = Modifier, inset: Dp = WaiveraSpacing.Gutter) {
+    WaiveraDivider(modifier = modifier.padding(start = inset))
 }
 
 /** Hairline divider in the border colour. */

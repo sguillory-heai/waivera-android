@@ -23,6 +23,7 @@ import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.platform.LocalDensity
@@ -33,7 +34,6 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Constraints
 import com.waivera.waivera.core.designsystem.icon.WaiveraIcons
 import com.waivera.waivera.core.designsystem.preview.WaiveraPreviews
-import com.waivera.waivera.core.designsystem.theme.WaiveraBrand
 import com.waivera.waivera.core.designsystem.theme.WaiveraElevation
 import com.waivera.waivera.core.designsystem.theme.WaiveraShapes
 import com.waivera.waivera.core.designsystem.theme.WaiveraSizes
@@ -54,8 +54,10 @@ data class NavigationBarItemModel(
  * Bottom tab bar. It owns the navigation bar inset, so screens shown above it must not pad
  * for the navigation bar again.
  *
- * The brand shows here with restraint: the selected tab's one soft pill carries a light
- * violet-to-pink wash of the logo gradient, and an unread count sits in a thin gradient ring. The ring and wash are
+ * Concept A's bar: the bar's own fill under a top hairline, and the selected tab's one pill
+ * behind its glyph, the pastel lilac-to-pink wash with deep violet ink in light and the
+ * saturated CTA gradient with white in dark. An unread count sits on the glyph's top-end corner
+ * in the concept's rose, ringed in the bar's colour so it reads as cut out of it. The pill is
  * decoration; the label, the selected state and the count carry the meaning.
  */
 @Composable
@@ -67,8 +69,15 @@ fun WaiveraNavigationBar(
 ) {
     val colors = WaiveraTheme.colors
     NavigationBar(
-        modifier = modifier,
-        containerColor = colors.surface,
+        modifier = modifier.drawBehind {
+            drawLine(
+                color = colors.navBarBorder,
+                start = Offset.Zero,
+                end = Offset(size.width, 0f),
+                strokeWidth = WaiveraSpacing.Hairline.toPx(),
+            )
+        },
+        containerColor = colors.navBar,
         contentColor = colors.text,
         tonalElevation = WaiveraElevation.Level0,
     ) {
@@ -84,7 +93,8 @@ fun WaiveraNavigationBar(
                         modifier = Modifier
                             .testTag(NAV_ICON_TEST_TAG)
                             .selectedTabPill(
-                                soft = colors.accentSoft,
+                                start = colors.navPillStart,
+                                end = colors.navPillEnd,
                                 alpha = { washAlpha },
                             ),
                     ) {
@@ -99,13 +109,13 @@ fun WaiveraNavigationBar(
                     Text(
                         text = item.label,
                         style = MaterialTheme.typography.labelMedium,
-                        fontWeight = if (selected) FontWeight.Bold else null,
+                        fontWeight = if (selected) FontWeight.Bold else FontWeight.SemiBold,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                     )
                 },
                 colors = NavigationBarItemDefaults.colors(
-                    selectedIconColor = colors.onAccentSoft,
+                    selectedIconColor = colors.onNavPill,
                     selectedTextColor = colors.text,
                     // The pill is drawn once, below, so Material's own indicator stays invisible:
                     // two pills of different widths read as a smear (UI8-01).
@@ -130,28 +140,24 @@ private fun rememberTabWashAlpha(selected: Boolean): Float {
 }
 
 /**
- * The selected tab's one pill: the soft accent fill with the violet-to-pink wash over it, both
- * from the same rect. It draws behind the icon and outside the icon's bounds, centred on it, so
- * it never changes the layout.
+ * The selected tab's one pill, the [start]-to-[end] gradient. It draws behind the icon and
+ * outside the icon's bounds, centred on it, so it never changes the layout.
  */
-private fun Modifier.selectedTabPill(soft: Color, alpha: () -> Float): Modifier = drawBehind {
+private fun Modifier.selectedTabPill(start: Color, end: Color, alpha: () -> Float): Modifier = drawBehind {
     val shown = alpha()
     if (shown == 0f) return@drawBehind
     val width = WaiveraSizes.NavIndicatorWidth.toPx()
     val height = WaiveraSizes.NavIndicatorHeight.toPx()
     val topLeft = Offset(center.x - width / 2f, center.y - height / 2f)
-    val pillSize = Size(width, height)
-    val corner = CornerRadius(height / 2f)
-    drawRoundRect(color = soft, topLeft = topLeft, size = pillSize, cornerRadius = corner, alpha = shown)
     drawRoundRect(
-        brush = WaiveraBrand.tabGradient(
-            alpha = WaiveraBrand.ACCENT_WASH_ALPHA,
+        brush = Brush.horizontalGradient(
+            colors = listOf(start, end),
             startX = topLeft.x,
             endX = topLeft.x + width,
         ),
         topLeft = topLeft,
-        size = pillSize,
-        cornerRadius = corner,
+        size = Size(width, height),
+        cornerRadius = CornerRadius(height / 2f),
         alpha = shown,
     )
 }
@@ -185,7 +191,11 @@ private fun NavIconWithBadge(badge: String?, modifier: Modifier = Modifier, icon
     }
 }
 
-/** Unread, not failure: the same purple as every other count (UI2-16), in a thin brand ring. */
+/**
+ * The tab's unread count: white on the concept's rose, ringed in the bar's own colour so it
+ * stands off the glyph and the pill. The rose is the brand's, apart from the danger red, so an
+ * unread count never reads as a failure (UI2-16).
+ */
 @Composable
 private fun NavUnreadBadge(text: String) {
     val colors = WaiveraTheme.colors
@@ -194,10 +204,10 @@ private fun NavUnreadBadge(text: String) {
     val scale = navBadgeTextScale(fontScale) / fontScale
     Box(
         modifier = Modifier
-            .border(WaiveraSizes.NavBadgeRing, WaiveraBrand.diagonalGradient(), WaiveraShapes.Pill)
+            .border(WaiveraSizes.NavBadgeRing, colors.navBar, WaiveraShapes.Pill)
             .padding(WaiveraSizes.NavBadgeRing)
             .defaultMinSize(minWidth = WaiveraSizes.NavBadgeMin, minHeight = WaiveraSizes.NavBadgeMin)
-            .background(colors.unread, WaiveraShapes.Pill)
+            .background(colors.navBadge, WaiveraShapes.Pill)
             .padding(horizontal = WaiveraSpacing.ExtraSmall),
         contentAlignment = Alignment.Center,
     ) {

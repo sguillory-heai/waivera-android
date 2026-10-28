@@ -2,6 +2,7 @@ package com.waivera.waivera.core.designsystem.component
 
 import androidx.annotation.DrawableRes
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -35,6 +36,7 @@ import androidx.compose.ui.text.style.TextAlign
 import com.waivera.waivera.core.designsystem.icon.WaiveraIcons
 import com.waivera.waivera.core.designsystem.preview.WaiveraPreviews
 import com.waivera.waivera.core.designsystem.theme.WaiveraColors
+import com.waivera.waivera.core.designsystem.theme.WaiveraHero
 import com.waivera.waivera.core.designsystem.theme.WaiveraShapes
 import com.waivera.waivera.core.designsystem.theme.WaiveraSizes
 import com.waivera.waivera.core.designsystem.theme.WaiveraSpacing
@@ -77,6 +79,10 @@ enum class WaiveraButtonVariant {
  *
  * A [Secondary][WaiveraButtonVariant.Secondary] button's leading icon takes the accent, so an
  * outlined action never pairs a heavy near-black glyph with its softer label.
+ *
+ * An enabled [Primary][WaiveraButtonVariant.Primary] button is concept A's CTA fill: white on the
+ * saturated violet-to-magenta gradient in both themes, the same fill as [WaiveraGradientButton],
+ * so every primary action in the app reads as one. Never dark ink on a pastel fill.
  */
 @Composable
 fun WaiveraButton(
@@ -90,7 +96,13 @@ fun WaiveraButton(
     loadingText: String? = null,
 ) {
     val colors = WaiveraTheme.colors
-    val style = variant.styleFrom(colors)
+    val hero = WaiveraHero.colors
+    val gradient = variant == WaiveraButtonVariant.Primary && enabled
+    val style = if (gradient) {
+        ButtonStyle(container = Color.Transparent, content = hero.onButton, disabledContainer = colors.surfaceMuted)
+    } else {
+        variant.styleFrom(colors)
+    }
     val interactionSource = remember { MutableInteractionSource() }
     val scale by animatePressScale(interactionSource)
     val loading = loadingText != null
@@ -103,6 +115,9 @@ fun WaiveraButton(
             }
             .heightIn(min = WaiveraSizes.ButtonMinHeight)
             .then(if (fullWidth) Modifier.fillMaxWidth() else Modifier)
+            .then(
+                if (gradient) Modifier.background(brush = hero.buttonBrush, shape = WaiveraShapes.Button) else Modifier,
+            )
             .semantics { if (loadingText != null) stateDescription = loadingText },
         enabled = enabled,
         shape = WaiveraShapes.Button,

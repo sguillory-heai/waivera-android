@@ -37,7 +37,10 @@ object WaiveraSizes {
 
     /** An emoji inside an icon tile: icon size, fixed so the tile never overflows at 200%. */
     val EmojiInTile: Dp = 22.dp
-    val StateIconTile: Dp = 48.dp
+
+    /** The icon tile of an empty or error state, and its glyph. */
+    val StateIconTile: Dp = 56.dp
+    val StateIconGlyph: Dp = 28.dp
     val AvatarSmall: Dp = 32.dp
     val AvatarMedium: Dp = 44.dp
     val AvatarLarge: Dp = 64.dp
@@ -84,11 +87,11 @@ object WaiveraSizes {
     val MilestoneYearsMinAvatar: Dp = 40.dp
     val BadgeMin: Dp = 20.dp
 
-    /** The unread count on a bottom tab: smaller than a row badge, inside its brand-gradient ring. */
-    val NavBadgeMin: Dp = 16.dp
+    /** The unread count on a bottom tab (concept A, 18): smaller than a row badge. */
+    val NavBadgeMin: Dp = 18.dp
 
-    /** Width of the brand-gradient ring around the tab's unread count. */
-    val NavBadgeRing: Dp = 1.5.dp
+    /** The ring in the bar's own colour around the tab's unread count. */
+    val NavBadgeRing: Dp = 2.dp
 
     /**
      * How far the tab's unread count overlaps the icon's top-end corner, on each axis. The
@@ -147,6 +150,10 @@ object WaiveraSizes {
     /** The mention quote's rule on a Needs you card. */
     val QuoteRule: Dp = 2.dp
     val SegmentMinHeight: Dp = 48.dp
+
+    /** A filter chip as drawn (its target stays 48dp) and the glyph in it. */
+    val FilterChipHeight: Dp = 36.dp
+    val FilterChipIcon: Dp = 18.dp
     val SkeletonLine: Dp = 14.dp
     val SheetMaxWidth: Dp = 640.dp
 

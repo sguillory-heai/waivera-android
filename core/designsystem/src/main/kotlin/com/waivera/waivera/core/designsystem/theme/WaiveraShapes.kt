@@ -38,10 +38,21 @@ object WaiveraShapes {
     val TimelineTrack: Shape = RoundedCornerShape(10.dp)
     val TimelineBlock: Shape = RoundedCornerShape(6.dp)
 
+    /** A filter chip, and a segmented control's track and its chosen segment. */
+    val FilterChip: Shape = RoundedCornerShape(12.dp)
+    val SegmentTrack: Shape = RoundedCornerShape(16.dp)
+    val Segment: Shape = RoundedCornerShape(12.dp)
+
+    /** A modal sheet's top corners: the tab sheet's 28, so a sheet rises the way the screens do. */
+    val ModalSheet: Shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp)
+
+    /** A snackbar: the field and CTA radius. */
+    val Snackbar: Shape = RoundedCornerShape(16.dp)
+
     /** A section's gradient count ("Needs you 4"). */
     val CountBadge: Shape = RoundedCornerShape(8.dp)
     val ListCard: Shape = RoundedCornerShape(14.dp)
-    val Banner: Shape = RoundedCornerShape(14.dp)
+    val Banner: Shape = RoundedCornerShape(16.dp)
     val Composer: Shape = RoundedCornerShape(18.dp)
     val Pill: Shape = RoundedCornerShape(18.dp)
     val Bubble: Shape = RoundedCornerShape(20.dp)

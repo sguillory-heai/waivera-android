@@ -126,20 +126,26 @@ class WaiveraColorsContrastTest {
         text("onAccentSoft on tonalOnWash", colors.onAccentSoft, colors.tonalOnWash)
     }
 
-    /** The selected tab's pill: violet to pink over the soft accent, glyph at 3:1 or more. */
+    /**
+     * The selected pill (concept A): its ink at 4.5:1 at both ends, the pastel wash with violet ink
+     * in light and the CTA gradient with white in dark; the tab's rose count with white; and the
+     * snackbar's text and action on its plum.
+     */
     @Test
-    fun selectedTab_glyphReadsOnTheBrandWash() = forEachTheme { colors ->
-        for (stop in WaiveraBrand.TabColors) {
-            val wash = stop.copy(alpha = WaiveraBrand.ACCENT_WASH_ALPHA).compositeOver(colors.accentSoft)
-            ui("selected tab glyph on wash $stop", colors.onAccentSoft, wash)
-        }
+    fun selectedPill_badgeAndSnackbar() = forEachTheme { colors ->
+        text("onNavPill on navPillStart", colors.onNavPill, colors.navPillStart)
+        text("onNavPill on navPillEnd", colors.onNavPill, colors.navPillEnd)
+        text("onAccent on navBadge (tab count)", colors.onAccent, colors.navBadge)
+        text("textSecondary on navBar (tab labels)", colors.textSecondary, colors.navBar)
+        text("onSnackbar on snackbar", colors.onSnackbar, colors.snackbar)
+        text("snackbarAction on snackbar", colors.snackbarAction, colors.snackbar)
     }
 
-    /** The tab pill ends on pink: gold on a 32dp pill read as a smear (UI8-01). */
+    /** The light tab pill ends on pink, never gold: gold on a 32dp pill read as a smear (UI8-01). */
     @Test
     fun selectedTab_hasNoGoldEnd() {
-        assertTrue(WaiveraBrand.Gold !in WaiveraBrand.TabColors, "the tab pill still ends on gold")
-        assertTrue(WaiveraBrand.TabColors.last() == WaiveraBrand.Pink, "the tab pill should end on pink")
+        val end = waiveraColors(darkTheme = false).navPillEnd
+        assertTrue(end.blue >= end.green, "the tab pill should end on pink, not gold")
     }
 
     /**

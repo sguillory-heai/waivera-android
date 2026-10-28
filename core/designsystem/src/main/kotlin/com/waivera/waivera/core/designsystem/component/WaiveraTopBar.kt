@@ -5,12 +5,14 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.displayCutout
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
@@ -27,6 +29,7 @@ import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
@@ -37,10 +40,12 @@ import com.waivera.waivera.core.designsystem.R
 import com.waivera.waivera.core.designsystem.icon.WaiveraIcons
 import com.waivera.waivera.core.designsystem.preview.WaiveraPreviews
 import com.waivera.waivera.core.designsystem.text.withBreaksAfterHyphens
+import com.waivera.waivera.core.designsystem.theme.WaiveraHero
 import com.waivera.waivera.core.designsystem.theme.WaiveraShapes
 import com.waivera.waivera.core.designsystem.theme.WaiveraSizes
 import com.waivera.waivera.core.designsystem.theme.WaiveraSpacing
 import com.waivera.waivera.core.designsystem.theme.WaiveraTheme
+import com.waivera.waivera.core.designsystem.theme.isLargeFontScale
 
 /** An icon action in the top bar. */
 @Immutable
@@ -91,11 +96,20 @@ fun rememberTopBarAccount(onClick: () -> Unit, fallbackName: String = "", painte
 }
 
 /**
- * Screen top bar. It owns the status bar and horizontal cutout insets for the screen, so
- * screens using it must not pad for the status bar again. Titles wrap to two lines at large
- * font scales instead of clipping.
+ * Screen top bar: concept A's compact plum hero. The plum gradient with its glows and the faint
+ * tab trail runs behind the status bar, the bar row sits on it in white, and the bar ends in the
+ * first band of the rounded sheet ([sheetColor], the colour of what sits below it), so every
+ * screen opens the way Today does. A tab's root screen (no [onBack]) leads with the mark.
+ *
+ * It owns the status bar and horizontal cutout insets for the screen, so screens using it must
+ * not pad for the status bar again. While it shows, the status bar icons are light. Titles wrap
+ * to two lines at large font scales instead of clipping, and the sheet band narrows there so the
+ * header stays compact.
+ *
+ * [heroContent] goes on the plum under the bar row, for a screen that has a hero of its own (a
+ * person's avatar and name). It uses the hero inks ([WaiveraHero.colors]).
  */
-// One layout with optional back, subtitle, actions and account slots; splitting hides the shared row.
+// One layout with optional back, subtitle, actions, account and hero slots; splitting hides the shared row.
 @Suppress("LongMethod")
 @Composable
 fun WaiveraTopBar(
@@ -105,97 +119,127 @@ fun WaiveraTopBar(
     onBack: (() -> Unit)? = null,
     actions: List<TopBarAction> = emptyList(),
     account: TopBarAccount? = null,
+    sheetColor: Color = WaiveraTheme.colors.background,
+    heroContent: (@Composable ColumnScope.() -> Unit)? = null,
 ) {
-    val colors = WaiveraTheme.colors
-    Column(
-        modifier = modifier
-            .fillMaxWidth()
-            .background(colors.background)
-            .windowInsetsPadding(TopBarInsets),
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .heightIn(min = WaiveraSizes.TopBarMinHeight)
-                .padding(horizontal = WaiveraSpacing.ExtraSmall),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            if (onBack != null) {
-                WaiveraIconButton(
-                    icon = WaiveraIcons.Back,
-                    contentDescription = stringResource(R.string.core_designsystem_go_back),
-                    onClick = onBack,
-                )
-            } else {
-                Spacer(Modifier.width(WaiveraSpacing.MediumSmall))
-            }
+    val hero = WaiveraHero.colors
+    val lip = if (isLargeFontScale()) WaiveraHero.BarSheetLipCompact else WaiveraHero.TabSheetLip
+    LightStatusBarIcons()
+    WaiveraHeroBackdrop(modifier = modifier.fillMaxWidth(), trail = WaiveraHeroTrail.Tab) {
+        Column(modifier = Modifier.fillMaxWidth()) {
             Column(
                 modifier = Modifier
-                    .weight(1f)
-                    .padding(vertical = WaiveraSpacing.Small),
+                    .fillMaxWidth()
+                    .windowInsetsPadding(TopBarInsets),
             ) {
-                // Hyphenated names wrap after a hyphen, never mid-word (UI5-05).
-                Text(
-                    text = title.withBreaksAfterHyphens(),
-                    style = MaterialTheme.typography.headlineSmall,
-                    color = colors.text,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.semantics { heading() },
-                )
-                if (subtitle != null) {
-                    Text(
-                        text = subtitle,
-                        style = MaterialTheme.typography.labelMedium,
-                        color = colors.textSecondary,
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                }
-            }
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(WaiveraSpacing.XxSmall),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                actions.forEach { action ->
-                    Box {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(min = WaiveraSizes.TopBarMinHeight)
+                        .padding(horizontal = WaiveraSpacing.ExtraSmall),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    if (onBack != null) {
                         WaiveraIconButton(
-                            icon = action.icon,
-                            contentDescription = action.contentDescription,
-                            onClick = action.onClick,
+                            icon = WaiveraIcons.Back,
+                            contentDescription = stringResource(R.string.core_designsystem_go_back),
+                            onClick = onBack,
+                            tint = hero.onHeader,
                         )
-                        if (action.badgeCount > 0) {
-                            WaiveraCountBadge(count = action.badgeCount, modifier = Modifier.align(Alignment.TopEnd))
+                    } else {
+                        Spacer(Modifier.width(WaiveraSpacing.MediumSmall))
+                        WaiveraHeroLogo(height = WaiveraHero.BarMark, variant = WaiveraLogoVariant.Mark)
+                        Spacer(Modifier.width(WaiveraSpacing.MediumSmall))
+                    }
+                    Column(
+                        modifier = Modifier
+                            .weight(1f)
+                            .padding(vertical = WaiveraSpacing.Small),
+                    ) {
+                        // Hyphenated names wrap after a hyphen, never mid-word (UI5-05).
+                        Text(
+                            text = title.withBreaksAfterHyphens(),
+                            style = MaterialTheme.typography.headlineSmall,
+                            color = hero.onHeader,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.semantics { heading() },
+                        )
+                        if (subtitle != null) {
+                            Text(
+                                text = subtitle,
+                                style = MaterialTheme.typography.labelMedium,
+                                color = hero.onHeaderSecondary,
+                                maxLines = 2,
+                                overflow = TextOverflow.Ellipsis,
+                            )
                         }
                     }
+                    TopBarTrailing(actions = actions, account = account)
                 }
-                if (account != null) {
-                    WaiveraPressable(
-                        onClick = account.onClick,
-                        modifier = Modifier.size(WaiveraSizes.IconButton),
-                        onClickLabel = stringResource(R.string.core_designsystem_account_menu),
-                        role = Role.Button,
-                        shape = WaiveraShapes.avatar(WaiveraSizes.AvatarSmall),
-                    ) {
-                        WaiveraAvatar(
-                            name = account.name,
-                            painter = account.painter,
-                            imageModel = account.imageModel,
-                            size = WaiveraSizes.AvatarSmall,
-                            contentDescription = stringResource(R.string.core_designsystem_account_menu),
-                            modifier = Modifier.align(Alignment.Center),
-                        )
-                    }
+                heroContent?.invoke(this)
+            }
+            Spacer(Modifier.height(lip))
+        }
+        // The sheet's first band: its curve rises over the hero's foot.
+        Box(
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .fillMaxWidth()
+                .height(lip)
+                .background(sheetColor, WaiveraHero.TabSheetShape),
+        )
+    }
+}
+
+/** The bar's icon actions (white on the plum, each with its count) and the account avatar. */
+@Composable
+private fun TopBarTrailing(actions: List<TopBarAction>, account: TopBarAccount?) {
+    val hero = WaiveraHero.colors
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(WaiveraSpacing.XxSmall),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        actions.forEach { action ->
+            Box {
+                WaiveraIconButton(
+                    icon = action.icon,
+                    contentDescription = action.contentDescription,
+                    onClick = action.onClick,
+                    tint = hero.onHeader,
+                )
+                if (action.badgeCount > 0) {
+                    WaiveraCountBadge(count = action.badgeCount, modifier = Modifier.align(Alignment.TopEnd))
                 }
             }
         }
-        WaiveraDivider()
+        if (account != null) {
+            val label = stringResource(R.string.core_designsystem_account_menu)
+            WaiveraPressable(
+                onClick = account.onClick,
+                modifier = Modifier.size(WaiveraSizes.IconButton),
+                onClickLabel = label,
+                role = Role.Button,
+                shape = WaiveraShapes.avatar(WaiveraHero.BarAvatar),
+            ) {
+                WaiveraAvatar(
+                    name = account.name,
+                    painter = account.painter,
+                    imageModel = account.imageModel,
+                    size = WaiveraHero.BarAvatar,
+                    contentDescription = label,
+                    colors = WaiveraAvatarColors.onHero(),
+                    modifier = Modifier.align(Alignment.Center),
+                )
+            }
+        }
     }
 }
 
 private val TopBarInsets: WindowInsets
     @Composable
     get() = WindowInsets.statusBars.union(WindowInsets.displayCutout.only(WindowInsetsSides.Horizontal))
+        .only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal)
 
 @WaiveraPreviews
 @Composable

@@ -3,15 +3,21 @@ package com.waivera.waivera.core.designsystem.component
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import com.waivera.waivera.core.designsystem.R
 import com.waivera.waivera.core.designsystem.feedback.rememberHaptics
+import com.waivera.waivera.core.designsystem.icon.WaiveraIcons
 import com.waivera.waivera.core.designsystem.preview.WaiveraPreviews
+import com.waivera.waivera.core.designsystem.text.withBreaksAfterHyphens
+import com.waivera.waivera.core.designsystem.theme.WaiveraSizes
 import com.waivera.waivera.core.designsystem.theme.WaiveraSpacing
 import com.waivera.waivera.core.designsystem.theme.WaiveraTheme
 
@@ -20,6 +26,10 @@ import com.waivera.waivera.core.designsystem.theme.WaiveraTheme
  * leave conversation). Prefer an Undo snackbar where the action can be reversed.
  * A destructive confirm fires the warning haptic. While [confirmInProgress], the confirm button
  * shows [confirmInProgressLabel] ("Signing out…"), or else its own label, beside its spinner.
+ *
+ * Concept A's sheet: a destructive question leads with the warning glyph in the danger tile, the
+ * confirm is the full 56dp action (the CTA gradient, or the saturated red when destructive) and
+ * the dismiss is the tonal button under it.
  */
 @Composable
 fun WaiveraConfirmationSheet(
@@ -63,12 +73,22 @@ internal fun ConfirmationContent(
     confirmInProgressLabel: String? = null,
 ) {
     val haptics = rememberHaptics()
-    WaiveraSheetContent(title = title, modifier = modifier) {
+    WaiveraSheetContent(title = null, modifier = modifier) {
+        if (destructive) {
+            WaiveraIconTile(icon = WaiveraIcons.Warning, tone = WaiveraTileTone.Danger, size = WaiveraSizes.CardTile)
+        }
+        // Sheet titles often name a person or channel: wrap after a hyphen, never mid-word (UI5-05).
+        Text(
+            text = title.withBreaksAfterHyphens(),
+            style = MaterialTheme.typography.titleLarge,
+            color = WaiveraTheme.colors.text,
+            modifier = Modifier.semantics { heading() },
+        )
         Text(text = message, style = MaterialTheme.typography.bodyMedium, color = WaiveraTheme.colors.textSecondary)
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(top = WaiveraSpacing.Small),
+                .padding(top = WaiveraSpacing.MediumSmall),
             verticalArrangement = Arrangement.spacedBy(WaiveraSpacing.Small),
         ) {
             WaiveraButton(
@@ -77,6 +97,7 @@ internal fun ConfirmationContent(
                     if (destructive) haptics.warning()
                     onConfirm()
                 },
+                modifier = Modifier.heightIn(min = WaiveraSizes.CtaHeight),
                 variant = if (destructive) WaiveraButtonVariant.Destructive else WaiveraButtonVariant.Primary,
                 // Never a bare spinner: without its own progress copy the confirm label stays beside it.
                 loadingText = (confirmInProgressLabel ?: confirmLabel).takeIf { confirmInProgress },
@@ -85,7 +106,8 @@ internal fun ConfirmationContent(
             WaiveraButton(
                 text = dismissLabel,
                 onClick = onDismiss,
-                variant = WaiveraButtonVariant.Secondary,
+                modifier = Modifier.heightIn(min = WaiveraSizes.CtaHeight),
+                variant = WaiveraButtonVariant.Tonal,
                 enabled = !confirmInProgress,
                 fullWidth = true,
             )

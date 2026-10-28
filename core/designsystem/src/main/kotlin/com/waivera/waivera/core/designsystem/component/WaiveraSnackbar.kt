@@ -28,7 +28,11 @@ fun WaiveraSnackbarHost(hostState: SnackbarHostState, modifier: Modifier = Modif
     }
 }
 
-/** A single snackbar. The action uses the inverse accent so it meets contrast on the dark surface. */
+/**
+ * A single snackbar on the hero's plum in both themes, so a passing note carries the brand and
+ * never glares as a white block in dark. White text; the action in the light lilac (7.4:1 or
+ * better on both plums).
+ */
 @Composable
 fun WaiveraSnackbar(
     message: String,
@@ -39,13 +43,13 @@ fun WaiveraSnackbar(
     val colors = WaiveraTheme.colors
     Snackbar(
         modifier = modifier.padding(WaiveraSpacing.MediumSmall),
-        shape = WaiveraShapes.Card,
-        containerColor = colors.text,
-        contentColor = colors.background,
+        shape = WaiveraShapes.Snackbar,
+        containerColor = colors.snackbar,
+        contentColor = colors.onSnackbar,
         action = if (actionLabel != null) {
             {
                 TextButton(onClick = onAction) {
-                    Text(text = actionLabel, color = colors.inverseAccent, style = MaterialTheme.typography.labelLarge)
+                    Text(text = actionLabel, color = colors.snackbarAction, style = MaterialTheme.typography.labelLarge)
                 }
             }
         } else {

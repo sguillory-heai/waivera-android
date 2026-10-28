@@ -2,6 +2,7 @@ package com.waivera.waivera.core.designsystem.theme
 
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.staticCompositionLocalOf
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 
 /**
@@ -91,6 +92,22 @@ data class WaiveraColors(
      * wash point, with [onAccentSoft] on it.
      */
     val tonalOnWash: Color,
+    /** The bottom tab bar's fill and its top hairline. */
+    val navBar: Color,
+    val navBarBorder: Color,
+    /**
+     * The selected pill, shared by the tab bar, segmented controls and filter chips: a pastel
+     * wash with [onNavPill] ink in light, the saturated CTA gradient with white in dark.
+     */
+    val navPillStart: Color,
+    val navPillEnd: Color,
+    val onNavPill: Color,
+    /** The tab's unread count; white sits on it. */
+    val navBadge: Color,
+    /** A snackbar's plum fill, its text and its action. */
+    val snackbar: Color,
+    val onSnackbar: Color,
+    val snackbarAction: Color,
     /** Category tints for [com.waivera.waivera.core.designsystem.component.WaiveraIconTile]. */
     val tiles: WaiveraTileColors,
     /** Opacity of the brand gradient when it washes a surface (celebration cards, sign-in hero). */
@@ -175,6 +192,15 @@ internal val LightWaiveraColors = WaiveraColors(
     segmentSelected = WaiveraPalette.SurfaceLight,
     avatarFill = WaiveraPalette.AvatarFillLight,
     tonalOnWash = WaiveraPalette.TonalOnWashLight,
+    navBar = WaiveraPalette.SurfaceLight,
+    navBarBorder = WaiveraPalette.BorderLight,
+    navPillStart = WaiveraPalette.NavPillStartLight,
+    navPillEnd = WaiveraPalette.NavPillEndLight,
+    onNavPill = WaiveraPalette.OnNavPillLight,
+    navBadge = WaiveraPalette.NavBadge,
+    snackbar = WaiveraPalette.SnackbarLight,
+    onSnackbar = WaiveraPalette.White,
+    snackbarAction = WaiveraPalette.VioletDarkLink,
     tiles = WaiveraTileColors(
         brand = WaiveraTileTint(WaiveraPalette.AccentSoftLight, WaiveraPalette.Violet),
         rose = WaiveraTileTint(WaiveraPalette.TileRoseLight, WaiveraPalette.OnTileRoseLight),
@@ -245,6 +271,15 @@ internal val DarkWaiveraColors = WaiveraColors(
     segmentSelected = WaiveraPalette.AccentSoftDark,
     avatarFill = WaiveraPalette.AvatarFillDark,
     tonalOnWash = WaiveraPalette.TonalOnWashDark,
+    navBar = WaiveraPalette.NavBarDark,
+    navBarBorder = WaiveraPalette.BorderDark,
+    navPillStart = WaiveraHeroPalette.ButtonStartDark,
+    navPillEnd = WaiveraHeroPalette.ButtonEndDark,
+    onNavPill = WaiveraPalette.White,
+    navBadge = WaiveraPalette.NavBadge,
+    snackbar = WaiveraPalette.SnackbarDark,
+    onSnackbar = WaiveraPalette.White,
+    snackbarAction = WaiveraPalette.VioletDarkLink,
     tiles = WaiveraTileColors(
         brand = WaiveraTileTint(WaiveraPalette.AccentSoftDark, WaiveraPalette.VioletDarkLink),
         rose = WaiveraTileTint(WaiveraPalette.TileRoseDark, WaiveraPalette.OnTileRoseDark),
@@ -257,6 +292,10 @@ internal val DarkWaiveraColors = WaiveraColors(
     brandWashAlpha = WaiveraPalette.BRAND_WASH_ALPHA_DARK,
     brandWashEnd = WaiveraPalette.BrandPeach.copy(alpha = WaiveraPalette.BRAND_WASH_END_ALPHA_DARK),
 )
+
+/** The selected pill's fill, start to end ([WaiveraColors.navPillStart] to [WaiveraColors.navPillEnd]). */
+val WaiveraColors.navPillBrush: Brush
+    get() = Brush.horizontalGradient(listOf(navPillStart, navPillEnd))
 
 /** Resolves the colour set for a theme. Exposed for screenshot tests and the app's window colours. */
 fun waiveraColors(darkTheme: Boolean): WaiveraColors = if (darkTheme) DarkWaiveraColors else LightWaiveraColors

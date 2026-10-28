@@ -171,6 +171,24 @@ internal object WaiveraPalette {
     val NewHireContainerDark = Color(0xFF2F2643)
     val OnNewHireContainerDark = Color(0xFFC4B5FD)
 
+    // The selected tab's pill (concept A): a pastel lilac-to-pink wash with deep violet ink in
+    // light, the saturated CTA gradient with white in dark (never dark ink on a pastel there).
+    val NavPillStartLight = Color(0xFFEBDDFB)
+    val NavPillEndLight = Color(0xFFFBDDEC)
+    val OnNavPillLight = Color(0xFF4A2391)
+
+    /** The bar behind the tabs in dark, one step under the surface so the pill lifts off it. */
+    val NavBarDark = Color(0xFF18141F)
+
+    /** The tab's unread count: the concept's rose, 4.62:1 with white, kept apart from the danger red. */
+    val NavBadge = Color(0xFFD6336C)
+
+    /** A snackbar in light: the hero's deep plum, so a passing note carries the brand. */
+    val SnackbarLight = Color(0xFF2A1145)
+
+    /** A snackbar in dark: the hero's lower plum, lifted off the page. */
+    val SnackbarDark = Color(0xFF33195A)
+
     const val SCRIM_ALPHA = 0.36f
     const val WASH_ALPHA = 0.08f
     const val BORDER_ALPHA = 0.16f
