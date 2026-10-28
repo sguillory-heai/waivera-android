@@ -3,6 +3,7 @@ package com.waivera.waivera.feature.settings
 import android.content.ActivityNotFoundException
 import android.content.Context
 import android.content.Intent
+import androidx.annotation.DrawableRes
 import androidx.annotation.StringRes
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Column
@@ -31,9 +32,11 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.waivera.waivera.core.data.model.NotificationCategory
 import com.waivera.waivera.core.designsystem.component.BannerTone
 import com.waivera.waivera.core.designsystem.component.WaiveraBanner
+import com.waivera.waivera.core.designsystem.component.WaiveraIconTile
 import com.waivera.waivera.core.designsystem.component.WaiveraListRow
 import com.waivera.waivera.core.designsystem.component.WaiveraSectionHeader
 import com.waivera.waivera.core.designsystem.component.WaiveraSwitchRow
+import com.waivera.waivera.core.designsystem.component.WaiveraTileTone
 import com.waivera.waivera.core.designsystem.component.WaiveraTopBar
 import com.waivera.waivera.core.designsystem.icon.WaiveraIcons
 import com.waivera.waivera.core.designsystem.preview.WaiveraPreviews
@@ -95,6 +98,7 @@ internal fun NotificationSettingsContent(
                     subtitle = stringResource(R.string.feature_settings_push_subtitle),
                     checked = state.preferences.enabled,
                     onCheckedChange = onPushChange,
+                    leading = { WaiveraIconTile(icon = WaiveraIcons.Notifications, tone = WaiveraTileTone.Amber) },
                 )
             }
             WaiveraSectionHeader(text = stringResource(R.string.feature_settings_categories_section))
@@ -126,6 +130,7 @@ internal fun NotificationSettingsContent(
                         checked = state.isChecked(copy.category),
                         onCheckedChange = { onCategoryChange(copy.category, it) },
                         enabled = state.categoriesEnabled,
+                        leading = { CategoryTile(copy, enabled = state.categoriesEnabled) },
                     )
                 }
             }
@@ -137,6 +142,12 @@ internal fun NotificationSettingsContent(
                     checked = state.preferences.previewContent,
                     onCheckedChange = onPreviewChange,
                     enabled = state.categoriesEnabled,
+                    leading = {
+                        WaiveraIconTile(
+                            icon = WaiveraIcons.Lock,
+                            tone = if (state.categoriesEnabled) WaiveraTileTone.Brand else WaiveraTileTone.Neutral,
+                        )
+                    },
                 )
             }
             WaiveraSectionHeader(text = stringResource(R.string.feature_settings_sound_section))
@@ -186,36 +197,58 @@ private fun Context.startIfPresent(intent: Intent) {
     }
 }
 
+/**
+ * The category's tile, in the same icon and tone as the notification primer, so a category
+ * looks the same wherever it is explained. A switch blocked by push or by Android takes the
+ * neutral tile, matching its muted text.
+ */
+@Composable
+private fun CategoryTile(copy: CategoryCopy, enabled: Boolean) {
+    WaiveraIconTile(icon = copy.icon, tone = if (enabled) copy.tone else WaiveraTileTone.Neutral)
+}
+
 /** Copy per category; titles match the Android channel names so both places read the same. */
 internal enum class CategoryCopy(
     val category: NotificationCategory,
     @StringRes val title: Int,
     @StringRes val subtitle: Int,
+    @param:DrawableRes val icon: Int,
+    val tone: WaiveraTileTone,
 ) {
     Messages(
         NotificationCategory.MESSAGES,
         R.string.feature_settings_category_messages,
         R.string.feature_settings_category_messages_detail,
+        WaiveraIcons.Chat,
+        WaiveraTileTone.Brand,
     ),
     GroupActivity(
         NotificationCategory.GROUP_ACTIVITY,
         R.string.feature_settings_category_group_activity,
         R.string.feature_settings_category_group_activity_detail,
+        WaiveraIcons.People,
+        WaiveraTileTone.Brand,
     ),
     ScheduleReminders(
         NotificationCategory.SCHEDULE_REMINDERS,
         R.string.feature_settings_category_schedule_reminders,
         R.string.feature_settings_category_schedule_reminders_detail,
+        WaiveraIcons.Schedule,
+        WaiveraTileTone.Teal,
     ),
     ScheduleChanges(
         NotificationCategory.SCHEDULE_CHANGES,
         R.string.feature_settings_category_schedule_changes,
         R.string.feature_settings_category_schedule_changes_detail,
+        WaiveraIcons.Calendar,
+        WaiveraTileTone.Teal,
     ),
     Digest(
         NotificationCategory.DIGEST,
         R.string.feature_settings_category_digest,
         R.string.feature_settings_category_digest_detail,
+        WaiveraIcons.Announcement,
+        WaiveraTileTone.Amber,
     ),
 }
 
