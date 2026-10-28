@@ -19,7 +19,6 @@ import androidx.compose.foundation.layout.windowInsetsBottomHeight
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
@@ -28,7 +27,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.semantics
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -51,6 +49,7 @@ import com.waivera.waivera.core.designsystem.component.WaiveraErrorState
 import com.waivera.waivera.core.designsystem.component.WaiveraIconTile
 import com.waivera.waivera.core.designsystem.component.WaiveraIllustration
 import com.waivera.waivera.core.designsystem.component.WaiveraListRow
+import com.waivera.waivera.core.designsystem.component.WaiveraTileTone
 import com.waivera.waivera.core.designsystem.component.WaiveraTopBar
 import com.waivera.waivera.core.designsystem.icon.WaiveraIcons
 import com.waivera.waivera.core.designsystem.preview.WaiveraPreviews
@@ -261,9 +260,12 @@ internal fun IdentityCard(user: CurrentUser, profile: EmployeeProfile?, celebrat
             }
         }
         if (celebration != null) {
+            val firstName = profile?.firstName?.takeIf(String::isNotBlank)
+                ?: user.firstName?.takeIf(String::isNotBlank)
+                ?: name.trim().substringBefore(' ').takeIf(String::isNotBlank)
             WaiveraCelebrationNote(
                 emoji = celebration.emoji(),
-                text = celebration.fullLabel(name),
+                text = celebration.selfLabel(firstName),
                 modifier = Modifier.padding(horizontal = WaiveraSpacing.Medium),
             )
         }
@@ -394,7 +396,7 @@ private fun SectionErrorMessage(error: WaiveraError, besideAction: Boolean, modi
     val colors = WaiveraTheme.colors
     val style = MaterialTheme.typography.bodyMedium
     val line = with(LocalDensity.current) { style.lineHeight.toDp() }
-    val slot = maxOf(line, WaiveraSizes.Icon)
+    val slot = maxOf(line, WaiveraSizes.IconTileSmall)
     val top = if (besideAction) {
         ((WaiveraSpacing.MinTouchTarget - slot) / 2).coerceAtLeast(WaiveraSpacing.None)
     } else {
@@ -406,11 +408,12 @@ private fun SectionErrorMessage(error: WaiveraError, besideAction: Boolean, modi
         verticalAlignment = Alignment.Top,
     ) {
         Box(modifier = Modifier.height(slot), contentAlignment = Alignment.Center) {
-            Icon(
-                painter = painterResource(WaiveraIcons.Error),
-                contentDescription = null,
-                tint = colors.textSecondary,
-                modifier = Modifier.size(WaiveraSizes.Icon),
+            // The standard tile in its quiet neutral tone, as on Today (UI8-10).
+            WaiveraIconTile(
+                icon = WaiveraIcons.Error,
+                tone = WaiveraTileTone.Neutral,
+                size = WaiveraSizes.IconTileSmall,
+                iconSize = WaiveraSizes.IconTileSmallGlyph,
             )
         }
         Text(

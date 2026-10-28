@@ -21,6 +21,19 @@
         <item quantity="one">Happy birthday and %2$d-year work anniversary, %1$s!</item>
         <item quantity="other">Happy birthday and %2$d-year work anniversary, %1$s!</item>
     </plurals>
+    <!-- Your own celebration, on your profile: first name, second person. -->
+    <string name="feature_profile_celebration_self_birthday">Happy birthday, %1$s!</string>
+    <plurals name="feature_profile_celebration_self_anniversary">
+        <item quantity="one">Happy %2$d-year work anniversary, %1$s!</item>
+        <item quantity="other">Happy %2$d-year work anniversary, %1$s!</item>
+    </plurals>
+    <string name="feature_profile_celebration_self_both">Happy birthday and work anniversary, %1$s!</string>
+    <string name="feature_profile_celebration_self_unnamed_birthday">Happy birthday!</string>
+    <plurals name="feature_profile_celebration_self_unnamed_anniversary">
+        <item quantity="one">Happy %1$d-year work anniversary!</item>
+        <item quantity="other">Happy %1$d-year work anniversary!</item>
+    </plurals>
+    <string name="feature_profile_celebration_self_unnamed_both">Happy birthday and work anniversary!</string>
     <string name="feature_profile_celebration_emoji_birthday" translatable="false">🎂</string>
     <string name="feature_profile_celebration_emoji_anniversary" translatable="false">🎉</string>
     <string name="feature_profile_celebration_birthday_compact">Birthday today</string>
@@ -115,6 +128,8 @@
     <!-- Person detail -->
     <string name="feature_profile_person_detail_title">Profile</string>
     <string name="feature_profile_person_message">Message</string>
+    <!-- The same direct chat as Message, named for the moment when the person is celebrating. -->
+    <string name="feature_profile_person_send_wishes">Send wishes</string>
     <string name="feature_profile_person_opening_chat">Opening chat…</string>
     <string name="feature_profile_person_message_failed">Couldn\'t open the chat. %1$s</string>
     <string name="feature_profile_person_roles">Roles</string>

@@ -122,8 +122,15 @@ internal fun PersonDetailContent(
             ) {
                 PersonHero(state)
                 if (state.canMessage) {
+                    // On their birthday or anniversary the same chat is the easy "Send wishes" (UI8-09).
                     WaiveraButton(
-                        text = stringResource(R.string.feature_profile_person_message),
+                        text = stringResource(
+                            if (state.celebration != null) {
+                                R.string.feature_profile_person_send_wishes
+                            } else {
+                                R.string.feature_profile_person_message
+                            },
+                        ),
                         onClick = onMessage,
                         loadingText = stringResource(R.string.feature_profile_person_opening_chat)
                             .takeIf { state.isOpeningChat },

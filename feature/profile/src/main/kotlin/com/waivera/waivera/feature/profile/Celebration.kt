@@ -59,6 +59,32 @@ internal fun Celebration.fullLabel(name: String): String {
     }
 }
 
+/**
+ * Your own celebration on your profile, to you by first name: "Happy birthday, Alex!". The
+ * third-person, full-name sentence read like a system message there (UI8-09). With no first
+ * name it simply says "Happy birthday!".
+ */
+@Composable
+internal fun Celebration.selfLabel(firstName: String?): String {
+    val name = firstName?.trim()?.takeIf(String::isNotEmpty)
+    val years = anniversaryYears
+    return when {
+        birthday && years != null ->
+            name
+                ?.let { stringResource(R.string.feature_profile_celebration_self_both, it) }
+                ?: stringResource(R.string.feature_profile_celebration_self_unnamed_both)
+        birthday ->
+            name
+                ?.let { stringResource(R.string.feature_profile_celebration_self_birthday, it) }
+                ?: stringResource(R.string.feature_profile_celebration_self_unnamed_birthday)
+        years != null ->
+            name
+                ?.let { pluralStringResource(R.plurals.feature_profile_celebration_self_anniversary, years, it, years) }
+                ?: pluralStringResource(R.plurals.feature_profile_celebration_self_unnamed_anniversary, years, years)
+        else -> ""
+    }
+}
+
 /** The short label for list rows: "Birthday today", "5-year anniversary". */
 @Composable
 internal fun Celebration.compactLabel(): String {
