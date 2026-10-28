@@ -2,7 +2,6 @@ package com.waivera.waivera.feature.calendar.schedule
 
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -23,6 +22,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.platform.LocalDensity
@@ -35,7 +35,6 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
-import com.waivera.waivera.core.designsystem.theme.WaiveraHero
 import com.waivera.waivera.core.designsystem.theme.WaiveraShapes
 import com.waivera.waivera.core.designsystem.theme.WaiveraSpacing
 import com.waivera.waivera.core.designsystem.theme.WaiveraTextStyles
@@ -56,10 +55,10 @@ private const val DAYS_PER_WEEK = 7
  * least 48dp tall whose label says the date, whether it is today, and how many events and
  * celebrations it has, so the dots are never the only signal.
  *
- * Concept A's selected pill: the selected day is the CTA gradient with white ink, the one bold
- * mark on the grid; today, when not selected, sits on a soft accent disc with an accent edge.
- * Event dots take their owners' colours (accent when none), so a busy week reads at a glance; on
- * the gradient they turn white.
+ * v5 decision 4: the selected day is a solid 40dp violet circle with a white number, the one bold
+ * mark on the grid; today is a bold violet number (and weekday, in the week strip) with no disc,
+ * and today when selected is the circle. The weekday never sits inside the selection. Event dots
+ * take their owners' colours (accent when none), so a busy week reads at a glance.
  */
 @Composable
 internal fun ScheduleGrid(
@@ -115,18 +114,15 @@ internal fun ScheduleGrid(
 @Composable
 private fun DayCell(cell: GridCell, showWeekday: Boolean, onClick: () -> Unit, modifier: Modifier = Modifier) {
     val colors = WaiveraTheme.colors
-    val hero = WaiveraHero.colors
     val locale = currentLocale()
-    val shape = WaiveraShapes.Tile
-    val pill by animateFloatAsState(
+    val circle by animateFloatAsState(
         targetValue = if (cell.isSelected) 1f else 0f,
         animationSpec = WaiveraTheme.motion.state(),
-        label = "cellPill",
+        label = "dayCircle",
     )
-    val brush = hero.buttonBrush
     val numberColor = when {
-        cell.isSelected -> hero.onButton
-        cell.isToday -> colors.onAccentSoft
+        cell.isSelected -> colors.onAccent
+        cell.isToday -> colors.link
         // The other month's dates recede, so this month's read as the grid (UI10-16).
         !cell.inPeriod -> colors.textTertiary
         else -> colors.text
@@ -137,8 +133,7 @@ private fun DayCell(cell: GridCell, showWeekday: Boolean, onClick: () -> Unit, m
         modifier = modifier
             .padding(WaiveraSpacing.XxSmall)
             .heightIn(min = if (showWeekday) CalendarSizes.WeekCellMinHeight else WaiveraSpacing.MinTouchTarget)
-            .clip(shape)
-            .drawBehind { if (pill > 0f) drawRect(brush = brush, alpha = pill) }
+            .clip(WaiveraShapes.Tile)
             .selectable(selected = cell.isSelected, role = Role.Button, onClick = onClick)
             .semantics { contentDescription = label }
             .padding(vertical = WaiveraSpacing.ExtraSmall),
@@ -150,6 +145,7 @@ private fun DayCell(cell: GridCell, showWeekday: Boolean, onClick: () -> Unit, m
             modifier = Modifier.clearAndSetSemantics { },
         ) {
             if (showWeekday) {
+                // The weekday sits outside the selection; today's is bold violet, as its number is.
                 Text(
                     text = if (narrow) {
                         ScheduleText.weekdayNarrow(cell.date, locale)
@@ -157,33 +153,34 @@ private fun DayCell(cell: GridCell, showWeekday: Boolean, onClick: () -> Unit, m
                         ScheduleText.weekdayShort(cell.date, locale)
                     },
                     style = WaiveraTextStyles.Eyebrow,
-                    color = if (cell.isSelected) hero.onButton else colors.textSecondary,
+                    color = if (cell.isToday) colors.link else colors.textSecondary,
+                    fontWeight = if (cell.isToday) FontWeight.ExtraBold else null,
                     maxLines = 1,
                     softWrap = false,
                 )
             }
-            val disc = if (showWeekday) CalendarSizes.TodayDiscLarge else CalendarSizes.TodayDisc
+            val disc = if (showWeekday) CalendarSizes.DayCircleLarge else CalendarSizes.DayCircle
             val type = MaterialTheme.typography
             val numberStyle = if (showWeekday) type.titleLarge else type.titleSmall
-            val todayDisc = when {
-                !cell.isToday -> Modifier
-                cell.isSelected -> Modifier.border(CalendarSizes.CellBorder, hero.onButton, WaiveraShapes.Pill)
-                else ->
-                    Modifier
-                        .background(colors.accentSoft, WaiveraShapes.Pill)
-                        .border(CalendarSizes.CellBorder, colors.accent, WaiveraShapes.Pill)
-            }
+            val fill = colors.accentFill
             Box(
                 modifier = Modifier
                     .defaultMinSize(minWidth = disc, minHeight = disc)
-                    .then(todayDisc)
+                    // v5: the selected day is a solid violet circle with a white number. It fades in
+                    // on the state token and snaps under reduced motion. At large font a wide number
+                    // stretches it into a stadium rather than clipping.
+                    .drawBehind {
+                        if (circle > 0f) {
+                            drawRoundRect(color = fill, alpha = circle, cornerRadius = CornerRadius(size.height / 2f))
+                        }
+                    }
                     .padding(horizontal = WaiveraSpacing.ExtraSmall),
                 contentAlignment = Alignment.Center,
             ) {
                 Text(
                     text = ScheduleText.dayOfMonth(cell.date, locale),
                     style = numberStyle,
-                    fontWeight = if (cell.isToday || cell.isSelected) FontWeight.Black else FontWeight.SemiBold,
+                    fontWeight = if (cell.isToday || cell.isSelected) FontWeight.ExtraBold else FontWeight.SemiBold,
                     color = numberColor,
                     maxLines = 1,
                     softWrap = false,
@@ -194,13 +191,9 @@ private fun DayCell(cell: GridCell, showWeekday: Boolean, onClick: () -> Unit, m
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.heightIn(min = CalendarSizes.MilestoneDot),
             ) {
-                EventDots(cell.marker, onGradient = cell.isSelected)
+                EventDots(cell.marker)
                 if (cell.marker.milestones > 0) {
-                    Dot(
-                        color = if (cell.isSelected) hero.onButton else colors.milestoneDot,
-                        shape = CalendarShapes.Diamond,
-                        size = CalendarSizes.MilestoneDot,
-                    )
+                    Dot(color = colors.milestoneDot, shape = CalendarShapes.Diamond, size = CalendarSizes.MilestoneDot)
                 }
             }
         }
@@ -208,17 +201,16 @@ private fun DayCell(cell: GridCell, showWeekday: Boolean, onClick: () -> Unit, m
 }
 
 /**
- * One circle per event colour on the day (accent for an event without one). On the selected
- * day's gradient every dot is white, since an owner's colour could vanish on it.
+ * One circle per event colour on the day (accent for an event without one). The dots sit under
+ * the selection circle, on the card, so they keep their owners' colours on the selected day too.
  */
 @Composable
-private fun EventDots(marker: DayMarker, onGradient: Boolean) {
+private fun EventDots(marker: DayMarker) {
     if (marker.events == 0) return
     val accent = WaiveraTheme.colors.accent
-    val white = WaiveraHero.colors.onButton
     val dots = marker.eventColors.ifEmpty { listOf(null) }
     dots.forEach { argb ->
-        val color = if (onGradient) white else argb?.let { Color(it) } ?: accent
+        val color = argb?.let { Color(it) } ?: accent
         Dot(color = color, shape = WaiveraShapes.Circle, size = CalendarSizes.Dot)
     }
 }
