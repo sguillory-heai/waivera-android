@@ -26,6 +26,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -50,6 +51,7 @@ import com.waivera.waivera.core.designsystem.component.rememberSkeletonVisible
 import com.waivera.waivera.core.designsystem.icon.WaiveraIcons
 import com.waivera.waivera.core.designsystem.preview.WaiveraPreviews
 import com.waivera.waivera.core.designsystem.theme.WaiveraElevation
+import com.waivera.waivera.core.designsystem.theme.WaiveraHero
 import com.waivera.waivera.core.designsystem.theme.WaiveraShapes
 import com.waivera.waivera.core.designsystem.theme.WaiveraSizes
 import com.waivera.waivera.core.designsystem.theme.WaiveraSpacing
@@ -126,9 +128,11 @@ fun Composer(
                     )
                 },
                 keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences),
-                shape = WaiveraShapes.Composer,
+                // Concept A's field radius; the surface on the page at rest, the raised step and an
+                // accent edge while typing.
+                shape = WaiveraShapes.Field,
                 colors = OutlinedTextFieldDefaults.colors(
-                    focusedContainerColor = colors.surface,
+                    focusedContainerColor = colors.raised,
                     unfocusedContainerColor = colors.surface,
                     disabledContainerColor = colors.surfaceMuted,
                     focusedBorderColor = colors.accent,
@@ -138,23 +142,26 @@ fun Composer(
                     unfocusedTextColor = colors.text,
                 ),
             )
-            // Disabled reads as "nothing to send yet": a muted fill with a visible outline, not a
-            // faded accent that looks like a broken enabled button.
+            // Send is the composer's CTA: white on the brand gradient, at the CTA radius. Disabled
+            // reads as "nothing to send yet": a muted fill with a visible outline, not a faded
+            // gradient that looks like a broken enabled button.
+            val hero = WaiveraHero.colors
             FilledIconButton(
                 onClick = onSend,
                 enabled = canSend,
+                shape = WaiveraShapes.Cta,
                 modifier = Modifier
                     .size(WaiveraSizes.IconButton)
                     .then(
                         if (canSend) {
-                            Modifier
+                            Modifier.background(brush = hero.buttonBrush, shape = WaiveraShapes.Cta)
                         } else {
-                            Modifier.border(WaiveraSpacing.Hairline, colors.border, WaiveraShapes.Circle)
+                            Modifier.border(WaiveraSpacing.Hairline, colors.border, WaiveraShapes.Cta)
                         },
                     ),
                 colors = IconButtonDefaults.filledIconButtonColors(
-                    containerColor = colors.accentFill,
-                    contentColor = colors.onAccent,
+                    containerColor = Color.Transparent,
+                    contentColor = hero.onButton,
                     disabledContainerColor = colors.surfaceMuted,
                     disabledContentColor = colors.textSecondary,
                 ),

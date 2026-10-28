@@ -2,7 +2,6 @@ package com.waivera.waivera.feature.chat.message
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.gestures.rememberTransformableState
 import androidx.compose.foundation.gestures.transformable
@@ -119,8 +118,9 @@ fun MessageActionsContent(
             modifier = Modifier
                 .padding(horizontal = WaiveraSpacing.Gutter)
                 .fillMaxWidth()
-                .border(WaiveraSpacing.Hairline, colors.border, WaiveraShapes.ListCard)
-                .padding(start = WaiveraSpacing.MediumSmall, bottom = WaiveraSpacing.MediumSmall),
+                // The message being acted on, on the sheet's muted step at the sheet card radius.
+                .background(colors.surfaceMuted, WaiveraShapes.SheetCard)
+                .padding(start = WaiveraSpacing.Medium, bottom = WaiveraSpacing.Medium),
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
@@ -165,9 +165,11 @@ fun MessageActionsContent(
                     WaiveraPressable(
                         onClick = { onReact(emoji) },
                         onClickLabel = stringResource(R.string.feature_chat_react_with, emoji),
-                        shape = WaiveraShapes.Circle,
+                        // The emoji in the icon tile's shape and muted fill, like every other choice.
+                        shape = WaiveraShapes.Tile,
                         modifier = Modifier
                             .size(ChatDimens.EmojiTarget)
+                            .background(colors.surfaceMuted, WaiveraShapes.Tile)
                             .semantics { contentDescription = emoji },
                     ) {
                         Text(

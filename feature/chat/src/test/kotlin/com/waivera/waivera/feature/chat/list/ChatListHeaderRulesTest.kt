@@ -58,4 +58,14 @@ class ChatListHeaderRulesTest {
             "the full-screen error owns the message",
         )
     }
+
+    @Test
+    fun `rows share one card, rounded at its first and last row only`() {
+        assertEquals(InboxCardPosition.Single, InboxCardPosition.of(index = 0, count = 1))
+        assertEquals(InboxCardPosition.First, InboxCardPosition.of(index = 0, count = 3))
+        assertEquals(InboxCardPosition.Middle, InboxCardPosition.of(index = 1, count = 3))
+        assertEquals(InboxCardPosition.Last, InboxCardPosition.of(index = 2, count = 3))
+        assertTrue(InboxCardPosition.Single.isLast, "a lone row has no divider under it")
+        assertFalse(InboxCardPosition.First.isLast, "rows above the last keep their divider")
+    }
 }

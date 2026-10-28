@@ -104,7 +104,8 @@ fun ConversationRow(
             onLongClickLabel = actionsLabel,
             modifier = Modifier
                 .fillMaxWidth()
-                .background(colors.background)
+                // The row sits on the inbox's card (concept A), so it takes the card's surface.
+                .background(colors.surface)
                 .semantics {
                     // The unread badge announces the count; these are the swipe actions as buttons.
                     customActions = buildList {

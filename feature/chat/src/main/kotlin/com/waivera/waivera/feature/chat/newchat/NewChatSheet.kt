@@ -46,9 +46,9 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.waivera.waivera.core.designsystem.component.SkeletonListRow
 import com.waivera.waivera.core.designsystem.component.WaiveraAvatar
 import com.waivera.waivera.core.designsystem.component.WaiveraBottomSheet
-import com.waivera.waivera.core.designsystem.component.WaiveraButton
 import com.waivera.waivera.core.designsystem.component.WaiveraEmptyState
 import com.waivera.waivera.core.designsystem.component.WaiveraErrorState
+import com.waivera.waivera.core.designsystem.component.WaiveraGradientButton
 import com.waivera.waivera.core.designsystem.component.WaiveraIllustration
 import com.waivera.waivera.core.designsystem.component.WaiveraTextField
 import com.waivera.waivera.core.designsystem.component.rememberSkeletonPulse
@@ -56,6 +56,7 @@ import com.waivera.waivera.core.designsystem.component.rememberSkeletonVisible
 import com.waivera.waivera.core.designsystem.icon.WaiveraIcons
 import com.waivera.waivera.core.designsystem.preview.WaiveraPreviews
 import com.waivera.waivera.core.designsystem.text.withBreaksAfterHyphens
+import com.waivera.waivera.core.designsystem.theme.WaiveraHero
 import com.waivera.waivera.core.designsystem.theme.WaiveraShapes
 import com.waivera.waivera.core.designsystem.theme.WaiveraSizes
 import com.waivera.waivera.core.designsystem.theme.WaiveraSpacing
@@ -201,7 +202,8 @@ fun ColumnScope.NewChatSheetContent(
         }
         // With no coworkers loaded there is nobody to pick, so the error state gets the space (UI2-01).
         if (!loadFailed) {
-            WaiveraButton(
+            // The sheet's one CTA, concept A's 56dp white-on-gradient button.
+            WaiveraGradientButton(
                 text = stringResource(
                     when (state.action) {
                         NewChatAction.OpenChat -> R.string.feature_chat_newchat_open
@@ -217,7 +219,6 @@ fun ColumnScope.NewChatSheetContent(
                         NewChatAction.CreateGroup -> R.string.feature_chat_newchat_creating
                     },
                 ).takeIf { state.isCreating },
-                fullWidth = true,
                 modifier = Modifier.padding(bottom = WaiveraSpacing.Small),
             )
         }
@@ -286,14 +287,23 @@ private fun PersonOption(person: PersonOptionUi, avatar: ImageBitmap?, onToggle:
             overflow = TextOverflow.Ellipsis,
             modifier = Modifier.weight(1f),
         )
+        // A picked box takes the CTA gradient with a white check, like every other chosen pill.
+        val hero = WaiveraHero.colors
         Box(
             modifier = Modifier
                 .size(WaiveraSizes.Icon)
-                .background(if (person.selected) colors.accentFill else colors.surface, WaiveraShapes.Chip)
-                .border(
-                    width = WaiveraSpacing.Hairline * 2,
-                    color = if (person.selected) colors.accent else colors.borderStrong,
-                    shape = WaiveraShapes.Chip,
+                .then(
+                    if (person.selected) {
+                        Modifier.background(brush = hero.buttonBrush, shape = WaiveraShapes.Chip)
+                    } else {
+                        Modifier
+                            .background(colors.surface, WaiveraShapes.Chip)
+                            .border(
+                                width = WaiveraSpacing.Hairline * 2,
+                                color = colors.borderStrong,
+                                shape = WaiveraShapes.Chip,
+                            )
+                    },
                 ),
             contentAlignment = Alignment.Center,
         ) {
@@ -301,7 +311,7 @@ private fun PersonOption(person: PersonOptionUi, avatar: ImageBitmap?, onToggle:
                 Icon(
                     painter = painterResource(WaiveraIcons.Check),
                     contentDescription = null,
-                    tint = colors.onAccent,
+                    tint = hero.onButton,
                     modifier = Modifier.size(WaiveraSizes.IconSmall),
                 )
             }

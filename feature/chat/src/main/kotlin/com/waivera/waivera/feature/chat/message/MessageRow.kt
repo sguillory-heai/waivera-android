@@ -18,9 +18,11 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -54,12 +56,15 @@ import com.waivera.waivera.core.designsystem.component.WaiveraStatusBadge
 import com.waivera.waivera.core.designsystem.component.bubbleArrival
 import com.waivera.waivera.core.designsystem.component.rememberBubbleArrival
 import com.waivera.waivera.core.designsystem.icon.WaiveraIcons
+import com.waivera.waivera.core.designsystem.theme.LocalWaiveraColors
+import com.waivera.waivera.core.designsystem.theme.WaiveraHero
 import com.waivera.waivera.core.designsystem.theme.WaiveraShapes
 import com.waivera.waivera.core.designsystem.theme.WaiveraSizes
 import com.waivera.waivera.core.designsystem.theme.WaiveraSpacing
 import com.waivera.waivera.core.designsystem.theme.WaiveraTextStyles
 import com.waivera.waivera.core.designsystem.theme.WaiveraTheme
 import com.waivera.waivera.core.designsystem.theme.isLargeFontScale
+import com.waivera.waivera.core.designsystem.theme.onGradient
 import com.waivera.waivera.feature.chat.R
 import java.time.Instant
 import java.time.ZoneId
@@ -222,11 +227,19 @@ private fun Bubble(
     val message = row.message
     val hasBody = message.isDeleted || row.ticket != null || row.rich != null || !message.text.isNullOrBlank()
     val shape = ChatDimens.bubbleShape(row.isMine, row.groupedWithPrevious, row.groupedWithNext)
+    // Concept A: my own messages wear the brand's CTA gradient with white ink; everyone else's sit
+    // on the surface. A deleted message stays quiet whoever wrote it.
+    val gradient = hasBody && row.isMine && !row.isBot && !message.isDeleted
     val (fill, border) = when {
-        !hasBody -> Color.Transparent to Color.Transparent
+        !hasBody || gradient -> Color.Transparent to Color.Transparent
         row.isBot -> colors.surface to colors.accentBorder
-        row.isMine -> colors.accentSoft to colors.accentBorder
+        row.isMine -> colors.surface to colors.accentBorder
         else -> colors.surface to colors.border
+    }
+    val fillModifier = if (gradient) {
+        Modifier.background(brush = WaiveraHero.colors.buttonBrush, shape = shape)
+    } else {
+        Modifier.background(color = fill, shape = shape)
     }
     val wash = colors.accentWash.copy(alpha = colors.accentWash.alpha * (1f - arrival))
     val description = rowDescription(row, authorName, time)
@@ -243,9 +256,9 @@ private fun Bubble(
     ) {
         Column(
             modifier = Modifier
-                .background(fill, shape)
+                .then(fillModifier)
                 .background(wash, shape)
-                .then(if (hasBody) Modifier.border(WaiveraSpacing.Hairline, border, shape) else Modifier)
+                .then(if (hasBody && !gradient) Modifier.border(WaiveraSpacing.Hairline, border, shape) else Modifier)
                 .defaultMinSize(minWidth = if (hasBody) ChatDimens.BubbleMinWidth else 0.dp)
                 .padding(
                     horizontal = if (hasBody) WaiveraSpacing.MediumSmall - WaiveraSpacing.Hairline else 0.dp,
@@ -254,25 +267,52 @@ private fun Bubble(
             horizontalAlignment = if (row.isMine) Alignment.End else Alignment.Start,
             verticalArrangement = Arrangement.spacedBy(WaiveraSpacing.ExtraSmall + WaiveraSpacing.XxSmall),
         ) {
-            BubbleBody(row, callbacks)
-            message.attachment?.let {
-                MessageAttachmentView(message, it, onOpen = { callbacks.onOpenAttachment(message) })
-            }
-            if (row.reactions.isNotEmpty()) {
-                ReactionPills(
-                    reactions = row.reactions,
-                    alignEnd = row.isMine,
-                    onToggle = callbacks.onReact?.let { react -> { emoji: String -> react(message.id, emoji) } },
-                    onDetails = callbacks.onReactionDetails?.let { details ->
-                        { emoji: String -> details(message.id, emoji) }
-                    },
-                )
-            }
-            val threadRoot = message.navigationRootId?.takeIf { !message.isThreadReply && message.threadReplyCount > 0 }
-            val openThread = callbacks.onOpenThread
-            if (openThread != null && threadRoot != null) {
-                ThreadChip(count = message.threadReplyCount, onClick = { openThread(threadRoot) })
-            }
+            OnBubbleColors(gradient = gradient) { BubbleContent(row, callbacks) }
+        }
+    }
+}
+
+/** White inks and dark nested tints inside a gradient bubble; the theme's own colours elsewhere. */
+@Composable
+private fun OnBubbleColors(gradient: Boolean, content: @Composable () -> Unit) {
+    if (!gradient) {
+        content()
+        return
+    }
+    val onGradient = WaiveraTheme.colors.onGradient()
+    CompositionLocalProvider(
+        LocalWaiveraColors provides onGradient,
+        LocalContentColor provides onGradient.text,
+        content = content,
+    )
+}
+
+/** The bubble's body, attachment, reactions and thread chip, top to bottom. */
+@Composable
+private fun BubbleContent(row: TimelineItem.MessageRow, callbacks: MessageRowCallbacks) {
+    val message = row.message
+    Column(
+        horizontalAlignment = if (row.isMine) Alignment.End else Alignment.Start,
+        verticalArrangement = Arrangement.spacedBy(WaiveraSpacing.ExtraSmall + WaiveraSpacing.XxSmall),
+    ) {
+        BubbleBody(row, callbacks)
+        message.attachment?.let {
+            MessageAttachmentView(message, it, onOpen = { callbacks.onOpenAttachment(message) })
+        }
+        if (row.reactions.isNotEmpty()) {
+            ReactionPills(
+                reactions = row.reactions,
+                alignEnd = row.isMine,
+                onToggle = callbacks.onReact?.let { react -> { emoji: String -> react(message.id, emoji) } },
+                onDetails = callbacks.onReactionDetails?.let { details ->
+                    { emoji: String -> details(message.id, emoji) }
+                },
+            )
+        }
+        val threadRoot = message.navigationRootId?.takeIf { !message.isThreadReply && message.threadReplyCount > 0 }
+        val openThread = callbacks.onOpenThread
+        if (openThread != null && threadRoot != null) {
+            ThreadChip(count = message.threadReplyCount, onClick = { openThread(threadRoot) })
         }
     }
 }

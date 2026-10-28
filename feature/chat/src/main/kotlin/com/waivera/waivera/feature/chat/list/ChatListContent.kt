@@ -4,13 +4,16 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
@@ -21,7 +24,10 @@ import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.painter.BitmapPainter
 import androidx.compose.ui.res.stringResource
 import com.waivera.waivera.core.designsystem.component.BannerTone
@@ -39,6 +45,7 @@ import com.waivera.waivera.core.designsystem.component.rememberSkeletonVisible
 import com.waivera.waivera.core.designsystem.component.rememberTopBarAccount
 import com.waivera.waivera.core.designsystem.icon.WaiveraIcons
 import com.waivera.waivera.core.designsystem.preview.WaiveraPreviews
+import com.waivera.waivera.core.designsystem.theme.WaiveraShapes
 import com.waivera.waivera.core.designsystem.theme.WaiveraSpacing
 import com.waivera.waivera.core.designsystem.theme.WaiveraTheme
 import com.waivera.waivera.core.designsystem.theme.isLargeFontScale
@@ -116,7 +123,9 @@ fun ChatListContent(
                         Header(state, actions, connectingPillDelayMillis)
                     }
                     when {
-                        showSkeleton -> item(key = SKELETON_KEY, contentType = SKELETON_KEY) { ChatListSkeleton() }
+                        showSkeleton -> item(key = SKELETON_KEY, contentType = SKELETON_KEY) {
+                            ChatListSkeleton(modifier = Modifier.inboxCard(InboxCardPosition.Single))
+                        }
                         state.content is ChatListContent.Error -> item(key = STATE_KEY, contentType = STATE_KEY) {
                             WaiveraErrorState(
                                 title = stringResource(R.string.feature_chat_list_error_title),
@@ -127,13 +136,20 @@ fun ChatListContent(
                         state.content is ChatListContent.Empty -> item(key = STATE_KEY, contentType = STATE_KEY) {
                             EmptyContent(state.content.reason, actions.onNewChat)
                         }
-                        else -> items(state.rows, key = { it.id }, contentType = { ROW_TYPE }) { row ->
+                        else -> itemsIndexed(
+                            items = state.rows,
+                            key = { _, row -> row.id },
+                            contentType = { _, _ -> ROW_TYPE },
+                        ) { index, row ->
+                            val position = InboxCardPosition.of(index = index, count = state.rows.size)
                             Column(
-                                Modifier.animateItem(
-                                    fadeInSpec = motion.state(),
-                                    placementSpec = motion.layout(),
-                                    fadeOutSpec = motion.state(),
-                                ),
+                                Modifier
+                                    .animateItem(
+                                        fadeInSpec = motion.state(),
+                                        placementSpec = motion.layout(),
+                                        fadeOutSpec = motion.state(),
+                                    )
+                                    .inboxCard(position),
                             ) {
                                 ConversationRow(
                                     row = row,
@@ -144,10 +160,11 @@ fun ChatListContent(
                                     onMarkRead = { actions.onMarkRead(row.id) },
                                     onOpenProfile = actions.onOpenProfile,
                                 )
-                                RowDivider()
+                                if (!position.isLast) RowDivider()
                             }
                         }
                     }
+                    item(key = FOOTER_KEY, contentType = FOOTER_KEY) { Spacer(Modifier.height(WaiveraSpacing.Large)) }
                 }
             }
         }
@@ -161,6 +178,52 @@ fun ChatListContent(
 }
 
 /**
+ * Where a row sits on the inbox's one card (concept A's grouped list): the first row takes the
+ * card's top corners, the last its bottom corners, so the rows read as one card on the page.
+ */
+internal enum class InboxCardPosition {
+    First,
+    Middle,
+    Last,
+    Single,
+    ;
+
+    val isLast: Boolean get() = this == Last || this == Single
+
+    companion object {
+        fun of(index: Int, count: Int): InboxCardPosition = when {
+            count <= 1 -> Single
+            index == 0 -> First
+            index == count - 1 -> Last
+            else -> Middle
+        }
+    }
+}
+
+private fun InboxCardPosition.shape(): Shape = when (this) {
+    InboxCardPosition.First -> InboxCardTop
+    InboxCardPosition.Middle -> RectangleShape
+    InboxCardPosition.Last -> InboxCardBottom
+    InboxCardPosition.Single -> WaiveraShapes.SheetCard
+}
+
+/** Insets a row by the gutter and clips it to its part of the card. */
+@Composable
+private fun Modifier.inboxCard(position: InboxCardPosition): Modifier = this
+    .padding(horizontal = WaiveraSpacing.Gutter)
+    .clip(position.shape())
+    .background(WaiveraTheme.colors.surface)
+
+private val InboxCardTop: Shape = RoundedCornerShape(
+    topStart = WaiveraShapes.SheetCardRadius,
+    topEnd = WaiveraShapes.SheetCardRadius,
+)
+private val InboxCardBottom: Shape = RoundedCornerShape(
+    bottomStart = WaiveraShapes.SheetCardRadius,
+    bottomEnd = WaiveraShapes.SheetCardRadius,
+)
+
+/**
  * One connection signal at a time (UI review UI-04, UI2-02, UI2-11): the banner while offline or
  * reconnecting; a healthy connection shows nothing, and the quiet "Connecting" pill appears only
  * once start-up takes longer than [CONNECTING_PILL_DELAY_MILLIS] and nothing else is showing. A
@@ -171,10 +234,11 @@ fun ChatListContent(
 private fun Header(state: ChatListUiState, actions: ChatListActions, connectingPillDelayMillis: Long) {
     val filters = ChatListFilter.entries
     val bannerState = connectionBannerState(state)
+    // The top bar's sheet band already opens the page; the header adds only the gap to the card.
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = WaiveraSpacing.Small),
+            .padding(bottom = WaiveraSpacing.MediumSmall),
         verticalArrangement = Arrangement.spacedBy(WaiveraSpacing.MediumSmall),
     ) {
         if (showsConnectingPill(state, bannerState)) {
@@ -289,6 +353,7 @@ private const val HEADER_KEY = "header"
 private const val SKELETON_KEY = "skeleton"
 private const val STATE_KEY = "state"
 private const val ROW_TYPE = "row"
+private const val FOOTER_KEY = "footer"
 
 @WaiveraPreviews
 @Composable

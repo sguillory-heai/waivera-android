@@ -24,6 +24,9 @@ object WaiveraShapes {
     /** A content card on a tab screen's sheet (Needs you, Up next, Celebrations, Activity). */
     val SheetCard: Shape = RoundedCornerShape(20.dp)
 
+    /** [SheetCard]'s radius, for a card split across list items (its top and bottom pieces). */
+    val SheetCardRadius: Dp = 20.dp
+
     /** Today's large Up next card (concept A, 22). */
     val UpNextCard: Shape = RoundedCornerShape(22.dp)
 
