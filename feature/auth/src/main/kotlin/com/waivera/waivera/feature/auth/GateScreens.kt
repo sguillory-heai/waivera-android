@@ -19,6 +19,7 @@ import com.waivera.waivera.core.designsystem.feedback.rememberHaptics
 import com.waivera.waivera.core.designsystem.icon.WaiveraIcons
 import com.waivera.waivera.core.designsystem.preview.WaiveraPreviews
 import com.waivera.waivera.core.designsystem.theme.WaiveraTheme
+import com.waivera.waivera.core.designsystem.theme.isLargeFontScale
 import com.waivera.waivera.core.network.R as NetworkR
 import java.time.Instant
 import java.time.ZoneId
@@ -115,8 +116,12 @@ internal fun OnboardingRequiredContent(
     onSignOut: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    // As on the primer: at large font the main action stays pinned, so "Checking…" is always in
+    // sight on a small phone, and Sign out moves to the end of the content (UI8-07).
+    val signOutInline = isLargeFontScale()
     AuthScaffold(
         modifier = modifier,
+        pinnedAtLargeFont = true,
         bottomBar = {
             GateActions(
                 primaryLabel = stringResource(R.string.feature_auth_onboarding_check),
@@ -124,6 +129,7 @@ internal fun OnboardingRequiredContent(
                 primaryLoadingLabel = stringResource(R.string.feature_auth_checking),
                 onPrimary = onCheckAgain,
                 onSignOut = onSignOut,
+                showSignOut = !signOutInline,
             )
         },
     ) {
@@ -144,6 +150,9 @@ internal fun OnboardingRequiredContent(
             state.errorMessage?.let { WaiveraBanner(message = stringResource(it), tone = BannerTone.Error) }
         }
         GateHelp(stringResource(R.string.feature_auth_onboarding_help))
+        if (signOutInline) {
+            GateSignOut(onSignOut = onSignOut, enabled = !state.checking, modifier = GutterPadding)
+        }
     }
 }
 
@@ -167,6 +176,7 @@ private fun GateActions(
     primaryLoadingLabel: String,
     onPrimary: () -> Unit,
     onSignOut: () -> Unit,
+    showSignOut: Boolean = true,
 ) {
     WaiveraButton(
         text = primaryLabel,
@@ -174,12 +184,18 @@ private fun GateActions(
         loadingText = primaryLoadingLabel.takeIf { primaryLoading },
         fullWidth = true,
     )
+    if (showSignOut) GateSignOut(onSignOut = onSignOut, enabled = !primaryLoading)
+}
+
+@Composable
+private fun GateSignOut(onSignOut: () -> Unit, enabled: Boolean, modifier: Modifier = Modifier) {
     WaiveraButton(
         text = stringResource(R.string.feature_auth_sign_out),
         onClick = onSignOut,
         variant = WaiveraButtonVariant.Text,
-        enabled = !primaryLoading,
+        enabled = enabled,
         fullWidth = true,
+        modifier = modifier,
     )
 }
 
