@@ -31,6 +31,16 @@ object WaiveraSizes {
     val IconButton: Dp = 48.dp
     val IconTile: Dp = 40.dp
 
+    /**
+     * A detail field's leading tile on Profile and Person and the glyph in it (v5 decision 7), and
+     * the inset of the divider between fields: the tile plus the gap to the text, so the hairline
+     * starts under the label.
+     */
+    val FieldTile: Dp = 36.dp
+    val FieldTileGlyph: Dp = 18.dp
+    val FieldTileGap: Dp = 14.dp
+    val FieldDividerInset: Dp = FieldTile + FieldTileGap
+
     /** A quiet inline tile, such as a section's "didn't load" line, and the glyph inside it. */
     val IconTileSmall: Dp = 32.dp
     val IconTileSmallGlyph: Dp = 20.dp

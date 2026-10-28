@@ -381,6 +381,27 @@ object WaiveraTextStyles {
         hyphens = WaiveraHyphens,
     )
 
+    /** A detail field's label on Profile and Person ("Email", "Time zone"): 13 / 500, muted (v5 decision 7). */
+    val FieldLabel = TextStyle(
+        fontFamily = Jakarta,
+        fontSize = 13.sp,
+        lineHeight = 17.sp,
+        fontWeight = FontWeight.Medium,
+        lineBreak = TitleLineBreak,
+        hyphens = WaiveraHyphens,
+    )
+
+    /** A detail field's value under its label: 17 / 700, the row's weight (v5 decision 7). */
+    val FieldValue = TextStyle(
+        fontFamily = Jakarta,
+        fontSize = 17.sp,
+        lineHeight = 23.sp,
+        fontWeight = FontWeight.Bold,
+        letterSpacing = (-0.005).em,
+        lineBreak = WrapLineBreak,
+        hyphens = WaiveraHyphens,
+    )
+
     /** The timeline's hour labels ("8 AM", "10"): 11 / 500. */
     val AxisLabel = TextStyle(
         fontFamily = Jakarta,

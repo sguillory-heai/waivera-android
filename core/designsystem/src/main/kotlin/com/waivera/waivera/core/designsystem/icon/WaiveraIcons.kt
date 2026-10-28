@@ -24,9 +24,15 @@ object WaiveraIcons {
 
     @DrawableRes val Back: Int = R.drawable.core_designsystem_ic_back
 
+    /** An ID badge: a position, a role or an id on Profile and Person (v5 decision 7). */
+    @DrawableRes val Badge: Int = R.drawable.core_designsystem_ic_badge
+
     @DrawableRes val Bookmark: Int = R.drawable.core_designsystem_ic_bookmark
 
     @DrawableRes val Bot: Int = R.drawable.core_designsystem_ic_bot
+
+    /** An office building: an agency or an organisation on Profile and Person. */
+    @DrawableRes val Building: Int = R.drawable.core_designsystem_ic_building
 
     @DrawableRes val Cake: Int = R.drawable.core_designsystem_ic_cake
 
@@ -54,6 +60,10 @@ object WaiveraIcons {
     @DrawableRes val ExpandLess: Int = R.drawable.core_designsystem_ic_expand_less
 
     /** Channel marker. */
+
+    /** A globe: a time zone. */
+    @DrawableRes val Globe: Int = R.drawable.core_designsystem_ic_globe
+
     @DrawableRes val Hash: Int = R.drawable.core_designsystem_ic_hash
 
     @DrawableRes val Info: Int = R.drawable.core_designsystem_ic_info
@@ -86,6 +96,9 @@ object WaiveraIcons {
     @DrawableRes val People: Int = R.drawable.core_designsystem_ic_people
 
     @DrawableRes val Person: Int = R.drawable.core_designsystem_ic_person
+
+    /** A phone handset: a phone number. */
+    @DrawableRes val Phone: Int = R.drawable.core_designsystem_ic_phone
 
     @DrawableRes val Refresh: Int = R.drawable.core_designsystem_ic_refresh
 

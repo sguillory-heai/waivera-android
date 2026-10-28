@@ -1,8 +1,10 @@
 package com.waivera.waivera.feature.profile
 
+import androidx.annotation.DrawableRes
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -14,7 +16,9 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.staticCompositionLocalOf
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.painterResource
@@ -25,11 +29,15 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.style.TextOverflow
 import com.waivera.waivera.core.designsystem.component.SKELETON_DELAY_MILLIS
+import com.waivera.waivera.core.designsystem.component.SkeletonBlock
 import com.waivera.waivera.core.designsystem.component.SkeletonText
 import com.waivera.waivera.core.designsystem.component.WaiveraAddressText
 import com.waivera.waivera.core.designsystem.component.WaiveraCardGroup
 import com.waivera.waivera.core.designsystem.component.WaiveraIconButton
+import com.waivera.waivera.core.designsystem.component.WaiveraIconTile
+import com.waivera.waivera.core.designsystem.component.WaiveraInsetDivider
 import com.waivera.waivera.core.designsystem.component.WaiveraSectionHeader
+import com.waivera.waivera.core.designsystem.component.WaiveraTileTone
 import com.waivera.waivera.core.designsystem.component.rememberSkeletonPulse
 import com.waivera.waivera.core.designsystem.component.rememberSkeletonVisible
 import com.waivera.waivera.core.designsystem.icon.WaiveraIcons
@@ -66,33 +74,79 @@ internal fun ProfileCard(
     }
 }
 
+/** One read-only field of a grouped details card: its label, value and leading glyph. */
+@Immutable
+internal data class InfoField(
+    val label: String,
+    val value: String?,
+    @param:DrawableRes val icon: Int,
+    val address: Boolean = false,
+)
+
 /**
- * A read-only label and value. Missing values show an em dash so every row keeps its place,
- * and TalkBack reads the pair as one item ("Phone, not provided"). An [address] value (an email)
- * is shown whole, wrapping only after its "@" ([WaiveraAddressText]).
+ * The grouped details card's fields (v5 decision 7): each on a leading icon tile, with inset
+ * dividers between them that start under the text, not under the tile.
  */
 @Composable
-internal fun InfoRow(label: String, value: String?, modifier: Modifier = Modifier, address: Boolean = false) {
-    val colors = WaiveraTheme.colors
-    val shown = value?.takeIf { it.isNotBlank() }
-    val missing = stringResource(R.string.feature_profile_value_missing)
-    val spoken = stringResource(R.string.feature_profile_value_missing_a11y)
-    Column(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(horizontal = WaiveraSpacing.Medium, vertical = WaiveraSpacing.ExtraSmall)
-            .semantics(mergeDescendants = true) {
-                contentDescription = "$label, ${shown ?: spoken}"
-            },
-        verticalArrangement = Arrangement.spacedBy(WaiveraSpacing.XxSmall),
-    ) {
-        Text(text = label, style = WaiveraTextStyles.Kicker, color = colors.textSecondary)
-        if (address && shown != null) {
-            WaiveraAddressText(address = shown, style = MaterialTheme.typography.bodyLarge, color = colors.text)
-        } else {
-            Text(text = shown ?: missing, style = MaterialTheme.typography.bodyLarge, color = colors.text)
+internal fun InfoFields(fields: List<InfoField>, modifier: Modifier = Modifier) {
+    Column(modifier = modifier.fillMaxWidth()) {
+        fields.forEachIndexed { index, field ->
+            if (index > 0) FieldDivider()
+            InfoRow(field)
         }
     }
+}
+
+/**
+ * A read-only label and value on a leading icon tile: a muted 13sp label over a bold 17sp value,
+ * so the value carries the row (v5 decision 7). Missing values show an em dash so every row keeps
+ * its place, and TalkBack reads the pair as one item ("Phone, not provided"); the tile is
+ * decoration. An [InfoField.address] value (an email) is shown whole, wrapping only after its "@"
+ * ([WaiveraAddressText]). At 200% the text wraps beside the tile, which stays at the top.
+ */
+@Composable
+internal fun InfoRow(field: InfoField, modifier: Modifier = Modifier) {
+    val colors = WaiveraTheme.colors
+    val shown = field.value?.takeIf { it.isNotBlank() }
+    val missing = stringResource(R.string.feature_profile_value_missing)
+    val spoken = stringResource(R.string.feature_profile_value_missing_a11y)
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = WaiveraSpacing.Medium, vertical = WaiveraSpacing.Small)
+            .semantics(mergeDescendants = true) {
+                contentDescription = "${field.label}, ${shown ?: spoken}"
+            },
+        horizontalArrangement = Arrangement.spacedBy(WaiveraSizes.FieldTileGap),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        WaiveraIconTile(
+            icon = field.icon,
+            tone = WaiveraTileTone.Brand,
+            size = WaiveraSizes.FieldTile,
+            iconSize = WaiveraSizes.FieldTileGlyph,
+        )
+        Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(WaiveraSpacing.XxSmall),
+        ) {
+            Text(text = field.label, style = WaiveraTextStyles.FieldLabel, color = colors.textSecondary)
+            if (field.address && shown != null) {
+                WaiveraAddressText(address = shown, style = WaiveraTextStyles.FieldValue, color = colors.text)
+            } else {
+                Text(text = shown ?: missing, style = WaiveraTextStyles.FieldValue, color = colors.text)
+            }
+        }
+    }
+}
+
+/** The hairline between two fields, inset to start under the label and stop at the card's padding. */
+@Composable
+private fun FieldDivider() {
+    WaiveraInsetDivider(
+        inset = WaiveraSpacing.Medium + WaiveraSizes.FieldDividerInset,
+        modifier = Modifier.padding(end = WaiveraSpacing.Medium),
+    )
 }
 
 /** Joins a list for one row; empty lists read as missing. */
@@ -112,8 +166,9 @@ internal fun rememberDelayedSkeleton(loading: Boolean): Boolean =
 
 /**
  * Placeholder [InfoRow]s for a section still loading (shown only after the skeleton delay): each
- * bone pair has the row's padding and its label and value line heights, so the card is as tall as
- * the [rows] fields that replace it, at every font scale.
+ * bone row has the row's padding, its tile and its label and value line heights, with the same
+ * divider between rows, so the card is as tall as the [rows] fields that replace it, at every
+ * font scale.
  */
 @Composable
 internal fun SectionSkeleton(modifier: Modifier = Modifier, rows: Int = 3) {
@@ -123,21 +178,32 @@ internal fun SectionSkeleton(modifier: Modifier = Modifier, rows: Int = 3) {
         modifier = modifier
             .fillMaxWidth()
             .semantics { contentDescription = loading },
-        verticalArrangement = Arrangement.spacedBy(WaiveraSpacing.Small),
     ) {
         repeat(rows) { index ->
-            Column(
+            if (index > 0) FieldDivider()
+            Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = WaiveraSpacing.Medium, vertical = WaiveraSpacing.ExtraSmall),
-                verticalArrangement = Arrangement.spacedBy(WaiveraSpacing.XxSmall),
+                    .padding(horizontal = WaiveraSpacing.Medium, vertical = WaiveraSpacing.Small),
+                horizontalArrangement = Arrangement.spacedBy(WaiveraSizes.FieldTileGap),
+                verticalAlignment = Alignment.CenterVertically,
             ) {
-                SkeletonText(style = WaiveraTextStyles.Kicker, widthFraction = LABEL_LINE, pulse = pulse)
-                SkeletonText(
-                    style = MaterialTheme.typography.bodyLarge,
-                    widthFraction = if (index % 2 == 0) WIDE_LINE else NARROW_LINE,
+                SkeletonBlock(
+                    modifier = Modifier.size(WaiveraSizes.FieldTile),
+                    shape = WaiveraShapes.Tile,
                     pulse = pulse,
                 )
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(WaiveraSpacing.XxSmall),
+                ) {
+                    SkeletonText(style = WaiveraTextStyles.FieldLabel, widthFraction = LABEL_LINE, pulse = pulse)
+                    SkeletonText(
+                        style = WaiveraTextStyles.FieldValue,
+                        widthFraction = if (index % 2 == 0) WIDE_LINE else NARROW_LINE,
+                        pulse = pulse,
+                    )
+                }
             }
         }
     }
@@ -222,8 +288,12 @@ private fun ProfileComponentsPreview() {
                 clearDescription = "Clear",
             )
             ProfileCard(title = "Personal information") {
-                InfoRow(label = "Email", value = "alex.rivera@example.com")
-                InfoRow(label = "Phone", value = null)
+                InfoFields(
+                    listOf(
+                        InfoField(label = "Email", value = "alex.rivera@example.com", icon = WaiveraIcons.Mail),
+                        InfoField(label = "Phone", value = null, icon = WaiveraIcons.Phone),
+                    ),
+                )
                 SectionSkeleton()
             }
         }

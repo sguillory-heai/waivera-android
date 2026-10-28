@@ -304,15 +304,33 @@ private fun DetailsSections(profile: EmployeeProfile?, state: ProfileUiState.Rea
         if (profile == null) {
             if (skeleton) SectionSkeleton(rows = 4)
         } else {
-            InfoRow(stringResource(R.string.feature_profile_email), profile.email ?: state.user.email, address = true)
-            InfoRow(stringResource(R.string.feature_profile_phone), profile.phoneNumber ?: state.user.phoneNumber)
-            InfoRow(stringResource(R.string.feature_profile_address), profile.address)
-            InfoRow(
-                stringResource(R.string.feature_profile_time_zone),
-                stringResource(
-                    R.string.feature_profile_time_zone_value,
-                    ProfileFormat.zoneName(state.zone),
-                    state.zone.id,
+            InfoFields(
+                listOf(
+                    InfoField(
+                        label = stringResource(R.string.feature_profile_email),
+                        value = profile.email ?: state.user.email,
+                        icon = WaiveraIcons.Mail,
+                        address = true,
+                    ),
+                    InfoField(
+                        label = stringResource(R.string.feature_profile_phone),
+                        value = profile.phoneNumber ?: state.user.phoneNumber,
+                        icon = WaiveraIcons.Phone,
+                    ),
+                    InfoField(
+                        label = stringResource(R.string.feature_profile_address),
+                        value = profile.address,
+                        icon = WaiveraIcons.Location,
+                    ),
+                    InfoField(
+                        label = stringResource(R.string.feature_profile_time_zone),
+                        value = stringResource(
+                            R.string.feature_profile_time_zone_value,
+                            ProfileFormat.zoneName(state.zone),
+                            state.zone.id,
+                        ),
+                        icon = WaiveraIcons.Globe,
+                    ),
                 ),
             )
         }
@@ -321,18 +339,44 @@ private fun DetailsSections(profile: EmployeeProfile?, state: ProfileUiState.Rea
         if (profile == null) {
             if (skeleton) SectionSkeleton(rows = 7)
         } else {
-            InfoRow(
-                stringResource(R.string.feature_profile_hire_date),
-                profile.hireDate?.let { ProfileFormat.date(it) },
-            )
-            InfoRow(stringResource(R.string.feature_profile_positions), profile.positions.joinedOrNull())
-            InfoRow(stringResource(R.string.feature_profile_office_locations), profile.regions.joinedOrNull())
-            InfoRow(stringResource(R.string.feature_profile_agencies), profile.agencies.joinedOrNull())
-            InfoRow(stringResource(R.string.feature_profile_waiver_families), profile.waiverFamilies.joinedOrNull())
-            InfoRow(stringResource(R.string.feature_profile_scid), profile.scId?.takeIf(String::isNotBlank))
-            InfoRow(
-                stringResource(R.string.feature_profile_birthday),
-                profile.birthday?.let { ProfileFormat.birthday(it) },
+            InfoFields(
+                listOf(
+                    InfoField(
+                        label = stringResource(R.string.feature_profile_hire_date),
+                        value = profile.hireDate?.let { ProfileFormat.date(it) },
+                        icon = WaiveraIcons.Calendar,
+                    ),
+                    InfoField(
+                        label = stringResource(R.string.feature_profile_positions),
+                        value = profile.positions.joinedOrNull(),
+                        icon = WaiveraIcons.Badge,
+                    ),
+                    InfoField(
+                        label = stringResource(R.string.feature_profile_office_locations),
+                        value = profile.regions.joinedOrNull(),
+                        icon = WaiveraIcons.Location,
+                    ),
+                    InfoField(
+                        label = stringResource(R.string.feature_profile_agencies),
+                        value = profile.agencies.joinedOrNull(),
+                        icon = WaiveraIcons.Building,
+                    ),
+                    InfoField(
+                        label = stringResource(R.string.feature_profile_waiver_families),
+                        value = profile.waiverFamilies.joinedOrNull(),
+                        icon = WaiveraIcons.People,
+                    ),
+                    InfoField(
+                        label = stringResource(R.string.feature_profile_scid),
+                        value = profile.scId?.takeIf(String::isNotBlank),
+                        icon = WaiveraIcons.Badge,
+                    ),
+                    InfoField(
+                        label = stringResource(R.string.feature_profile_birthday),
+                        value = profile.birthday?.let { ProfileFormat.birthday(it) },
+                        icon = WaiveraIcons.Cake,
+                    ),
+                ),
             )
             if (profile.managers.isNotEmpty()) {
                 Text(

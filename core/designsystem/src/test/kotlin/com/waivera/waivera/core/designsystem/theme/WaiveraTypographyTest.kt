@@ -54,6 +54,8 @@ class WaiveraTypographyTest {
         "Chip" to WaiveraTextStyles.Chip,
         "PanelTitle" to WaiveraTextStyles.PanelTitle,
         "AxisLabel" to WaiveraTextStyles.AxisLabel,
+        "FieldLabel" to WaiveraTextStyles.FieldLabel,
+        "FieldValue" to WaiveraTextStyles.FieldValue,
     )
 
     @Test

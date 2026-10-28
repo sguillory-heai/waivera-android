@@ -215,12 +215,17 @@ private fun PersonDetailsCard(section: Section<PersonDetails>, onRetry: () -> Un
             val roles = details.roles.map { ProfileFormat.roleLabel(it) }.joinedOrNull()
             // Absent values are left out here: this card describes someone else, not a form to fill.
             if (details.organization != null || roles != null || details.phoneNumber != null) {
+                val organizationLabel = stringResource(R.string.feature_profile_organization_title)
+                val rolesLabel = stringResource(R.string.feature_profile_person_roles)
+                val phoneLabel = stringResource(R.string.feature_profile_phone)
                 ProfileCard {
-                    details.organization?.let {
-                        InfoRow(stringResource(R.string.feature_profile_organization_title), it)
-                    }
-                    roles?.let { InfoRow(stringResource(R.string.feature_profile_person_roles), it) }
-                    details.phoneNumber?.let { InfoRow(stringResource(R.string.feature_profile_phone), it) }
+                    InfoFields(
+                        listOfNotNull(
+                            details.organization?.let { InfoField(organizationLabel, it, WaiveraIcons.Building) },
+                            roles?.let { InfoField(rolesLabel, it, WaiveraIcons.Badge) },
+                            details.phoneNumber?.let { InfoField(phoneLabel, it, WaiveraIcons.Phone) },
+                        ),
+                    )
                 }
             }
         }

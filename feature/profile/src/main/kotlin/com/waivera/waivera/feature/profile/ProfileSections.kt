@@ -25,6 +25,7 @@ import com.waivera.waivera.core.designsystem.component.WaiveraIconTile
 import com.waivera.waivera.core.designsystem.component.WaiveraListRow
 import com.waivera.waivera.core.designsystem.component.WaiveraStatusBadge
 import com.waivera.waivera.core.designsystem.component.WaiveraTileTone
+import com.waivera.waivera.core.designsystem.icon.WaiveraIcons
 import com.waivera.waivera.core.designsystem.theme.WaiveraSpacing
 import com.waivera.waivera.core.designsystem.theme.WaiveraTextStyles
 import com.waivera.waivera.core.designsystem.theme.WaiveraTheme
@@ -186,12 +187,27 @@ internal fun OrganizationSection(section: Section<OrganizationInfo?>, onRetry: (
                         modifier = Modifier.padding(horizontal = WaiveraSpacing.Medium),
                     )
                 } else {
-                    InfoRow(stringResource(R.string.feature_profile_organization_name), org.name)
-                    if (org.legalName != null) {
-                        InfoRow(stringResource(R.string.feature_profile_organization_legal_name), org.legalName)
-                    }
-                    InfoRow(stringResource(R.string.feature_profile_organization_address), org.address)
-                    InfoRow(stringResource(R.string.feature_profile_organization_contact), org.contactNumber)
+                    val legalNameLabel = stringResource(R.string.feature_profile_organization_legal_name)
+                    InfoFields(
+                        listOfNotNull(
+                            InfoField(
+                                label = stringResource(R.string.feature_profile_organization_name),
+                                value = org.name,
+                                icon = WaiveraIcons.Building,
+                            ),
+                            org.legalName?.let { InfoField(legalNameLabel, it, WaiveraIcons.Badge) },
+                            InfoField(
+                                label = stringResource(R.string.feature_profile_organization_address),
+                                value = org.address,
+                                icon = WaiveraIcons.Location,
+                            ),
+                            InfoField(
+                                label = stringResource(R.string.feature_profile_organization_contact),
+                                value = org.contactNumber,
+                                icon = WaiveraIcons.Phone,
+                            ),
+                        ),
+                    )
                 }
             }
         }
