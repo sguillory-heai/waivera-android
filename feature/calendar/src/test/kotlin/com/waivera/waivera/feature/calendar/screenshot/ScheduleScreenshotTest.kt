@@ -128,6 +128,29 @@ class ScheduleScreenshotTest {
         )
     }
 
+    /**
+     * Another day picked in a week whose events carry owner colours: today keeps its filled
+     * disc, the picked day the soft accent cell, and each day's dots take their owners' colours.
+     */
+    @Test
+    fun weekWithOwnerColours() {
+        val date = today.plusDays(1)
+        val base = feed(ScheduleView.WEEK, date)
+        val coloured = base.copy(
+            events = base.events.mapIndexed { index, event ->
+                event.copy(ownerColor = OWNER_COLOURS[index % OWNER_COLOURS.size])
+            },
+        )
+        capture(
+            "schedule_week_colours",
+            state(view = ScheduleView.WEEK, date = date, synced = Synced(coloured, lastSyncedAt = DemoData.NOW)),
+        )
+    }
+
+    /** The month with another day picked, so today's disc and the picked cell show side by side. */
+    @Test
+    fun monthOtherDay() = capture("schedule_month_other_day", state(date = today.plusDays(4)))
+
     @Test
     fun zoneFallback() =
         capture("schedule_zoneFallback", state(savedZoneId = null, deviceZone = ZoneId.of("Asia/Tokyo")))
@@ -135,5 +158,8 @@ class ScheduleScreenshotTest {
     private companion object {
         const val STALE_SECONDS = 3_600L
         const val SERVER_ERROR = 503
+
+        /** Sample owner colours from the web calendar's palette, plus one event with none. */
+        val OWNER_COLOURS = listOf("#D9468F", "#0E9F6E", null, "#E8590C")
     }
 }
