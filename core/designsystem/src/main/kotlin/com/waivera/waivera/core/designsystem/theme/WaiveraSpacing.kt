@@ -147,6 +147,15 @@ object WaiveraSizes {
     val TimelineNowDot: Dp = 8.dp
     val TimelineTick: Dp = 1.dp
 
+    /**
+     * A day read as a timeline in a list (the Schedule's Day view): the time column, the width of
+     * the rail's gradient block, and the block's height beside a card and on its own line.
+     */
+    val TimelineTimeColumn: Dp = 68.dp
+    val TimelineRailBlock: Dp = 6.dp
+    val TimelineRailBlockTall: Dp = 28.dp
+    val TimelineRailBlockShort: Dp = 16.dp
+
     /** The mention quote's rule on a Needs you card. */
     val QuoteRule: Dp = 2.dp
     val SegmentMinHeight: Dp = 48.dp

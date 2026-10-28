@@ -28,6 +28,7 @@ import androidx.compose.runtime.Immutable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
@@ -54,6 +55,7 @@ import com.waivera.waivera.core.designsystem.component.rememberSkeletonPulse
 import com.waivera.waivera.core.designsystem.component.rememberSkeletonVisible
 import com.waivera.waivera.core.designsystem.icon.WaiveraIcons
 import com.waivera.waivera.core.designsystem.text.asAddressDisplay
+import com.waivera.waivera.core.designsystem.theme.WaiveraElevation
 import com.waivera.waivera.core.designsystem.theme.WaiveraShapes
 import com.waivera.waivera.core.designsystem.theme.WaiveraSizes
 import com.waivera.waivera.core.designsystem.theme.WaiveraSpacing
@@ -203,7 +205,13 @@ internal fun EventBody(
 @Composable
 private fun EventHero(details: EventDetails, actions: EventActions, modifier: Modifier = Modifier) {
     val event = details.event
-    WaiveraBrandSurface(modifier = modifier, verticalArrangement = Arrangement.spacedBy(WaiveraSpacing.MediumSmall)) {
+    // Concept A's large Up next card: the title, when and where on the brand wash at 22dp.
+    WaiveraBrandSurface(
+        modifier = modifier,
+        shape = WaiveraShapes.UpNextCard,
+        contentPadding = PaddingValues(WaiveraSpacing.MediumLarge),
+        verticalArrangement = Arrangement.spacedBy(WaiveraSpacing.MediumSmall),
+    ) {
         Text(
             text = event.title?.takeIf(String::isNotBlank) ?: stringResource(R.string.feature_calendar_untitled_event),
             style = MaterialTheme.typography.headlineSmall,
@@ -279,6 +287,8 @@ private fun DetailRow(
         WaiveraIconTile(
             icon = icon,
             tone = WaiveraTileTone.Teal,
+            size = WaiveraSizes.CardTile,
+            iconSize = WaiveraSizes.CardTileGlyph,
             modifier = if (iconLabel != null) Modifier.semantics { contentDescription = iconLabel } else Modifier,
         )
         Column(
@@ -357,16 +367,16 @@ private fun InvitationBlock(invitation: InvitationUi, actions: EventActions, mod
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .clip(WaiveraShapes.Card)
+            .shadow(elevation = WaiveraElevation.Card, shape = WaiveraShapes.SheetCard, clip = false)
+            .clip(WaiveraShapes.SheetCard)
             .background(colors.surface)
-            .border(WaiveraSpacing.Hairline, colors.border, WaiveraShapes.Card)
-            .padding(WaiveraSpacing.MediumSmall),
+            .padding(WaiveraSpacing.MediumSmall + WaiveraSpacing.XxSmall),
         verticalArrangement = Arrangement.spacedBy(WaiveraSpacing.Small),
     ) {
-        // Caps, like every other eyebrow label ("ORGANIZED BY", WaiveraSectionHeader), UI6-04.
+        // A card's kicker, mixed case like every section title and kicker in concept A.
         Text(
-            text = stringResource(R.string.feature_calendar_response_heading).uppercase(),
-            style = WaiveraTextStyles.Eyebrow,
+            text = stringResource(R.string.feature_calendar_response_heading),
+            style = WaiveraTextStyles.Kicker,
             color = colors.textSecondary,
             modifier = Modifier.semantics { heading() },
         )
@@ -524,20 +534,21 @@ private fun LabeledBlock(eyebrow: String, text: String, strongBorder: Boolean, m
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .clip(WaiveraShapes.Card)
+            .clip(WaiveraShapes.SheetCard)
             .background(colors.surfaceMuted)
             .border(
                 WaiveraSpacing.Hairline,
                 if (strongBorder) colors.accentBorderStrong else colors.border,
-                WaiveraShapes.Card,
+                WaiveraShapes.SheetCard,
             )
             .padding(WaiveraSpacing.MediumSmall)
             .semantics(mergeDescendants = true) { },
         verticalArrangement = Arrangement.spacedBy(WaiveraSpacing.ExtraSmall),
     ) {
+        // A card's kicker in concept A's type: mixed case, 12 / 700.
         Text(
-            text = eyebrow.uppercase(),
-            style = WaiveraTextStyles.Eyebrow,
+            text = eyebrow,
+            style = WaiveraTextStyles.Kicker,
             color = colors.textSecondary,
             modifier = Modifier.semantics { heading() },
         )

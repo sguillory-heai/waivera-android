@@ -24,6 +24,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
@@ -43,6 +44,7 @@ import com.waivera.waivera.core.designsystem.component.WaiveraTileTone
 import com.waivera.waivera.core.designsystem.icon.WaiveraIcons
 import com.waivera.waivera.core.designsystem.text.resolve
 import com.waivera.waivera.core.designsystem.theme.WaiveraBrand
+import com.waivera.waivera.core.designsystem.theme.WaiveraElevation
 import com.waivera.waivera.core.designsystem.theme.WaiveraShapes
 import com.waivera.waivera.core.designsystem.theme.WaiveraSizes
 import com.waivera.waivera.core.designsystem.theme.WaiveraSpacing
@@ -159,10 +161,12 @@ private fun MilestoneCard(
     // Your own card speaks to you (UI9-05); there is no Send wishes on it either.
     val sentence = CelebrationText.self(item.celebration)?.takeIf { !showWishes }?.resolve()
         ?: CelebrationText.full(item.celebration, fallbackName).resolve()
+    // Today's celebration card, so a celebration looks the same wherever it shows (concept A, 22dp).
     WaiveraBrandSurface(
         modifier = modifier.heightIn(min = WaiveraSizes.ListRowMinHeight),
-        shape = WaiveraShapes.ListCard,
-        contentPadding = PaddingValues(WaiveraSpacing.MediumSmall),
+        shape = WaiveraShapes.UpNextCard,
+        contentPadding = PaddingValues(WaiveraSpacing.Medium),
+        verticalArrangement = Arrangement.spacedBy(WaiveraSpacing.MediumSmall),
     ) {
         Row(
             // The sentence alone: the card can sit on any day, so no "today" wording here.
@@ -173,7 +177,7 @@ private fun MilestoneCard(
             WaiveraAvatar(
                 name = name,
                 imageModel = AvatarModel.of(milestone.userId),
-                size = CalendarSizes.MilestoneCardAvatar,
+                size = WaiveraSizes.AvatarMedium,
                 contentDescription = null,
             )
             Text(
@@ -192,7 +196,7 @@ private fun MilestoneCard(
                 variant = WaiveraButtonVariant.TonalOnWash,
                 leadingIcon = WaiveraIcons.Chat,
                 modifier = Modifier
-                    .padding(start = CalendarSizes.MilestoneCardAvatar + WaiveraSpacing.MediumSmall)
+                    .padding(start = WaiveraSizes.AvatarMedium + WaiveraSpacing.MediumSmall)
                     .semantics { contentDescription = wishesLabel },
             )
         }
@@ -209,7 +213,12 @@ private fun InfoCard(
     ended: Boolean = false,
 ) {
     CardSurface(modifier = modifier.semantics(mergeDescendants = true) { }) {
-        WaiveraIconTile(icon = icon, tone = if (ended) WaiveraTileTone.Neutral else tone)
+        WaiveraIconTile(
+            icon = icon,
+            tone = if (ended) WaiveraTileTone.Neutral else tone,
+            size = WaiveraSizes.CardTile,
+            iconSize = WaiveraSizes.CardTileGlyph,
+        )
         Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(WaiveraSpacing.XxSmall)) {
             Text(
                 text = title,
@@ -226,8 +235,8 @@ private fun InfoCard(
 }
 
 /**
- * A pressable event card with a leading bar in the owner's colour (accent when none). The
- * colour is decoration only; the organizer is also named in text.
+ * A pressable event card on concept A's sheet card, with a leading bar in the owner's colour
+ * (accent when none). The colour is decoration only; the organizer is also named in text.
  */
 @Composable
 private fun EventCard(
@@ -247,17 +256,18 @@ private fun EventCard(
     WaiveraPressable(
         onClick = { onOpenEvent(event.id) },
         onClickLabel = stringResource(R.string.feature_calendar_open_event),
-        shape = WaiveraShapes.ListCard,
-        modifier = modifier.fillMaxWidth(),
+        shape = WaiveraShapes.SheetCard,
+        modifier = modifier
+            .fillMaxWidth()
+            .shadow(elevation = WaiveraElevation.Card, shape = WaiveraShapes.SheetCard, clip = false),
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(IntrinsicSize.Min)
                 .heightIn(min = CalendarSizes.EventCardMinHeight)
-                .clip(WaiveraShapes.ListCard)
-                .background(colors.surface)
-                .border(WaiveraSpacing.Hairline, colors.border, WaiveraShapes.ListCard),
+                .clip(WaiveraShapes.SheetCard)
+                .background(colors.surface),
         ) {
             Box(
                 modifier = Modifier
@@ -274,7 +284,9 @@ private fun EventCard(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 WaiveraIconTile(
-                    tone = WaiveraTileTone.Teal,
+                    size = WaiveraSizes.CardTile,
+                    iconSize = WaiveraSizes.CardTileGlyph,
+                    tone = if (ended) WaiveraTileTone.Neutral else WaiveraTileTone.Teal,
                     icon = if (event.online ||
                         event.isSprout
                     ) {
@@ -311,14 +323,15 @@ private fun EventCard(
 
 @Composable
 private fun CardSurface(modifier: Modifier = Modifier, content: @Composable RowScope.() -> Unit) {
+    // Concept A's sheet card: the surface at 20dp with a soft lift, no hairline.
     Row(
         modifier = modifier
             .fillMaxWidth()
             .heightIn(min = WaiveraSizes.ListRowMinHeight)
-            .clip(WaiveraShapes.ListCard)
+            .shadow(elevation = WaiveraElevation.Card, shape = WaiveraShapes.SheetCard, clip = false)
+            .clip(WaiveraShapes.SheetCard)
             .background(WaiveraTheme.colors.surface)
-            .border(WaiveraSpacing.Hairline, WaiveraTheme.colors.border, WaiveraShapes.ListCard)
-            .padding(WaiveraSpacing.MediumSmall),
+            .padding(WaiveraSpacing.MediumSmall + WaiveraSpacing.XxSmall),
         horizontalArrangement = Arrangement.spacedBy(WaiveraSpacing.MediumSmall),
         verticalAlignment = Alignment.CenterVertically,
         content = content,

@@ -49,6 +49,7 @@ class WaiveraTypographyTest {
         "SectionCount" to WaiveraTextStyles.SectionCount,
         "DisplayTime" to WaiveraTextStyles.DisplayTime,
         "ClockTime" to WaiveraTextStyles.ClockTime,
+        "TimelineTime" to WaiveraTextStyles.TimelineTime,
         "Chip" to WaiveraTextStyles.Chip,
         "PanelTitle" to WaiveraTextStyles.PanelTitle,
         "AxisLabel" to WaiveraTextStyles.AxisLabel,

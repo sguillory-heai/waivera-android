@@ -36,7 +36,6 @@ internal object CalendarSizes {
 
     val OrganizerAvatar: Dp = 32.dp
     val AttendeeAvatar: Dp = 34.dp
-    val MilestoneCardAvatar: Dp = 40.dp
 }
 
 /** Calendar-only shapes. */

@@ -1,7 +1,6 @@
 package com.waivera.waivera.feature.calendar
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -12,6 +11,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarHostState
@@ -30,6 +30,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.CustomAccessibilityAction
@@ -72,6 +73,7 @@ import com.waivera.waivera.feature.calendar.model.AgendaNow
 import com.waivera.waivera.feature.calendar.model.ScheduleText
 import com.waivera.waivera.feature.calendar.model.ScheduleView
 import com.waivera.waivera.feature.calendar.schedule.AgendaCard
+import com.waivera.waivera.feature.calendar.schedule.AgendaRailEntry
 import com.waivera.waivera.feature.calendar.schedule.AgendaState
 import com.waivera.waivera.feature.calendar.schedule.NowDivider
 import com.waivera.waivera.feature.calendar.schedule.ScheduleEffect
@@ -211,9 +213,26 @@ fun ScheduleContent(state: ScheduleUiState, actions: ScheduleActions, modifier: 
             ) {
                 item(key = "views") { ViewPicker(state, actions) }
                 item(key = "banners") { ScheduleBanners(state, actions) }
-                item(key = "period") { PeriodRow(state, actions) }
-                item(key = "grid") {
-                    ScheduleGrid(view = state.view, cells = state.cells, onSelectDate = actions.onSelectDate)
+                // The period row and the grid read as one calendar card (concept A's sheet card).
+                val gridShown = state.view != ScheduleView.DAY && state.cells.isNotEmpty()
+                item(key = "period") {
+                    PeriodRow(
+                        state = state,
+                        actions = actions,
+                        modifier = Modifier.calendarCard(if (gridShown) CalendarCardTop else WaiveraShapes.SheetCard),
+                    )
+                }
+                if (gridShown) {
+                    item(key = "grid") {
+                        ScheduleGrid(
+                            view = state.view,
+                            cells = state.cells,
+                            onSelectDate = actions.onSelectDate,
+                            modifier = Modifier
+                                .calendarCard(CalendarCardBottom)
+                                .padding(bottom = WaiveraSpacing.Small),
+                        )
+                    }
                 }
                 // The Day view's period row already names the day (UI2-27); a second heading repeated it.
                 if (state.agenda !is AgendaState.Error && state.view != ScheduleView.DAY) {
@@ -241,23 +260,39 @@ private fun LazyListScope.agendaItems(state: ScheduleUiState, actions: ScheduleA
         }
         is AgendaState.Content -> {
             val now = state.agendaNow
-            agenda.items.forEach { card ->
+            val timeline = state.view == ScheduleView.DAY
+            agenda.items.forEachIndexed { index, card ->
                 if (now != null && now.beforeKey == card.key) nowItem(now)
                 item(key = card.key) {
                     val motion = WaiveraTheme.motion
-                    AgendaCard(
-                        item = card,
-                        currentYear = state.today.year,
-                        onOpenEvent = actions.onOpenEvent,
-                        ended = now != null && card.key in now.endedKeys,
-                        myUserId = state.myUserId,
-                        onSendWishes = actions.onSendWishes,
-                        modifier = itemModifier.animateItem(
-                            fadeInSpec = motion.state(),
-                            placementSpec = motion.layout(),
-                            fadeOutSpec = motion.state(),
-                        ),
+                    val ended = now != null && card.key in now.endedKeys
+                    val placed = itemModifier.animateItem(
+                        fadeInSpec = motion.state(),
+                        placementSpec = motion.layout(),
+                        fadeOutSpec = motion.state(),
                     )
+                    val agendaCard: @Composable (Modifier) -> Unit = { cardModifier ->
+                        AgendaCard(
+                            item = card,
+                            currentYear = state.today.year,
+                            onOpenEvent = actions.onOpenEvent,
+                            ended = ended,
+                            myUserId = state.myUserId,
+                            onSendWishes = actions.onSendWishes,
+                            modifier = cardModifier,
+                        )
+                    }
+                    // The Day view reads as concept B's timeline: a time and a tone beside each card.
+                    if (timeline) {
+                        AgendaRailEntry(
+                            item = card,
+                            ended = ended,
+                            isLast = index == agenda.items.lastIndex,
+                            modifier = placed,
+                        ) { agendaCard(Modifier) }
+                    } else {
+                        agendaCard(placed)
+                    }
                 }
             }
             if (now != null && now.beforeKey == null) nowItem(now)
@@ -277,6 +312,22 @@ private fun LazyListScope.nowItem(now: AgendaNow) {
 }
 
 private const val NOW_KEY = "now"
+
+/** Insets a piece of the calendar card by the gutter and gives it the card's surface and corners. */
+@Composable
+private fun Modifier.calendarCard(shape: Shape): Modifier = this
+    .padding(horizontal = WaiveraSpacing.Gutter)
+    .clip(shape)
+    .background(WaiveraTheme.colors.surface)
+
+private val CalendarCardTop: Shape = RoundedCornerShape(
+    topStart = WaiveraShapes.SheetCardRadius,
+    topEnd = WaiveraShapes.SheetCardRadius,
+)
+private val CalendarCardBottom: Shape = RoundedCornerShape(
+    bottomStart = WaiveraShapes.SheetCardRadius,
+    bottomEnd = WaiveraShapes.SheetCardRadius,
+)
 
 /**
  * One status signal under the view picker, above the grid, so a failure is seen without
@@ -360,10 +411,15 @@ private fun ViewPicker(state: ScheduleUiState, actions: ScheduleActions) {
  * "Sun, November 1" had no room left and stranded the "1" (UI5-04).
  */
 @Composable
-private fun PeriodRow(state: ScheduleUiState, actions: ScheduleActions) {
+private fun PeriodRow(state: ScheduleUiState, actions: ScheduleActions, modifier: Modifier = Modifier) {
     val showToday = state.view == ScheduleView.DAY && state.isTodaySelected
     val todayUnderTitle = isLargeFontScale()
-    Column(modifier = Modifier.padding(horizontal = WaiveraSpacing.Gutter, vertical = WaiveraSpacing.ExtraSmall)) {
+    Column(
+        modifier = modifier.padding(
+            horizontal = WaiveraSpacing.ExtraSmall,
+            vertical = WaiveraSpacing.ExtraSmall + WaiveraSpacing.XxSmall,
+        ),
+    ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             WaiveraIconButton(
                 icon = CalendarIcons.ChevronLeft,
@@ -450,15 +506,14 @@ private fun AgendaHeader(state: ScheduleUiState) {
         Box(
             modifier = modifier
                 .fillMaxWidth()
-                .clip(WaiveraShapes.ListCard)
+                .clip(WaiveraShapes.SheetCard)
                 .background(colors.surface)
-                .border(WaiveraSpacing.Hairline, colors.border, WaiveraShapes.ListCard)
                 .padding(padding),
         ) {
             AgendaHeaderRow(state)
         }
     } else {
-        WaiveraBrandSurface(modifier = modifier, shape = WaiveraShapes.ListCard, contentPadding = padding) {
+        WaiveraBrandSurface(modifier = modifier, shape = WaiveraShapes.SheetCard, contentPadding = padding) {
             AgendaHeaderRow(state)
         }
     }

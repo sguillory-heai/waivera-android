@@ -333,6 +333,17 @@ object WaiveraTextStyles {
         hyphens = WaiveraHyphens,
     )
 
+    /** A timeline entry's start time beside its card ("11:00 AM"): 13 / 700. */
+    val TimelineTime = TextStyle(
+        fontFamily = Jakarta,
+        fontSize = 13.sp,
+        lineHeight = 18.sp,
+        fontWeight = FontWeight.Bold,
+        letterSpacing = (-0.005).em,
+        lineBreak = TitleLineBreak,
+        hyphens = WaiveraHyphens,
+    )
+
     /** Small chips and the timeline's hour labels: 12 / 700 for chips. */
     val Chip = TextStyle(
         fontFamily = Jakarta,
