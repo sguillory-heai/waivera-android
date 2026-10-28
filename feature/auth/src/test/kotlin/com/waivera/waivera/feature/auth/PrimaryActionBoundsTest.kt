@@ -112,7 +112,8 @@ class PrimaryActionBoundsTest {
 
     /**
      * At 200% on the small phone a banner pushes Sign in below the fold; the screen brings it
-     * back into view as each banner appears, so the person never hunts for it (UI9-02).
+     * back into view as each banner appears, so the person never hunts for it (UI9-02). Every
+     * banner the 100% test covers is here too, the offline and build-setup ones included.
      */
     @Test
     fun signInWithEveryBannerIsFullyVisibleAtLargeFont() {
@@ -122,9 +123,11 @@ class PrimaryActionBoundsTest {
                 password = "correct horse",
                 errorMessage = NetworkR.string.core_network_error_invalid_credentials,
             ),
+            SignInUiState(email = "a@example.org", errorMessage = NetworkR.string.core_network_error_network),
             SignInUiState(email = "a@example.org", errorMessage = NetworkR.string.core_network_error_session_expired),
             SignInUiState(email = "a@example.org", resetSentTo = "a@example.org"),
             SignInUiState(signedOutNotice = true),
+            SignInUiState(missingConfiguration = listOf("waivera.apiBaseUrl")),
             SignInUiState(email = "a@example.org", linkUnavailable = true),
         )
         var current by mutableStateOf(SignInUiState(email = "a@example.org"))
