@@ -80,9 +80,15 @@ class FileCardNameLayoutTest {
         val layout = head.fetchTextLayoutResult()
         val shown = layout.layoutInput.text.text
         assertEquals("north-roster-", shown.filterNot { it == '\u200B' || it == '⁠' })
-        assertFalse("\"$shown\" overflows its lines", layout.hasVisualOverflow)
+        // Not hasVisualOverflow: a one-line head is sized to its text while the paragraph keeps
+        // the row's width, which Compose reports as width overflow even though nothing is cut.
+        assertFalse("\"$shown\" is cut vertically", layout.didOverflowHeight)
         (0 until layout.lineCount).forEach { line ->
             assertFalse("\"$shown\" is ellipsized on line $line", layout.isLineEllipsized(line))
+            assertTrue(
+                "\"$shown\" line $line ends at ${layout.getLineRight(line)} past ${layout.size.width}",
+                layout.getLineRight(line) <= layout.size.width,
+            )
         }
         assertEquals("\"$shown\" is not fully laid out", shown.length, layout.getLineEnd(layout.lineCount - 1))
     }
