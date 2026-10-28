@@ -63,6 +63,7 @@ import com.waivera.waivera.core.designsystem.component.WaiveraBanner
 import com.waivera.waivera.core.designsystem.component.WaiveraDivider
 import com.waivera.waivera.core.designsystem.component.WaiveraEmptyState
 import com.waivera.waivera.core.designsystem.component.WaiveraErrorState
+import com.waivera.waivera.core.designsystem.component.WaiveraIllustration
 import com.waivera.waivera.core.designsystem.component.WaiveraSnackbarHost
 import com.waivera.waivera.core.designsystem.component.WaiveraTopBar
 import com.waivera.waivera.core.designsystem.icon.WaiveraIcons
@@ -394,7 +395,7 @@ private fun MessageArea(
         ConversationContent.Invalid -> WaiveraEmptyState(
             title = stringResource(R.string.feature_chat_conversation_unavailable_title),
             message = stringResource(R.string.feature_chat_conversation_invalid),
-            icon = WaiveraIcons.Chat,
+            illustration = WaiveraIllustration.Search,
             actionLabel = stringResource(DesignR.string.core_designsystem_go_back),
             onAction = actions.onBack,
         )
@@ -407,7 +408,7 @@ private fun MessageArea(
             WaiveraEmptyState(
                 title = stringResource(R.string.feature_chat_conversation_unavailable_title),
                 message = stringResource(R.string.feature_chat_conversation_not_found),
-                icon = WaiveraIcons.Chat,
+                illustration = WaiveraIllustration.Search,
                 actionLabel = stringResource(DesignR.string.core_designsystem_go_back),
                 onAction = actions.onBack,
             )
@@ -421,7 +422,7 @@ private fun MessageArea(
         ConversationContent.Empty -> WaiveraEmptyState(
             title = stringResource(R.string.feature_chat_messages_empty_title),
             message = stringResource(R.string.feature_chat_messages_empty),
-            icon = WaiveraIcons.Chat,
+            illustration = WaiveraIllustration.Chats,
         )
         ConversationContent.Messages -> MessageList(state, time, actions, listState, onJumpToLatest)
     }

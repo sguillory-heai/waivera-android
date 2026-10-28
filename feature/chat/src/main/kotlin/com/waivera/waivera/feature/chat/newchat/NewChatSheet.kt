@@ -1,5 +1,6 @@
 package com.waivera.waivera.feature.chat.newchat
 
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -28,6 +29,8 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.painter.BitmapPainter
 import androidx.compose.ui.res.painterResource
@@ -46,6 +49,7 @@ import com.waivera.waivera.core.designsystem.component.WaiveraBottomSheet
 import com.waivera.waivera.core.designsystem.component.WaiveraButton
 import com.waivera.waivera.core.designsystem.component.WaiveraEmptyState
 import com.waivera.waivera.core.designsystem.component.WaiveraErrorState
+import com.waivera.waivera.core.designsystem.component.WaiveraIllustration
 import com.waivera.waivera.core.designsystem.component.WaiveraTextField
 import com.waivera.waivera.core.designsystem.component.rememberSkeletonPulse
 import com.waivera.waivera.core.designsystem.component.rememberSkeletonVisible
@@ -173,7 +177,7 @@ fun ColumnScope.NewChatSheetContent(
                     WaiveraEmptyState(
                         title = stringResource(R.string.feature_chat_newchat_empty_title),
                         message = stringResource(R.string.feature_chat_newchat_empty),
-                        icon = WaiveraIcons.People,
+                        illustration = WaiveraIllustration.Search,
                     )
                 }
                 else -> LazyColumn(state = listState) {
@@ -250,13 +254,21 @@ private fun PersonOption(person: PersonOptionUi, avatar: ImageBitmap?, onToggle:
             R.string.feature_chat_newchat_not_selected_state
         },
     )
+    // A picked person's row takes a soft accent wash, so the group being built reads at a glance.
+    val rowFill by animateColorAsState(
+        targetValue = if (person.selected) colors.accentWash else Color.Transparent,
+        animationSpec = WaiveraTheme.motion.state(),
+        label = "personRowFill",
+    )
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .heightIn(min = WaiveraSizes.ListRowMinHeight)
+            .clip(WaiveraShapes.Card)
+            .background(rowFill)
             .toggleable(value = person.selected, role = Role.Checkbox, onValueChange = { onToggle() })
             .semantics { stateDescription = stateLabel }
-            .padding(vertical = WaiveraSpacing.Small),
+            .padding(horizontal = WaiveraSpacing.Small, vertical = WaiveraSpacing.Small),
         horizontalArrangement = Arrangement.spacedBy(WaiveraSpacing.MediumSmall),
         verticalAlignment = Alignment.CenterVertically,
     ) {

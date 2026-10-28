@@ -343,17 +343,18 @@ internal fun LeadingTile(leading: RowLeading, avatar: ImageBitmap?) {
                         R.string.feature_chat_list_channel_icon
                     },
                 ),
-                accent = true,
+                // An archived channel is inactive, so it takes the neutral tile (WaiveraTileTone).
+                tone = if (leading.archived) WaiveraTileTone.Neutral else WaiveraTileTone.Brand,
             )
             RowLeading.Bot -> IconTile(
                 icon = WaiveraIcons.Bot,
                 description = stringResource(R.string.feature_chat_list_bot_icon),
-                accent = true,
+                tone = WaiveraTileTone.Brand,
             )
             RowLeading.Group -> IconTile(
                 icon = WaiveraIcons.People,
                 description = stringResource(R.string.feature_chat_list_group_icon),
-                accent = false,
+                tone = WaiveraTileTone.Brand,
             )
             is RowLeading.Direct -> {
                 val painter = remember(avatar) { avatar?.let(::BitmapPainter) }
@@ -369,11 +370,12 @@ internal fun LeadingTile(leading: RowLeading, avatar: ImageBitmap?) {
     }
 }
 
+/** Channels, groups and the bot are conversations, so they share the brand tile (WaiveraTileTone). */
 @Composable
-private fun IconTile(icon: Int, description: String, accent: Boolean) {
+private fun IconTile(icon: Int, description: String, tone: WaiveraTileTone) {
     WaiveraIconTile(
         icon = icon,
-        tone = if (accent) WaiveraTileTone.Brand else WaiveraTileTone.Neutral,
+        tone = tone,
         modifier = Modifier.semantics { contentDescription = description },
     )
 }

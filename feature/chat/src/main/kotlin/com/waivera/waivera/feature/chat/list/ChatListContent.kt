@@ -31,6 +31,7 @@ import com.waivera.waivera.core.designsystem.component.TopBarAction
 import com.waivera.waivera.core.designsystem.component.WaiveraBanner
 import com.waivera.waivera.core.designsystem.component.WaiveraEmptyState
 import com.waivera.waivera.core.designsystem.component.WaiveraErrorState
+import com.waivera.waivera.core.designsystem.component.WaiveraIllustration
 import com.waivera.waivera.core.designsystem.component.WaiveraSegmentedControl
 import com.waivera.waivera.core.designsystem.component.WaiveraSnackbarHost
 import com.waivera.waivera.core.designsystem.component.WaiveraTopBar
@@ -262,7 +263,12 @@ private fun EmptyContent(reason: EmptyReason, onNewChat: () -> Unit) {
     WaiveraEmptyState(
         title = stringResource(titleRes),
         message = stringResource(messageRes),
-        icon = WaiveraIcons.Chat,
+        illustration = when (reason) {
+            EmptyReason.NoMatches -> WaiveraIllustration.Search
+            EmptyReason.AllCaughtUp -> WaiveraIllustration.CaughtUp
+            EmptyReason.NoChannels -> WaiveraIllustration.Connections
+            EmptyReason.NoConversations -> WaiveraIllustration.Chats
+        },
         actionLabel = if (reason == EmptyReason.NoConversations) {
             stringResource(R.string.feature_chat_list_empty_action)
         } else {
