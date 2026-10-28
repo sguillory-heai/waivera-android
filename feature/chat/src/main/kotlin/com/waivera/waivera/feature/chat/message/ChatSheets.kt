@@ -33,6 +33,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.painter.BitmapPainter
 import androidx.compose.ui.input.pointer.pointerInput
@@ -444,6 +445,8 @@ fun ImagePreviewDialog(message: Message, onClose: () -> Unit) {
                 )
                 ChatImageState.Loading -> WaiveraBusyIndicator(
                     color = onScrimColor(),
+                    // On the dark scrim the lilac track would glare; the arc alone reads there.
+                    trackColor = Color.Transparent,
                     size = WaiveraSizes.ProgressLarge,
                     strokeWidth = WaiveraSizes.ProgressStrokeLarge,
                     modifier = Modifier.align(Alignment.Center),

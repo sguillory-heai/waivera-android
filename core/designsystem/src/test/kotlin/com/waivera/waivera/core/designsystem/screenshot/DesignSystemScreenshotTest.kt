@@ -48,6 +48,7 @@ import com.waivera.waivera.core.designsystem.component.WaiveraButtonVariant
 import com.waivera.waivera.core.designsystem.component.WaiveraCelebrationBurst
 import com.waivera.waivera.core.designsystem.component.WaiveraCelebrationNote
 import com.waivera.waivera.core.designsystem.component.WaiveraCountBadge
+import com.waivera.waivera.core.designsystem.component.WaiveraCountTone
 import com.waivera.waivera.core.designsystem.component.WaiveraDivider
 import com.waivera.waivera.core.designsystem.component.WaiveraEmojiTile
 import com.waivera.waivera.core.designsystem.component.WaiveraEmptyState
@@ -65,6 +66,7 @@ import com.waivera.waivera.core.designsystem.component.WaiveraLogoVariant
 import com.waivera.waivera.core.designsystem.component.WaiveraMilestoneAvatar
 import com.waivera.waivera.core.designsystem.component.WaiveraNavigationBar
 import com.waivera.waivera.core.designsystem.component.WaiveraPlaceholderScreen
+import com.waivera.waivera.core.designsystem.component.WaiveraSectionCount
 import com.waivera.waivera.core.designsystem.component.WaiveraSectionHeader
 import com.waivera.waivera.core.designsystem.component.WaiveraSegmentedControl
 import com.waivera.waivera.core.designsystem.component.WaiveraSheetContent
@@ -379,6 +381,10 @@ class DesignSystemScreenshotTest {
             WaiveraCountBadge(count = 3)
             WaiveraCountBadge(count = 42)
             WaiveraCountBadge(count = 120)
+            // v5: attention is the solid rose; a plain total is the neutral chip.
+            WaiveraCountBadge(text = "14", contentDescription = "14 events", tone = WaiveraCountTone.Info)
+            WaiveraSectionCount(text = "4", contentDescription = "4 items")
+            WaiveraSectionCount(text = "9", contentDescription = "9 total", tone = WaiveraCountTone.Info)
         }
         FlowRow(
             horizontalArrangement = Arrangement.spacedBy(WaiveraSpacing.Small),

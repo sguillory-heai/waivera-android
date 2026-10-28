@@ -201,8 +201,17 @@ internal object WaiveraPalette {
     /** The bar behind the tabs in dark, one step under the surface so the pill lifts off it. */
     val NavBarDark = Color(0xFF18141F)
 
-    /** The tab's unread count: the concept's rose, 4.62:1 with white, kept apart from the danger red. */
-    val NavBadge = Color(0xFFD6336C)
+    /**
+     * Attention (v5 decision 6): unread counts, the Needs you count and the tab's count, in solid
+     * rose with white (5.7:1 light, 4.6:1 dark), kept apart from the danger red and the violet of
+     * a selection, so the eye goes straight to what is waiting.
+     */
+    val AttentionLight = Color(0xFFC2255C)
+    val AttentionDark = Color(0xFFD6336C)
+
+    /** Informational totals: a neutral chip, not a call for attention (v5 decision 6). */
+    val ChipNeutralLight = Color(0xFFECE7F2)
+    val ChipNeutralDark = Color(0xFF2B2436)
 
     /** A snackbar in light: the hero's deep plum, so a passing note carries the brand. */
     val SnackbarLight = Color(0xFF2A1145)

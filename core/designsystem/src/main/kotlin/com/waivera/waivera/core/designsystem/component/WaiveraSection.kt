@@ -25,7 +25,6 @@ import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import com.waivera.waivera.core.designsystem.preview.WaiveraPreviews
 import com.waivera.waivera.core.designsystem.theme.WaiveraElevation
-import com.waivera.waivera.core.designsystem.theme.WaiveraHero
 import com.waivera.waivera.core.designsystem.theme.WaiveraShapes
 import com.waivera.waivera.core.designsystem.theme.WaiveraSizes
 import com.waivera.waivera.core.designsystem.theme.WaiveraSpacing
@@ -36,9 +35,10 @@ import com.waivera.waivera.core.designsystem.theme.WaiveraTheme
 data class WaiveraSectionAction(val label: String, val onClick: () -> Unit, val onClickLabel: String? = null)
 
 /**
- * A section heading on a tab screen's sheet: the title (B's 17 / 600), an optional gradient
- * count ("Needs you 4", announced as [countDescription]) and an optional trailing link. The title
- * is a heading for TalkBack's heading navigation.
+ * A section heading on a tab screen's sheet: the title (B's 17 / 600), an optional count
+ * ("Needs you 4", announced as [countDescription]) and an optional trailing link. The count is
+ * the solid attention rose by default; [countTone] [WaiveraCountTone.Info] draws a plain total as
+ * the neutral chip (v5 decision 6). The title is a heading for TalkBack's heading navigation.
  *
  * The row is as tall as its title, not the link's 48dp target, so the sheet's first card sits
  * close under the curve (UI10-01). The link keeps its full 48dp target, centred on the title and
@@ -52,6 +52,7 @@ fun WaiveraSectionHeader(
     count: Int? = null,
     countDescription: String? = null,
     action: WaiveraSectionAction? = null,
+    countTone: WaiveraCountTone = WaiveraCountTone.Attention,
 ) {
     val colors = WaiveraTheme.colors
     Layout(
@@ -69,9 +70,10 @@ fun WaiveraSectionHeader(
                 )
                 if (count != null && count > 0) {
                     Spacer(Modifier.width(WaiveraSpacing.Small))
-                    WaiveraGradientCount(
+                    WaiveraSectionCount(
                         text = formatBadgeCount(count).orEmpty(),
                         contentDescription = countDescription ?: count.toString(),
+                        tone = countTone,
                     )
                 }
             }
@@ -111,21 +113,26 @@ fun WaiveraSectionHeader(
 }
 
 /**
- * The concept's gradient count: white on the CTA gradient (the brand gradient's pink end fails
- * white), 24dp tall with 8dp corners.
+ * A section's count, 24dp tall with 8dp corners: solid rose with white for [WaiveraCountTone.Attention]
+ * (5.7 / 4.6:1), the neutral chip for [WaiveraCountTone.Info]. Never a gradient (v5).
  */
 @Composable
-fun WaiveraGradientCount(text: String, contentDescription: String, modifier: Modifier = Modifier) {
-    val hero = WaiveraHero.colors
+fun WaiveraSectionCount(
+    text: String,
+    contentDescription: String,
+    modifier: Modifier = Modifier,
+    tone: WaiveraCountTone = WaiveraCountTone.Attention,
+) {
+    val (container, content) = tone.colorsFrom(WaiveraTheme.colors)
     Box(
         modifier = modifier
             .defaultMinSize(minWidth = WaiveraSizes.CountBadgeHeight, minHeight = WaiveraSizes.CountBadgeHeight)
-            .background(hero.buttonBrush, WaiveraShapes.CountBadge)
+            .background(container, WaiveraShapes.CountBadge)
             .padding(horizontal = WaiveraSpacing.Small)
             .clearAndSetSemantics { this.contentDescription = contentDescription },
         contentAlignment = Alignment.Center,
     ) {
-        Text(text = text, style = WaiveraTextStyles.SectionCount, color = hero.onButton, maxLines = 1, softWrap = false)
+        Text(text = text, style = WaiveraTextStyles.SectionCount, color = content, maxLines = 1, softWrap = false)
     }
 }
 

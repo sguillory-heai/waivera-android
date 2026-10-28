@@ -48,8 +48,13 @@ data class WaiveraColors(
     val accentBorder: Color,
     val accentBorderStrong: Color,
     val inverseAccent: Color,
-    /** Unread dots and count badges; [onAccent] (white) sits on it. */
+    /**
+     * Attention: unread dots, unread and Needs you counts (v5 decision 6, solid rose); [onAccent]
+     * (white) sits on it. Never the danger red, which keeps "failed".
+     */
     val unread: Color,
+    /** An informational total's neutral chip, with [textSecondary] on it. */
+    val chipNeutral: Color,
     val danger: Color,
     val dangerText: Color,
     val dangerFill: Color,
@@ -155,7 +160,8 @@ internal val LightWaiveraColors = WaiveraColors(
     accentBorder = WaiveraPalette.Violet.copy(alpha = WaiveraPalette.BORDER_ALPHA),
     accentBorderStrong = WaiveraPalette.Violet.copy(alpha = WaiveraPalette.BORDER_STRONG_ALPHA),
     inverseAccent = WaiveraPalette.VioletDarkAccent,
-    unread = WaiveraPalette.Violet,
+    unread = WaiveraPalette.AttentionLight,
+    chipNeutral = WaiveraPalette.ChipNeutralLight,
     danger = WaiveraPalette.DangerLight,
     dangerText = WaiveraPalette.DangerTextLight,
     dangerFill = WaiveraPalette.DangerFillLight,
@@ -187,7 +193,7 @@ internal val LightWaiveraColors = WaiveraColors(
     navBarBorder = WaiveraPalette.BorderLight,
     selectedFill = WaiveraPalette.SelectedFillLight,
     onSelectedFill = WaiveraPalette.TonalInkLight,
-    navBadge = WaiveraPalette.NavBadge,
+    navBadge = WaiveraPalette.AttentionLight,
     snackbar = WaiveraPalette.SnackbarLight,
     onSnackbar = WaiveraPalette.White,
     snackbarAction = WaiveraPalette.VioletDarkLink,
@@ -227,8 +233,8 @@ internal val DarkWaiveraColors = WaiveraColors(
     accentBorder = WaiveraPalette.VioletDarkAccent.copy(alpha = WaiveraPalette.BORDER_ALPHA),
     accentBorderStrong = WaiveraPalette.VioletDarkAccent.copy(alpha = WaiveraPalette.BORDER_STRONG_ALPHA),
     inverseAccent = WaiveraPalette.Violet,
-    // Badges carry white counts, so the unread fill is the saturated violet, not the pastel accent.
-    unread = WaiveraPalette.VioletDarkFill,
+    unread = WaiveraPalette.AttentionDark,
+    chipNeutral = WaiveraPalette.ChipNeutralDark,
     danger = WaiveraPalette.DangerDark,
     dangerText = WaiveraPalette.DangerDark,
     dangerFill = WaiveraPalette.DangerFillDark,
@@ -260,7 +266,7 @@ internal val DarkWaiveraColors = WaiveraColors(
     navBarBorder = WaiveraPalette.BorderDark,
     selectedFill = WaiveraPalette.SelectedFillDark,
     onSelectedFill = WaiveraPalette.OnAccentSoftDark,
-    navBadge = WaiveraPalette.NavBadge,
+    navBadge = WaiveraPalette.AttentionDark,
     snackbar = WaiveraPalette.SnackbarDark,
     onSnackbar = WaiveraPalette.White,
     snackbarAction = WaiveraPalette.VioletDarkLink,

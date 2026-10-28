@@ -35,8 +35,14 @@ fun formatBadgeCount(count: Int, max: Int = BADGE_MAX): String? = when {
 const val BADGE_MAX = 99
 
 /**
- * Unread count pill in the `unread` token (spec 10 §1), so red keeps its "failed or urgent"
- * meaning. Hidden at 0. Announces "N unread" rather than a bare number.
+ * What a count is for (v5 decision 6): [Attention] is something waiting on the person (unread,
+ * Needs you), solid rose with white; [Info] is a plain total, a neutral chip.
+ */
+enum class WaiveraCountTone { Attention, Info }
+
+/**
+ * Unread count pill in the attention rose (`unread`, spec 10 §1), so red keeps its "failed or
+ * urgent" meaning. Hidden at 0. Announces "N unread" rather than a bare number.
  */
 @Composable
 fun WaiveraCountBadge(count: Int, modifier: Modifier = Modifier) {
@@ -51,21 +57,34 @@ fun WaiveraCountBadge(count: Int, modifier: Modifier = Modifier) {
 
 /**
  * The count badge with caller-made copy, for counts that aren't exact (for example "30+" when
- * only part of a feed is loaded). Looks the same as the numeric badge.
+ * only part of a feed is loaded). Looks the same as the numeric badge; [tone] [WaiveraCountTone.Info]
+ * draws a plain total as the neutral chip.
  */
 @Composable
-fun WaiveraCountBadge(text: String, contentDescription: String, modifier: Modifier = Modifier) {
+fun WaiveraCountBadge(
+    text: String,
+    contentDescription: String,
+    modifier: Modifier = Modifier,
+    tone: WaiveraCountTone = WaiveraCountTone.Attention,
+) {
     val colors = WaiveraTheme.colors
+    val (container, content) = tone.colorsFrom(colors)
     Box(
         modifier = modifier
             .defaultMinSize(minWidth = WaiveraSizes.BadgeMin, minHeight = WaiveraSizes.BadgeMin)
-            .background(colors.unread, WaiveraShapes.Pill)
+            .background(container, WaiveraShapes.Pill)
             .padding(horizontal = WaiveraSpacing.ExtraSmall + WaiveraSpacing.XxSmall)
             .clearAndSetSemantics { this.contentDescription = contentDescription },
         contentAlignment = Alignment.Center,
     ) {
-        Text(text = text, style = WaiveraTextStyles.Badge, color = colors.onAccent, maxLines = 1, softWrap = false)
+        Text(text = text, style = WaiveraTextStyles.Badge, color = content, maxLines = 1, softWrap = false)
     }
+}
+
+/** A count's fill and its ink. */
+internal fun WaiveraCountTone.colorsFrom(colors: WaiveraColors): Pair<Color, Color> = when (this) {
+    WaiveraCountTone.Attention -> colors.unread to colors.onAccent
+    WaiveraCountTone.Info -> colors.chipNeutral to colors.textSecondary
 }
 
 enum class BadgeTone { Neutral, Accent, Success, Warning, Danger }
@@ -110,6 +129,7 @@ private fun WaiveraBadgePreview() {
         ) {
             WaiveraCountBadge(count = 3)
             WaiveraCountBadge(count = 120)
+            WaiveraCountBadge(text = "14", contentDescription = "14 events", tone = WaiveraCountTone.Info)
             WaiveraStatusBadge(text = "Saved", tone = BadgeTone.Accent)
             WaiveraStatusBadge(text = "Thread reply")
             WaiveraStatusBadge(text = "Pending", tone = BadgeTone.Warning)

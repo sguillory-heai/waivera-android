@@ -60,8 +60,9 @@ class WaiveraColorsContrastTest {
     @Test
     fun text_onFillsAndContainers() = forEachTheme { colors ->
         text("onAccent on accentFill (primary button)", colors.onAccent, colors.accentFill)
-        // White counts sit on the saturated unread fill; the pastel dark accent never carries white.
+        // White counts sit on the attention rose; the pastel dark accent never carries white.
         text("onAccent on unread (badges)", colors.onAccent, colors.unread)
+        text("textSecondary on chipNeutral (informational totals)", colors.textSecondary, colors.chipNeutral)
         text("onAccentSoft on accentSoft", colors.onAccentSoft, colors.accentSoft)
         text("onDangerFill on dangerFill", colors.onDangerFill, colors.dangerFill)
         text("onDangerContainer on dangerContainer", colors.onDangerContainer, colors.dangerContainer)
@@ -199,6 +200,10 @@ class WaiveraColorsContrastTest {
     fun controls_meetTheNonTextMinimum() = forEachTheme { colors ->
         for ((surfaceName, surface) in pageSurfaces(colors)) {
             ui("borderStrong on $surfaceName", colors.borderStrong, surface)
+        }
+        for ((surfaceName, surface) in pageSurfaces(colors)) {
+            // The attention rose is a dot on its own on Today's rows, so it must read as a mark.
+            ui("unread (attention dot) on $surfaceName", colors.unread, surface)
         }
         ui("accentFill on background (primary button edge)", colors.accentFill, colors.background)
         // v5 moved the dark fill to #8048E6 so a solid violet control also clears 3:1 on the surface.

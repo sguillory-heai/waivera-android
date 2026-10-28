@@ -20,6 +20,8 @@ import com.waivera.waivera.core.designsystem.theme.WaiveraTheme
 
 /**
  * The app's busy indicator: an indeterminate spinner, or a still ring when motion is reduced.
+ * v5 decision 6: a solid violet arc on the lilac tonal track, never a gradient. Pass a [color]
+ * and [trackColor] of the surface's own ink where it sits on a fill (a busy button).
  *
  * With "Remove animations" the system stops the spinner's infinite transition, which leaves a
  * frozen arc that reads like a tick or a broken icon. Under reduced motion this draws a full,
@@ -29,8 +31,8 @@ import com.waivera.waivera.core.designsystem.theme.WaiveraTheme
 @Composable
 fun WaiveraBusyIndicator(
     modifier: Modifier = Modifier,
-    color: Color = WaiveraTheme.colors.accent,
-    trackColor: Color = Color.Transparent,
+    color: Color = WaiveraTheme.colors.accentFill,
+    trackColor: Color = WaiveraTheme.colors.accentSoft,
     size: Dp = WaiveraSizes.ProgressSmall,
     strokeWidth: Dp = WaiveraSizes.ProgressStroke,
 ) {
