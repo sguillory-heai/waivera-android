@@ -26,6 +26,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import com.waivera.waivera.core.designsystem.component.ConnectionBanner
@@ -38,6 +39,7 @@ import com.waivera.waivera.core.designsystem.component.WaiveraSectionHeader
 import com.waivera.waivera.core.designsystem.component.WaiveraSnackbarHost
 import com.waivera.waivera.core.designsystem.component.rememberSkeletonVisible
 import com.waivera.waivera.core.designsystem.theme.WaiveraMotionScheme
+import com.waivera.waivera.core.designsystem.theme.WaiveraSizes
 import com.waivera.waivera.core.designsystem.theme.WaiveraSpacing
 import com.waivera.waivera.core.designsystem.theme.WaiveraTheme
 import com.waivera.waivera.feature.today.R
@@ -204,7 +206,13 @@ private fun LazyListScope.needsYouCards(section: NeedsYouSection, callbacks: Tod
         onRespond = { id, accept -> callbacks.onAction(TodayAction.RespondToInvitation(id, accept)) },
     )
     items(section.items, key = { it.key }, contentType = { it::class.simpleName }) { item ->
-        NeedsYouRow(item, rowCallbacks, Modifier.animateTodayItem(this, WaiveraTheme.motion))
+        NeedsYouRow(
+            item = item,
+            callbacks = rowCallbacks,
+            modifier = Modifier
+                .animateTodayItem(this, WaiveraTheme.motion)
+                .testTag(NEEDS_YOU_CARD_TEST_TAG),
+        )
     }
 }
 
@@ -374,12 +382,17 @@ private fun LazyListScope.activityItems(state: TodayUiState, callbacks: TodayCal
     }
 }
 
-/** A section header on the sheet: lined up with the cards' text, with room above it. */
+/**
+ * A section header on the sheet: lined up with the cards' text, with room above it. The first
+ * one sits right under the sheet's curve, which is its top margin (UI10-01). Below, the padding
+ * and the card's own inset leave room for the link's 48dp target
+ * ([WaiveraSizes.SectionActionOverhang]), so the card never takes "Show all"'s taps.
+ */
 private fun Modifier.sheetHeader(first: Boolean = false): Modifier = padding(
     start = WaiveraSpacing.Gutter + WaiveraSpacing.ExtraSmall,
     end = WaiveraSpacing.Small,
-    top = if (first) WaiveraSpacing.Small else WaiveraSpacing.MediumLarge,
-    bottom = WaiveraSpacing.XxSmall,
+    top = if (first) WaiveraSpacing.None else WaiveraSpacing.ExtraLarge,
+    bottom = if (first) WaiveraSpacing.Small else WaiveraSpacing.MediumSmall,
 )
 
 /** Marks the activity read (optimistically) and opens the message, or its thread when it is a reply. */
@@ -428,6 +441,9 @@ private fun guardNavigation(callbacks: TodayCallbacks): TodayCallbacks {
         )
     }
 }
+
+/** Tags each Needs you card, for the small-phone fold check. */
+internal const val NEEDS_YOU_CARD_TEST_TAG = "todayNeedsYouCard"
 
 private const val LOAD_MORE_THRESHOLD = 4
 private const val NAVIGATION_GUARD_MILLIS = 600L

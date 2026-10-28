@@ -42,16 +42,18 @@ import com.waivera.waivera.core.designsystem.theme.WaiveraTheme
 
 /**
  * A titled group on the profile screens, as concept A groups rows everywhere: the shared
- * mixed-case section title (a heading for TalkBack) above one lifted sheet card.
+ * mixed-case section title (a heading for TalkBack) above one lifted sheet card. The [first]
+ * group on the sheet starts right under its curve.
  */
 @Composable
 internal fun ProfileCard(
     modifier: Modifier = Modifier,
     title: String? = null,
+    first: Boolean = false,
     content: @Composable ColumnScope.() -> Unit,
 ) {
     Column(modifier = modifier.fillMaxWidth()) {
-        if (title != null) WaiveraSectionHeader(text = title)
+        if (title != null) WaiveraSectionHeader(text = title, first = first)
         WaiveraCardGroup {
             Column(
                 modifier = Modifier

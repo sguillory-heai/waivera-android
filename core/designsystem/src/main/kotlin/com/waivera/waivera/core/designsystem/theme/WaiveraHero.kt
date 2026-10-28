@@ -187,6 +187,12 @@ object WaiveraHero {
     /** The tab sheet's first band: its curve and the padding above its first section (22 in the concept). */
     val TabSheetLip: Dp = 22.dp
 
+    /**
+     * The tab sheet's first band on a short window (`isShortWindow`), so a 640dp phone shows two
+     * whole Needs you cards under the hero (UI10-01). The curve follows the band's height.
+     */
+    val TabSheetLipShort: Dp = 16.dp
+
     /** The top bar's sheet band at large font, so the compact header keeps the screen for content. */
     val BarSheetLipCompact: Dp = 12.dp
 

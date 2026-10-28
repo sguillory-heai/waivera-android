@@ -203,9 +203,11 @@ private fun RowText(
 /**
  * Section title above a group of rows: B's mixed-case 17 / 600, the same title as the sections
  * on Today's sheet, so every screen's sections read alike. Marked as a heading for TalkBack.
+ * The [first] section on a sheet sits right under the sheet's curve, which is its top margin,
+ * as Today's first section does (UI10-01).
  */
 @Composable
-fun WaiveraSectionHeader(text: String, modifier: Modifier = Modifier) {
+fun WaiveraSectionHeader(text: String, modifier: Modifier = Modifier, first: Boolean = false) {
     Text(
         text = text,
         style = MaterialTheme.typography.titleMedium,
@@ -215,7 +217,7 @@ fun WaiveraSectionHeader(text: String, modifier: Modifier = Modifier) {
             .padding(
                 start = WaiveraSpacing.Gutter + WaiveraSpacing.ExtraSmall,
                 end = WaiveraSpacing.Gutter,
-                top = WaiveraSpacing.MediumLarge,
+                top = if (first) WaiveraSpacing.None else WaiveraSpacing.MediumLarge,
                 bottom = WaiveraSpacing.Small,
             )
             .semantics { heading() },

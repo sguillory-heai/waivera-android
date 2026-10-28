@@ -122,7 +122,7 @@ internal fun SettingsContent(
             // taking taps until the sign-out finishes or fails.
             val rowsEnabled = !state.signingOut
             Column(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
-                WaiveraSectionHeader(text = stringResource(R.string.feature_settings_section_preferences))
+                WaiveraSectionHeader(text = stringResource(R.string.feature_settings_section_preferences), first = true)
                 SettingsCard {
                     // Rows navigate from onClick; no pressable is nested inside a link (pitfall 11 §46).
                     WaiveraListRow(

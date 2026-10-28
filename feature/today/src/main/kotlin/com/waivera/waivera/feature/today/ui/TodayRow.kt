@@ -43,6 +43,7 @@ import com.waivera.waivera.core.designsystem.theme.WaiveraSizes
 import com.waivera.waivera.core.designsystem.theme.WaiveraSpacing
 import com.waivera.waivera.core.designsystem.theme.WaiveraTextStyles
 import com.waivera.waivera.core.designsystem.theme.WaiveraTheme
+import com.waivera.waivera.core.designsystem.theme.isShortWindow
 import com.waivera.waivera.feature.today.R
 
 /**
@@ -74,10 +75,13 @@ internal fun TodayRow(
     below: (@Composable () -> Unit)? = null,
 ) {
     val colors = WaiveraTheme.colors
+    // An 8dp gap between cards on a short window, 10dp elsewhere: two whole Needs you cards fit
+    // under the hero on a 640dp phone (UI10-01).
+    val inset = if (isShortWindow()) WaiveraSpacing.ExtraSmall else WaiveraSpacing.ExtraSmall + WaiveraSpacing.Hairline
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = WaiveraSpacing.Gutter, vertical = WaiveraSpacing.ExtraSmall + WaiveraSpacing.Hairline)
+            .padding(horizontal = WaiveraSpacing.Gutter, vertical = inset)
             .shadow(elevation = WaiveraElevation.Card, shape = WaiveraShapes.SheetCard, clip = false)
             .clip(WaiveraShapes.SheetCard)
             .background(colors.surface),

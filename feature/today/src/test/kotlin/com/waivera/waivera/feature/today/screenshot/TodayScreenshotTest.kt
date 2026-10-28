@@ -4,9 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Column
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import com.waivera.waivera.core.data.calendar.CalendarMath
 import com.waivera.waivera.core.data.model.ActivityFeed
-import com.waivera.waivera.core.data.model.DateRange
 import com.waivera.waivera.core.data.model.HandledTally
 import com.waivera.waivera.core.data.model.MyInvitation
 import com.waivera.waivera.core.data.model.RealtimeStatus
@@ -20,12 +18,9 @@ import com.waivera.waivera.core.realtime.ConnectionState
 import com.waivera.waivera.core.screenshottesting.ScreenshotHeights
 import com.waivera.waivera.core.screenshottesting.ScreenshotSdk
 import com.waivera.waivera.core.screenshottesting.captureScreenshots
-import com.waivera.waivera.core.testing.EnglishConversationTitles
 import com.waivera.waivera.feature.today.activity
 import com.waivera.waivera.feature.today.conversation
 import com.waivera.waivera.feature.today.model.CelebrationItem
-import com.waivera.waivera.feature.today.model.TodayAssembler
-import com.waivera.waivera.feature.today.model.TodayContext
 import com.waivera.waivera.feature.today.model.TodayLocalState
 import com.waivera.waivera.feature.today.model.TodaySources
 import com.waivera.waivera.feature.today.model.TodayUiState
@@ -43,58 +38,24 @@ import org.robolectric.annotation.GraphicsMode
 
 /**
  * Today in every major state, across the shared matrix (light/dark × small/large phone × 100%/200%
- * font), named `today_<state>`. States are built from the demo data through the real assembler,
- * at the demo clock (1 November 2026, 10:30 in Chicago, the day DST ends).
+ * font), named `today_<state>`. States are built by [TodayDemo] from the demo data through the
+ * real assembler, at the demo clock (1 November 2026, 10:30 in Chicago, the day DST ends).
  */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 @Config(sdk = [ScreenshotSdk.VALUE])
 class TodayScreenshotTest {
-    private val now: Instant = DemoData.NOW
-    private val today = now.atZone(DemoData.ZONE).toLocalDate()
-    private val range = DateRange(today, today.plusDays(14))
-    private val connected = RealtimeStatus(ConnectionState.Connected, isOnline = true)
+    private val now: Instant = TodayDemo.now
+    private val range = TodayDemo.range
 
-    private fun demoSources(synced: Instant? = now) = TodaySources(
-        conversations = Synced(DemoData.conversations(), lastSyncedAt = synced),
-        activity = Synced(ActivityFeed(DemoData.activity(), hasMore = false), lastSyncedAt = synced),
-        schedule = Synced(
-            ScheduleFeed(
-                range = range,
-                zoneId = DemoData.ZONE.id,
-                events = DemoData.events().filter { e ->
-                    range.days().any { CalendarMath.occursOn(e, it, DemoData.ZONE) }
-                },
-            ),
-            lastSyncedAt = synced,
-        ),
-        milestones = Synced(DemoData.milestones(), lastSyncedAt = synced),
-        // The demo DM holds a message that wasn't sent, as the demo app does.
-        failedSends = setOf(DemoData.DM_PRIYA),
-    )
-
-    /** Five things already handled this morning, so the ring reads as it does mid-day. */
-    private val morningTally = HandledTally(userId = DemoData.ME, day = today, handled = 5, open = emptySet())
+    private fun demoSources(synced: Instant? = now) = TodayDemo.sources(synced)
 
     private fun state(
         sources: TodaySources = demoSources(),
         local: TodayLocalState = TodayLocalState(),
-        realtime: RealtimeStatus = connected,
-        handled: HandledTally? = morningTally,
-    ): TodayUiState = TodayAssembler.assemble(
-        sources,
-        TodayContext(
-            accountName = "Alex Rivera",
-            myUserId = DemoData.ME,
-            zone = DemoData.ZONE,
-            now = now,
-            realtime = realtime,
-            local = local,
-            titles = EnglishConversationTitles,
-            firstName = "Alex",
-            handled = handled,
-        ),
-    )
+        realtime: RealtimeStatus = TodayDemo.connected,
+        handled: HandledTally? = TodayDemo.morningTally,
+    ): TodayUiState = TodayDemo.state(sources, local, realtime, handled)
 
     private fun capture(name: String, heightDp: Int? = null, content: @Composable () -> Unit) =
         captureScreenshots("today_$name", heightDp = heightDp, content = content)

@@ -36,6 +36,7 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.core.view.WindowCompat
 import com.waivera.waivera.core.designsystem.R
 import com.waivera.waivera.core.designsystem.preview.WaiveraPreviews
@@ -45,6 +46,7 @@ import com.waivera.waivera.core.designsystem.theme.WaiveraSizes
 import com.waivera.waivera.core.designsystem.theme.WaiveraSpacing
 import com.waivera.waivera.core.designsystem.theme.WaiveraTextStyles
 import com.waivera.waivera.core.designsystem.theme.WaiveraTheme
+import com.waivera.waivera.core.designsystem.theme.isShortWindow
 
 /**
  * The top of a tab screen in concept A: the full-bleed plum hero (drawn behind the status bar)
@@ -62,6 +64,7 @@ fun WaiveraHeroSection(
     content: @Composable ColumnScope.() -> Unit,
 ) {
     LightStatusBarIcons()
+    val lip = tabSheetLip()
     WaiveraHeroBackdrop(modifier = modifier.fillMaxWidth(), trail = trail) {
         Column(modifier = Modifier.fillMaxWidth()) {
             Column(
@@ -72,18 +75,25 @@ fun WaiveraHeroSection(
                 topBar()
                 content()
             }
-            Spacer(Modifier.height(WaiveraHero.TabSheetLip))
+            Spacer(Modifier.height(lip))
         }
         // The sheet's first band: its curve rises over the hero's foot.
         Box(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .fillMaxWidth()
-                .height(WaiveraHero.TabSheetLip)
+                .height(lip)
                 .background(WaiveraTheme.colors.background, WaiveraHero.TabSheetShape),
         )
     }
 }
+
+/**
+ * The tab sheet's first band: the concept's 22dp, or 16dp on a short window so the sheet's first
+ * cards come up above the fold (UI10-01). The band's height is also its curve.
+ */
+@Composable
+internal fun tabSheetLip(): Dp = if (isShortWindow()) WaiveraHero.TabSheetLipShort else WaiveraHero.TabSheetLip
 
 /**
  * The hero bar: the mark, the screen title and the signed-in person's avatar on the glass. The

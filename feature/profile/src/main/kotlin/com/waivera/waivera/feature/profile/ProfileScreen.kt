@@ -299,7 +299,8 @@ internal fun IdentityCard(
 @Composable
 private fun DetailsSections(profile: EmployeeProfile?, state: ProfileUiState.Ready, onOpenPerson: (String) -> Unit) {
     val skeleton = rememberDelayedSkeleton(loading = profile == null)
-    ProfileCard(title = stringResource(R.string.feature_profile_personal_title)) {
+    // The first group sits right under the sheet's curve, as Today's first section does (UI10-01).
+    ProfileCard(title = stringResource(R.string.feature_profile_personal_title), first = true) {
         if (profile == null) {
             if (skeleton) SectionSkeleton(lines = 4)
         } else {

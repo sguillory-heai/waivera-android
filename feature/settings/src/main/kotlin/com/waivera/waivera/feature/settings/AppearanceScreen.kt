@@ -52,7 +52,7 @@ internal fun AppearanceContent(
         WaiveraTopBar(title = stringResource(R.string.feature_settings_appearance_title), onBack = onBack)
         if (!state.loaded) return@Column
         Column(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
-            WaiveraSectionHeader(text = stringResource(R.string.feature_settings_theme_section))
+            WaiveraSectionHeader(text = stringResource(R.string.feature_settings_theme_section), first = true)
             SettingsCard(modifier = Modifier.selectableGroup()) {
                 ThemeOption.entries.forEachIndexed { index, option ->
                     if (index > 0) SettingsRowDivider()

@@ -144,6 +144,12 @@ object WaiveraSizes {
     /** A section's gradient count badge. */
     val CountBadgeHeight: Dp = 24.dp
 
+    /**
+     * How far a section header's 48dp link reaches above and below a one-line title row (24dp at
+     * 100%): the room a caller leaves under the header so the card below never takes its taps.
+     */
+    val SectionActionOverhang: Dp = 12.dp
+
     /** The "Your day" track, the inset of its blocks and its now-line. */
     val TimelineTrack: Dp = 30.dp
     val TimelineBlockInset: Dp = 5.dp

@@ -123,7 +123,7 @@ fun WaiveraTopBar(
     heroContent: (@Composable ColumnScope.() -> Unit)? = null,
 ) {
     val hero = WaiveraHero.colors
-    val lip = if (isLargeFontScale()) WaiveraHero.BarSheetLipCompact else WaiveraHero.TabSheetLip
+    val lip = if (isLargeFontScale()) WaiveraHero.BarSheetLipCompact else tabSheetLip()
     LightStatusBarIcons()
     WaiveraHeroBackdrop(modifier = modifier.fillMaxWidth(), trail = WaiveraHeroTrail.Tab) {
         Column(modifier = Modifier.fillMaxWidth()) {
