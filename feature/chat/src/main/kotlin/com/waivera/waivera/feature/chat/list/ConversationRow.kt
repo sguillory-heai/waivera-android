@@ -85,7 +85,7 @@ fun ConversationRow(
             SwipeAction(
                 label = markReadLabel,
                 icon = WaiveraIcons.MarkRead,
-                container = colors.accent,
+                container = colors.accentFill,
                 content = colors.onAccent,
                 onTrigger = onMarkRead,
             )

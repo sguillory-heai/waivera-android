@@ -3,7 +3,11 @@ package com.waivera.waivera.core.designsystem.theme
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.graphics.lerp
+import kotlin.math.abs
+import kotlin.math.cos
+import kotlin.math.hypot
 import kotlin.math.pow
+import kotlin.math.sin
 import kotlin.test.assertTrue
 import org.junit.Test
 
@@ -39,12 +43,43 @@ class WaiveraHeroContrastTest {
         }
     }
 
+    /**
+     * The secondary ink, the card and tile content and the countdown chip, sampled over the hero
+     * as it is drawn: the 165° gradient with each glow fading out along its radius. Composited at
+     * full strength over every gradient point (as the header ink is above), the pink glow would
+     * fail them where it never reaches; sampled where it really is, every point keeps 4.5:1.
+     */
+    @Test
+    fun heroContent_readsWhereTheGlowsReallyAre() = themes.forEach { (name, hero, _) ->
+        heroPoints(hero).forEach { point ->
+            assertAtLeast("$name secondary on hero", hero.onHeaderSecondary.compositeOver(point), point, TEXT_MIN)
+            for ((layerName, layer) in listOf("card" to hero.card, "tile" to hero.tile)) {
+                val fill = layer.compositeOver(point)
+                assertAtLeast("$name ink on $layerName", hero.onHeader, fill, TEXT_MIN)
+                val secondary = hero.onHeaderSecondary.compositeOver(fill)
+                assertAtLeast("$name secondary on $layerName", secondary, fill, TEXT_MIN)
+                assertAtLeast("$name chip on $layerName", hero.onChip, hero.chip.compositeOver(fill), TEXT_MIN)
+                assertAtLeast("$name next glyph on $layerName", hero.nextIcon, fill, UI_MIN)
+            }
+        }
+    }
+
+    /** The ring's track and its gradient arc stand apart from the card they sit on. */
+    @Test
+    fun ringTrack_isVisibleOnTheCard() = themes.forEach { (name, hero, _) ->
+        heroPoints(hero).forEach { point ->
+            val card = hero.card.compositeOver(point)
+            val track = hero.ringTrack.compositeOver(card)
+            assertTrue(contrast(track, card) >= RING_TRACK_MIN, "$name ring track vanishes on the card")
+        }
+    }
+
     @Test
     fun sheet_keepsPageTextAndLinksReadable() = themes.forEach { (name, hero, colors) ->
         assertAtLeast("$name text on sheet", colors.text, hero.sheet, TEXT_MIN)
         assertAtLeast("$name secondary text on sheet", colors.textSecondary, hero.sheet, TEXT_MIN)
-        assertAtLeast("$name link on sheet", colors.accent, hero.sheet, TEXT_MIN)
-        assertAtLeast("$name field edge on sheet", colors.borderStrong, hero.sheet, UI_MIN)
+        assertAtLeast("$name link on sheet", colors.link, hero.sheet, TEXT_MIN)
+        assertAtLeast("$name field edge on sheet", colors.fieldBorder, hero.sheet, UI_MIN)
     }
 
     @Test
@@ -52,6 +87,50 @@ class WaiveraHeroContrastTest {
         assertAtLeast("$name button start on sheet", hero.buttonStart, hero.sheet, UI_MIN)
         assertAtLeast("$name button end on sheet", hero.buttonEnd, hero.sheet, UI_MIN)
     }
+
+    /**
+     * The hero's colour on a grid over a tall Today hero (390 × 424 on the concept's frame): the
+     * gradient along the 165° line, then each glow at its strength, falling off linearly to
+     * nothing at [WaiveraHeroGeometry.GLOW_FADE] of its radius.
+     */
+    private fun heroPoints(hero: WaiveraHeroColors): List<Color> {
+        val radians = Math.toRadians(WaiveraHeroGeometry.HEADER_ANGLE_DEGREES.toDouble())
+        val dx = sin(radians)
+        val dy = -cos(radians)
+        val half = (abs(FRAME_WIDTH * dx) + abs(FRAME_HEIGHT * dy)) / 2
+        val pink = Triple(
+            FRAME_WIDTH - WaiveraHeroGeometry.PINK_END_INSET,
+            WaiveraHeroGeometry.PINK_TOP.toDouble(),
+            hero.glowPink,
+        )
+        val violet = Triple(
+            WaiveraHeroGeometry.VIOLET_START.toDouble(),
+            FRAME_HEIGHT + WaiveraHeroGeometry.VIOLET_BELOW,
+            hero.glowViolet,
+        )
+        val radii = mapOf(pink to WaiveraHeroGeometry.PINK_RADIUS, violet to WaiveraHeroGeometry.VIOLET_RADIUS)
+        return (0..GRID).flatMap { i ->
+            (0..GRID).map { j ->
+                val x = FRAME_WIDTH * i / GRID
+                val y = FRAME_HEIGHT * j / GRID
+                val along = ((x - FRAME_WIDTH / 2) * dx + (y - FRAME_HEIGHT / 2) * dy) / (2 * half) + 0.5
+                var color = srgbLerp(hero.headerTop, hero.headerBottom, along.coerceIn(0.0, 1.0).toFloat())
+                for ((glow, radius) in radii) {
+                    val (gx, gy, tint) = glow
+                    val reach = hypot(x - gx, y - gy) / radius / WaiveraHeroGeometry.GLOW_FADE
+                    val strength = (1 - reach).coerceAtLeast(0.0).toFloat()
+                    color = tint.copy(alpha = tint.alpha * strength).compositeOver(color)
+                }
+                color
+            }
+        }
+    }
+
+    private fun srgbLerp(start: Color, end: Color, t: Float) = Color(
+        red = start.red + (end.red - start.red) * t,
+        green = start.green + (end.green - start.green) * t,
+        blue = start.blue + (end.blue - start.blue) * t,
+    )
 
     private fun samples(start: Color, end: Color): List<Color> = (0..STEPS).map {
         lerp(start, end, it / STEPS.toFloat())
@@ -78,6 +157,10 @@ class WaiveraHeroContrastTest {
         const val TEXT_MIN = 4.5
         const val UI_MIN = 3.0
         const val STEPS = 20
+        const val GRID = 40
+        const val FRAME_WIDTH = 390.0
+        const val FRAME_HEIGHT = 424.0
+        const val RING_TRACK_MIN = 1.2
         const val OFFSET = 0.05
         const val LINEAR_LIMIT = 0.03928f
         const val LINEAR_DIVISOR = 12.92

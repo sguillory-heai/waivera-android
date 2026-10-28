@@ -289,7 +289,7 @@ private fun PersonOption(person: PersonOptionUi, avatar: ImageBitmap?, onToggle:
         Box(
             modifier = Modifier
                 .size(WaiveraSizes.Icon)
-                .background(if (person.selected) colors.accent else colors.surface, WaiveraShapes.Chip)
+                .background(if (person.selected) colors.accentFill else colors.surface, WaiveraShapes.Chip)
                 .border(
                     width = WaiveraSpacing.Hairline * 2,
                     color = if (person.selected) colors.accent else colors.borderStrong,

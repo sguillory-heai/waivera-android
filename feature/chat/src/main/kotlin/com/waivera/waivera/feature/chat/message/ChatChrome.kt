@@ -153,7 +153,7 @@ fun Composer(
                         },
                     ),
                 colors = IconButtonDefaults.filledIconButtonColors(
-                    containerColor = colors.accent,
+                    containerColor = colors.accentFill,
                     contentColor = colors.onAccent,
                     disabledContainerColor = colors.surfaceMuted,
                     disabledContentColor = colors.textSecondary,

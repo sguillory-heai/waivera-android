@@ -64,8 +64,14 @@ object WaiveraIcons {
      */
     @DrawableRes val JumpToToday: Int = R.drawable.core_designsystem_ic_jump_to_today
 
-    /** Read-only or secured. */
+    /** A place: an event's location. */
+    @DrawableRes val Location: Int = R.drawable.core_designsystem_ic_location
+
+    /** Read-only or secured; also the password field's leading glyph. */
     @DrawableRes val Lock: Int = R.drawable.core_designsystem_ic_lock
+
+    /** The email field's leading glyph. */
+    @DrawableRes val Mail: Int = R.drawable.core_designsystem_ic_mail
 
     /** Mark as read (double check). */
     @DrawableRes val MarkRead: Int = R.drawable.core_designsystem_ic_mark_read

@@ -22,6 +22,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.semantics.clearAndSetSemantics
@@ -29,6 +30,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.style.TextAlign
 import com.waivera.waivera.core.designsystem.preview.WaiveraPreviews
+import com.waivera.waivera.core.designsystem.theme.WaiveraElevation
 import com.waivera.waivera.core.designsystem.theme.WaiveraHero
 import com.waivera.waivera.core.designsystem.theme.WaiveraShapes
 import com.waivera.waivera.core.designsystem.theme.WaiveraSizes
@@ -36,10 +38,15 @@ import com.waivera.waivera.core.designsystem.theme.WaiveraSpacing
 import com.waivera.waivera.core.designsystem.theme.WaiveraTheme
 import com.waivera.waivera.core.designsystem.theme.isLargeFontScale
 
+/** How big a [WaiveraGradientButton] is: the screen's one CTA, or an inline action on a card. */
+enum class WaiveraGradientButtonSize { Large, Compact }
+
 /**
- * The hero's primary action: full width, filled with the hero button gradient (violet to
- * magenta with white text in light, lilac to pink with dark ink in dark). One per screen, for
- * the moment the screen exists for (Sign in).
+ * The primary action of concept A: white text on the saturated violet-to-magenta gradient
+ * (`#6A3DC4→#B4307D` light, `#7A3BE0→#B8338A` dark) with a soft coloured glow under it.
+ * [WaiveraGradientButtonSize.Large] is 56dp and full width, the moment the screen exists for
+ * (Sign in); [WaiveraGradientButtonSize.Compact] is 48dp and wraps its label, for an inline
+ * action such as Accept on an invitation card.
  *
  * It behaves like a primary [WaiveraButton]: a disabled button keeps a readable label on the
  * muted fill with a hairline border, and a non-null [loadingText] keeps the size, shows a small
@@ -52,18 +59,28 @@ fun WaiveraGradientButton(
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
     loadingText: String? = null,
+    size: WaiveraGradientButtonSize = WaiveraGradientButtonSize.Large,
 ) {
     val colors = WaiveraTheme.colors
     val hero = WaiveraHero.colors
     val interactionSource = remember { MutableInteractionSource() }
     val scale by animatePressScale(interactionSource)
     val loading = loadingText != null
+    val large = size == WaiveraGradientButtonSize.Large
+    val shape = if (large) WaiveraShapes.Cta else WaiveraShapes.Button
     val fill = if (enabled) {
-        Modifier.background(brush = hero.buttonBrush, shape = WaiveraShapes.Button)
+        Modifier
+            .shadow(
+                elevation = if (large) WaiveraElevation.CtaGlow else WaiveraElevation.Level2,
+                shape = shape,
+                ambientColor = hero.buttonGlow,
+                spotColor = hero.buttonGlow,
+            )
+            .background(brush = hero.buttonBrush, shape = shape)
     } else {
         Modifier
-            .background(color = colors.surfaceMuted, shape = WaiveraShapes.Button)
-            .border(border = BorderStroke(WaiveraSpacing.Hairline, colors.border), shape = WaiveraShapes.Button)
+            .background(color = colors.surfaceMuted, shape = shape)
+            .border(border = BorderStroke(WaiveraSpacing.Hairline, colors.border), shape = shape)
     }
     val content = if (enabled) hero.onButton else colors.textSecondary
     Button(
@@ -73,12 +90,12 @@ fun WaiveraGradientButton(
                 scaleX = scale
                 scaleY = scale
             }
-            .fillMaxWidth()
-            .heightIn(min = WaiveraSizes.ButtonMinHeight)
+            .then(if (large) Modifier.fillMaxWidth() else Modifier)
+            .heightIn(min = if (large) WaiveraSizes.CtaHeight else WaiveraSizes.ButtonMinHeight)
             .then(fill)
             .semantics { if (loadingText != null) stateDescription = loadingText },
         enabled = enabled,
-        shape = WaiveraShapes.Button,
+        shape = shape,
         colors = ButtonDefaults.buttonColors(
             containerColor = Color.Transparent,
             contentColor = content,
@@ -128,6 +145,7 @@ private fun WaiveraGradientButtonPreview() {
             WaiveraGradientButton(text = "Sign in", onClick = {})
             WaiveraGradientButton(text = "Sign in", onClick = {}, loadingText = "Signing you in…")
             WaiveraGradientButton(text = "Sign in", onClick = {}, enabled = false)
+            WaiveraGradientButton(text = "Accept", onClick = {}, size = WaiveraGradientButtonSize.Compact)
         }
     }
 }

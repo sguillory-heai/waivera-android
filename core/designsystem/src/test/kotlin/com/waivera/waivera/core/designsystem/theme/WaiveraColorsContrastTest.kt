@@ -20,6 +20,7 @@ class WaiveraColorsContrastTest {
             text("text on $surfaceName", colors.text, surface)
             text("textSecondary on $surfaceName", colors.textSecondary, surface)
             text("accent on $surfaceName", colors.accent, surface)
+            text("link on $surfaceName", colors.link, surface)
             text("dangerText on $surfaceName", colors.dangerText, surface)
             text("successText on $surfaceName", colors.successText, surface)
             text("warningText on $surfaceName", colors.warningText, surface)
@@ -29,7 +30,8 @@ class WaiveraColorsContrastTest {
     @Test
     fun text_onFillsAndContainers() = forEachTheme { colors ->
         text("onAccent on accentFill (primary button)", colors.onAccent, colors.accentFill)
-        text("onAccent on accent (badges)", colors.onAccent, colors.accent)
+        // White counts sit on the saturated unread fill; the pastel dark accent never carries white.
+        text("onAccent on unread (badges)", colors.onAccent, colors.unread)
         text("onAccentSoft on accentSoft", colors.onAccentSoft, colors.accentSoft)
         text("text on secondaryContainer", colors.text, colors.secondaryContainer)
         text("onAccentSoft on segmentSelected (chosen segment)", colors.onAccentSoft, colors.segmentSelected)
@@ -157,6 +159,24 @@ class WaiveraColorsContrastTest {
         }
         ui("accentFill on background (primary button edge)", colors.accentFill, colors.background)
         ui("accent on accentSoft (selected outline)", colors.accent, colors.accentSoft)
+    }
+
+    /**
+     * Concept A's field: the soft fill at rest and the raised step on focus keep body text and
+     * the placeholder readable, and the tinted resting edge keeps 3:1 against the fill and every
+     * sheet it sits on (the concept's hairline was about 1.3:1).
+     */
+    @Test
+    fun textField_fillAndEdge() = forEachTheme { colors ->
+        for ((name, fill) in listOf("field" to colors.field, "raised" to colors.raised)) {
+            text("text on $name", colors.text, fill)
+            text("placeholder on $name", colors.textSecondary, fill)
+            text("dangerText on $name", colors.dangerText, fill)
+        }
+        for ((name, backdrop) in pageSurfaces(colors) + ("field" to colors.field)) {
+            ui("fieldBorder on $name", colors.fieldBorder, backdrop)
+        }
+        ui("accent (focused edge) on raised", colors.accent, colors.raised)
     }
 
     @Test

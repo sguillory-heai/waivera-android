@@ -48,7 +48,7 @@ import com.waivera.waivera.feature.today.model.Greeting
 internal fun TodayGreeting(greeting: Greeting, modifier: Modifier = Modifier) {
     Text(
         text = greetingText(greeting),
-        style = WaiveraTextStyles.Greeting,
+        style = WaiveraTextStyles.HeroGreeting,
         color = WaiveraTheme.colors.text,
         modifier = modifier
             .fillMaxWidth()

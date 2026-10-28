@@ -10,6 +10,12 @@ object WaiveraElevation {
     val Level2: Dp = 3.dp
     val Level3: Dp = 6.dp
 
+    /** A content card on a tab screen's sheet: a soft lift, as in the concept. */
+    val Card: Dp = 2.dp
+
+    /** The coloured glow under the primary gradient CTA. */
+    val CtaGlow: Dp = 12.dp
+
     /** Sheets and floating banners. */
     val Overlay: Dp = 8.dp
 }

@@ -56,18 +56,21 @@ object WaiveraTheme {
 
 private fun WaiveraColors.toMaterialColorScheme(): ColorScheme {
     val base = if (isDark) darkColorScheme() else lightColorScheme()
+    // Material pairs onPrimary with primary (the pastel accent in dark). Waivera's own filled
+    // controls use accentFill with white; this keeps any stock Material fill legible too.
+    val onPrimary = if (isDark) WaiveraPalette.InkOnPastelDark else onAccent
     return base.copy(
         primary = accent,
-        onPrimary = onAccent,
+        onPrimary = onPrimary,
         primaryContainer = accentSoft,
         onPrimaryContainer = onAccentSoft,
         inversePrimary = inverseAccent,
         secondary = accent,
-        onSecondary = onAccent,
+        onSecondary = onPrimary,
         secondaryContainer = accentSoft,
         onSecondaryContainer = onAccentSoft,
         tertiary = accent,
-        onTertiary = onAccent,
+        onTertiary = onPrimary,
         background = background,
         onBackground = text,
         surface = surface,

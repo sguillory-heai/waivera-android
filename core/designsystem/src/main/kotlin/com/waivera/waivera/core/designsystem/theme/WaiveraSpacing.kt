@@ -111,6 +111,41 @@ object WaiveraSizes {
     val TopBarMinHeight: Dp = 64.dp
     val ListRowMinHeight: Dp = 56.dp
     val ButtonMinHeight: Dp = 48.dp
+
+    /** The primary gradient CTA and a text field (concept A). */
+    val CtaHeight: Dp = 56.dp
+    val FieldHeight: Dp = 56.dp
+
+    /** The focus halo around a text field, outside its border. */
+    val FieldHalo: Dp = 4.dp
+    val FieldBorder: Dp = 1.5.dp
+
+    /** The hero's progress ring and its stroke. */
+    val Ring: Dp = 96.dp
+    val RingStroke: Dp = 10.dp
+
+    /** The all-caught-up ring, its stroke, its halo's reach beyond it and its check. */
+    val RewardRing: Dp = 132.dp
+    val RewardRingStroke: Dp = 12.dp
+    val RewardHalo: Dp = 26.dp
+    val RewardCheck: Dp = 52.dp
+
+    /** A content card's leading tile and the glyph in it. */
+    val CardTile: Dp = 44.dp
+    val CardTileGlyph: Dp = 22.dp
+
+    /** A section's gradient count badge. */
+    val CountBadgeHeight: Dp = 24.dp
+
+    /** The "Your day" track, the inset of its blocks and its now-line. */
+    val TimelineTrack: Dp = 30.dp
+    val TimelineBlockInset: Dp = 5.dp
+    val TimelineNowLine: Dp = 2.dp
+    val TimelineNowDot: Dp = 8.dp
+    val TimelineTick: Dp = 1.dp
+
+    /** The mention quote's rule on a Needs you card. */
+    val QuoteRule: Dp = 2.dp
     val SegmentMinHeight: Dp = 48.dp
     val SkeletonLine: Dp = 14.dp
     val SheetMaxWidth: Dp = 640.dp

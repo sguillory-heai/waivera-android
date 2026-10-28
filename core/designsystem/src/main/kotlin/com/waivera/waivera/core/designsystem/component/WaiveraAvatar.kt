@@ -12,6 +12,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.Immutable
+import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -34,6 +36,7 @@ import com.waivera.waivera.core.designsystem.R
 import com.waivera.waivera.core.designsystem.icon.WaiveraIcons
 import com.waivera.waivera.core.designsystem.preview.WaiveraPreviews
 import com.waivera.waivera.core.designsystem.theme.WaiveraColors
+import com.waivera.waivera.core.designsystem.theme.WaiveraHero
 import com.waivera.waivera.core.designsystem.theme.WaiveraShapes
 import com.waivera.waivera.core.designsystem.theme.WaiveraSizes
 import com.waivera.waivera.core.designsystem.theme.WaiveraSpacing
@@ -57,6 +60,7 @@ enum class MilestoneKind { Birthday, WorkAnniversary, NewHire, Multiple }
  *   shows until it loads and stays when there is no picture.
  * @param milestone announced only; it draws nothing on the avatar.
  * @param contentDescription null when the avatar sits next to the person's name and is decorative.
+ * @param colors the fallback's fill and initials ink; the hero bar passes its glass and white.
  */
 // Image, initials fallback and presence dot are layered in one Box.
 @Suppress("LongMethod")
@@ -70,8 +74,8 @@ fun WaiveraAvatar(
     presence: PresenceStatus? = null,
     milestone: MilestoneKind? = null,
     contentDescription: String? = name,
+    colors: WaiveraAvatarColors = WaiveraAvatarColors.default(),
 ) {
-    val colors = WaiveraTheme.colors
     val shape = WaiveraShapes.avatar(size)
     val initials = remember(name) { initialsFor(name) }
     val presenceLabel = presence?.let { stringResource(it.labelRes()) }
@@ -87,7 +91,7 @@ fun WaiveraAvatar(
             modifier = Modifier
                 .size(size)
                 .clip(shape)
-                .background(colors.avatarFill),
+                .background(colors.fill),
             contentAlignment = Alignment.Center,
         ) {
             // Reset per model so a recycled row never shows the previous person's picture.
@@ -106,7 +110,7 @@ fun WaiveraAvatar(
                     // Line height pinned with the size so 200% font cannot push the initials off centre.
                     Text(
                         text = initials,
-                        color = colors.onAccentSoft,
+                        color = colors.content,
                         fontSize = fontSize,
                         lineHeight = fontSize,
                         fontWeight = FontWeight.Bold,
@@ -117,7 +121,7 @@ fun WaiveraAvatar(
                 else -> Icon(
                     painter = painterResource(WaiveraIcons.Person),
                     contentDescription = null,
-                    tint = colors.onAccentSoft,
+                    tint = colors.content,
                     modifier = Modifier.size(size * FALLBACK_ICON_RATIO),
                 )
             }
@@ -141,6 +145,24 @@ fun WaiveraAvatar(
                     .offset(x = -inward, y = -inward),
             )
         }
+    }
+}
+
+/** The fallback avatar's fill and its initials or person glyph. */
+@Immutable
+data class WaiveraAvatarColors(val fill: Color, val content: Color) {
+    companion object {
+        /** The page avatar: [WaiveraColors.avatarFill] with the soft accent ink. */
+        @Composable
+        @ReadOnlyComposable
+        fun default(): WaiveraAvatarColors =
+            WaiveraTheme.colors.let { WaiveraAvatarColors(fill = it.avatarFill, content = it.onAccentSoft) }
+
+        /** On the plum hero: the hero's glass with white initials. */
+        @Composable
+        @ReadOnlyComposable
+        fun onHero(): WaiveraAvatarColors =
+            WaiveraHero.colors.let { WaiveraAvatarColors(fill = it.accountFill, content = it.onHeader) }
     }
 }
 

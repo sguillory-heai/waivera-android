@@ -12,6 +12,8 @@ dependencies {
     api(libs.androidx.compose.foundation)
     api(libs.androidx.compose.material3)
     api(libs.androidx.compose.ui)
+    // WindowCompat: light status bar icons while a plum hero is on screen.
+    implementation(libs.androidx.core.ktx)
     implementation(libs.coil.compose)
     implementation(libs.kotlinx.coroutines.core)
 

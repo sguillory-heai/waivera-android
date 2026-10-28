@@ -16,7 +16,27 @@ object WaiveraShapes {
     val Tile: Shape = RoundedCornerShape(14.dp)
     val Button: Shape = RoundedCornerShape(12.dp)
     val Card: Shape = RoundedCornerShape(12.dp)
-    val Field: Shape = RoundedCornerShape(12.dp)
+
+    /** Text fields and the primary gradient CTA (concept A). */
+    val Field: Shape = RoundedCornerShape(16.dp)
+    val Cta: Shape = RoundedCornerShape(16.dp)
+
+    /** A content card on a tab screen's sheet (Needs you, Up next, Celebrations, Activity). */
+    val SheetCard: Shape = RoundedCornerShape(20.dp)
+
+    /** A stat tile on the hero. */
+    val StatTile: Shape = RoundedCornerShape(16.dp)
+
+    /** The glass summary card on the hero. */
+    val HeroCard: Shape = RoundedCornerShape(24.dp)
+
+    /** The "Your day" timeline: its panel, its track and one event block on it. */
+    val TimelinePanel: Shape = RoundedCornerShape(18.dp)
+    val TimelineTrack: Shape = RoundedCornerShape(10.dp)
+    val TimelineBlock: Shape = RoundedCornerShape(6.dp)
+
+    /** A section's gradient count ("Needs you 4"). */
+    val CountBadge: Shape = RoundedCornerShape(8.dp)
     val ListCard: Shape = RoundedCornerShape(14.dp)
     val Banner: Shape = RoundedCornerShape(14.dp)
     val Composer: Shape = RoundedCornerShape(18.dp)
