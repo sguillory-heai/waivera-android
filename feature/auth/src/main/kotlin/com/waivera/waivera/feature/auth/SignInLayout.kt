@@ -55,6 +55,7 @@ import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.coerceAtLeast
+import androidx.compose.ui.unit.coerceIn
 import com.waivera.waivera.core.designsystem.component.WaiveraHeroHeader
 import com.waivera.waivera.core.designsystem.component.WaiveraHeroLogo
 import com.waivera.waivera.core.designsystem.component.WaiveraPressable
@@ -156,7 +157,7 @@ internal fun SignInFrame(
     ) {
         val compact = imeVisible || isLargeFontScale() || maxHeight < WaiveraSizes.CompactWindowHeight
         val headerHeight by animateDpAsState(
-            targetValue = if (compact) WaiveraHero.HeaderHeightCompact else WaiveraHero.HeaderHeight,
+            targetValue = if (compact) WaiveraHero.HeaderHeightCompact else regularHeaderHeight(maxHeight),
             animationSpec = motion.layout(),
             label = "signInHeader",
         )
@@ -168,7 +169,8 @@ internal fun SignInFrame(
         ) {
             Box {
                 SignInHeader(
-                    height = topInset + headerHeight,
+                    topInset = topInset,
+                    height = headerHeight,
                     compact = compact,
                     logoAlpha = { entrance.logo },
                 )
@@ -185,10 +187,23 @@ internal fun SignInFrame(
     }
 }
 
+/**
+ * The regular header's height in a window [windowHeight] tall: the concept's share of the
+ * window, from [WaiveraHero.HeaderHeight] (up to a 720dp window) to [WaiveraHero.HeaderHeightMax]
+ * (from about 945dp): about 330dp on a 915dp phone.
+ */
+internal fun regularHeaderHeight(windowHeight: Dp): Dp =
+    (windowHeight * WaiveraHero.HEADER_WINDOW_SHARE).coerceIn(WaiveraHero.HeaderHeight, WaiveraHero.HeaderHeightMax)
+
+/**
+ * The header [height] tall below the [topInset]. The regular lockup's middle sits at
+ * [WaiveraHero.LOCKUP_CENTER_SHARE] of the header; the compact one is centred.
+ */
 @Composable
-private fun SignInHeader(height: Dp, compact: Boolean, logoAlpha: () -> Float) {
+private fun SignInHeader(topInset: Dp, height: Dp, compact: Boolean, logoAlpha: () -> Float) {
+    val lockup = if (compact) WaiveraHero.LockupCompact else WaiveraHero.Lockup
     // Drawn under the sheet's curve too, so the corners show plum, not the page.
-    WaiveraHeroHeader(modifier = Modifier.height(height + WaiveraHero.SheetOverlap)) {
+    WaiveraHeroHeader(modifier = Modifier.height(topInset + height + WaiveraHero.SheetOverlap)) {
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -196,12 +211,20 @@ private fun SignInHeader(height: Dp, compact: Boolean, logoAlpha: () -> Float) {
                     WindowInsets.safeDrawing.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal),
                 )
                 .padding(bottom = WaiveraHero.SheetOverlap),
-            contentAlignment = Alignment.Center,
+            contentAlignment = if (compact) Alignment.Center else Alignment.TopCenter,
         ) {
             WaiveraHeroLogo(
-                height = if (compact) WaiveraHero.LockupCompact else WaiveraHero.Lockup,
+                height = lockup,
                 contentDescription = stringResource(R.string.feature_auth_brand),
-                modifier = Modifier.graphicsLayer { alpha = logoAlpha() },
+                modifier = Modifier
+                    .then(
+                        if (compact) {
+                            Modifier
+                        } else {
+                            Modifier.padding(top = height * WaiveraHero.LOCKUP_CENTER_SHARE - lockup / 2)
+                        },
+                    )
+                    .graphicsLayer { alpha = logoAlpha() },
             )
         }
     }

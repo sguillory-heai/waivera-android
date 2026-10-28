@@ -203,14 +203,25 @@ object WaiveraHero {
     /** Sign-in header below the status bar on a regular phone: the concept's 300 minus the bar. */
     val HeaderHeight: Dp = 260.dp
 
+    /**
+     * The tallest sign-in header: on a tall phone the header takes [HEADER_WINDOW_SHARE] of the
+     * window between [HeaderHeight] and this, as the concept's does, so the form sits lower and
+     * the sheet holds no void above the legal line (UI10-07).
+     */
+    val HeaderHeightMax: Dp = 340.dp
+    const val HEADER_WINDOW_SHARE: Float = 0.36f
+
     /** Header on a short window, at large font or with the keyboard up. */
     val HeaderHeightCompact: Dp = 116.dp
 
     /** The gates' compact header: the lockup with room for the trails. */
     val GateHeaderHeight: Dp = 120.dp
 
-    /** Where the sign-in lockup sits below the status bar (132 in the concept, less its 40 bar). */
-    val LockupTop: Dp = 92.dp
+    /**
+     * Where the middle of the sign-in lockup sits, as a share of the header's height below the
+     * status bar: a little above the middle, as in the concept.
+     */
+    const val LOCKUP_CENTER_SHARE: Float = 0.42f
 
     /** The logo lockup in the header. */
     val Lockup: Dp = 42.dp
