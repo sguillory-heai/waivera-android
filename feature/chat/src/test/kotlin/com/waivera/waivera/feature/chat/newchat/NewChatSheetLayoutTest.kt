@@ -19,12 +19,14 @@ import com.waivera.waivera.core.designsystem.theme.WaiveraMotionScheme
 import com.waivera.waivera.core.designsystem.theme.WaiveraTheme
 import com.waivera.waivera.core.network.error.WaiveraError
 import com.waivera.waivera.core.screenshottesting.ScreenshotSdk
+import com.waivera.waivera.feature.chat.R
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import org.robolectric.RuntimeEnvironment
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
@@ -37,6 +39,9 @@ import org.robolectric.annotation.GraphicsMode
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 @Config(sdk = [ScreenshotSdk.VALUE], qualifiers = "w360dp-h640dp-notnight-xhdpi")
 class NewChatSheetLayoutTest {
+    private val emptyMessage get() = RuntimeEnvironment.getApplication().getString(R.string.feature_chat_newchat_empty)
+    private val subtitle get() = RuntimeEnvironment.getApplication().getString(R.string.feature_chat_newchat_subtitle)
+
     @get:Rule
     val compose = createComposeRule()
 
@@ -79,7 +84,7 @@ class NewChatSheetLayoutTest {
     @Test
     fun atLargeFontTheSubtitleMakesRoomForThePeopleList() {
         render(NewChatUiState(isLoading = false, people = listOf(PersonOptionUi("usr_mei_chen", "Mei Chen", false))))
-        compose.onNodeWithText(SUBTITLE).assertDoesNotExist()
+        compose.onNodeWithText(subtitle).assertDoesNotExist()
         compose.onNodeWithText("Mei Chen", useUnmergedTree = true).assertIsDisplayed()
     }
 
@@ -93,11 +98,11 @@ class NewChatSheetLayoutTest {
     @Test
     fun emptyStateShowsItsWholeMessage() {
         render(NewChatUiState(query = "zz", isLoading = false))
-        val message = compose.onNodeWithText(EMPTY_MESSAGE, useUnmergedTree = true)
+        val message = compose.onNodeWithText(emptyMessage, useUnmergedTree = true)
             .performScrollTo()
             .assertIsDisplayed()
         val layout = message.fetchTextLayoutResult()
-        assertFalse("\"$EMPTY_MESSAGE\" is cut", layout.didOverflowHeight)
+        assertFalse("\"$emptyMessage\" is cut", layout.didOverflowHeight)
     }
 
     private fun SemanticsNodeInteraction.fetchTextLayoutResult(): TextLayoutResult {
@@ -109,9 +114,7 @@ class NewChatSheetLayoutTest {
     private companion object {
         const val LARGE_FONT = 2f
         const val TRY_AGAIN = "Try again"
-        const val EMPTY_MESSAGE = "No staff members match."
         const val OFFLINE_MESSAGE = "You appear to be offline. Check your connection and try again."
-        const val SUBTITLE = "Select one person for a direct message or several for a group."
         const val BOUNDS_TOLERANCE = 0.5f
     }
 }

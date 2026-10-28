@@ -2,6 +2,7 @@ package com.waivera.waivera.navtour
 
 import com.waivera.waivera.core.data.model.ThemePreference
 import com.waivera.waivera.core.demo.DemoData
+import com.waivera.waivera.feature.auth.R as AuthR
 import com.waivera.waivera.navigation.AppGate
 import com.waivera.waivera.navigation.AppearanceRoute
 import com.waivera.waivera.navigation.BookmarksRoute
@@ -158,7 +159,7 @@ class Path07AccountTest : NavTourHarness() {
         expectScreen("Sign out of Waivera?")
         click("Sign out", last = true)
         expectGate(AppGate.SignIn())
-        expectScreen("Welcome back.")
+        expectScreen(stringOf(AuthR.string.feature_auth_sign_in_title))
         expectScreen("You're signed out")
         // Signing out discards every back stack (app-shell.md "Auth gate").
         assertEquals(NavState(), nav)

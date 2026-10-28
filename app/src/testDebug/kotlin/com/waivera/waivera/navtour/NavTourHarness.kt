@@ -8,6 +8,7 @@ import android.net.Uri
 import android.os.Looper
 import android.provider.Settings
 import androidx.activity.BackEventCompat
+import androidx.annotation.StringRes
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsProperties
@@ -104,6 +105,9 @@ abstract class NavTourHarness {
     private val originalLocale: Locale = Locale.getDefault()
 
     protected val app: Application get() = ApplicationProvider.getApplicationContext()
+
+    /** Copy from the string resources, so selectors follow copy changes instead of pinning old words. */
+    protected fun stringOf(@StringRes id: Int, vararg args: Any): String = app.getString(id, *args)
 
     protected val world: TourWorld by lazy { EntryPointAccessors.fromApplication(app, TourWorld::class.java) }
 
@@ -287,7 +291,7 @@ abstract class NavTourHarness {
             hasContentDescription(value, substring = substring) or
             hasStateDescription(value, substring)
 
-    // A busy button ("Connecting to Waivera…") carries its visible progress label as its state description.
+    // A busy button ("Signing you in…") carries its visible progress label as its state description.
     private fun hasStateDescription(value: String, substring: Boolean): SemanticsMatcher =
         SemanticsMatcher("stateDescription ${if (substring) "contains" else "is"} '$value'") { node ->
             val state = node.config.getOrNull(SemanticsProperties.StateDescription) ?: return@SemanticsMatcher false

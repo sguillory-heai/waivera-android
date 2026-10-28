@@ -3,6 +3,7 @@ package com.waivera.waivera.navtour
 import com.waivera.waivera.core.data.model.SessionState
 import com.waivera.waivera.core.demo.DemoData
 import com.waivera.waivera.core.network.error.WaiveraError
+import com.waivera.waivera.feature.auth.R as AuthR
 import com.waivera.waivera.navigation.AppGate
 import com.waivera.waivera.navigation.TodayRoute
 import dagger.hilt.android.testing.HiltAndroidTest
@@ -22,7 +23,7 @@ class Path02GatesTest : NavTourHarness() {
         launch()
 
         expectGate(AppGate.PasswordChange)
-        expectScreen("Set a new password")
+        expectScreen(stringOf(AuthR.string.feature_auth_password_change_required_title))
         shot("path_02_password_01_required")
         shotDark("path_02_password_01_required")
 
@@ -61,7 +62,7 @@ class Path02GatesTest : NavTourHarness() {
 
         click("Sign out")
         expectGate(AppGate.SignIn())
-        expectScreen("Welcome back.")
+        expectScreen(stringOf(AuthR.string.feature_auth_sign_in_title))
         shot("path_02_password_04_signed_out")
     }
 
@@ -104,10 +105,10 @@ class Path02GatesTest : NavTourHarness() {
         launch()
 
         expectGate(AppGate.OnboardingRequired)
-        expectScreen("Finish setting up your account")
+        expectScreen(stringOf(AuthR.string.feature_auth_onboarding_title))
         shot("path_02_onboarding_01_required")
 
-        click("I've finished, check again")
+        click(stringOf(AuthR.string.feature_auth_onboarding_check))
         expectGate(AppGate.Main)
         expectStack(TodayRoute)
         shot("path_02_onboarding_02_today")
@@ -120,7 +121,7 @@ class Path02GatesTest : NavTourHarness() {
         launch()
 
         expectGate(AppGate.SignIn(configurationMissing = true))
-        expectScreen("This build isn't set up yet")
+        expectScreen(stringOf(AuthR.string.feature_auth_configuration_title))
         shot("path_02_configuration_01_missing")
         assertBackLeavesApp()
     }

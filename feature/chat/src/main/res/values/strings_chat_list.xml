@@ -16,14 +16,14 @@
     <string name="feature_chat_list_filter_unread">Unread</string>
     <string name="feature_chat_list_filter_channels">Channels</string>
 
-    <string name="feature_chat_list_empty_search_title">No matches</string>
-    <string name="feature_chat_list_empty_search">No conversations match your search.</string>
-    <string name="feature_chat_list_empty_unread_title">All caught up</string>
-    <string name="feature_chat_list_empty_unread">New messages will show up here.</string>
-    <string name="feature_chat_list_empty_channels_title">No channels</string>
+    <string name="feature_chat_list_empty_search_title">No chats found</string>
+    <string name="feature_chat_list_empty_search">Try a different name or word.</string>
+    <string name="feature_chat_list_empty_unread_title">All caught up 🎉</string>
+    <string name="feature_chat_list_empty_unread">Nice work. New messages will land here.</string>
+    <string name="feature_chat_list_empty_channels_title">No channels yet</string>
     <string name="feature_chat_list_empty_channels">Channels your team adds will show up here.</string>
-    <string name="feature_chat_list_empty_title">No conversations yet</string>
-    <string name="feature_chat_list_empty">Start a chat with a coworker or join a channel.</string>
+    <string name="feature_chat_list_empty_title">No chats yet</string>
+    <string name="feature_chat_list_empty">Say hello to a coworker. Your chats will live here.</string>
     <string name="feature_chat_list_empty_action">Start a chat</string>
     <string name="feature_chat_list_error_title">Conversations didn\'t load</string>
     <string name="feature_chat_list_retry">Retry</string>
@@ -45,8 +45,8 @@
     <string name="feature_chat_list_call_join">Call in progress · Join</string>
     <string name="feature_chat_list_call_join_action">Join call</string>
     <string name="feature_chat_list_call_opening">Opening call</string>
-    <string name="feature_chat_list_call_failed">Unable to open the video call. Try again.</string>
-    <string name="feature_chat_list_call_no_browser">The web calling experience could not be opened.</string>
+    <string name="feature_chat_list_call_failed">Couldn\'t open the video call. Try again.</string>
+    <string name="feature_chat_list_call_no_browser">Couldn\'t open the call. Check that a web browser is installed and turned on.</string>
 
     <string name="feature_chat_list_time_now">Now</string>
     <string name="feature_chat_list_time_minutes">%1$dm</string>
@@ -63,26 +63,29 @@
     <string name="feature_chat_list_actions">More actions for %1$s</string>
     <string name="feature_chat_list_action_mark_read">Mark as read</string>
     <string name="feature_chat_list_action_profile">View profile</string>
-    <string name="feature_chat_list_mark_read_failed">Could not mark this conversation as read.</string>
+    <string name="feature_chat_list_mark_read_failed">Couldn\'t mark this chat as read.</string>
 
     <string name="feature_chat_newchat_title">New chat</string>
-    <string name="feature_chat_newchat_subtitle">Select one person for a direct message or several for a group.</string>
-    <string name="feature_chat_newchat_search_label">Search staff</string>
-    <string name="feature_chat_newchat_search_placeholder">Type a name</string>
+    <string name="feature_chat_newchat_subtitle">Pick one person to message, or a few to start a group.</string>
+    <string name="feature_chat_newchat_search_label">Search people</string>
+    <string name="feature_chat_newchat_search_placeholder">Search by name</string>
     <string name="feature_chat_newchat_load_error_title">Coworkers didn\'t load</string>
     <string name="feature_chat_newchat_create_conflict">That chat couldn\'t be started just now. Try again in a moment.</string>
     <string name="feature_chat_newchat_opening">Opening chat…</string>
-    <string name="feature_chat_newchat_creating">Creating group…</string>
+    <string name="feature_chat_newchat_creating">Starting your group…</string>
     <plurals name="feature_chat_newchat_selected">
         <item quantity="one">%d selected</item>
         <item quantity="other">%d selected</item>
     </plurals>
     <string name="feature_chat_newchat_empty_title">No one found</string>
-    <string name="feature_chat_newchat_empty">No staff members match.</string>
+    <string name="feature_chat_newchat_empty">Check the spelling or try another name.</string>
     <string name="feature_chat_newchat_loading">Loading staff</string>
     <string name="feature_chat_newchat_open">Open chat</string>
-    <string name="feature_chat_newchat_create_group">Create group chat</string>
+    <string name="feature_chat_newchat_create_group">Start group chat</string>
     <string name="feature_chat_newchat_close">Close</string>
     <string name="feature_chat_newchat_selected_state">Selected</string>
     <string name="feature_chat_newchat_not_selected_state">Not selected</string>
+
+    <!-- Search field hint; the label above stays the accessible name -->
+    <string name="feature_chat_list_search_placeholder">Search by name or message</string>
 </resources>

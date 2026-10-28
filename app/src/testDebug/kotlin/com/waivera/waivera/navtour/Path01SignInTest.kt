@@ -1,6 +1,7 @@
 package com.waivera.waivera.navtour
 
 import com.waivera.waivera.core.data.model.SessionState
+import com.waivera.waivera.feature.auth.R as AuthR
 import com.waivera.waivera.navigation.AppGate
 import com.waivera.waivera.navigation.TodayRoute
 import dagger.hilt.android.testing.HiltAndroidTest
@@ -21,7 +22,7 @@ class Path01SignInTest : NavTourHarness() {
         launch()
 
         expectGate(AppGate.SignIn())
-        expectScreen("Welcome back.")
+        expectScreen(stringOf(AuthR.string.feature_auth_sign_in_title))
         shot("path_01_signin_01_empty")
         shotDark("path_01_signin_01_empty")
 
@@ -34,7 +35,7 @@ class Path01SignInTest : NavTourHarness() {
         typeInto("Email", "alex.rivera")
         typeInto("Password", "demo")
         click("Sign in")
-        expectScreen("Enter an email address like name@organization.com.")
+        expectScreen(stringOf(AuthR.string.feature_auth_error_email_invalid))
         shot("path_01_signin_03_invalid_email")
 
         typeInto("Email", "alex.rivera@example.com")
@@ -48,7 +49,7 @@ class Path01SignInTest : NavTourHarness() {
         typeInto("Password", "demo")
         click("Sign in")
         // The bootstrap runs through Initializing; the sign-in screen stays and its button says so.
-        expectScreen("Connecting to Waivera…")
+        expectScreen(stringOf(AuthR.string.feature_auth_connecting))
         expectGate(AppGate.SignIn())
         shot("path_01_signin_05_connecting")
 

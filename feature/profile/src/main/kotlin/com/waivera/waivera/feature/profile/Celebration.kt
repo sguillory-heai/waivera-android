@@ -34,7 +34,7 @@ internal data class Celebration(val birthday: Boolean, val anniversaryYears: Int
     }
 }
 
-/** The sentence shown beside a large avatar: "It's Priya's birthday today!". */
+/** The sentence shown beside a large avatar: "Happy birthday, Priya! 🎂". */
 @Composable
 internal fun Celebration.fullLabel(name: String): String {
     val who = name.ifBlank { stringResource(R.string.feature_profile_celebration_someone) }
