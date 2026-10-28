@@ -6,6 +6,7 @@ import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.toPixelMap
 import androidx.compose.ui.test.captureToImage
 import androidx.compose.ui.test.click
+import androidx.compose.ui.test.getBoundsInRoot
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
@@ -33,6 +34,10 @@ import org.robolectric.annotation.GraphicsMode
  * What [PredictiveBackScreenshotTest]'s standard capture has to show halfway through the swipe
  * (UI5-02): the leaving Detail screen shrunk to a card inset from the screen's edges, on top of
  * the revealed List, which sits a little to the left and is dimmed around the card.
+ *
+ * The card is measured with bounds in root, which include the scale and slide AnimatedContent
+ * applies on a parent layer; unclipped bounds report the untransformed 360dp layout. The List's
+ * start lies off screen, so only its unclipped bounds can show it.
  */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
@@ -61,8 +66,8 @@ class PredictiveBackPreviewTest {
 
     @Test
     fun theLeavingScreenIsAShrunkenCardInsetFromTheEdges() {
-        val screen = compose.onRoot().getUnclippedBoundsInRoot()
-        val card = compose.onNodeWithTag(BackPreviewScreen.Detail.name).getUnclippedBoundsInRoot()
+        val screen = compose.onRoot().getBoundsInRoot()
+        val card = compose.onNodeWithTag(BackPreviewScreen.Detail.name).getBoundsInRoot()
         assertTrue("card is ${card.width} wide on a ${screen.width} screen", card.width < screen.width - MIN_INSET)
         assertTrue("card is ${card.height} tall on a ${screen.height} screen", card.height < screen.height - MIN_INSET)
         assertTrue("card starts at ${card.left}, on the left edge", card.left > screen.left + MIN_INSET)
@@ -78,7 +83,7 @@ class PredictiveBackPreviewTest {
     /** Hit testing follows the same z-order as drawing, so a tap on the card lands on Detail. */
     @Test
     fun theLeavingCardIsOnTopOfTheRevealedScreen() {
-        val card = compose.onNodeWithTag(BackPreviewScreen.Detail.name).getUnclippedBoundsInRoot()
+        val card = compose.onNodeWithTag(BackPreviewScreen.Detail.name).getBoundsInRoot()
         val center = with(compose.density) {
             Offset(x = ((card.left + card.right) / 2).toPx(), y = ((card.top + card.bottom) / 2).toPx())
         }
@@ -93,7 +98,7 @@ class PredictiveBackPreviewTest {
      */
     @Test
     fun theRevealedScreenIsDimmedAroundTheCard() {
-        val card = compose.onNodeWithTag(BackPreviewScreen.Detail.name).getUnclippedBoundsInRoot()
+        val card = compose.onNodeWithTag(BackPreviewScreen.Detail.name).getBoundsInRoot()
         val pixels = compose.onRoot().captureToImage().toPixelMap()
         val centerY = with(compose.density) { ((card.top + card.bottom) / 2).roundToPx() }
         val outside = with(compose.density) { PROBE_FROM_EDGE.roundToPx() }
