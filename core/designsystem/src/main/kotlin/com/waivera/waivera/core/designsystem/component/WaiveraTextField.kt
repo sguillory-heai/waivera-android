@@ -27,6 +27,7 @@ import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.text.style.TextOverflow
 import com.waivera.waivera.core.designsystem.icon.WaiveraIcons
 import com.waivera.waivera.core.designsystem.preview.WaiveraPreviews
 import com.waivera.waivera.core.designsystem.theme.WaiveraShapes
@@ -91,8 +92,19 @@ fun WaiveraTextField(
                 },
             enabled = enabled,
             textStyle = MaterialTheme.typography.bodyLarge,
+            // The placeholder lays out like the text that replaces it, in the same style and, for
+            // a single-line field, on one line, so the field keeps its height on the first
+            // keystroke. With the decoration's own style it was 9dp taller at 200% (UI7-02).
             placeholder = if (placeholder != null) {
-                { Text(text = placeholder, color = colors.textSecondary) }
+                {
+                    Text(
+                        text = placeholder,
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = colors.textSecondary,
+                        maxLines = if (singleLine) 1 else Int.MAX_VALUE,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
             } else {
                 null
             },
