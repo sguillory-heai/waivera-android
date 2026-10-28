@@ -39,8 +39,11 @@ import com.waivera.waivera.core.designsystem.theme.WaiveraTileTint
  *   "Starting soon" is said by the accent time label, never by the tile.
  * - [Neutral]: read, past or inactive items, files, and a quiet "didn't load" line.
  * - [Danger]: something that went wrong that you can act on (a message that wasn't sent).
+ * - [Celebration]: the emoji tile on a celebration (a birthday, an anniversary, a new hire). The
+ *   soft gold of [Amber] in light; a warm plum in dark, because it sits on the brand wash and the
+ *   amber container read khaki there (UI9-06).
  */
-enum class WaiveraTileTone { Brand, Rose, Amber, Teal, Neutral, Danger }
+enum class WaiveraTileTone { Brand, Rose, Amber, Teal, Neutral, Danger, Celebration }
 
 /** Resolves a tone against the current colours. */
 fun WaiveraTileTone.tint(colors: WaiveraColors): WaiveraTileTint = when (this) {
@@ -50,6 +53,7 @@ fun WaiveraTileTone.tint(colors: WaiveraColors): WaiveraTileTint = when (this) {
     WaiveraTileTone.Teal -> colors.tiles.teal
     WaiveraTileTone.Neutral -> colors.tiles.neutral
     WaiveraTileTone.Danger -> colors.tiles.danger
+    WaiveraTileTone.Celebration -> colors.tiles.celebration
 }
 
 /**
@@ -87,7 +91,7 @@ fun WaiveraIconTile(
 fun WaiveraEmojiTile(
     emoji: String,
     modifier: Modifier = Modifier,
-    tone: WaiveraTileTone = WaiveraTileTone.Amber,
+    tone: WaiveraTileTone = WaiveraTileTone.Celebration,
     size: Dp = WaiveraSizes.IconTile,
 ) {
     val tint = tone.tint(WaiveraTheme.colors)

@@ -56,6 +56,7 @@ class WaiveraColorsContrastTest {
             "teal" to tiles.teal,
             "neutral" to tiles.neutral,
             "danger" to tiles.danger,
+            "celebration" to tiles.celebration,
         ).forEach { (name, tint) -> text("tile $name glyph", tint.content, tint.container) }
     }
 
@@ -77,6 +78,46 @@ class WaiveraColorsContrastTest {
             assertTrue(wash.blue >= wash.green, "dark wash point $wash leans olive")
             assertTrue(wash.red >= wash.green, "dark wash point $wash leans green")
         }
+    }
+
+    /**
+     * Every tile container that sits on a brand surface in dark (the celebration emoji tile, the
+     * amber bell on the primer and settings, the rose and brand tiles, the birthday badge) stays in
+     * the plum family: the amber tile was an olive-brown #3A2C17 on the plum wash (UI9-06).
+     */
+    @Test
+    fun darkTilesOnBrandSurfaces_stayInThePlumFamily() {
+        val dark = waiveraColors(darkTheme = true)
+        listOf(
+            "celebration" to dark.tiles.celebration.container,
+            "amber" to dark.tiles.amber.container,
+            "rose" to dark.tiles.rose.container,
+            "brand" to dark.tiles.brand.container,
+            "neutral" to dark.tiles.neutral.container,
+            "birthday badge" to dark.birthdayContainer,
+        ).forEach { (name, container) ->
+            assertTrue(container.blue >= container.green, "dark $name tile $container leans olive")
+            assertTrue(container.red >= container.green, "dark $name tile $container leans green")
+        }
+    }
+
+    /** The celebration tile keeps the light gold, which reads well on the light wash. */
+    @Test
+    fun lightCelebrationTile_isTheSoftGold() {
+        val light = waiveraColors(darkTheme = false)
+        assertTrue(light.tiles.celebration == light.tiles.amber, "the light celebration tile should stay the soft gold")
+    }
+
+    /**
+     * A tonal button on the wash ("Send wishes") stands apart from every wash point by its fill
+     * (accent-soft was about 1.05:1 there, UI9-08), and its label stays readable.
+     */
+    @Test
+    fun tonalOnWash_standsApartFromTheWash() = forEachTheme { colors ->
+        for (stop in WaiveraBrand.washColors(colors)) {
+            check("tonalOnWash on wash $stop", colors.tonalOnWash, stop.compositeOver(colors.surface), AVATAR_FILL_MIN)
+        }
+        text("onAccentSoft on tonalOnWash", colors.onAccentSoft, colors.tonalOnWash)
     }
 
     /** The selected tab's pill: violet to pink over the soft accent, glyph at 3:1 or more. */

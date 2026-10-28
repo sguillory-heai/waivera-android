@@ -43,7 +43,9 @@ import com.waivera.waivera.core.designsystem.theme.isLargeFontScale
 
 /**
  * [Tonal] is the quiet filled style (accent-soft fill) for an action that matters but should not
- * shout, such as joining a call from a banner. [DestructiveOutline] is a destructive action that
+ * shout, such as joining a call from a banner. [TonalOnWash] is the same quiet style drawn on the
+ * brand wash ("Send wishes" on a celebration card), where the accent-soft fill vanished (about
+ * 1.05:1, UI9-08): its fill keeps 1.3:1 against every wash point. [DestructiveOutline] is a destructive action that
  * a confirmation sheet already guards (Sign out), so the button itself stays light.
  *
  * [Selected] and [Unselected] are the two sides of a single-choice pair (Going / Not going): the
@@ -55,6 +57,7 @@ enum class WaiveraButtonVariant {
     Primary,
     Secondary,
     Tonal,
+    TonalOnWash,
     Destructive,
     DestructiveOutline,
     Text,
@@ -193,6 +196,7 @@ private fun WaiveraButtonVariant.styleFrom(colors: WaiveraColors): ButtonStyle =
     // Tonal in dark (the raised plum step with a quiet border), so it never glares as an outlined block.
     WaiveraButtonVariant.Secondary -> ButtonStyle(colors.secondaryContainer, colors.text, colors.surface)
     WaiveraButtonVariant.Tonal -> ButtonStyle(colors.accentSoft, colors.onAccentSoft, colors.surfaceMuted)
+    WaiveraButtonVariant.TonalOnWash -> ButtonStyle(colors.tonalOnWash, colors.onAccentSoft, colors.surfaceMuted)
     WaiveraButtonVariant.Destructive -> ButtonStyle(colors.dangerFill, colors.onDangerFill, colors.surfaceMuted)
     WaiveraButtonVariant.DestructiveOutline -> ButtonStyle(colors.surface, colors.dangerText, colors.surfaceMuted)
     WaiveraButtonVariant.Text -> ButtonStyle(Color.Transparent, colors.accent, Color.Transparent)

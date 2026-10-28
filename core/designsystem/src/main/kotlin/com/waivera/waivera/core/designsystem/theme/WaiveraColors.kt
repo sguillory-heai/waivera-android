@@ -77,6 +77,11 @@ data class WaiveraColors(
      * alone sets them apart from every surface and the brand wash (at least 1.3:1).
      */
     val avatarFill: Color,
+    /**
+     * Fill of a tonal button drawn on the brand wash ("Send wishes"): at least 1.3:1 against every
+     * wash point, with [onAccentSoft] on it.
+     */
+    val tonalOnWash: Color,
     /** Category tints for [com.waivera.waivera.core.designsystem.component.WaiveraIconTile]. */
     val tiles: WaiveraTileColors,
     /** Opacity of the brand gradient when it washes a surface (celebration cards, sign-in hero). */
@@ -101,6 +106,8 @@ data class WaiveraTileColors(
     val teal: WaiveraTileTint,
     val neutral: WaiveraTileTint,
     val danger: WaiveraTileTint,
+    /** Celebration emoji tiles: the soft gold in light, a warm plum in dark (UI9-06). */
+    val celebration: WaiveraTileTint,
 )
 
 internal val LightWaiveraColors = WaiveraColors(
@@ -154,6 +161,7 @@ internal val LightWaiveraColors = WaiveraColors(
     secondaryBorder = WaiveraPalette.BorderStrongLight,
     segmentSelected = WaiveraPalette.SurfaceLight,
     avatarFill = WaiveraPalette.AvatarFillLight,
+    tonalOnWash = WaiveraPalette.TonalOnWashLight,
     tiles = WaiveraTileColors(
         brand = WaiveraTileTint(WaiveraPalette.AccentSoftLight, WaiveraPalette.PurpleDeep),
         rose = WaiveraTileTint(WaiveraPalette.TileRoseLight, WaiveraPalette.OnTileRoseLight),
@@ -161,6 +169,7 @@ internal val LightWaiveraColors = WaiveraColors(
         teal = WaiveraTileTint(WaiveraPalette.TileTealLight, WaiveraPalette.OnTileTealLight),
         neutral = WaiveraTileTint(WaiveraPalette.SurfaceMutedLight, WaiveraPalette.TextSecondaryLight),
         danger = WaiveraTileTint(WaiveraPalette.TileDangerLight, WaiveraPalette.OnTileDangerLight),
+        celebration = WaiveraTileTint(WaiveraPalette.TileAmberLight, WaiveraPalette.OnTileAmberLight),
     ),
     brandWashAlpha = WaiveraPalette.BRAND_WASH_ALPHA_LIGHT,
     brandWashEnd = WaiveraPalette.BrandGold.copy(alpha = WaiveraPalette.BRAND_WASH_ALPHA_LIGHT),
@@ -217,6 +226,7 @@ internal val DarkWaiveraColors = WaiveraColors(
     secondaryBorder = WaiveraPalette.BorderDark,
     segmentSelected = WaiveraPalette.AccentSoftDark,
     avatarFill = WaiveraPalette.AvatarFillDark,
+    tonalOnWash = WaiveraPalette.TonalOnWashDark,
     tiles = WaiveraTileColors(
         brand = WaiveraTileTint(WaiveraPalette.AccentSoftDark, WaiveraPalette.OnAccentSoftDark),
         rose = WaiveraTileTint(WaiveraPalette.TileRoseDark, WaiveraPalette.OnTileRoseDark),
@@ -224,6 +234,7 @@ internal val DarkWaiveraColors = WaiveraColors(
         teal = WaiveraTileTint(WaiveraPalette.TileTealDark, WaiveraPalette.OnTileTealDark),
         neutral = WaiveraTileTint(WaiveraPalette.TileNeutralDark, WaiveraPalette.TextSecondaryDark),
         danger = WaiveraTileTint(WaiveraPalette.DangerContainerDark, WaiveraPalette.OnDangerContainerDark),
+        celebration = WaiveraTileTint(WaiveraPalette.TileCelebrationDark, WaiveraPalette.OnTileAmberDark),
     ),
     brandWashAlpha = WaiveraPalette.BRAND_WASH_ALPHA_DARK,
     brandWashEnd = WaiveraPalette.BrandPeach.copy(alpha = WaiveraPalette.BRAND_WASH_END_ALPHA_DARK),

@@ -6,6 +6,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Icon
@@ -37,6 +38,7 @@ import com.waivera.waivera.core.designsystem.theme.WaiveraShapes
 import com.waivera.waivera.core.designsystem.theme.WaiveraSizes
 import com.waivera.waivera.core.designsystem.theme.WaiveraSpacing
 import com.waivera.waivera.core.designsystem.theme.WaiveraTheme
+import kotlin.math.sqrt
 
 enum class PresenceStatus { Online, Away, Offline }
 
@@ -130,7 +132,15 @@ fun WaiveraAvatar(
                 )
             }
         }
-        if (presence != null) PresenceDot(presence, Modifier.align(Alignment.BottomEnd))
+        if (presence != null) {
+            val inward = presenceDotInset(size) - WaiveraSizes.PresenceDot / 2
+            PresenceDot(
+                presence,
+                Modifier
+                    .align(Alignment.BottomEnd)
+                    .offset(x = -inward, y = -inward),
+            )
+        }
     }
 }
 
@@ -162,6 +172,19 @@ private fun PresenceDot(presence: PresenceStatus, modifier: Modifier = Modifier)
                 },
             ),
     )
+}
+
+/**
+ * How far the presence dot's centre sits in from the avatar's bottom and end edges. The rounded
+ * corner's 45° point is `r × (1 − 1/√2)` in from each edge; the dot is placed so its coloured core
+ * meets that point and its surface rim straddles the curve. Aligned to the bounding box corner, a
+ * dot on a large avatar sat in the empty space the curve cuts away (UI9-09). Never further out
+ * than the bounding box allows, so small avatars keep their dot where it was.
+ */
+internal fun presenceDotInset(avatarSize: Dp): Dp {
+    val curve = WaiveraShapes.avatarCornerRadius(avatarSize) * (1f - 1f / sqrt(2f))
+    val core = WaiveraSizes.PresenceDot / 2 - WaiveraSizes.AvatarRing
+    return maxOf(WaiveraSizes.PresenceDot / 2, curve + core)
 }
 
 /** Up to two initials: first and last word, uppercased. Empty when the name has no letters or digits. */

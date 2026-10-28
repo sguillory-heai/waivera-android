@@ -99,11 +99,23 @@ internal object WaiveraPalette {
     val OnTileDangerLight = Color(0xFFB42318)
     val TileRoseDark = Color(0xFF3A2131)
     val OnTileRoseDark = Color(0xFFFFB1D2)
-    val TileAmberDark = Color(0xFF3A2C17)
+
+    // Warmed towards rose: #3A2C17 had green well above blue and read khaki on the plum wash (UI9-06).
+    val TileAmberDark = Color(0xFF3D2A2A)
     val OnTileAmberDark = Color(0xFFFFD38A)
     val TileTealDark = Color(0xFF173230)
     val OnTileTealDark = Color(0xFF8EDDD3)
     val TileNeutralDark = Color(0xFF2A2434)
+
+    /** A celebration's emoji tile in dark: warm plum, so it sits in the wash's family (UI9-06). */
+    val TileCelebrationDark = Color(0xFF3A2533)
+
+    /**
+     * A tonal button on the brand wash. Accent-soft was about 1.0:1 against the wash's violet end,
+     * so "Send wishes" read as an icon and a link (UI9-08); these keep 1.3:1 on every wash point.
+     */
+    val TonalOnWashLight = Color(0xFFD5C6ED)
+    val TonalOnWashDark = Color(0xFF4A3C66)
 
     // Calendar and milestone colours that were raw literals in the Expo app (spec 10 §1).
     val MilestoneDot = Color(0xFFF59E0B)
@@ -114,7 +126,9 @@ internal object WaiveraPalette {
     val OnAnniversaryContainerLight = Color(0xFF047857)
     val NewHireContainerLight = Color(0xFFEDE9FE)
     val OnNewHireContainerLight = Color(0xFF6D28D9)
-    val BirthdayContainerDark = Color(0xFF3A2C17)
+
+    // The same warmed amber as the dark tile: the khaki #3A2C17 was off the plum family (UI9-06).
+    val BirthdayContainerDark = Color(0xFF3D2A2A)
     val OnBirthdayContainerDark = Color(0xFFFDE68A)
     val AnniversaryContainerDark = Color(0xFF0F3530)
     val OnAnniversaryContainerDark = Color(0xFF6EE7B7)

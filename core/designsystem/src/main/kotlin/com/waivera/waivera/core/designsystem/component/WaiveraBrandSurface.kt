@@ -62,7 +62,7 @@ fun WaiveraCelebrationNote(
     emoji: String,
     text: String,
     modifier: Modifier = Modifier,
-    tone: WaiveraTileTone = WaiveraTileTone.Amber,
+    tone: WaiveraTileTone = WaiveraTileTone.Celebration,
     centered: Boolean = false,
 ) {
     WaiveraBrandSurface(

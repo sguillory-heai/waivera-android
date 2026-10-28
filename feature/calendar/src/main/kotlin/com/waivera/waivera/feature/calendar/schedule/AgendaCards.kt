@@ -186,7 +186,7 @@ private fun MilestoneCard(
             WaiveraButton(
                 text = stringResource(R.string.feature_calendar_send_wishes),
                 onClick = { onSendWishes(milestone.userId) },
-                variant = WaiveraButtonVariant.Tonal,
+                variant = WaiveraButtonVariant.TonalOnWash,
                 leadingIcon = WaiveraIcons.Chat,
                 modifier = Modifier
                     .padding(start = CalendarSizes.MilestoneCardAvatar + WaiveraSpacing.MediumSmall)

@@ -283,25 +283,6 @@ class DesignSystemScreenshotTest {
         )
     }
 
-    /**
-     * Initials and fallback avatars on the brand wash (UI8-05): the fill alone sets each one
-     * apart, with no border or ring, in the one rounded-square shape at every size.
-     */
-    @Test
-    fun avatarsOnTheWash() = capture("AvatarsOnWash") {
-        WaiveraBrandSurface {
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(WaiveraSpacing.MediumSmall),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                WaiveraAvatar(name = "Alex Rivera", size = WaiveraSizes.AvatarLarge)
-                WaiveraAvatar(name = "Jordan Lee")
-                WaiveraAvatar(name = "Sam Ortiz", size = WaiveraSizes.AvatarSmall)
-                WaiveraAvatar(name = "")
-            }
-        }
-    }
-
     @Test
     fun switchRows() = capture("SwitchRows") {
         WaiveraSwitchRow(
@@ -338,6 +319,8 @@ class DesignSystemScreenshotTest {
             WaiveraAvatar(name = "Jo", milestone = MilestoneKind.NewHire, size = WaiveraSizes.AvatarSmall)
             WaiveraAvatar(name = "", size = WaiveraSizes.AvatarLarge, presence = PresenceStatus.Offline)
             WaiveraAvatar(name = "Jordan Lee", presence = PresenceStatus.Offline)
+            // The hero size, where a corner-aligned dot floated off the curve (UI9-09).
+            WaiveraAvatar(name = "Alex Rivera", size = WaiveraSizes.AvatarHero, presence = PresenceStatus.Online)
         }
     }
 

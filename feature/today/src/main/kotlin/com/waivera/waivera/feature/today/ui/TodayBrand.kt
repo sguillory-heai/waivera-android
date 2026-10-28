@@ -142,7 +142,7 @@ internal fun CelebrationCard(
                 WaiveraButton(
                     text = stringResource(R.string.feature_today_brand_send_wishes),
                     onClick = onSendWishes,
-                    variant = WaiveraButtonVariant.Tonal,
+                    variant = WaiveraButtonVariant.TonalOnWash,
                     leadingIcon = WaiveraIcons.Chat,
                     modifier = Modifier
                         .padding(
