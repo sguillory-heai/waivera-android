@@ -154,6 +154,7 @@ private fun ProfileBody(
                 tone = BannerTone.Warning,
                 actionLabel = stringResource(R.string.feature_profile_try_again),
                 onAction = onRefresh,
+                actionIcon = WaiveraIcons.Refresh,
             )
         }
         IdentityCard(user = state.user, profile = profile, celebration = state.celebration)

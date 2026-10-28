@@ -12,23 +12,6 @@ import com.waivera.waivera.feature.today.model.CelebrationItem
 import com.waivera.waivera.feature.today.model.MessageSnippet
 import com.waivera.waivera.feature.today.model.PastLabel
 import com.waivera.waivera.feature.today.model.UpcomingLabel
-import java.time.LocalDate
-import java.time.LocalTime
-import java.time.format.DateTimeFormatter
-import java.util.Locale
-
-/** Clock and date formats. Times are always 12-hour (pitfall 39); values arrive already in the employee's zone. */
-internal class TodayFormats(locale: Locale) {
-    private val time = DateTimeFormatter.ofPattern("h:mm a", locale)
-    private val day = DateTimeFormatter.ofPattern("EEE, MMM d", locale)
-    private val longDay = DateTimeFormatter.ofPattern("EEEE, MMMM d", locale)
-
-    fun time(value: LocalTime): String = time.format(value)
-
-    fun day(value: LocalDate): String = day.format(value)
-
-    fun longDay(value: LocalDate): String = longDay.format(value)
-}
 
 @Composable
 internal fun rememberTodayFormats(): TodayFormats {

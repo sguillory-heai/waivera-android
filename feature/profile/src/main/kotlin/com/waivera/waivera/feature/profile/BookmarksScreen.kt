@@ -146,6 +146,7 @@ internal fun BookmarksContent(
                     tone = BannerTone.Warning,
                     actionLabel = stringResource(R.string.feature_profile_try_again),
                     onAction = onRefresh,
+                    actionIcon = WaiveraIcons.Refresh,
                 )
             }
             PullToRefreshBox(

@@ -24,7 +24,7 @@
     <string name="feature_settings_theme_dark_detail">Always use the dark theme</string>
     <string name="feature_settings_feedback_section">Feedback</string>
     <string name="feature_settings_haptics_title">Haptics</string>
-    <string name="feature_settings_haptics_subtitle">Gentle vibrations when a message isn\'t sent, you flip a switch or something goes wrong.</string>
+    <string name="feature_settings_haptics_subtitle">Vibrate for messages that don\'t send, switches and errors.</string>
 
     <!-- Notifications -->
     <string name="feature_settings_notification_settings_title">Notifications</string>

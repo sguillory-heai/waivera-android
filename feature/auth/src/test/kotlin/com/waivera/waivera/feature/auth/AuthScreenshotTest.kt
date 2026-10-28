@@ -19,9 +19,10 @@ import org.robolectric.annotation.GraphicsMode
 class AuthScreenshotTest {
     private val email = "alex.rivera@example.org"
 
-    private fun signIn(name: String, state: SignInUiState) = captureScreenshots("sign_in_$name") {
-        SignInContent(state = state, actions = SignInActions())
-    }
+    private fun signIn(name: String, state: SignInUiState, showConfigurationKeys: Boolean = false) =
+        captureScreenshots("sign_in_$name") {
+            SignInContent(state = state, actions = SignInActions(), showConfigurationKeys = showConfigurationKeys)
+        }
 
     @Test
     fun signInEmpty() = signIn("empty", SignInUiState())
@@ -73,10 +74,19 @@ class AuthScreenshotTest {
     @Test
     fun signInResetSent() = signIn("reset_sent", SignInUiState(email = email, resetSentTo = email))
 
+    /** What staff see in a release build: the plain sentence, no settings keys (UI4-11). */
     @Test
     fun signInConfigurationMissing() = signIn(
         "configuration_missing",
         SignInUiState(missingConfiguration = listOf("waivera.apiBaseUrl", "waivera.firebase.apiKey")),
+    )
+
+    /** A debug build also lists the missing keys, for the developer who built it. */
+    @Test
+    fun signInConfigurationMissingDebug() = signIn(
+        "configuration_missing_debug",
+        SignInUiState(missingConfiguration = listOf("waivera.apiBaseUrl", "waivera.firebase.apiKey")),
+        showConfigurationKeys = true,
     )
 
     private fun passwordChange(name: String, state: PasswordChangeUiState, required: Boolean = true) =

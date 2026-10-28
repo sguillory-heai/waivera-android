@@ -99,7 +99,12 @@ internal class SignInActions(
 )
 
 @Composable
-internal fun SignInContent(state: SignInUiState, actions: SignInActions, modifier: Modifier = Modifier) {
+internal fun SignInContent(
+    state: SignInUiState,
+    actions: SignInActions,
+    modifier: Modifier = Modifier,
+    showConfigurationKeys: Boolean = rememberIsDebuggableBuild(),
+) {
     val keyboard = LocalSoftwareKeyboardController.current
     val submit = {
         keyboard?.hide()
@@ -111,7 +116,11 @@ internal fun SignInContent(state: SignInUiState, actions: SignInActions, modifie
     ) {
         // On a short window a banner pushes the form down; the tagline goes first so the fields stay close.
         SignInHero(showTagline = !isLargeFontScale() && !(state.hasBanner && LocalCompactAuthWindow.current))
-        SignInBanners(state = state, onDismiss = actions.onDismissMessage)
+        SignInBanners(
+            state = state,
+            onDismiss = actions.onDismissMessage,
+            showConfigurationKeys = showConfigurationKeys,
+        )
         SignInForm(state = state, actions = actions, onSubmit = submit)
         Text(
             text = stringResource(R.string.feature_auth_footer),
@@ -126,9 +135,9 @@ internal fun SignInContent(state: SignInUiState, actions: SignInActions, modifie
 }
 
 @Composable
-private fun SignInBanners(state: SignInUiState, onDismiss: () -> Unit) {
+private fun SignInBanners(state: SignInUiState, onDismiss: () -> Unit, showConfigurationKeys: Boolean) {
     AuthAnimatedVisibility(visible = state.missingConfiguration != null) {
-        ConfigurationBanner(state.missingConfiguration.orEmpty())
+        ConfigurationBanner(missingKeys = state.missingConfiguration.orEmpty(), showKeys = showConfigurationKeys)
     }
     AuthAnimatedVisibility(visible = state.errorMessage != null) {
         state.errorMessage?.let { message ->
@@ -293,8 +302,9 @@ private fun SignInCardHeading() {
  * builds only.
  */
 @Composable
-private fun ConfigurationBanner(missingKeys: List<String>) {
-    val details = if (missingKeys.isEmpty() || !rememberIsDebuggableBuild()) {
+private fun ConfigurationBanner(missingKeys: List<String>, showKeys: Boolean) {
+    // The raw settings keys help a developer and mean nothing to staff: debug builds only (UI4-11).
+    val details = if (missingKeys.isEmpty() || !showKeys) {
         ""
     } else {
         "\n" + stringResource(R.string.feature_auth_configuration_details, missingKeys.joinToString())

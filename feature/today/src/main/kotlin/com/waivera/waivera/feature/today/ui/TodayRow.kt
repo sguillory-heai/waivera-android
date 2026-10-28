@@ -28,6 +28,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import com.waivera.waivera.core.designsystem.component.WaiveraPressable
 import com.waivera.waivera.core.designsystem.icon.WaiveraIcons
 import com.waivera.waivera.core.designsystem.preview.WaiveraPreviews
+import com.waivera.waivera.core.designsystem.text.withBreaksAfterHyphens
 import com.waivera.waivera.core.designsystem.theme.WaiveraShapes
 import com.waivera.waivera.core.designsystem.theme.WaiveraSizes
 import com.waivera.waivera.core.designsystem.theme.WaiveraSpacing
@@ -79,8 +80,9 @@ internal fun TodayRow(
                 if (eyebrow != null) {
                     Text(text = eyebrow, style = MaterialTheme.typography.labelMedium, color = eyebrowColor)
                 }
+                // Hyphenated names wrap after a hyphen, never mid-word (UI4-02).
                 Text(
-                    text = headline,
+                    text = headline.withBreaksAfterHyphens(),
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = if (emphasized) FontWeight.Bold else FontWeight.Medium,
                     color = colors.text,
