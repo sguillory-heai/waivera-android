@@ -113,7 +113,8 @@
     </plurals>
 
     <!-- Person detail -->
-    <string name="feature_profile_person_detail_title">Profile</string>
+    <!-- "Person", as on the v5 board: the name is already the hero's heading, and "Profile" is my own screen. -->
+    <string name="feature_profile_person_detail_title">Person</string>
     <string name="feature_profile_person_message">Message</string>
     <!-- The same direct chat as Message, named for the moment when the person is celebrating. -->
     <string name="feature_profile_person_send_wishes">Send wishes</string>
