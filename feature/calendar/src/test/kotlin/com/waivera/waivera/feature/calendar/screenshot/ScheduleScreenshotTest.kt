@@ -152,11 +152,27 @@ class ScheduleScreenshotTest {
     @Test
     fun monthOtherDay() = capture("schedule_month_other_day", state(date = today.plusDays(4)))
 
+    /**
+     * The board's week (v5 decision 4, option C): today, Sunday 1, keeps its bold violet number and
+     * dash on the card while Wednesday 4 is the lilac square, with the demo's plain event dots.
+     */
+    @Test
+    fun weekOtherDay() {
+        val date = today.plusDays(BOARD_WEEK_OFFSET)
+        capture("schedule_week_other_day", state(view = ScheduleView.WEEK, date = date))
+    }
+
+    /** The board's month: the picked 18th is rows below today's dash, so neither mark sits beside the other. */
+    @Test
+    fun monthOtherWeek() = capture("schedule_month_other_week", state(date = today.withDayOfMonth(BOARD_MONTH_DAY)))
+
     @Test
     fun zoneFallback() =
         capture("schedule_zoneFallback", state(savedZoneId = null, deviceZone = ZoneId.of("Asia/Tokyo")))
 
     private companion object {
+        const val BOARD_WEEK_OFFSET = 3L
+        const val BOARD_MONTH_DAY = 18
         const val STALE_SECONDS = 3_600L
         const val SERVER_ERROR = 503
 
