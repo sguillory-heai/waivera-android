@@ -5,12 +5,15 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.add
 import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
+import androidx.compose.material3.NavigationBarDefaults
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Text
@@ -34,6 +37,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Constraints
 import com.waivera.waivera.core.designsystem.icon.WaiveraIcons
 import com.waivera.waivera.core.designsystem.preview.WaiveraPreviews
+import com.waivera.waivera.core.designsystem.theme.EXTRA_LARGE_FONT_SCALE
 import com.waivera.waivera.core.designsystem.theme.WaiveraElevation
 import com.waivera.waivera.core.designsystem.theme.WaiveraShapes
 import com.waivera.waivera.core.designsystem.theme.WaiveraSizes
@@ -68,18 +72,34 @@ fun WaiveraNavigationBar(
     modifier: Modifier = Modifier,
 ) {
     val colors = WaiveraTheme.colors
+    val fontScale = LocalDensity.current.fontScale
+    val extraLarge = fontScale >= EXTRA_LARGE_FONT_SCALE
+    // At 150% and up the count sits higher on the glyph's corner (UI10-02), so the bar keeps room
+    // above it: the bar clips what is drawn past its top edge.
+    val insets = if (extraLarge) {
+        NavigationBarDefaults.windowInsets.add(WindowInsets(top = WaiveraSpacing.Small))
+    } else {
+        NavigationBarDefaults.windowInsets
+    }
+    val labelStyle = MaterialTheme.typography.labelMedium.let { style ->
+        val scale = navLabelTextScale(fontScale) / fontScale
+        style.copy(fontSize = style.fontSize * scale, lineHeight = style.lineHeight * scale)
+    }
     NavigationBar(
-        modifier = modifier.drawBehind {
-            drawLine(
-                color = colors.navBarBorder,
-                start = Offset.Zero,
-                end = Offset(size.width, 0f),
-                strokeWidth = WaiveraSpacing.Hairline.toPx(),
-            )
-        },
+        modifier = modifier
+            .testTag(NAV_BAR_TEST_TAG)
+            .drawBehind {
+                drawLine(
+                    color = colors.navBarBorder,
+                    start = Offset.Zero,
+                    end = Offset(size.width, 0f),
+                    strokeWidth = WaiveraSpacing.Hairline.toPx(),
+                )
+            },
         containerColor = colors.navBar,
         contentColor = colors.text,
         tonalElevation = WaiveraElevation.Level0,
+        windowInsets = insets,
     ) {
         items.forEach { item ->
             val selected = item.key == selectedKey
@@ -90,6 +110,7 @@ fun WaiveraNavigationBar(
                 icon = {
                     NavIconWithBadge(
                         badge = formatBadgeCount(item.badgeCount),
+                        besideGlyph = extraLarge,
                         modifier = Modifier
                             .testTag(NAV_ICON_TEST_TAG)
                             .selectedTabPill(
@@ -108,7 +129,7 @@ fun WaiveraNavigationBar(
                 label = {
                     Text(
                         text = item.label,
-                        style = MaterialTheme.typography.labelMedium,
+                        style = labelStyle,
                         fontWeight = if (selected) FontWeight.Bold else FontWeight.SemiBold,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
@@ -165,11 +186,18 @@ private fun Modifier.selectedTabPill(start: Color, end: Color, alpha: () -> Floa
 /**
  * The tab icon with its unread count pinned to the icon's top-end corner. The badge's start
  * edge stays put and a wider count grows away from the glyph, so "99+" at large font never
- * covers the icon it labels (UI8-06). The layout reports the icon's size only, as a badge must
- * not move the icon or the label.
+ * covers the icon it labels (UI8-06). [besideGlyph] (150% font and up) moves the count clear of
+ * the glyph: its start on the glyph's end edge and its middle on the glyph's top edge, so it
+ * neither covers the glyph's corner nor reaches as high (UI10-02). The layout reports the
+ * icon's size only, as a badge must not move the icon or the label.
  */
 @Composable
-private fun NavIconWithBadge(badge: String?, modifier: Modifier = Modifier, icon: @Composable () -> Unit) {
+private fun NavIconWithBadge(
+    badge: String?,
+    besideGlyph: Boolean,
+    modifier: Modifier = Modifier,
+    icon: @Composable () -> Unit,
+) {
     Layout(
         modifier = modifier,
         content = {
@@ -184,8 +212,8 @@ private fun NavIconWithBadge(badge: String?, modifier: Modifier = Modifier, icon
         layout(iconPlaceable.width, iconPlaceable.height) {
             iconPlaceable.placeRelative(0, 0)
             badgePlaceable?.placeRelative(
-                x = iconPlaceable.width - overlapX,
-                y = overlapY - badgePlaceable.height,
+                x = if (besideGlyph) iconPlaceable.width else iconPlaceable.width - overlapX,
+                y = if (besideGlyph) -badgePlaceable.height / 2 else overlapY - badgePlaceable.height,
             )
         }
     }
@@ -204,6 +232,7 @@ private fun NavUnreadBadge(text: String) {
     val scale = navBadgeTextScale(fontScale) / fontScale
     Box(
         modifier = Modifier
+            .testTag(NAV_BADGE_TEST_TAG)
             .border(WaiveraSizes.NavBadgeRing, colors.navBar, WaiveraShapes.Pill)
             .padding(WaiveraSizes.NavBadgeRing)
             .defaultMinSize(minWidth = WaiveraSizes.NavBadgeMin, minHeight = WaiveraSizes.NavBadgeMin)
@@ -230,8 +259,21 @@ internal fun navBadgeTextScale(fontScale: Float): Float = minOf(fontScale, NAV_B
 
 internal const val NAV_BADGE_MAX_TEXT_SCALE = 1.3f
 
+/**
+ * The text scale a tab's label renders at: the user's font scale up to [NAV_LABEL_MAX_TEXT_SCALE].
+ * The labels are short fixed words that already read at 150%; past that, "Schedule" ran into the
+ * screen edge on a small phone (UI10-02).
+ */
+internal fun navLabelTextScale(fontScale: Float): Float = minOf(fontScale, NAV_LABEL_MAX_TEXT_SCALE)
+
+internal const val NAV_LABEL_MAX_TEXT_SCALE = EXTRA_LARGE_FONT_SCALE
+
 /** Tags each tab's icon box, for the pill pixel test. */
 internal const val NAV_ICON_TEST_TAG = "waiveraNavIcon"
+
+/** Tags the bar and each unread count, for the large-font bounds test. */
+internal const val NAV_BAR_TEST_TAG = "waiveraNavBar"
+internal const val NAV_BADGE_TEST_TAG = "waiveraNavBadge"
 
 @WaiveraPreviews
 @Composable
