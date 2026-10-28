@@ -1,11 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- Waivera mark and wordmark, ink layer: base lines and the "waivera" wordmark, tinted with the text colour. -->
-<vector xmlns:android="http://schemas.android.com/apk/res/android"
-    android:width="256dp"
-    android:height="52dp"
+<!-- The wordmark path keeps the web SVG's precision; WaiveraLogo draws it once, at a fixed small size. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android" xmlns:tools="http://schemas.android.com/tools"
+    android:width="128dp"
+    android:height="26dp"
     android:autoMirrored="false"
     android:viewportWidth="256"
-    android:viewportHeight="52">
+    android:viewportHeight="52"
+    tools:ignore="VectorPath">
     <path
         android:pathData="M1.8645 43.7415H46.5786"
         android:strokeWidth="3.40869"

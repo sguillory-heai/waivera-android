@@ -10,6 +10,8 @@ import androidx.compose.ui.graphics.Color
  * stop positions. It is the signature, used with restraint: the logo, the sign-in hero,
  * celebration cards, empty-state art and the confetti. Never on body text or dense UI.
  */
+// The gradients take their stops as varargs; spreading four pairs once per brush is cheap.
+@Suppress("SpreadOperator")
 object WaiveraBrand {
     val Violet: Color = WaiveraPalette.BrandViolet
     val Pink: Color = WaiveraPalette.BrandPink
