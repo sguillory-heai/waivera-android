@@ -3,6 +3,7 @@ package com.waivera.waivera.feature.auth
 import androidx.lifecycle.SavedStateHandle
 import app.cash.turbine.test
 import com.waivera.waivera.core.data.model.SessionState
+import com.waivera.waivera.core.network.NetworkConfig
 import com.waivera.waivera.core.network.R as NetworkR
 import com.waivera.waivera.core.network.error.WaiveraError
 import com.waivera.waivera.core.testing.MainDispatcherRule
@@ -21,7 +22,41 @@ class SignInViewModelTest {
 
     private val session = FakeSessionRepository()
 
-    private fun viewModel(saved: SavedStateHandle = SavedStateHandle()) = SignInViewModel(session, saved)
+    private fun viewModel(saved: SavedStateHandle = SavedStateHandle(), webBase: String = WEB_BASE) = SignInViewModel(
+        session = session,
+        savedState = saved,
+        networkConfig = NetworkConfig(apiBaseUrl = API_BASE, webBaseUrl = webBase),
+    )
+
+    @Test
+    fun `the legal links come from the configured web base`() {
+        val links = viewModel().legalLinks
+        assertEquals("$WEB_BASE/terms-of-service", links?.termsOfService)
+        assertEquals("$WEB_BASE/privacy-policy", links?.privacyPolicy)
+    }
+
+    @Test
+    fun `a build without a web base shows no legal links`() {
+        assertNull(viewModel(webBase = "").legalLinks)
+    }
+
+    /** No browser: a calm banner, no haptic, and what the person typed stays. */
+    @Test
+    fun `a link nothing can open says so and keeps the form`() = runTest {
+        val vm = viewModel()
+        vm.fill()
+        vm.effects.test {
+            vm.onLinkUnavailable()
+            expectNoEvents()
+        }
+        assertTrue(vm.state.value.linkUnavailable)
+        assertTrue(vm.state.value.hasBanner)
+        assertEquals("alex.rivera@example.org", vm.state.value.email)
+        assertEquals("correct horse", vm.state.value.password)
+        vm.dismissMessage()
+        assertFalse(vm.state.value.linkUnavailable)
+        assertFalse(vm.state.value.hasBanner)
+    }
 
     private fun SignInViewModel.fill(email: String = "alex.rivera@example.org", password: String = "correct horse") {
         onEmailChange(email)
@@ -269,5 +304,10 @@ class SignInViewModelTest {
         vm.fill(password = "hunter2-secret")
         assertFalse(vm.state.value.toString().contains("hunter2-secret"))
         assertFalse(vm.state.value.toString().contains("alex.rivera"))
+    }
+
+    private companion object {
+        const val API_BASE = "https://api.example.test"
+        const val WEB_BASE = "https://app.example.test"
     }
 }

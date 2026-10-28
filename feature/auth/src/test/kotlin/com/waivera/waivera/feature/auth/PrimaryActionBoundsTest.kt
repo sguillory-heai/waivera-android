@@ -9,10 +9,13 @@ import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onRoot
+import androidx.compose.ui.test.performClick
 import com.waivera.waivera.core.designsystem.theme.WaiveraMotionScheme
+import com.waivera.waivera.core.designsystem.theme.WaiveraSpacing
 import com.waivera.waivera.core.designsystem.theme.WaiveraTheme
 import com.waivera.waivera.core.network.R as NetworkR
 import com.waivera.waivera.core.screenshottesting.ScreenshotSdk
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -88,6 +91,7 @@ class PrimaryActionBoundsTest {
             SignInUiState(signedOutNotice = true),
             SignInUiState(email = "a@example.org", resetSentTo = "a@example.org"),
             SignInUiState(missingConfiguration = listOf("waivera.apiBaseUrl")),
+            SignInUiState(email = "a@example.org", linkUnavailable = true),
         )
         var current by mutableStateOf(states.first())
         render { SignInContent(state = current, actions = SignInActions()) }
@@ -96,6 +100,36 @@ class PrimaryActionBoundsTest {
             compose.waitForIdle()
             assertFullyOnScreen("Sign in")
         }
+    }
+
+    /** Both legal links are full 48dp targets inside the window, and each opens its own page. */
+    @Test
+    fun signInLegalLinksAreFullTargetsThatOpenTheirPage() {
+        val opened = mutableListOf<String>()
+        render {
+            SignInContent(
+                state = SignInUiState(),
+                actions = SignInActions(onOpenLink = { opened += it }),
+                legalLinks = LegalLinks(termsOfService = "terms", privacyPolicy = "privacy"),
+            )
+        }
+        val minimum = with(compose.density) { WaiveraSpacing.MinTouchTarget.toPx() }
+        listOf("Terms of Service", "Privacy Policy").forEach { label ->
+            assertFullyOnScreen(label)
+            val bounds = button(label).fetchSemanticsNode().boundsInRoot
+            assertTrue("$label is ${bounds.height}px tall, under $minimum", bounds.height >= minimum)
+            assertTrue("$label is ${bounds.width}px wide, under $minimum", bounds.width >= minimum)
+        }
+        button("Terms of Service").performClick()
+        button("Privacy Policy").performClick()
+        assertEquals(listOf("terms", "privacy"), opened)
+    }
+
+    @Test
+    fun signInWithoutAWebBaseHasNoLegalLinks() {
+        render { SignInContent(state = SignInUiState(), actions = SignInActions(), legalLinks = null) }
+        compose.onNode(hasText("Terms of Service")).assertDoesNotExist()
+        assertFullyOnScreen("Sign in")
     }
 
     @Test

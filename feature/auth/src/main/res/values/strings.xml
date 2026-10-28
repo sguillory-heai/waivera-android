@@ -3,9 +3,6 @@
     <!-- Sign in -->
     <string name="feature_auth_brand" translatable="false">Waivera</string>
     <string name="feature_auth_sign_in_title">Welcome back</string>
-    <string name="feature_auth_sign_in_subtitle">Your team, your chats and your schedule, all in one place.</string>
-    <string name="feature_auth_sign_in_card_title">Let\'s get you signed in</string>
-    <string name="feature_auth_sign_in_card_subtitle">Use the email and password you use for Waivera on the web.</string>
     <string name="feature_auth_email_label">Email</string>
     <string name="feature_auth_email_placeholder">you@organization.com</string>
     <string name="feature_auth_password_label">Password</string>
@@ -14,7 +11,15 @@
     <string name="feature_auth_sign_in_button">Sign in</string>
     <string name="feature_auth_connecting">Signing you in…</string>
     <string name="feature_auth_forgot_password">Forgot password?</string>
-    <string name="feature_auth_footer">Protected by Waivera and your organization\'s security settings.</string>
+    <!-- Footer: "By continuing, you agree to our Terms of Service and Privacy Policy." Each name is its own link. -->
+    <string name="feature_auth_legal_lead">By continuing, you agree to our</string>
+    <string name="feature_auth_legal_terms">Terms of Service</string>
+    <string name="feature_auth_legal_and">and</string>
+    <string name="feature_auth_legal_privacy">Privacy Policy</string>
+    <!-- TalkBack: "Double tap to open in your browser". -->
+    <string name="feature_auth_legal_open">open in your browser</string>
+    <string name="feature_auth_link_failed_title">Couldn\'t open that page</string>
+    <string name="feature_auth_link_failed_message">Check that a web browser is installed and turned on, then try again.</string>
     <string name="feature_auth_signed_out_title">You\'re signed out</string>
     <string name="feature_auth_signed_out_message">You won\'t get notifications on this device until you sign back in.</string>
     <string name="feature_auth_sign_in_failed_title">Couldn\'t sign in</string>

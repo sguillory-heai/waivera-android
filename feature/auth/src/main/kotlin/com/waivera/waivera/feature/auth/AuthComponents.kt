@@ -115,7 +115,7 @@ internal val GutterPadding = Modifier.padding(horizontal = WaiveraSpacing.Gutter
  * Icon tile, heading and supporting text at the top of a gate screen.
  *
  * [welcome] is for a screen that invites rather than reports (finishing signup, the
- * notification primer): the header sits on the brand-gradient wash, as on sign-in, and with
+ * notification primer): the header sits on the brand-gradient wash, and with
  * [showLogo] the real Waivera mark takes the tile's place. Errors, offline and password screens
  * stay plain and calm.
  */

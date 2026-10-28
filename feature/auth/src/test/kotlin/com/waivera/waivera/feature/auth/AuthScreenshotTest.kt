@@ -19,10 +19,25 @@ import org.robolectric.annotation.GraphicsMode
 class AuthScreenshotTest {
     private val email = "alex.rivera@example.org"
 
-    private fun signIn(name: String, state: SignInUiState, showConfigurationKeys: Boolean = false) =
-        captureScreenshots("sign_in_$name") {
-            SignInContent(state = state, actions = SignInActions(), showConfigurationKeys = showConfigurationKeys)
-        }
+    /** As a configured build shows it: the footer links to the web app's legal pages. */
+    private val legalLinks = LegalLinks(
+        termsOfService = "https://app.example.test/terms-of-service",
+        privacyPolicy = "https://app.example.test/privacy-policy",
+    )
+
+    private fun signIn(
+        name: String,
+        state: SignInUiState,
+        showConfigurationKeys: Boolean = false,
+        links: LegalLinks? = legalLinks,
+    ) = captureScreenshots(name = "sign_in_$name") {
+        SignInContent(
+            state = state,
+            actions = SignInActions(),
+            legalLinks = links,
+            showConfigurationKeys = showConfigurationKeys,
+        )
+    }
 
     @Test
     fun signInEmpty() = signIn("empty", SignInUiState())
@@ -73,6 +88,14 @@ class AuthScreenshotTest {
 
     @Test
     fun signInResetSent() = signIn("reset_sent", SignInUiState(email = email, resetSentTo = email))
+
+    /** Nothing on the device could open a legal page. */
+    @Test
+    fun signInLinkUnavailable() = signIn("link_unavailable", SignInUiState(email = email, linkUnavailable = true))
+
+    /** A build with no web base hides the legal sentence instead of showing dead links. */
+    @Test
+    fun signInNoWebBase() = signIn("no_web_base", SignInUiState(), links = null)
 
     /** What staff see in a release build: the plain sentence, no settings keys (UI4-11). */
     @Test

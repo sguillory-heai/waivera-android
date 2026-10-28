@@ -7,6 +7,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.waivera.waivera.core.data.model.SessionState
 import com.waivera.waivera.core.data.repository.SessionRepository
+import com.waivera.waivera.core.network.NetworkConfig
 import com.waivera.waivera.core.network.error.WaiveraError
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
@@ -39,6 +40,8 @@ data class SignInUiState(
     val missingConfiguration: List<String>? = null,
     /** The person just signed out on this device: confirm it instead of showing a bare form. */
     val signedOutNotice: Boolean = false,
+    /** A Terms of Service or Privacy Policy link found nothing that can open it (no browser). */
+    val linkUnavailable: Boolean = false,
 ) {
     val isConfigured: Boolean get() = missingConfiguration == null
     val fieldsEnabled: Boolean get() = isConfigured && phase == SignInPhase.Idle
@@ -47,14 +50,15 @@ data class SignInUiState(
 
     /** A banner shows above the form (configuration, failure, signed out or reset sent). */
     val hasBanner: Boolean
-        get() = missingConfiguration != null || errorMessage != null || signedOutNotice || resetSentTo != null
+        get() = missingConfiguration != null || errorMessage != null || signedOutNotice || resetSentTo != null ||
+            linkUnavailable
 
     /** Never print the password, even in a debug log or a crash report of this object. */
     override fun toString(): String =
         "SignInUiState(emailSet=${email.isNotEmpty()}, passwordSet=${password.isNotEmpty()}, phase=$phase, " +
             "emailError=$emailError, passwordError=$passwordError, errorMessage=$errorMessage, " +
             "resetSent=${resetSentTo != null}, missingConfiguration=$missingConfiguration, " +
-            "signedOutNotice=$signedOutNotice)"
+            "signedOutNotice=$signedOutNotice, linkUnavailable=$linkUnavailable)"
 }
 
 /** Haptic moments: [Warning] is a failure the person did not cause and can retry (UI2-15). */
@@ -69,7 +73,11 @@ enum class AuthEffect { Error, Warning, Success }
 class SignInViewModel @Inject constructor(
     private val session: SessionRepository,
     private val savedState: SavedStateHandle,
+    networkConfig: NetworkConfig,
 ) : ViewModel() {
+    /** The footer's legal pages, from the configured web base; null hides the footer. */
+    val legalLinks: LegalLinks? = LegalLinks.from(networkConfig.webBase)
+
     // The email survives process death; the password deliberately does not.
     private val _state = MutableStateFlow(SignInUiState(email = savedState[KEY_EMAIL] ?: ""))
     val state: StateFlow<SignInUiState> = _state.asStateFlow()
@@ -168,7 +176,17 @@ class SignInViewModel @Inject constructor(
     }
 
     fun dismissMessage() {
-        _state.update { it.copy(errorMessage = null, resetSentTo = null, signedOutNotice = false) }
+        _state.update {
+            it.copy(errorMessage = null, resetSentTo = null, signedOutNotice = false, linkUnavailable = false)
+        }
+    }
+
+    /**
+     * Nothing on the device could open a legal page. Says so calmly, with no haptic: the person
+     * did nothing wrong and their typing is untouched.
+     */
+    fun onLinkUnavailable() {
+        _state.update { it.copy(linkUnavailable = true) }
     }
 
     private fun WaiveraError.hidesAccountExistence(): Boolean =

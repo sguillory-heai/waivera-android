@@ -1,14 +1,13 @@
 package com.waivera.waivera.feature.auth
 
 import android.content.pm.ApplicationInfo
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.relocation.BringIntoViewRequester
+import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.MaterialTheme
@@ -16,40 +15,36 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.ui.Alignment
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.autofill.ContentType
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusDirection
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.style.TextAlign
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.waivera.waivera.core.designsystem.component.BannerTone
 import com.waivera.waivera.core.designsystem.component.WaiveraBanner
 import com.waivera.waivera.core.designsystem.component.WaiveraButton
 import com.waivera.waivera.core.designsystem.component.WaiveraButtonVariant
-import com.waivera.waivera.core.designsystem.component.WaiveraLogo
-import com.waivera.waivera.core.designsystem.component.WaiveraLogoVariant
+import com.waivera.waivera.core.designsystem.component.WaiveraGradientButton
 import com.waivera.waivera.core.designsystem.component.WaiveraTextField
 import com.waivera.waivera.core.designsystem.feedback.Haptics
 import com.waivera.waivera.core.designsystem.feedback.rememberHaptics
 import com.waivera.waivera.core.designsystem.preview.WaiveraPreviews
-import com.waivera.waivera.core.designsystem.theme.WaiveraBrand
-import com.waivera.waivera.core.designsystem.theme.WaiveraShapes
-import com.waivera.waivera.core.designsystem.theme.WaiveraSizes
 import com.waivera.waivera.core.designsystem.theme.WaiveraSpacing
 import com.waivera.waivera.core.designsystem.theme.WaiveraTheme
-import com.waivera.waivera.core.designsystem.theme.isLargeFontScale
 import com.waivera.waivera.core.network.R as NetworkR
 import kotlinx.coroutines.flow.Flow
 
@@ -63,6 +58,7 @@ import kotlinx.coroutines.flow.Flow
 fun SignInScreen(configurationMissing: Boolean, modifier: Modifier = Modifier) {
     val viewModel: SignInViewModel = hiltViewModel()
     val state by viewModel.state.collectAsStateWithLifecycle()
+    val uriHandler = LocalUriHandler.current
     AuthEffects(viewModel.effects, rememberHaptics())
     SignInContent(
         state = if (configurationMissing && state.isConfigured) {
@@ -76,7 +72,16 @@ fun SignInScreen(configurationMissing: Boolean, modifier: Modifier = Modifier) {
             onSubmit = viewModel::signIn,
             onForgotPassword = viewModel::sendPasswordReset,
             onDismissMessage = viewModel::dismissMessage,
+            onOpenLink = { url ->
+                // The app's handler opens a Custom Tab, or a browser; it throws when nothing can.
+                try {
+                    uriHandler.openUri(url)
+                } catch (_: IllegalArgumentException) {
+                    viewModel.onLinkUnavailable()
+                }
+            },
         ),
+        legalLinks = viewModel.legalLinks,
         modifier = modifier,
     )
 }
@@ -104,13 +109,21 @@ internal class SignInActions(
     val onSubmit: () -> Unit = {},
     val onForgotPassword: () -> Unit = {},
     val onDismissMessage: () -> Unit = {},
+    val onOpenLink: (String) -> Unit = {},
 )
 
+/**
+ * The sign-in screen: the brand header with the real logo, then the curved sheet with a short
+ * welcome, any message, the two fields, Sign in, Forgot password? and the legal links. No
+ * tagline or reassurance copy: everything on it helps someone sign in.
+ */
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 internal fun SignInContent(
     state: SignInUiState,
     actions: SignInActions,
     modifier: Modifier = Modifier,
+    legalLinks: LegalLinks? = null,
     showConfigurationKeys: Boolean = rememberIsDebuggableBuild(),
 ) {
     val keyboard = LocalSoftwareKeyboardController.current
@@ -118,26 +131,41 @@ internal fun SignInContent(
         keyboard?.hide()
         actions.onSubmit()
     }
-    AuthScaffold(
+    // The button follows the password field into view, so with the keyboard up it stays reachable.
+    val actionsInView = remember { BringIntoViewRequester() }
+    var passwordFocused by remember { mutableStateOf(false) }
+    KeepInViewAboveKeyboard(requester = actionsInView, active = passwordFocused)
+    SignInFrame(
         modifier = modifier,
-        bottomBar = { SignInButtons(state = state, onSubmit = submit, onForgotPassword = actions.onForgotPassword) },
+        footer = {
+            if (legalLinks != null) LegalFooter(links = legalLinks, onOpen = actions.onOpenLink)
+        },
     ) {
-        // On a short window a banner pushes the form down; the tagline goes first so the fields stay close.
-        SignInHero(showTagline = !isLargeFontScale() && !(state.hasBanner && LocalCompactAuthWindow.current))
+        Text(
+            text = stringResource(R.string.feature_auth_sign_in_title),
+            style = MaterialTheme.typography.headlineMedium,
+            color = WaiveraTheme.colors.text,
+            modifier = Modifier
+                .fillMaxWidth()
+                .then(GutterPadding)
+                .semantics { heading() },
+        )
         SignInBanners(
             state = state,
             onDismiss = actions.onDismissMessage,
             showConfigurationKeys = showConfigurationKeys,
         )
-        SignInForm(state = state, actions = actions, onSubmit = submit)
-        Text(
-            text = stringResource(R.string.feature_auth_footer),
-            style = MaterialTheme.typography.bodySmall,
-            color = WaiveraTheme.colors.textSecondary,
-            textAlign = TextAlign.Center,
-            modifier = Modifier
-                .fillMaxWidth()
-                .then(GutterPadding),
+        SignInForm(
+            state = state,
+            actions = actions,
+            onSubmit = submit,
+            onPasswordFocusChange = { passwordFocused = it },
+        )
+        SignInButtons(
+            state = state,
+            onSubmit = submit,
+            onForgotPassword = actions.onForgotPassword,
+            modifier = Modifier.bringIntoViewRequester(actionsInView),
         )
     }
 }
@@ -177,14 +205,28 @@ private fun SignInBanners(state: SignInUiState, onDismiss: () -> Unit, showConfi
             )
         }
     }
+    AuthAnimatedVisibility(visible = state.linkUnavailable) {
+        WaiveraBanner(
+            title = stringResource(R.string.feature_auth_link_failed_title),
+            message = stringResource(R.string.feature_auth_link_failed_message),
+            tone = BannerTone.Warning,
+            onDismiss = onDismiss,
+        )
+    }
 }
 
 /**
  * Email (IME Next moves to the password) and password (IME Go submits). Submitting with an empty
- * field shows the field errors that explain what is missing.
+ * field shows the field errors that explain what is missing. Both carry autofill types, so a
+ * password manager offers saved sign-ins and Compose offers to save them after sign-in.
  */
 @Composable
-private fun SignInForm(state: SignInUiState, actions: SignInActions, onSubmit: () -> Unit) {
+private fun SignInForm(
+    state: SignInUiState,
+    actions: SignInActions,
+    onSubmit: () -> Unit,
+    onPasswordFocusChange: (Boolean) -> Unit,
+) {
     val focusManager = LocalFocusManager.current
     Column(
         modifier = Modifier
@@ -192,7 +234,6 @@ private fun SignInForm(state: SignInUiState, actions: SignInActions, onSubmit: (
             .then(GutterPadding),
         verticalArrangement = Arrangement.spacedBy(WaiveraSpacing.Medium),
     ) {
-        SignInCardHeading()
         WaiveraTextField(
             value = state.email,
             onValueChange = actions.onEmailChange,
@@ -218,97 +259,43 @@ private fun SignInForm(state: SignInUiState, actions: SignInActions, onSubmit: (
             onImeAction = onSubmit,
             errorText = state.passwordError?.let { stringResource(it) },
             enabled = state.fieldsEnabled,
+            modifier = Modifier.onFocusChanged { onPasswordFocusChange(it.hasFocus) },
         )
     }
 }
 
+/** The gradient Sign in, with Forgot password? centred under it, close to the fields. */
 @Composable
-private fun SignInButtons(state: SignInUiState, onSubmit: () -> Unit, onForgotPassword: () -> Unit) {
-    WaiveraButton(
-        text = stringResource(R.string.feature_auth_sign_in_button),
-        onClick = onSubmit,
-        // Enabled with empty fields so a tap explains what is missing (field errors) instead of
-        // a dimmed button that says nothing; enabled while busy so the spinner is not dimmed.
-        enabled = state.fieldsEnabled || state.isSigningIn,
-        loadingText = stringResource(R.string.feature_auth_connecting).takeIf { state.isSigningIn },
-        fullWidth = true,
-    )
-    WaiveraButton(
-        text = stringResource(R.string.feature_auth_forgot_password),
-        onClick = onForgotPassword,
-        variant = WaiveraButtonVariant.Text,
-        enabled = state.fieldsEnabled || state.phase == SignInPhase.SendingReset,
-        loadingText = stringResource(R.string.feature_auth_reset_sending)
-            .takeIf { state.phase == SignInPhase.SendingReset },
-        fullWidth = true,
-    )
-}
-
-/**
- * The welcome: the real logo (mark and wordmark) on a soft brand-gradient band, then the
- * greeting. The band shrinks on a short window or at large text so the form still starts on
- * the first screen; the tagline is the first thing to go.
- */
-@Composable
-private fun SignInHero(showTagline: Boolean) {
-    val colors = WaiveraTheme.colors
-    val compact = LocalCompactAuthWindow.current || isLargeFontScale()
+private fun SignInButtons(
+    state: SignInUiState,
+    onSubmit: () -> Unit,
+    onForgotPassword: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
     Column(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
-            .then(GutterPadding),
-        verticalArrangement = Arrangement.spacedBy(WaiveraSpacing.MediumSmall),
+            .then(GutterPadding)
+            .padding(top = WaiveraSpacing.ExtraSmall),
+        verticalArrangement = Arrangement.spacedBy(WaiveraSpacing.ExtraSmall),
     ) {
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .heightIn(min = if (compact) WaiveraSizes.HeroBandCompact else WaiveraSizes.HeroBand)
-                .clip(WaiveraShapes.Hero)
-                .background(colors.surface)
-                .background(WaiveraBrand.wash())
-                .border(WaiveraSpacing.Hairline, colors.border, WaiveraShapes.Hero)
-                .padding(WaiveraSpacing.Large),
-            contentAlignment = Alignment.Center,
-        ) {
-            WaiveraLogo(
-                variant = WaiveraLogoVariant.Lockup,
-                height = if (compact) WaiveraSizes.BrandLockup else WaiveraSizes.BrandLockupHero,
-                contentDescription = stringResource(R.string.feature_auth_brand),
-            )
-        }
-        Text(
-            text = stringResource(R.string.feature_auth_sign_in_title),
-            style = MaterialTheme.typography.headlineMedium,
-            color = colors.text,
-            modifier = Modifier.semantics { heading() },
+        WaiveraGradientButton(
+            text = stringResource(R.string.feature_auth_sign_in_button),
+            onClick = onSubmit,
+            // Enabled with empty fields so a tap explains what is missing (field errors) instead of
+            // a dimmed button that says nothing; enabled while busy so the spinner is not dimmed.
+            enabled = state.fieldsEnabled || state.isSigningIn,
+            loadingText = stringResource(R.string.feature_auth_connecting).takeIf { state.isSigningIn },
         )
-        if (showTagline) {
-            Text(
-                text = stringResource(R.string.feature_auth_sign_in_subtitle),
-                style = MaterialTheme.typography.bodyLarge,
-                color = colors.textSecondary,
-            )
-        }
-    }
-}
-
-@Composable
-private fun SignInCardHeading() {
-    val colors = WaiveraTheme.colors
-    Column(verticalArrangement = Arrangement.spacedBy(WaiveraSpacing.ExtraSmall)) {
-        Text(
-            text = stringResource(R.string.feature_auth_sign_in_card_title),
-            style = MaterialTheme.typography.titleMedium,
-            color = colors.text,
-            modifier = Modifier.semantics { heading() },
+        WaiveraButton(
+            text = stringResource(R.string.feature_auth_forgot_password),
+            onClick = onForgotPassword,
+            variant = WaiveraButtonVariant.Text,
+            enabled = state.fieldsEnabled || state.phase == SignInPhase.SendingReset,
+            loadingText = stringResource(R.string.feature_auth_reset_sending)
+                .takeIf { state.phase == SignInPhase.SendingReset },
+            fullWidth = true,
         )
-        if (!isLargeFontScale()) {
-            Text(
-                text = stringResource(R.string.feature_auth_sign_in_card_subtitle),
-                style = MaterialTheme.typography.bodyMedium,
-                color = colors.textSecondary,
-            )
-        }
     }
 }
 
@@ -345,9 +332,24 @@ private fun rememberIsDebuggableBuild(): Boolean {
 @Composable
 private fun SignInEmptyPreview() {
     WaiveraTheme {
-        SignInContent(state = SignInUiState(), actions = SignInActions())
+        SignInContent(state = SignInUiState(), actions = SignInActions(), legalLinks = PreviewLegalLinks)
     }
 }
+
+@WaiveraPreviews
+@Composable
+private fun SignInLinkUnavailablePreview() {
+    WaiveraTheme {
+        SignInContent(
+            state = SignInUiState(linkUnavailable = true),
+            actions = SignInActions(),
+            legalLinks = PreviewLegalLinks,
+        )
+    }
+}
+
+/** The footer as a configured build shows it; a preview opens nothing, so the links stay empty. */
+private val PreviewLegalLinks = LegalLinks(termsOfService = "", privacyPolicy = "")
 
 @WaiveraPreviews
 @Composable
