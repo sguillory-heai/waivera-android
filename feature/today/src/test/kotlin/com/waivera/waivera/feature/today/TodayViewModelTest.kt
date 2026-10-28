@@ -16,10 +16,13 @@ import com.waivera.waivera.core.network.dto.ChatActivityType
 import com.waivera.waivera.core.network.error.WaiveraError
 import com.waivera.waivera.core.realtime.ConnectionState
 import com.waivera.waivera.core.testing.EnglishConversationTitles
+import com.waivera.waivera.core.testing.InMemoryHandledTodayRepository
 import com.waivera.waivera.core.testing.MainDispatcherRule
 import com.waivera.waivera.core.testing.TestSessionRepository
 import com.waivera.waivera.feature.today.model.ActivityFilter
 import com.waivera.waivera.feature.today.model.DayPart
+import com.waivera.waivera.feature.today.model.TodayProgress
+import com.waivera.waivera.feature.today.model.TodayStats
 import com.waivera.waivera.feature.today.model.TodayUiState
 import com.waivera.waivera.feature.today.model.UpcomingLabel
 import java.time.Instant
@@ -27,6 +30,7 @@ import java.time.LocalDate
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertIs
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.flow.toList
@@ -50,6 +54,7 @@ class TodayViewModelTest {
     private val calendar = FakeCalendarRepository()
     private val realtime = FakeRealtimeStatusRepository()
     private val now = TestNowSource()
+    private val handled = InMemoryHandledTodayRepository()
     private val window = InvitationAnswers.UNDO_WINDOW_MILLIS
 
     // Owning the ViewModel through a store lets a test clear it the way navigation does.
@@ -62,6 +67,7 @@ class TodayViewModelTest {
             activity,
             calendar,
             realtime,
+            handled,
             now,
             EnglishConversationTitles,
             backgroundScope,
@@ -405,5 +411,74 @@ class TodayViewModelTest {
         start()
         assertEquals(LocalDate.of(2026, 11, 1), calendar.observedRanges.last().start)
         assertEquals(LocalDate.of(2026, 11, 15), calendar.observedRanges.last().endExclusive)
+    }
+
+    @Test
+    fun handled_aChatReadElsewhereCountsAndIsSaved() = runTest(main.testDispatcher) {
+        val unread = listOf(conversation(7, unread = 2), conversation(8, unread = 1))
+        conversations.state.value = Synced(unread, lastSyncedAt = TEST_NOW)
+        val (viewModel, _) = start()
+        assertEquals(TodayProgress(handled = 0, open = 2), viewModel.ui.progress)
+
+        val oneRead = listOf(conversation(7), conversation(8, unread = 1))
+        conversations.state.value = Synced(oneRead, lastSyncedAt = TEST_NOW)
+        runCurrent()
+        assertEquals(TodayProgress(handled = 1, open = 1), viewModel.ui.progress)
+        assertEquals(1, handled.current?.handled, "the tally is saved, not only shown")
+        assertEquals(LocalDate.of(2026, 11, 1), handled.current?.day)
+    }
+
+    @Test
+    fun handled_anUndoneInvitationAnswerTakesItsCountBack() = runTest(main.testDispatcher) {
+        givenInvitation()
+        val (viewModel, _) = start()
+        viewModel.onAction(TodayAction.RespondToInvitation("invite", accept = true))
+        runCurrent()
+        assertEquals(TodayProgress(handled = 1, open = 0), viewModel.ui.progress)
+        viewModel.onAction(TodayAction.UndoInvitation("invite", token = 1))
+        runCurrent()
+        assertEquals(TodayProgress(handled = 0, open = 1), viewModel.ui.progress)
+        assertEquals(0, handled.current?.handled)
+    }
+
+    @Test
+    fun handled_nothingIsRecordedWhileASourceBehindNeedsYouIsLoading() = runTest(main.testDispatcher) {
+        conversations.state.value = Synced(listOf(conversation(7, unread = 2)), lastSyncedAt = TEST_NOW)
+        activity.state.value = Synced(ActivityFeed(), SyncStatus.Refreshing, null)
+        val (viewModel, _) = start()
+        runCurrent()
+        assertNull(viewModel.ui.handledObservation)
+        assertTrue(handled.recorded.isEmpty(), "a list missing its mentions must not read as handled")
+        assertEquals(TodayProgress(handled = 0, open = 1), viewModel.ui.progress)
+    }
+
+    @Test
+    fun handled_reconnectKeepsTheCount() = runTest(main.testDispatcher) {
+        conversations.state.value = Synced(listOf(conversation(7, unread = 2)), lastSyncedAt = TEST_NOW)
+        val (viewModel, _) = start()
+        conversations.state.value = Synced(listOf(conversation(7)), lastSyncedAt = TEST_NOW)
+        runCurrent()
+        realtime.mutableStatus.value = RealtimeStatus(ConnectionState.Reconnecting(1, 1_000), isOnline = true)
+        realtime.mutableStatus.value = RealtimeStatus(ConnectionState.Connected, isOnline = true)
+        runCurrent()
+        assertEquals(TodayProgress(handled = 1, open = 0), viewModel.ui.progress)
+    }
+
+    @Test
+    fun stats_countUnreadChatsAndTheEventsTodayAndThisWeek() = runTest(main.testDispatcher) {
+        conversations.state.value = Synced(
+            listOf(conversation(7, unread = 2), conversation(8), conversation(9, unread = 1)),
+            lastSyncedAt = TEST_NOW,
+        )
+        val events = listOf(
+            timedEvent("visit", "2026-11-01T16:55:00Z", "2026-11-01T18:00:00Z"),
+            timedEvent("later", "2026-11-04T15:00:00Z", "2026-11-04T16:00:00Z"),
+            timedEvent("next-week", "2026-11-09T15:00:00Z", "2026-11-09T16:00:00Z"),
+            timedEvent("pending", "2026-11-01T20:00:00Z", "2026-11-01T21:00:00Z", MyInvitation.PENDING),
+        )
+        calendar.feedFor.value = { range -> ScheduleFeed(range, TEST_ZONE.id, events) }
+        val (viewModel, _) = start()
+        assertEquals(TodayStats(eventsToday = 1, unreadChats = 2, eventsThisWeek = 2), viewModel.ui.stats)
+        assertEquals(1, viewModel.ui.day?.eventCount)
     }
 }

@@ -2,8 +2,10 @@ package com.waivera.waivera.feature.today
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.waivera.waivera.core.data.calendar.CalendarMath
 import com.waivera.waivera.core.data.model.ConversationTitleText
 import com.waivera.waivera.core.data.model.DateRange
+import com.waivera.waivera.core.data.model.HandledObservation
 import com.waivera.waivera.core.data.model.ScheduleFeed
 import com.waivera.waivera.core.data.model.SessionState
 import com.waivera.waivera.core.data.model.Synced
@@ -12,6 +14,7 @@ import com.waivera.waivera.core.data.model.currentUserId
 import com.waivera.waivera.core.data.repository.ActivityRepository
 import com.waivera.waivera.core.data.repository.CalendarRepository
 import com.waivera.waivera.core.data.repository.ConversationRepository
+import com.waivera.waivera.core.data.repository.HandledTodayRepository
 import com.waivera.waivera.core.data.repository.RealtimeStatusRepository
 import com.waivera.waivera.core.data.repository.SessionRepository
 import com.waivera.waivera.core.network.di.ApplicationScope
@@ -25,6 +28,7 @@ import com.waivera.waivera.feature.today.model.TodaySources
 import com.waivera.waivera.feature.today.model.TodayUiState
 import dagger.hilt.android.lifecycle.HiltViewModel
 import java.time.Duration
+import java.time.LocalDate
 import javax.inject.Inject
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -38,9 +42,11 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.shareIn
@@ -61,6 +67,7 @@ class TodayViewModel @Inject constructor(
     private val activity: ActivityRepository,
     private val calendar: CalendarRepository,
     private val realtimeStatus: RealtimeStatusRepository,
+    private val handledToday: HandledTodayRepository,
     private val nowSource: NowSource,
     private val titles: ConversationTitleText,
     @ApplicationScope appScope: CoroutineScope,
@@ -77,10 +84,16 @@ class TodayViewModel @Inject constructor(
     private val zone = calendar.zone.distinctUntilChanged()
     private val ticks = nowSource.ticks.shareIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS), 1)
 
-    /** Today and the next two weeks in the employee's zone; moves at local midnight, not device midnight. */
+    /**
+     * From this week's Sunday (for the "this week" stat) to two weeks out, in the employee's zone;
+     * moves at local midnight, not device midnight.
+     */
     private val range: Flow<DateRange> = combine(zone, ticks) { z, now -> now.atZone(z).toLocalDate() }
         .distinctUntilChanged()
-        .map { today -> DateRange(today, today.plusDays(SCHEDULE_DAYS)) }
+        .map(::scheduleRange)
+
+    /** The latest complete observation of Needs you, saved to the tally by one collector. */
+    private val observations = MutableStateFlow<HandledObservation?>(null)
 
     private val schedule: Flow<Synced<ScheduleFeed>?> = range
         .flatMapLatest<DateRange, Synced<ScheduleFeed>?> { calendar.observeRange(it) }
@@ -94,24 +107,39 @@ class TodayViewModel @Inject constructor(
             calendar.observeMilestones(),
             conversations.observeFailedSends(),
         ) { chats, feed, events, milestones, failed -> TodaySources(chats, feed, events, milestones, failed) },
-        combine(session.state, zone, ticks, realtimeStatus.status, local) { s, z, now, realtime, l ->
-            TodayContext(
-                accountName = accountName(s),
-                myUserId = s.currentUserId,
-                zone = z,
-                now = now,
-                realtime = realtime,
-                local = l,
-                titles = titles,
-                firstName = s.currentUser?.let { GreetingRules.firstName(it.firstName, it.displayName) },
-            )
-        },
+        combine(
+            combine(session.state, zone, ticks, realtimeStatus.status, local) { s, z, now, realtime, l ->
+                TodayContext(
+                    accountName = accountName(s),
+                    myUserId = s.currentUserId,
+                    zone = z,
+                    now = now,
+                    realtime = realtime,
+                    local = l,
+                    titles = titles,
+                    firstName = s.currentUser?.let { GreetingRules.firstName(it.firstName, it.displayName) },
+                )
+            },
+            handledToday.tally,
+        ) { context, tally -> context.copy(handled = tally) },
     ) { sources, context -> TodayAssembler.assemble(sources, context) }
+        .onEach { observations.value = it.handledObservation }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS), TodayUiState())
 
     init {
         refreshStaleSources()
         pager.start()
+        recordHandled()
+    }
+
+    /**
+     * Saves each new observation to the tally. It follows what the screen assembles rather than
+     * the screen itself, so the state stays shared only while someone watches it.
+     */
+    private fun recordHandled() {
+        viewModelScope.launch {
+            observations.filterNotNull().distinctUntilChanged().collect { handledToday.record(it) }
+        }
     }
 
     fun onAction(action: TodayAction) {
@@ -216,19 +244,22 @@ class TodayViewModel @Inject constructor(
         invitations.flush()
     }
 
-    private suspend fun currentRange(): DateRange {
-        val today = nowSource.now().atZone(zone.first()).toLocalDate()
-        return DateRange(today, today.plusDays(SCHEDULE_DAYS))
-    }
+    private suspend fun currentRange(): DateRange =
+        todayScheduleRange(nowSource.now().atZone(zone.first()).toLocalDate())
 
     private companion object {
         const val STOP_TIMEOUT_MILLIS = 5_000L
-        const val SCHEDULE_DAYS = 14L
         val CHAT_FRESH_FOR: Duration = Duration.ofSeconds(60)
         val ACTIVITY_FRESH_FOR: Duration = Duration.ofSeconds(30)
         val MILESTONES_FRESH_FOR: Duration = Duration.ofMinutes(15)
     }
 }
+
+/** From the Sunday that starts this week (for the week stat) through the next two weeks. */
+private fun todayScheduleRange(today: LocalDate): DateRange =
+    DateRange(start = CalendarMath.startOfWeek(today), endExclusive = today.plusDays(SCHEDULE_DAYS))
+
+private const val SCHEDULE_DAYS = 14L
 
 /** The name behind the top bar avatar: display name, else first and last, else email. */
 private fun accountName(state: SessionState): String {

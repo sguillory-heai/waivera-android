@@ -6,6 +6,7 @@ import com.waivera.waivera.core.data.model.Conversation
 import com.waivera.waivera.core.data.model.ConversationKind
 import com.waivera.waivera.core.data.model.ConversationTitles
 import com.waivera.waivera.core.data.model.DateRange
+import com.waivera.waivera.core.data.model.HandledTally
 import com.waivera.waivera.core.data.model.Milestone
 import com.waivera.waivera.core.data.model.MyInvitation
 import com.waivera.waivera.core.data.model.RealtimeStatus
@@ -63,7 +64,18 @@ class TodayAssemblerTest {
         now: Instant = TEST_NOW,
         realtime: RealtimeStatus = RealtimeStatus(ConnectionState.Connected, isOnline = true),
         firstName: String? = null,
-    ) = TodayContext("Alex Rivera", ME, TEST_ZONE, now, realtime, local, EnglishConversationTitles, firstName)
+        handled: HandledTally? = null,
+    ) = TodayContext(
+        accountName = "Alex Rivera",
+        myUserId = ME,
+        zone = TEST_ZONE,
+        now = now,
+        realtime = realtime,
+        local = local,
+        titles = EnglishConversationTitles,
+        firstName = firstName,
+        handled = handled,
+    )
 
     private fun assemble(sources: TodaySources = sources(), context: TodayContext = context()) =
         TodayAssembler.assemble(sources, context)
@@ -430,5 +442,59 @@ class TodayAssemblerTest {
         val connecting = RealtimeStatus(ConnectionState.Connecting, isOnline = true)
         assertEquals(ConnectionBannerState.Connected, TodayAssembler.connectionBanner(connecting))
         assertNotNull(assemble().date)
+    }
+
+    @Test
+    fun `handled - the observation lists every open item, collapsed ones too, and marks invitations undoable`() {
+        val conversations = (1L..6L).map { conversation(it, unread = 1, at = TEST_NOW.minusSeconds(it * 60)) }
+        val invite = timedEvent("review", "2026-11-03T15:00:00Z", "2026-11-03T16:00:00Z", MyInvitation.PENDING)
+        val state = assemble(sources(conversations = conversations, events = listOf(invite)))
+        val observation = assertNotNull(state.handledObservation)
+        assertTrue(state.needsYou.items.size < observation.open.size, "some items are collapsed")
+        assertEquals(7, observation.open.size)
+        assertEquals(7, state.needsYou.totalCount)
+        assertEquals(setOf(NeedsYouItem.Invitation.KEY_PREFIX + "review"), observation.undoable)
+        assertEquals(ME, observation.userId)
+        assertEquals(today, observation.day)
+    }
+
+    @Test
+    fun `handled - nothing is observed while activity is still loading or has failed`() {
+        val loading = sources(conversations = listOf(conversation(1, unread = 1))).let {
+            it.copy(activity = Synced(ActivityFeed(emptyList(), false), lastSyncedAt = null))
+        }
+        assertNull(assemble(loading).handledObservation)
+        val failed = loading.copy(
+            activity = Synced(
+                ActivityFeed(emptyList(), false),
+                status = SyncStatus.Failed(WaiveraError.Network()),
+                lastSyncedAt = null,
+            ),
+        )
+        assertNull(assemble(failed).handledObservation)
+    }
+
+    @Test
+    fun `handled - the ring counts what left the list since the saved tally`() {
+        val saved = HandledTally(userId = ME, day = today, handled = 2, open = setOf("gone-1", "gone-2"))
+        val state = assemble(sources(conversations = listOf(conversation(1, unread = 1))), context(handled = saved))
+        val progress = assertNotNull(state.progress)
+        assertEquals(4, progress.handled, "both saved items left the list")
+        assertEquals(1, progress.open)
+    }
+
+    @Test
+    fun `handled - yesterday's tally starts the ring again at zero`() {
+        val yesterday = HandledTally(userId = ME, day = today.minusDays(1), handled = 6, open = setOf("old"))
+        val state = assemble(sources(conversations = listOf(conversation(1, unread = 1))), context(handled = yesterday))
+        assertEquals(TodayProgress(handled = 0, open = 1), state.progress)
+    }
+
+    @Test
+    fun `stats and the day track come from the same schedule`() {
+        val visit = timedEvent("visit", "2026-11-01T17:00:00Z", "2026-11-01T18:00:00Z")
+        val state = assemble(sources(conversations = listOf(conversation(1, unread = 2)), events = listOf(visit)))
+        assertEquals(TodayStats(eventsToday = 1, unreadChats = 1, eventsThisWeek = 1), state.stats)
+        assertEquals(1, assertNotNull(state.day).eventCount)
     }
 }

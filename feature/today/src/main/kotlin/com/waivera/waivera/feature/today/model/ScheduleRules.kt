@@ -56,6 +56,7 @@ internal object ScheduleRules {
             endsOnLaterDay = !event.isAllDay && endsOnLaterDay(start, end),
             location = event.location?.takeIf(String::isNotBlank),
             isOnline = event.online,
+            startsToday = firstDay(event, context.zone, today) == today,
         )
     }
 
@@ -110,4 +111,7 @@ internal object ScheduleRules {
             .sortedBy { it.name.orEmpty().lowercase() }
 
     private val HIDDEN_FROM_NEXT_UP = setOf(MyInvitation.PENDING, MyInvitation.DECLINED)
+
+    /** The Needs you keys of invitations: answering one can be undone, so its return is not new. */
+    fun isInvitationKey(key: String): Boolean = key.startsWith(NeedsYouItem.Invitation.KEY_PREFIX)
 }

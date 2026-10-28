@@ -6,6 +6,7 @@ import com.waivera.waivera.core.data.model.Conversation
 import com.waivera.waivera.core.data.model.ConversationKind
 import com.waivera.waivera.core.data.model.ConversationTitleText
 import com.waivera.waivera.core.data.model.ConversationTitles
+import com.waivera.waivera.core.data.model.HandledTally
 import com.waivera.waivera.core.data.model.MessagePreview
 import com.waivera.waivera.core.data.model.Milestone
 import com.waivera.waivera.core.data.model.RealtimeStatus
@@ -56,6 +57,8 @@ data class TodayContext(
     val titles: ConversationTitleText,
     /** Who the greeting names; null greets without a name. */
     val firstName: String? = null,
+    /** The saved handled-today tally ([HandledTally]); null before the first one. */
+    val handled: HandledTally? = null,
 )
 
 /** Builds [TodayUiState] from the cache. Pure, so every rule is unit tested without Android. */
@@ -67,8 +70,15 @@ object TodayAssembler {
         val today = context.now.atZone(context.zone).toLocalDate()
         val pinned = pinnedMentions(sources)
         val activity = activitySection(sources.activity, context, pinned.mapTo(mutableSetOf()) { it.id })
-        val needsYou = needsYouSection(sources, context, today, pinned)
+        val openItems = openItems(sources, context, today, pinned)
+        val needsYou = needsYouSection(sources, context, openItems)
         val nextUp = ScheduleRules.nextUp(sources.schedule, context, today)
+        val observation = HandledRules.observation(
+            context = context,
+            today = today,
+            openItems = openItems,
+            complete = needsYou.isReady && !needsYou.failed && nextUp.isReady && activity.isReady && !activity.failed,
+        )
         val primary = listOf(sources.conversations, sources.activity, sources.schedule)
         val nothingCached = primary.all { it == null || !it.hasContent() }
         val stillLoading = primary.any { it == null || it.isLoading() }
@@ -89,6 +99,10 @@ object TodayAssembler {
                 .map { it.copy(isMe = it.userId == context.myUserId) },
             milestonesFailed = sources.milestones.error != null && sources.milestones.data.isEmpty(),
             activity = activity,
+            progress = HandledRules.progress(context, today, needsYou, observation),
+            stats = DayRules.stats(sources.conversations, sources.schedule, context.zone, today),
+            day = DayRules.timeline(sources.schedule, context.zone, today, context.now),
+            handledObservation = observation,
         )
     }
 
@@ -115,12 +129,13 @@ object TodayAssembler {
         }
     }
 
-    private fun needsYouSection(
+    /** Everything that needs the person, in Needs you order: failed sends, chats and mentions, invitations, tickets. */
+    private fun openItems(
         sources: TodaySources,
         context: TodayContext,
         today: LocalDate,
         pinnedMentions: List<ActivityItem>,
-    ): NeedsYouSection {
+    ): List<NeedsYouItem> {
         val conversations = sources.conversations.data
         val directs = conversations.filter { it.kind == ConversationKind.DIRECT && it.isUnreadFor(context.myUserId) }
         val dmRows = directs.map { c ->
@@ -148,11 +163,19 @@ object TodayAssembler {
                 ticketTitle = c.lastMessage?.ticket?.title,
             )
         }
-        val all = notSentRows(sources, context) + conversationRows + invitations + tickets
+        return notSentRows(sources, context) + conversationRows + invitations + tickets
+    }
+
+    private fun needsYouSection(
+        sources: TodaySources,
+        context: TodayContext,
+        all: List<NeedsYouItem>,
+    ): NeedsYouSection {
         val visible = if (context.local.needsYouExpanded) all else all.take(NeedsYouSection.COLLAPSED_COUNT)
         val ready = sources.conversations.hasContent() || sources.conversations.lastSyncedAt != null
         return NeedsYouSection(
             items = visible,
+            totalCount = all.size,
             hiddenCount = all.size - visible.size,
             isExpanded = context.local.needsYouExpanded && all.size > NeedsYouSection.COLLAPSED_COUNT,
             isReady = ready,

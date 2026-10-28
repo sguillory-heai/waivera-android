@@ -1,6 +1,7 @@
 package com.waivera.waivera.feature.today.model
 
 import androidx.compose.runtime.Immutable
+import com.waivera.waivera.core.data.model.HandledObservation
 import com.waivera.waivera.core.designsystem.component.ConnectionBannerState
 import com.waivera.waivera.core.network.dto.ChatActivityType
 import com.waivera.waivera.core.network.error.WaiveraError
@@ -33,6 +34,16 @@ data class TodayUiState(
     val milestones: List<CelebrationItem> = emptyList(),
     val milestonesFailed: Boolean = false,
     val activity: ActivitySection = ActivitySection(),
+    /** The hero ring: handled today (tallied on this device) and still open; null until Needs you loads. */
+    val progress: TodayProgress? = null,
+    val stats: TodayStats = TodayStats(),
+    /** "Your day": today's timed events on a track; null until the schedule loads. */
+    val day: DayTimeline? = null,
+    /**
+     * What needs the person right now, for the on-device tally; null while any source behind
+     * Needs you is loading or failed, so a missing source never reads as everything handled.
+     */
+    val handledObservation: HandledObservation? = null,
 ) {
     /** The one "All caught up" moment: nothing needs the person and no activity is unread. */
     val isAllCaughtUp: Boolean
@@ -47,6 +58,8 @@ data class TodayUiState(
 @Immutable
 data class NeedsYouSection(
     val items: List<NeedsYouItem> = emptyList(),
+    /** Every open item, including the ones collapsed out of [items]: the hero counts these. */
+    val totalCount: Int = items.size,
     /** Rows beyond [NeedsYouSection.COLLAPSED_COUNT] are hidden until the person expands. */
     val hiddenCount: Int = 0,
     val isExpanded: Boolean = false,
@@ -94,7 +107,11 @@ sealed interface NeedsYouItem {
 
     data class Invitation(val eventId: String, val title: String?, val organizer: String?, val time: UpcomingLabel?) :
         NeedsYouItem {
-        override val key: String get() = "invite-$eventId"
+        override val key: String get() = "$KEY_PREFIX$eventId"
+
+        companion object {
+            const val KEY_PREFIX = "invite-"
+        }
     }
 
     /**
@@ -149,6 +166,8 @@ data class NextUpItem(
     val endsOnLaterDay: Boolean,
     val location: String?,
     val isOnline: Boolean,
+    /** It shows on today's track: it starts today (or is on now) in the employee's zone. */
+    val startsToday: Boolean = false,
 ) {
     val isHappeningNow: Boolean get() = time is UpcomingLabel.Now
 }
