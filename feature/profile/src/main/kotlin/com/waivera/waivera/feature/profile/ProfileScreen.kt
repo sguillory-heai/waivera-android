@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
@@ -339,7 +340,9 @@ private fun DetailsSections(profile: EmployeeProfile?, state: ProfileUiState.Rea
  *
  * At large font "Try again" moves to its own row under the message, end-aligned, as banner
  * actions do: beside the text it took over half the card and left the reason a one-word column
- * that split "conne / ction" (UI5-03).
+ * that split "conne / ction" (UI5-03). At every size the icon, and "Try again" beside the text,
+ * line up with the message's first line, as in banners, instead of floating mid-paragraph on a
+ * three-line reason (UI6-08).
  */
 @Composable
 internal fun SectionError(error: WaiveraError, onRetry: () -> Unit, modifier: Modifier = Modifier) {
@@ -361,12 +364,12 @@ internal fun SectionError(error: WaiveraError, onRetry: () -> Unit, modifier: Mo
     ) {
         Row(
             horizontalArrangement = Arrangement.spacedBy(WaiveraSpacing.MediumSmall),
-            verticalAlignment = Alignment.CenterVertically,
+            verticalAlignment = Alignment.Top,
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(top = if (stacked) WaiveraSpacing.MediumSmall else WaiveraSpacing.None),
         ) {
-            SectionErrorMessage(error = error, alignTop = stacked, modifier = Modifier.weight(1f))
+            SectionErrorMessage(error = error, besideAction = !stacked, modifier = Modifier.weight(1f))
             if (!stacked) retry()
         }
         if (stacked) {
@@ -375,26 +378,41 @@ internal fun SectionError(error: WaiveraError, onRetry: () -> Unit, modifier: Mo
     }
 }
 
+/**
+ * The icon and reason, with the icon centred on the reason's first line. [besideAction] drops
+ * the first line to the middle of the "Try again" button beside it, so the two line up.
+ */
 @Composable
-private fun SectionErrorMessage(error: WaiveraError, alignTop: Boolean, modifier: Modifier = Modifier) {
+private fun SectionErrorMessage(error: WaiveraError, besideAction: Boolean, modifier: Modifier = Modifier) {
     val colors = WaiveraTheme.colors
+    val style = MaterialTheme.typography.bodyMedium
+    val line = with(LocalDensity.current) { style.lineHeight.toDp() }
+    val slot = maxOf(line, WaiveraSizes.Icon)
+    val top = if (besideAction) {
+        ((WaiveraSpacing.MinTouchTarget - slot) / 2).coerceAtLeast(WaiveraSpacing.None)
+    } else {
+        WaiveraSpacing.None
+    }
     Row(
-        modifier = modifier,
+        modifier = modifier.padding(top = top),
         horizontalArrangement = Arrangement.spacedBy(WaiveraSpacing.MediumSmall),
-        // A wrapped reason keeps its icon by the first line, not floating mid-paragraph.
-        verticalAlignment = if (alignTop) Alignment.Top else Alignment.CenterVertically,
+        verticalAlignment = Alignment.Top,
     ) {
-        Icon(
-            painter = painterResource(WaiveraIcons.Error),
-            contentDescription = null,
-            tint = colors.textSecondary,
-            modifier = Modifier.size(WaiveraSizes.Icon),
-        )
+        Box(modifier = Modifier.height(slot), contentAlignment = Alignment.Center) {
+            Icon(
+                painter = painterResource(WaiveraIcons.Error),
+                contentDescription = null,
+                tint = colors.textSecondary,
+                modifier = Modifier.size(WaiveraSizes.Icon),
+            )
+        }
         Text(
             text = stringResource(error.messageRes),
-            style = MaterialTheme.typography.bodyMedium,
+            style = style,
             color = colors.textSecondary,
-            modifier = Modifier.weight(1f),
+            modifier = Modifier
+                .weight(1f)
+                .padding(top = (slot - line) / 2),
         )
     }
 }

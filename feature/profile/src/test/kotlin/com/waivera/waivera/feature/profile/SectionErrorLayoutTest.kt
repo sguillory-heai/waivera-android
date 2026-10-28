@@ -26,8 +26,8 @@ import org.robolectric.annotation.Config
 
 /**
  * A profile section error on the small phone keeps its reason readable: no line ends inside a
- * word at 100% or 200%, and at 200% "Try again" sits under the message instead of beside it
- * (UI5-03).
+ * word at 100% or 200%, at 200% "Try again" sits under the message instead of beside it
+ * (UI5-03), and beside a wrapped reason it lines up with the first line (UI6-08).
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [ScreenshotSdk.VALUE], qualifiers = "w360dp-h640dp-notnight-xhdpi")
@@ -58,6 +58,31 @@ class SectionErrorLayoutTest {
 
     @Test
     fun offlineAtLargeFont() = assertReadable(WaiveraError.Network(), LARGE_FONT, stacked = true)
+
+    /**
+     * Beside a wrapped reason, "Try again" lines up with the reason's first line, as banner
+     * actions do, instead of floating at the middle of the paragraph (UI6-08).
+     */
+    @Test
+    fun tryAgainLinesUpWithTheFirstLineOfAWrappedReason() {
+        val error = WaiveraError.Server(httpStatus = 503)
+        render(error = error, fontScale = DEFAULT_FONT)
+        val text = RuntimeEnvironment.getApplication().getString(error.messageRes)
+        val message = compose.onNodeWithText(text, useUnmergedTree = true)
+        val layout = message.fetchTextLayoutResult()
+        assertTrue("\"$text\" did not wrap, so there is nothing to line up", layout.lineCount > 1)
+        val top = message.getBoundsInRoot().top
+        val retry = compose.onNodeWithText(TRY_AGAIN, useUnmergedTree = true).getBoundsInRoot()
+        val retryCentre = (retry.top + retry.bottom) / 2
+        with(compose.density) {
+            val firstLineTop = top + layout.getLineTop(0).toDp()
+            val firstLineBottom = top + layout.getLineBottom(0).toDp()
+            assertTrue(
+                "Try again is centred at $retryCentre, outside the first line ($firstLineTop to $firstLineBottom)",
+                retryCentre in firstLineTop..firstLineBottom,
+            )
+        }
+    }
 
     private fun assertReadable(error: WaiveraError, fontScale: Float, stacked: Boolean) {
         render(error = error, fontScale = fontScale)
