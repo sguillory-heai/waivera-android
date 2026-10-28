@@ -8,7 +8,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -27,12 +27,13 @@ import com.waivera.waivera.core.designsystem.component.ConnectionBannerState
 import com.waivera.waivera.core.designsystem.component.SkeletonList
 import com.waivera.waivera.core.designsystem.component.WaiveraAvatar
 import com.waivera.waivera.core.designsystem.component.WaiveraBanner
-import com.waivera.waivera.core.designsystem.component.WaiveraDivider
 import com.waivera.waivera.core.designsystem.component.WaiveraEmptyState
 import com.waivera.waivera.core.designsystem.component.WaiveraErrorState
 import com.waivera.waivera.core.designsystem.component.WaiveraIllustration
+import com.waivera.waivera.core.designsystem.component.WaiveraInsetDivider
 import com.waivera.waivera.core.designsystem.component.WaiveraListRow
 import com.waivera.waivera.core.designsystem.component.WaiveraTopBar
+import com.waivera.waivera.core.designsystem.component.waiveraCardGroupItem
 import com.waivera.waivera.core.designsystem.icon.WaiveraIcons
 import com.waivera.waivera.core.designsystem.preview.WaiveraPreviews
 import com.waivera.waivera.core.designsystem.theme.WaiveraSizes
@@ -161,12 +162,26 @@ private fun PeopleList(state: PeopleUiState, onOpenPerson: (String) -> Unit) {
                 },
                 style = MaterialTheme.typography.labelMedium,
                 color = colors.textSecondary,
-                modifier = Modifier.padding(horizontal = WaiveraSpacing.Gutter, vertical = WaiveraSpacing.ExtraSmall),
+                modifier = Modifier.padding(
+                    start = WaiveraSpacing.Gutter + WaiveraSpacing.ExtraSmall,
+                    end = WaiveraSpacing.Gutter,
+                    top = WaiveraSpacing.ExtraSmall,
+                    bottom = WaiveraSpacing.Small,
+                ),
             )
         }
-        items(state.rows, key = { it.userId }) { row ->
-            PersonListRow(row = row, onClick = { onOpenPerson(row.userId) })
-            WaiveraDivider(modifier = Modifier.padding(start = WaiveraSpacing.Gutter))
+        // The people sit on one card, as concept A groups rows; a divider runs between them.
+        itemsIndexed(state.rows, key = { _, row -> row.userId }) { index, row ->
+            Column(
+                modifier = Modifier.waiveraCardGroupItem(
+                    index = index,
+                    count = state.rows.size,
+                    surface = colors.surface,
+                ),
+            ) {
+                PersonListRow(row = row, onClick = { onOpenPerson(row.userId) })
+                if (index < state.rows.lastIndex) WaiveraInsetDivider()
+            }
         }
     }
 }

@@ -1,7 +1,5 @@
 package com.waivera.waivera.feature.profile
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
@@ -22,7 +20,6 @@ import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
@@ -30,7 +27,9 @@ import androidx.compose.ui.text.style.TextOverflow
 import com.waivera.waivera.core.designsystem.component.SKELETON_DELAY_MILLIS
 import com.waivera.waivera.core.designsystem.component.SkeletonLine
 import com.waivera.waivera.core.designsystem.component.WaiveraAddressText
+import com.waivera.waivera.core.designsystem.component.WaiveraCardGroup
 import com.waivera.waivera.core.designsystem.component.WaiveraIconButton
+import com.waivera.waivera.core.designsystem.component.WaiveraSectionHeader
 import com.waivera.waivera.core.designsystem.component.rememberSkeletonPulse
 import com.waivera.waivera.core.designsystem.component.rememberSkeletonVisible
 import com.waivera.waivera.core.designsystem.icon.WaiveraIcons
@@ -41,34 +40,27 @@ import com.waivera.waivera.core.designsystem.theme.WaiveraSpacing
 import com.waivera.waivera.core.designsystem.theme.WaiveraTextStyles
 import com.waivera.waivera.core.designsystem.theme.WaiveraTheme
 
-/** A titled card on the profile screens. The title is a heading for TalkBack navigation. */
+/**
+ * A titled group on the profile screens, as concept A groups rows everywhere: the shared
+ * mixed-case section title (a heading for TalkBack) above one lifted sheet card.
+ */
 @Composable
 internal fun ProfileCard(
     modifier: Modifier = Modifier,
     title: String? = null,
     content: @Composable ColumnScope.() -> Unit,
 ) {
-    val colors = WaiveraTheme.colors
-    Column(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(horizontal = WaiveraSpacing.Gutter)
-            .background(colors.surface, WaiveraShapes.ListCard)
-            .border(WaiveraSpacing.Hairline, colors.border, WaiveraShapes.ListCard)
-            .padding(vertical = WaiveraSpacing.MediumSmall),
-        verticalArrangement = Arrangement.spacedBy(WaiveraSpacing.Small),
-    ) {
-        if (title != null) {
-            Text(
-                text = title,
-                style = MaterialTheme.typography.titleMedium,
-                color = colors.text,
+    Column(modifier = modifier.fillMaxWidth()) {
+        if (title != null) WaiveraSectionHeader(text = title)
+        WaiveraCardGroup {
+            Column(
                 modifier = Modifier
-                    .padding(horizontal = WaiveraSpacing.Medium)
-                    .semantics { heading() },
+                    .fillMaxWidth()
+                    .padding(vertical = WaiveraSpacing.MediumSmall),
+                verticalArrangement = Arrangement.spacedBy(WaiveraSpacing.Small),
+                content = content,
             )
         }
-        content()
     }
 }
 
@@ -92,7 +84,7 @@ internal fun InfoRow(label: String, value: String?, modifier: Modifier = Modifie
             },
         verticalArrangement = Arrangement.spacedBy(WaiveraSpacing.XxSmall),
     ) {
-        Text(text = label.uppercase(), style = WaiveraTextStyles.Eyebrow, color = colors.textSecondary)
+        Text(text = label, style = WaiveraTextStyles.Kicker, color = colors.textSecondary)
         if (address && shown != null) {
             WaiveraAddressText(address = shown, style = MaterialTheme.typography.bodyLarge, color = colors.text)
         } else {
@@ -189,7 +181,7 @@ internal fun ProfileSearchField(
             focusedContainerColor = colors.surface,
             unfocusedContainerColor = colors.surface,
             focusedBorderColor = colors.accent,
-            unfocusedBorderColor = colors.border,
+            unfocusedBorderColor = colors.fieldBorder,
             cursorColor = colors.accent,
             focusedTextColor = colors.text,
             unfocusedTextColor = colors.text,

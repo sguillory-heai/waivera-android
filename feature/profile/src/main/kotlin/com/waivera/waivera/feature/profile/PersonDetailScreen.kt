@@ -36,16 +36,18 @@ import com.waivera.waivera.core.designsystem.component.ConnectionBannerState
 import com.waivera.waivera.core.designsystem.component.WaiveraAddressText
 import com.waivera.waivera.core.designsystem.component.WaiveraAvatar
 import com.waivera.waivera.core.designsystem.component.WaiveraButton
-import com.waivera.waivera.core.designsystem.component.WaiveraCelebrationNote
+import com.waivera.waivera.core.designsystem.component.WaiveraHeroCelebration
 import com.waivera.waivera.core.designsystem.component.WaiveraSnackbarHost
 import com.waivera.waivera.core.designsystem.component.WaiveraTopBar
 import com.waivera.waivera.core.designsystem.feedback.rememberHaptics
 import com.waivera.waivera.core.designsystem.icon.WaiveraIcons
 import com.waivera.waivera.core.designsystem.preview.WaiveraPreviews
 import com.waivera.waivera.core.designsystem.text.withBreaksAfterHyphens
-import com.waivera.waivera.core.designsystem.theme.WaiveraSizes
+import com.waivera.waivera.core.designsystem.theme.WaiveraHero
 import com.waivera.waivera.core.designsystem.theme.WaiveraSpacing
+import com.waivera.waivera.core.designsystem.theme.WaiveraTextStyles
 import com.waivera.waivera.core.designsystem.theme.WaiveraTheme
+import com.waivera.waivera.core.designsystem.theme.isLargeFontScale
 
 /** Entry point for the person screen. Owned by `:feature:profile`; routed by `:app`. */
 @Composable
@@ -103,24 +105,25 @@ internal fun PersonDetailContent(
 ) {
     val colors = WaiveraTheme.colors
     Box(modifier = modifier.fillMaxSize().background(colors.background)) {
-        Column(modifier = Modifier.fillMaxSize()) {
+        // The person's hero scrolls with the page, as your own profile's does; the bar names the
+        // screen and the hero names the person, so the name is not said twice.
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState()),
+            verticalArrangement = Arrangement.spacedBy(WaiveraSpacing.MediumSmall),
+        ) {
             WaiveraTopBar(
-                title = state.name.ifBlank { stringResource(R.string.feature_profile_person_detail_title) },
+                title = stringResource(R.string.feature_profile_person_detail_title),
                 onBack = onBack,
+                heroContent = { PersonHero(state) },
             )
             ConnectionBanner(
                 state = bannerFor(state.connection, showsLoadError = state.details is Section.Failed),
                 onRetry = onRetryConnection,
                 offlineMessage = stringResource(R.string.feature_profile_person_offline_saved),
             )
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .verticalScroll(rememberScrollState())
-                    .padding(top = WaiveraSpacing.Medium),
-                verticalArrangement = Arrangement.spacedBy(WaiveraSpacing.MediumSmall),
-            ) {
-                PersonHero(state)
+            Column(verticalArrangement = Arrangement.spacedBy(WaiveraSpacing.MediumSmall)) {
                 if (state.canMessage) {
                     // On their birthday or anniversary the same chat is the easy "Send wishes" (UI8-09).
                     WaiveraButton(
@@ -152,18 +155,21 @@ internal fun PersonDetailContent(
     }
 }
 
+/** The person on the plum hero: the large avatar, their name and address, and today's celebration. */
 @Composable
 private fun PersonHero(state: PersonDetailUiState) {
-    val colors = WaiveraTheme.colors
+    val hero = WaiveraHero.colors
     Column(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = WaiveraSpacing.Gutter),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(start = WaiveraSpacing.Gutter, end = WaiveraSpacing.Gutter, bottom = WaiveraSpacing.Medium),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(WaiveraSpacing.Small),
     ) {
         WaiveraAvatar(
             name = state.name,
             imageModel = AvatarModel.of(state.userId),
-            size = WaiveraSizes.AvatarHero,
+            size = if (isLargeFontScale()) WaiveraHero.ProfileAvatarCompact else WaiveraHero.ProfileAvatar,
             milestone = state.celebration?.milestoneKind,
             contentDescription = null,
         )
@@ -171,8 +177,8 @@ private fun PersonHero(state: PersonDetailUiState) {
             // Hyphenated names wrap after a hyphen, never mid-word (UI5-05).
             Text(
                 text = state.name.withBreaksAfterHyphens(),
-                style = MaterialTheme.typography.headlineSmall,
-                color = colors.text,
+                style = WaiveraTextStyles.HeroGreetingCompact,
+                color = hero.onHeader,
                 textAlign = TextAlign.Center,
                 modifier = Modifier.semantics { heading() },
             )
@@ -181,12 +187,16 @@ private fun PersonHero(state: PersonDetailUiState) {
             WaiveraAddressText(
                 address = it,
                 style = MaterialTheme.typography.bodyMedium,
-                color = colors.textSecondary,
+                color = hero.onHeaderSecondary,
                 textAlign = TextAlign.Center,
             )
         }
         state.celebration?.let { party ->
-            WaiveraCelebrationNote(emoji = party.emoji(), text = party.fullLabel(state.name), centered = true)
+            WaiveraHeroCelebration(
+                emoji = party.emoji(),
+                text = party.fullLabel(state.name),
+                modifier = Modifier.padding(top = WaiveraSpacing.ExtraSmall),
+            )
         }
     }
 }

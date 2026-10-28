@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.selection.toggleable
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -24,6 +25,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.heading
@@ -237,6 +240,38 @@ fun WaiveraCardGroup(modifier: Modifier = Modifier, content: @Composable ColumnS
         content = content,
     )
 }
+
+/**
+ * One row of a [WaiveraCardGroup] laid out as lazy list items: inset by the gutter and clipped to
+ * its part of the card (rounded top on the first of [count], rounded bottom on the last, square
+ * between), on the card's surface. A lazy list composes rows one by one, so it cannot wrap them in
+ * one group; each row draws its slice instead. The lift is left out, since a shadow per slice
+ * would show seams between rows. Pass the theme's surface (`WaiveraTheme.colors.surface`) as
+ * [surface]: a modifier factory reads no composition locals.
+ */
+fun Modifier.waiveraCardGroupItem(index: Int, count: Int, surface: Color): Modifier {
+    val first = index == 0
+    val last = index == count - 1
+    val shape = when {
+        first && last -> WaiveraShapes.SheetCard
+        first -> CardGroupTop
+        last -> CardGroupBottom
+        else -> RectangleShape
+    }
+    return this
+        .padding(horizontal = WaiveraSpacing.Gutter)
+        .clip(shape)
+        .background(surface)
+}
+
+private val CardGroupTop = RoundedCornerShape(
+    topStart = WaiveraShapes.SheetCardRadius,
+    topEnd = WaiveraShapes.SheetCardRadius,
+)
+private val CardGroupBottom = RoundedCornerShape(
+    bottomStart = WaiveraShapes.SheetCardRadius,
+    bottomEnd = WaiveraShapes.SheetCardRadius,
+)
 
 /** The hairline between rows on a [WaiveraCardGroup], starting where the row's text starts. */
 @Composable

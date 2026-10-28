@@ -99,7 +99,7 @@ private fun BalanceFigure(@StringRes label: Int, value: Double) {
     val text = formatDays(value)
     Column(modifier = Modifier.semantics(mergeDescendants = true) {}) {
         Text(text = text, style = MaterialTheme.typography.titleLarge, color = colors.text)
-        Text(text = stringResource(label), style = WaiveraTextStyles.Eyebrow, color = colors.textSecondary)
+        Text(text = stringResource(label), style = WaiveraTextStyles.Kicker, color = colors.textSecondary)
     }
 }
 

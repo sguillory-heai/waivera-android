@@ -4,7 +4,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
@@ -40,12 +39,11 @@ import com.waivera.waivera.core.designsystem.component.ConnectionBannerState
 import com.waivera.waivera.core.designsystem.component.WaiveraAddressText
 import com.waivera.waivera.core.designsystem.component.WaiveraAvatar
 import com.waivera.waivera.core.designsystem.component.WaiveraBanner
-import com.waivera.waivera.core.designsystem.component.WaiveraBrandSurface
 import com.waivera.waivera.core.designsystem.component.WaiveraButton
 import com.waivera.waivera.core.designsystem.component.WaiveraButtonVariant
-import com.waivera.waivera.core.designsystem.component.WaiveraCelebrationNote
 import com.waivera.waivera.core.designsystem.component.WaiveraEmptyState
 import com.waivera.waivera.core.designsystem.component.WaiveraErrorState
+import com.waivera.waivera.core.designsystem.component.WaiveraHeroCelebration
 import com.waivera.waivera.core.designsystem.component.WaiveraIconTile
 import com.waivera.waivera.core.designsystem.component.WaiveraIllustration
 import com.waivera.waivera.core.designsystem.component.WaiveraListRow
@@ -54,7 +52,7 @@ import com.waivera.waivera.core.designsystem.component.WaiveraTopBar
 import com.waivera.waivera.core.designsystem.icon.WaiveraIcons
 import com.waivera.waivera.core.designsystem.preview.WaiveraPreviews
 import com.waivera.waivera.core.designsystem.text.withBreaksAfterHyphens
-import com.waivera.waivera.core.designsystem.theme.WaiveraShapes
+import com.waivera.waivera.core.designsystem.theme.WaiveraHero
 import com.waivera.waivera.core.designsystem.theme.WaiveraSizes
 import com.waivera.waivera.core.designsystem.theme.WaiveraSpacing
 import com.waivera.waivera.core.designsystem.theme.WaiveraTextStyles
@@ -99,43 +97,52 @@ internal fun ProfileContent(
     modifier: Modifier = Modifier,
 ) {
     val colors = WaiveraTheme.colors
+    val ready = state as? ProfileUiState.Ready
+    val details = ready?.details
     Column(modifier = modifier.fillMaxSize().background(colors.background)) {
-        WaiveraTopBar(
-            title = stringResource(R.string.feature_profile_profile_title),
-            onBack = onBack,
-        )
-        when (state) {
-            ProfileUiState.Unavailable -> WaiveraEmptyState(
+        // Your profile opens on its hero, which scrolls with the page; the unavailable and
+        // failed states keep the plain bar, since there is no one to show.
+        if (ready == null || details is Section.Failed) {
+            WaiveraTopBar(
+                title = stringResource(R.string.feature_profile_profile_title),
+                onBack = onBack,
+            )
+        }
+        when {
+            ready == null -> WaiveraEmptyState(
                 title = stringResource(R.string.feature_profile_unavailable_title),
                 message = stringResource(R.string.feature_profile_unavailable_message),
                 illustration = WaiveraIllustration.Connections,
                 modifier = Modifier.padding(top = WaiveraSpacing.Large),
             )
-            is ProfileUiState.Ready -> {
-                val details = state.details
+            details is Section.Failed -> {
                 ConnectionBanner(
-                    state = bannerFor(state.connection, showsLoadError = details is Section.Failed),
+                    state = bannerFor(ready.connection, showsLoadError = true),
                     onRetry = onRetryConnection,
                     offlineMessage = stringResource(R.string.feature_profile_offline_saved),
                 )
-                if (details is Section.Failed) {
-                    WaiveraErrorState(
-                        title = stringResource(R.string.feature_profile_error_title),
-                        message = stringResource(details.error.messageRes),
-                        onRetry = onRefresh,
-                        modifier = Modifier.padding(top = WaiveraSpacing.Large),
-                    )
-                } else {
-                    PullToRefreshBox(
-                        // Skeletons already show the first load; the pull indicator is for a
-                        // pull, and over the skeletons it covered the header text (UI5-12).
-                        isRefreshing = state.isRefreshing && details !is Section.Loading,
-                        onRefresh = onRefresh,
-                        modifier = Modifier.fillMaxSize(),
-                    ) {
-                        ProfileBody(state, onRefresh, onOpenPerson, onOpenSettings)
-                    }
-                }
+                WaiveraErrorState(
+                    title = stringResource(R.string.feature_profile_error_title),
+                    message = stringResource(details.error.messageRes),
+                    onRetry = onRefresh,
+                    modifier = Modifier.padding(top = WaiveraSpacing.Large),
+                )
+            }
+            else -> PullToRefreshBox(
+                // Skeletons already show the first load; the pull indicator is for a pull, and
+                // over the skeletons it covered the header text (UI5-12).
+                isRefreshing = ready.isRefreshing && details !is Section.Loading,
+                onRefresh = onRefresh,
+                modifier = Modifier.fillMaxSize(),
+            ) {
+                ProfileBody(
+                    state = ready,
+                    onBack = onBack,
+                    onRefresh = onRefresh,
+                    onRetryConnection = onRetryConnection,
+                    onOpenPerson = onOpenPerson,
+                    onOpenSettings = onOpenSettings,
+                )
             }
         }
     }
@@ -144,7 +151,9 @@ internal fun ProfileContent(
 @Composable
 private fun ProfileBody(
     state: ProfileUiState.Ready,
+    onBack: () -> Unit,
     onRefresh: () -> Unit,
+    onRetryConnection: () -> Unit,
     onOpenPerson: (String) -> Unit,
     onOpenSettings: (() -> Unit)?,
 ) {
@@ -154,10 +163,19 @@ private fun ProfileBody(
         modifier = Modifier
             .fillMaxSize()
             .refreshAction(refreshLabel, onRefresh)
-            .verticalScroll(rememberScrollState())
-            .padding(top = WaiveraSpacing.MediumSmall),
+            .verticalScroll(rememberScrollState()),
         verticalArrangement = Arrangement.spacedBy(WaiveraSpacing.MediumSmall),
     ) {
+        WaiveraTopBar(
+            title = stringResource(R.string.feature_profile_profile_title),
+            onBack = onBack,
+            heroContent = { IdentityCard(user = state.user, profile = profile, celebration = state.celebration) },
+        )
+        ConnectionBanner(
+            state = bannerFor(state.connection, showsLoadError = false),
+            onRetry = onRetryConnection,
+            offlineMessage = stringResource(R.string.feature_profile_offline_saved),
+        )
         if (showsRefreshFailed(state.connection, state.detailsRefreshError != null)) {
             WaiveraBanner(
                 message = stringResource(R.string.feature_profile_refresh_failed),
@@ -167,7 +185,6 @@ private fun ProfileBody(
                 actionIcon = WaiveraIcons.Refresh,
             )
         }
-        IdentityCard(user = state.user, profile = profile, celebration = state.celebration)
         DetailsSections(profile = profile, state = state, onOpenPerson = onOpenPerson)
         TimeOffSection(section = state.timeOff, onRetry = onRefresh)
         FilesSection(section = state.files, zone = state.zone, onRetry = onRefresh)
@@ -187,9 +204,19 @@ private fun ProfileBody(
     }
 }
 
+/**
+ * Your own identity on the profile's hero (concept A): the large avatar, your name, role and
+ * address in the hero inks, and today's celebration under them. It goes in [WaiveraTopBar]'s
+ * hero slot, so it sits on the plum like Today's greeting.
+ */
 @Composable
-internal fun IdentityCard(user: CurrentUser, profile: EmployeeProfile?, celebration: Celebration?) {
-    val colors = WaiveraTheme.colors
+internal fun IdentityCard(
+    user: CurrentUser,
+    profile: EmployeeProfile?,
+    celebration: Celebration?,
+    modifier: Modifier = Modifier,
+) {
+    val hero = WaiveraHero.colors
     val name = profile?.displayName?.takeIf(String::isNotBlank)
         ?: listOfNotNull(profile?.firstName, profile?.lastName).joinToString(" ").takeIf(String::isNotBlank)
         ?: user.displayName?.takeIf(String::isNotBlank)
@@ -198,13 +225,13 @@ internal fun IdentityCard(user: CurrentUser, profile: EmployeeProfile?, celebrat
         ?: user.roles.firstOrNull { it.isNotBlank() }?.let { ProfileFormat.roleLabel(it) }
     val email = profile?.email ?: user.email
     // Above 130% font a text column beside the avatar is too narrow for a name or an email, so
-    // the avatar moves above the text and the text gets the card's full width.
+    // the avatar (smaller) moves above the text and the text gets the hero's full width.
     val stacked = LocalDensity.current.fontScale > HEADER_STACK_FONT_SCALE
     val avatar: @Composable () -> Unit = {
         WaiveraAvatar(
             name = name,
             imageModel = AvatarModel.of(user.userId),
-            size = WaiveraSizes.AvatarLarge,
+            size = if (stacked) WaiveraHero.ProfileAvatarCompact else WaiveraHero.ProfileAvatar,
             milestone = celebration?.milestoneKind,
             contentDescription = null,
         )
@@ -217,41 +244,42 @@ internal fun IdentityCard(user: CurrentUser, profile: EmployeeProfile?, celebrat
             // Hyphenated names wrap after a hyphen, never mid-word (UI5-05).
             Text(
                 text = name.withBreaksAfterHyphens(),
-                style = MaterialTheme.typography.headlineSmall,
-                color = colors.text,
+                style = WaiveraTextStyles.HeroGreetingCompact,
+                color = hero.onHeader,
             )
             if (jobTitle != null) {
-                Text(text = jobTitle, style = MaterialTheme.typography.bodyMedium, color = colors.textSecondary)
+                Text(text = jobTitle, style = MaterialTheme.typography.bodyMedium, color = hero.onHeaderSecondary)
             }
             if (!email.isNullOrBlank()) {
                 // A little air under the role, so a wrapped role and a wrapped address read as two
-                // lines of information, not one grey paragraph (UI7-04).
+                // lines of information, not one paragraph (UI7-04).
                 WaiveraAddressText(
                     address = email,
                     modifier = if (jobTitle != null) Modifier.padding(top = WaiveraSpacing.ExtraSmall) else Modifier,
                     style = MaterialTheme.typography.bodyMedium,
-                    color = colors.textSecondary,
+                    color = hero.onHeaderSecondary,
                 )
             }
         }
     }
-    // Your own header is the profile's one brand moment, on the gradient wash.
-    WaiveraBrandSurface(
-        modifier = Modifier.padding(horizontal = WaiveraSpacing.Gutter),
-        shape = WaiveraShapes.ListCard,
-        contentPadding = PaddingValues(vertical = WaiveraSpacing.MediumSmall),
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(
+                start = WaiveraSpacing.Gutter + WaiveraSpacing.ExtraSmall,
+                end = WaiveraSpacing.Gutter,
+                top = WaiveraSpacing.Small,
+                bottom = WaiveraSpacing.Medium,
+            ),
+        verticalArrangement = Arrangement.spacedBy(WaiveraSpacing.Medium),
     ) {
         if (stacked) {
-            Column(
-                modifier = Modifier.padding(horizontal = WaiveraSpacing.Medium),
-                verticalArrangement = Arrangement.spacedBy(WaiveraSpacing.MediumSmall),
-            ) {
+            Column(verticalArrangement = Arrangement.spacedBy(WaiveraSpacing.MediumSmall)) {
                 avatar()
                 text(Modifier.fillMaxWidth())
             }
         } else {
             Row(
-                modifier = Modifier.padding(horizontal = WaiveraSpacing.Medium),
                 horizontalArrangement = Arrangement.spacedBy(WaiveraSpacing.Medium),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
@@ -263,11 +291,7 @@ internal fun IdentityCard(user: CurrentUser, profile: EmployeeProfile?, celebrat
             val firstName = profile?.firstName?.takeIf(String::isNotBlank)
                 ?: user.firstName?.takeIf(String::isNotBlank)
                 ?: name.trim().substringBefore(' ').takeIf(String::isNotBlank)
-            WaiveraCelebrationNote(
-                emoji = celebration.emoji(),
-                text = celebration.selfLabel(firstName),
-                modifier = Modifier.padding(horizontal = WaiveraSpacing.Medium),
-            )
+            WaiveraHeroCelebration(emoji = celebration.emoji(), text = celebration.selfLabel(firstName))
         }
     }
 }
@@ -311,8 +335,8 @@ private fun DetailsSections(profile: EmployeeProfile?, state: ProfileUiState.Rea
             )
             if (profile.managers.isNotEmpty()) {
                 Text(
-                    text = stringResource(R.string.feature_profile_reports_to).uppercase(),
-                    style = WaiveraTextStyles.Eyebrow,
+                    text = stringResource(R.string.feature_profile_reports_to),
+                    style = WaiveraTextStyles.Kicker,
                     color = WaiveraTheme.colors.textSecondary,
                     modifier = Modifier.padding(
                         horizontal = WaiveraSpacing.Medium,

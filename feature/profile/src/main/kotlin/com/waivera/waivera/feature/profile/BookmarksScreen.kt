@@ -1,7 +1,6 @@
 package com.waivera.waivera.feature.profile
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -30,6 +29,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
@@ -55,6 +55,7 @@ import com.waivera.waivera.core.designsystem.component.showUndo
 import com.waivera.waivera.core.designsystem.feedback.rememberHaptics
 import com.waivera.waivera.core.designsystem.icon.WaiveraIcons
 import com.waivera.waivera.core.designsystem.preview.WaiveraPreviews
+import com.waivera.waivera.core.designsystem.theme.WaiveraElevation
 import com.waivera.waivera.core.designsystem.theme.WaiveraShapes
 import com.waivera.waivera.core.designsystem.theme.WaiveraSpacing
 import com.waivera.waivera.core.designsystem.theme.WaiveraTheme
@@ -322,12 +323,13 @@ private fun BookmarkCard(row: BookmarkRow, onOpen: () -> Unit, onRemove: () -> U
     val author = row.author.ifBlank { stringResource(R.string.feature_profile_bookmarks_unknown_author) }
     WaiveraPressable(
         onClick = onOpen,
+        // Concept A's sheet card: soft lift instead of a hairline, as on Today and Schedule.
         modifier = modifier
             .fillMaxWidth()
-            .background(colors.surface, WaiveraShapes.ListCard)
-            .border(WaiveraSpacing.Hairline, colors.border, WaiveraShapes.ListCard),
+            .shadow(elevation = WaiveraElevation.Card, shape = WaiveraShapes.SheetCard, clip = false)
+            .background(colors.surface, WaiveraShapes.SheetCard),
         onClickLabel = stringResource(R.string.feature_profile_bookmarks_open, author),
-        shape = WaiveraShapes.ListCard,
+        shape = WaiveraShapes.SheetCard,
     ) {
         Row(
             modifier = Modifier.fillMaxWidth().padding(WaiveraSpacing.MediumSmall),
