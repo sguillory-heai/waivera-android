@@ -61,7 +61,7 @@ import com.waivera.waivera.feature.today.model.UpcomingLabel
 /**
  * The top of Today (concept A): the plum hero with the bar, the date and greeting, the glass
  * summary card (ring, what needs you, what's next) and the three stat tiles. When everything is
- * handled it becomes the reward: the big gradient ring and "You're all caught up 🎉".
+ * handled it becomes the reward: the big solid ring and "You're all caught up 🎉".
  */
 @Composable
 internal fun TodayHero(state: TodayUiState, callbacks: TodayCallbacks, modifier: Modifier = Modifier) {

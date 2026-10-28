@@ -48,8 +48,8 @@ import org.robolectric.annotation.GraphicsMode
 
 /**
  * Concept A's hero and sheet pieces across the matrix: the sign-in header with its trails, the
- * gradient CTA, the tab hero (bar, glass card, ring, stat tiles, sheet lip), the reward ring, and
- * the sheet's section header, card, day track and field.
+ * sheet's buttons, the tab hero (bar, glass card, the solid ring, stat tiles, sheet lip), the solid
+ * reward ring on its halo, and the sheet's section header, card, day track and field.
  */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
@@ -139,7 +139,7 @@ class HeroScreenshotTest {
         }
     }
 
-    /** The sheet pieces: a section header with its gradient count and link, a card and the day track. */
+    /** The sheet pieces: a section header with its count and link, a card and the day track. */
     @Test
     fun sheetPieces() = captureScreenshots(name = "SheetPieces") {
         Column(

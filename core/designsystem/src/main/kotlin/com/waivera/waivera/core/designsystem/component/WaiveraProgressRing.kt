@@ -51,9 +51,10 @@ import com.waivera.waivera.core.designsystem.theme.WaiveraTheme
 fun ringFraction(done: Int, total: Int): Float = if (total <= 0) 0f else (done.toFloat() / total).coerceIn(0f, 1f)
 
 /**
- * The hero's progress ring: a faint track with the brand gradient arc for [done] of [total]
- * from twelve o'clock, the count in the middle ("5/9" over [caption]). The arc grows from empty on
- * first show and follows changes; under reduced motion it simply shows the value.
+ * The hero's progress ring: a faint track with a solid lilac-violet arc for [done] of [total]
+ * from twelve o'clock (v5 rule A: nothing drawn on the hero is a gradient), the count in the
+ * middle ("5/9" over [caption]). The arc grows from empty on first show and follows changes;
+ * under reduced motion it simply shows the value.
  *
  * TalkBack reads it once, as [contentDescription] (for example "5 of 9 handled today") with the
  * progress, never the separate numbers. The count inside keeps its size up to 130% font: the
@@ -85,7 +86,7 @@ fun WaiveraProgressRing(
             }
             .drawBehind {
                 val width = stroke.toPx()
-                drawRing(track = hero.ringTrack, progress = progress.value, strokeWidth = width)
+                drawRing(track = hero.ringTrack, arc = hero.ringArc, progress = progress.value, strokeWidth = width)
             },
         contentAlignment = Alignment.Center,
     ) {
@@ -114,9 +115,11 @@ fun WaiveraProgressRing(
 }
 
 /**
- * All caught up: the big full ring on a soft pink halo, a white check in the middle and two small
- * sparkles in gold and pink. The ring closes and the check appears on first show; under reduced
- * motion both are simply there. Decorative apart from [contentDescription].
+ * All caught up: the big full ring, in the same solid arc as the progress ring, on a soft lilac
+ * halo, a white check in the middle and two small sparkles in gold and pink. The halo is one hue
+ * fading out, the same light as the hero's own glows, not the brand gradient (v5 rule A). The
+ * ring closes and the check appears on first show; under reduced motion both are simply there.
+ * Decorative apart from [contentDescription].
  */
 @Composable
 fun WaiveraRewardRing(contentDescription: String?, modifier: Modifier = Modifier) {
@@ -136,8 +139,8 @@ fun WaiveraRewardRing(contentDescription: String?, modifier: Modifier = Modifier
         Canvas(modifier = Modifier.fillMaxSize()) {
             drawCircle(
                 brush = Brush.radialGradient(
-                    0f to WaiveraPalette.BrandPink.copy(alpha = HALO_ALPHA),
-                    HALO_FADE to WaiveraPalette.BrandViolet.copy(alpha = 0f),
+                    0f to hero.ringArc.copy(alpha = HALO_ALPHA),
+                    HALO_FADE to hero.ringArc.copy(alpha = 0f),
                 ),
             )
         }
@@ -147,6 +150,7 @@ fun WaiveraRewardRing(contentDescription: String?, modifier: Modifier = Modifier
                 .drawBehind {
                     drawRing(
                         track = hero.ringTrack,
+                        arc = hero.ringArc,
                         progress = progress.value,
                         strokeWidth = WaiveraSizes.RewardRingStroke.toPx(),
                     )
@@ -194,8 +198,8 @@ private fun rememberRingProgress(target: Float): Animatable<Float, AnimationVect
     return progress
 }
 
-/** Track and gradient arc, inset by half the stroke so the ring fits its box. */
-private fun DrawScope.drawRing(track: Color, progress: Float, strokeWidth: Float) {
+/** Track and solid arc, inset by half the stroke so the ring fits its box. */
+private fun DrawScope.drawRing(track: Color, arc: Color, progress: Float, strokeWidth: Float) {
     val inset = strokeWidth / 2
     val arcSize = Size(size.width - strokeWidth, size.height - strokeWidth)
     val topLeft = Offset(inset, inset)
@@ -210,7 +214,7 @@ private fun DrawScope.drawRing(track: Color, progress: Float, strokeWidth: Float
     )
     if (progress <= 0f) return
     drawArc(
-        brush = WaiveraBrand.diagonalGradient(),
+        color = arc,
         startAngle = TWELVE_O_CLOCK,
         sweepAngle = FULL_TURN * progress,
         useCenter = false,
@@ -258,7 +262,7 @@ private fun CappedFontScale(content: @Composable () -> Unit) {
 internal const val RING_MAX_FONT_SCALE = 1.3f
 private const val FULL_TURN = 360f
 private const val TWELVE_O_CLOCK = -90f
-private const val HALO_ALPHA = 0.38f
+private const val HALO_ALPHA = 0.3f
 private const val HALO_FADE = 0.68f
 private const val CHECK_FROM = 0.7f
 private const val CHECK_MIN_SCALE = 0.6f

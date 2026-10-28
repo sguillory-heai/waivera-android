@@ -63,13 +63,29 @@ class WaiveraHeroContrastTest {
         }
     }
 
-    /** The ring's track and its gradient arc stand apart from the card they sit on. */
+    /** The ring's track stands apart from the card it sits on. */
     @Test
     fun ringTrack_isVisibleOnTheCard() = themes.forEach { (name, hero, _) ->
         heroPoints(hero).forEach { point ->
             val card = hero.card.compositeOver(point)
             val track = hero.ringTrack.compositeOver(card)
             assertTrue(contrast(track, card) >= RING_TRACK_MIN, "$name ring track vanishes on the card")
+        }
+    }
+
+    /**
+     * v5 rule A: the progress and reward rings are one solid arc, no gradient. It carries the
+     * progress, so it keeps the 3:1 non-text minimum against the track it fills and the glass card
+     * beside it, at every hero point where the glows really are.
+     */
+    @Test
+    fun ringArc_isSolidAndStandsOffTheTrackAndTheCard() = themes.forEach { (name, hero, _) ->
+        assertTrue(hero.ringArc.alpha == 1f, "$name ring arc should be one opaque colour")
+        heroPoints(hero).forEach { point ->
+            val card = hero.card.compositeOver(point)
+            val track = hero.ringTrack.compositeOver(card)
+            assertAtLeast("$name ring arc on the track", hero.ringArc, track, UI_MIN)
+            assertAtLeast("$name ring arc on the card", hero.ringArc, card, UI_MIN)
         }
     }
 

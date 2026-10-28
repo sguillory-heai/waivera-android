@@ -21,8 +21,8 @@ import kotlin.math.sin
  *
  * Every text pair keeps 4.5:1 at every point of its gradient, under both glows at full strength
  * (`WaiveraHeroContrastTest`): white and the on-hero secondary ink on the header. Under v5's
- * gradient rule B the hero (with its light trails) is one of the few places the gradient lives;
- * the sheet's actions are the solid violet primary, never a gradient CTA.
+ * gradient rule A (owner pick) the hero, with its glows and light trails, is a background and so
+ * one of the two places the gradient lives; everything drawn on it, the rings included, is solid.
  */
 @Immutable
 data class WaiveraHeroColors(
@@ -43,6 +43,11 @@ data class WaiveraHeroColors(
     val tileBorder: Color,
     /** The progress ring's unfilled track. */
     val ringTrack: Color,
+    /**
+     * The progress and reward rings' arc: one solid lilac-violet (v5 rule A), at least 3:1 against
+     * the glass card and the track wherever the hero's glows reach (`WaiveraHeroContrastTest`).
+     */
+    val ringArc: Color,
     /** The signed-in person's avatar fill on the hero bar. */
     val accountFill: Color,
     /** The countdown chip ("in 30 min"): mint on a mint glass. */
@@ -100,6 +105,9 @@ internal object WaiveraHeroPalette {
     // glow; a deep teal glass keeps the mint at 5:1 and still reads as a mint chip.
     val MintGlass = Color(0x660A6B60)
     val NextIcon = Color(0xFFFFB8DC)
+
+    // The board's #D2BFFF fell to 2.7:1 on the track under the violet glow; this keeps 3:1.
+    val RingArc = Color(0xFFE1D3FF)
     const val GLOW_PINK_ALPHA = 0.42f
     const val GLOW_VIOLET_ALPHA = 0.55f
 
@@ -128,6 +136,7 @@ internal val LightWaiveraHeroColors = WaiveraHeroColors(
     tile = white(WaiveraHeroPalette.TILE_ALPHA),
     tileBorder = white(WaiveraHeroPalette.TILE_BORDER_ALPHA),
     ringTrack = white(WaiveraHeroPalette.RING_TRACK_ALPHA),
+    ringArc = WaiveraHeroPalette.RingArc,
     accountFill = white(WaiveraHeroPalette.ACCOUNT_ALPHA),
     chip = WaiveraHeroPalette.MintGlass,
     onChip = WaiveraHeroPalette.Mint,

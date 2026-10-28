@@ -263,8 +263,8 @@ class DesignSystemScreenshotTest {
     }
 
     /**
-     * v5 rule B: the plain surface card for an event's title block, then the wash, kept for
-     * celebrations, on its container and on the celebration note with its emoji tile.
+     * v5 rule A: the plain surface card for an event's title block, then the wash, kept as the
+     * celebration's background, on its container and on the celebration note with its emoji tile.
      */
     @Test
     fun brandSurfaces() = capture("BrandSurfaces") {

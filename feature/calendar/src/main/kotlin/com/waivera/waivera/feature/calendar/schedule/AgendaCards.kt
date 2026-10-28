@@ -46,7 +46,6 @@ import com.waivera.waivera.core.designsystem.component.WaiveraPressable
 import com.waivera.waivera.core.designsystem.component.WaiveraTileTone
 import com.waivera.waivera.core.designsystem.icon.WaiveraIcons
 import com.waivera.waivera.core.designsystem.text.resolve
-import com.waivera.waivera.core.designsystem.theme.WaiveraBrand
 import com.waivera.waivera.core.designsystem.theme.WaiveraElevation
 import com.waivera.waivera.core.designsystem.theme.WaiveraShapes
 import com.waivera.waivera.core.designsystem.theme.WaiveraSizes
@@ -120,8 +119,8 @@ internal fun AgendaCard(
 /**
  * The thin "Now · 10:30 AM" line in today's agenda, before the first item that has not ended,
  * so the day reads as before and after at a glance (UI4-12). The time is in the employee's
- * saved zone. The line is the brand gradient, one of the few places v5's rule B keeps it: a
- * small bit of life on the one moving mark.
+ * saved zone. The line is solid accent, the same ink as its label (v5 rule A: no gradient off the
+ * heroes and backgrounds).
  */
 @Composable
 internal fun NowDivider(time: ZonedDateTime, modifier: Modifier = Modifier) {
@@ -141,7 +140,7 @@ internal fun NowDivider(time: ZonedDateTime, modifier: Modifier = Modifier) {
             modifier = Modifier
                 .weight(1f)
                 .height(CalendarSizes.NowLine)
-                .background(WaiveraBrand.horizontalGradient(), WaiveraShapes.Pill),
+                .background(colors.accent, WaiveraShapes.Pill),
         )
     }
 }

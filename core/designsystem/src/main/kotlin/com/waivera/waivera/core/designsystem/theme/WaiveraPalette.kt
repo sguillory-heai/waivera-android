@@ -22,7 +22,7 @@ internal object WaiveraPalette {
     val BrandGold = Color(0xFFFFD45C)
 
     // The "Your day" track's event blocks (concept B): solid, the deeper end of the old top-to-bottom
-    // shading, since v5's gradient rule keeps gradients off everything but heroes and accents.
+    // shading, since v5's gradient rule A keeps gradients to heroes and backgrounds.
     val TimelineTeal = Color(0xFF1FA08B)
     val TimelineViolet = Color(0xFF7A55DA)
     val TimelineGold = Color(0xFFE0A032)

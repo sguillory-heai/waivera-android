@@ -26,9 +26,9 @@ import com.waivera.waivera.core.designsystem.theme.WaiveraTheme
 
 /**
  * A surface with the soft brand-gradient wash, for celebrations only (a birthday, an
- * anniversary, a new hire). Under v5's gradient rule B the gradient means "progress and
- * celebration" and nothing else: the plum hero, the progress and reward rings, the schedule's
- * "now" line and this wash. Anything else that wants to stand out uses [WaiveraSurfaceCard].
+ * anniversary, a new hire). Under v5's gradient rule A (owner pick) the gradient lives on heroes
+ * and backgrounds only: the plum hero and this wash, which is a celebration's background. Anything
+ * else that wants to stand out uses [WaiveraSurfaceCard].
  * Text in `text` and `textSecondary` keeps 4.5:1 on every point of the wash in both themes
  * (`WaiveraColorsContrastTest`). Use it once or twice per screen, never for lists of rows.
  */
