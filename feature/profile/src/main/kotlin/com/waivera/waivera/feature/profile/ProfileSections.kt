@@ -24,6 +24,7 @@ import com.waivera.waivera.core.data.model.TimeOffSummary
 import com.waivera.waivera.core.designsystem.component.WaiveraIconTile
 import com.waivera.waivera.core.designsystem.component.WaiveraListRow
 import com.waivera.waivera.core.designsystem.component.WaiveraStatusBadge
+import com.waivera.waivera.core.designsystem.component.WaiveraTileTone
 import com.waivera.waivera.core.designsystem.theme.WaiveraSpacing
 import com.waivera.waivera.core.designsystem.theme.WaiveraTextStyles
 import com.waivera.waivera.core.designsystem.theme.WaiveraTheme
@@ -159,7 +160,9 @@ internal fun FilesSection(section: Section<List<EmployeeFile>>, zone: ZoneId, on
                             added?.let { stringResource(R.string.feature_profile_files_added, it) },
                             file.category?.takeIf(String::isNotBlank),
                         ).joinToString(" · ").takeIf(String::isNotEmpty),
-                        leading = { WaiveraIconTile(icon = R.drawable.feature_profile_ic_file) },
+                        leading = {
+                            WaiveraIconTile(icon = R.drawable.feature_profile_ic_file, tone = WaiveraTileTone.Neutral)
+                        },
                     )
                 }
             }

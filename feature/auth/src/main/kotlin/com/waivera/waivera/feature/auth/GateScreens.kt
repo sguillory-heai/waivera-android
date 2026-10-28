@@ -14,6 +14,7 @@ import com.waivera.waivera.core.designsystem.component.BannerTone
 import com.waivera.waivera.core.designsystem.component.WaiveraBanner
 import com.waivera.waivera.core.designsystem.component.WaiveraButton
 import com.waivera.waivera.core.designsystem.component.WaiveraButtonVariant
+import com.waivera.waivera.core.designsystem.component.WaiveraTileTone
 import com.waivera.waivera.core.designsystem.feedback.rememberHaptics
 import com.waivera.waivera.core.designsystem.icon.WaiveraIcons
 import com.waivera.waivera.core.designsystem.preview.WaiveraPreviews
@@ -68,6 +69,7 @@ internal fun BootstrapFailedContent(
                 if (state.isOffline) R.string.feature_auth_bootstrap_offline_message else state.message,
             ),
             icon = if (state.isOffline) WaiveraIcons.CloudOff else WaiveraIcons.Error,
+            tone = if (state.isOffline) WaiveraTileTone.Neutral else WaiveraTileTone.Danger,
         )
         AuthAnimatedVisibility(visible = state.lastFailedRetryAt != null && !state.retrying) {
             state.lastFailedRetryAt?.let { RetryFailedBanner(it) }

@@ -242,8 +242,10 @@ private fun WaiveraBottomActionLayoutPreview() {
             },
         ) {
             val gutter = Modifier.padding(horizontal = WaiveraSpacing.Gutter)
-            WaiveraTextField(value = "", onValueChange = {}, label = "Email", modifier = gutter)
-            WaiveraTextField(value = "", onValueChange = {}, label = "Password", modifier = gutter)
+            WaiveraTextField(value = "", onValueChange = {
+            }, label = "Email", placeholder = "you@organization.com", modifier = gutter)
+            WaiveraTextField(value = "", onValueChange = {
+            }, label = "Password", placeholder = "Enter your password", modifier = gutter)
         }
     }
 }

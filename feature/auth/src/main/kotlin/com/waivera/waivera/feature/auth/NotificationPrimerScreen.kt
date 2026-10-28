@@ -13,8 +13,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -24,7 +22,6 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
@@ -32,6 +29,9 @@ import androidx.compose.ui.semantics.semantics
 import com.waivera.waivera.core.data.model.NotificationCategory
 import com.waivera.waivera.core.designsystem.component.WaiveraButton
 import com.waivera.waivera.core.designsystem.component.WaiveraButtonVariant
+import com.waivera.waivera.core.designsystem.component.WaiveraIconTile
+import com.waivera.waivera.core.designsystem.component.WaiveraLogo
+import com.waivera.waivera.core.designsystem.component.WaiveraTileTone
 import com.waivera.waivera.core.designsystem.icon.WaiveraIcons
 import com.waivera.waivera.core.designsystem.preview.WaiveraPreviews
 import com.waivera.waivera.core.designsystem.theme.WaiveraShapes
@@ -78,6 +78,7 @@ fun NotificationPrimerScreen(onFinished: (granted: Boolean) -> Unit, modifier: M
 internal data class PrimerKind(
     val categories: List<NotificationCategory>,
     @DrawableRes val icon: Int,
+    val tone: WaiveraTileTone,
     @StringRes val title: Int,
     @StringRes val body: Int,
 )
@@ -86,18 +87,21 @@ internal val PrimerKinds: List<PrimerKind> = listOf(
     PrimerKind(
         categories = listOf(NotificationCategory.MESSAGES, NotificationCategory.GROUP_ACTIVITY),
         icon = WaiveraIcons.Chat,
+        tone = WaiveraTileTone.Brand,
         title = R.string.feature_auth_primer_messages_title,
         body = R.string.feature_auth_primer_messages_body,
     ),
     PrimerKind(
         categories = listOf(NotificationCategory.SCHEDULE_REMINDERS, NotificationCategory.SCHEDULE_CHANGES),
         icon = WaiveraIcons.Calendar,
+        tone = WaiveraTileTone.Teal,
         title = R.string.feature_auth_primer_schedule_title,
         body = R.string.feature_auth_primer_schedule_body,
     ),
     PrimerKind(
         categories = listOf(NotificationCategory.DIGEST),
         icon = WaiveraIcons.Announcement,
+        tone = WaiveraTileTone.Amber,
         title = R.string.feature_auth_primer_digest_title,
         body = R.string.feature_auth_primer_digest_body,
     ),
@@ -132,6 +136,7 @@ internal fun NotificationPrimerContent(
             title = stringResource(R.string.feature_auth_primer_title),
             message = stringResource(R.string.feature_auth_primer_message),
             icon = WaiveraIcons.Notifications,
+            tone = WaiveraTileTone.Amber,
         )
         // Tighter on a short window so the kinds and the control note fit above the pinned actions.
         val gap = if (LocalCompactAuthWindow.current) WaiveraSpacing.MediumSmall else WaiveraSpacing.Medium
@@ -171,12 +176,7 @@ private fun SampleNotification() {
         horizontalArrangement = Arrangement.spacedBy(WaiveraSpacing.MediumSmall),
         verticalAlignment = Alignment.Top,
     ) {
-        Icon(
-            painter = painterResource(WaiveraIcons.WaiveraMark),
-            contentDescription = null,
-            tint = colors.accent,
-            modifier = Modifier.size(WaiveraSizes.Icon),
-        )
+        WaiveraLogo(height = WaiveraSizes.Icon)
         Column(
             modifier = Modifier.weight(1f),
             verticalArrangement = Arrangement.spacedBy(WaiveraSpacing.XxSmall),
@@ -211,12 +211,7 @@ private fun PrimerKindRow(item: PrimerKind) {
         horizontalArrangement = Arrangement.spacedBy(WaiveraSpacing.MediumSmall),
         verticalAlignment = Alignment.Top,
     ) {
-        Icon(
-            painter = painterResource(item.icon),
-            contentDescription = null,
-            tint = colors.accent,
-            modifier = Modifier.size(WaiveraSizes.Icon),
-        )
+        WaiveraIconTile(icon = item.icon, tone = item.tone)
         Column(
             modifier = Modifier.weight(1f),
             verticalArrangement = Arrangement.spacedBy(WaiveraSpacing.XxSmall),

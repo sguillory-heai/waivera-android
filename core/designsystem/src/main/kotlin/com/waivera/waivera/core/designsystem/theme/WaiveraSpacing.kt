@@ -30,14 +30,38 @@ object WaiveraSizes {
     val Icon: Dp = 24.dp
     val IconButton: Dp = 48.dp
     val IconTile: Dp = 40.dp
+
+    /** An emoji inside an icon tile: icon size, fixed so the tile never overflows at 200%. */
+    val EmojiInTile: Dp = 22.dp
     val StateIconTile: Dp = 48.dp
     val AvatarSmall: Dp = 32.dp
     val AvatarMedium: Dp = 44.dp
     val AvatarLarge: Dp = 64.dp
     val AvatarHero: Dp = 96.dp
 
-    /** The brand mark above the sign-in title. */
+    /** The brand mark next to a heading. */
     val BrandMark: Dp = 48.dp
+
+    /** The logo with its wordmark, in a header or a compact hero. */
+    val BrandLockup: Dp = 32.dp
+
+    /** The logo with its wordmark on the sign-in hero band. */
+    val BrandLockupHero: Dp = 44.dp
+
+    /** Height of the gradient-washed hero band behind the sign-in logo. */
+    val HeroBand: Dp = 132.dp
+
+    /** The hero band on a short window or at large text. */
+    val HeroBandCompact: Dp = 80.dp
+
+    /** Empty-state illustrations. */
+    val Illustration: Dp = 120.dp
+
+    /** The all-caught-up reward art: a little larger than an empty state's. */
+    val IllustrationReward: Dp = 144.dp
+
+    /** Size of one confetti piece in the celebrate burst. */
+    val ConfettiPiece: Dp = 7.dp
     val AvatarRing: Dp = 2.dp
     val PresenceDot: Dp = 12.dp
 

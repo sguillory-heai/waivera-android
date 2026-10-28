@@ -1,14 +1,16 @@
 package com.waivera.waivera.feature.auth
 
 import android.content.pm.ApplicationInfo
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -18,11 +20,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.autofill.ContentType
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
@@ -36,11 +38,14 @@ import com.waivera.waivera.core.designsystem.component.BannerTone
 import com.waivera.waivera.core.designsystem.component.WaiveraBanner
 import com.waivera.waivera.core.designsystem.component.WaiveraButton
 import com.waivera.waivera.core.designsystem.component.WaiveraButtonVariant
+import com.waivera.waivera.core.designsystem.component.WaiveraLogo
+import com.waivera.waivera.core.designsystem.component.WaiveraLogoVariant
 import com.waivera.waivera.core.designsystem.component.WaiveraTextField
 import com.waivera.waivera.core.designsystem.feedback.Haptics
 import com.waivera.waivera.core.designsystem.feedback.rememberHaptics
-import com.waivera.waivera.core.designsystem.icon.WaiveraIcons
 import com.waivera.waivera.core.designsystem.preview.WaiveraPreviews
+import com.waivera.waivera.core.designsystem.theme.WaiveraBrand
+import com.waivera.waivera.core.designsystem.theme.WaiveraShapes
 import com.waivera.waivera.core.designsystem.theme.WaiveraSizes
 import com.waivera.waivera.core.designsystem.theme.WaiveraSpacing
 import com.waivera.waivera.core.designsystem.theme.WaiveraTheme
@@ -208,6 +213,7 @@ private fun SignInForm(state: SignInUiState, actions: SignInActions, onSubmit: (
             value = state.password,
             onValueChange = actions.onPasswordChange,
             label = stringResource(R.string.feature_auth_password_label),
+            placeholder = stringResource(R.string.feature_auth_brand_password_placeholder),
             imeAction = ImeAction.Go,
             onImeAction = onSubmit,
             errorText = state.passwordError?.let { stringResource(it) },
@@ -238,30 +244,36 @@ private fun SignInButtons(state: SignInUiState, onSubmit: () -> Unit, onForgotPa
     )
 }
 
+/**
+ * The welcome: the real logo (mark and wordmark) on a soft brand-gradient band, then the
+ * greeting. The band shrinks on a short window or at large text so the form still starts on
+ * the first screen; the tagline is the first thing to go.
+ */
 @Composable
 private fun SignInHero(showTagline: Boolean) {
     val colors = WaiveraTheme.colors
+    val compact = LocalCompactAuthWindow.current || isLargeFontScale()
     Column(
         modifier = Modifier
             .fillMaxWidth()
             .then(GutterPadding),
-        verticalArrangement = Arrangement.spacedBy(WaiveraSpacing.Small),
+        verticalArrangement = Arrangement.spacedBy(WaiveraSpacing.MediumSmall),
     ) {
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(WaiveraSpacing.Small),
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.semantics(mergeDescendants = true) {},
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(min = if (compact) WaiveraSizes.HeroBandCompact else WaiveraSizes.HeroBand)
+                .clip(WaiveraShapes.Hero)
+                .background(colors.surface)
+                .background(WaiveraBrand.wash())
+                .border(WaiveraSpacing.Hairline, colors.border, WaiveraShapes.Hero)
+                .padding(WaiveraSpacing.Large),
+            contentAlignment = Alignment.Center,
         ) {
-            Icon(
-                painter = painterResource(WaiveraIcons.WaiveraMark),
-                contentDescription = null,
-                tint = colors.accent,
-                modifier = Modifier.size(WaiveraSizes.BrandMark),
-            )
-            Text(
-                text = stringResource(R.string.feature_auth_brand),
-                style = MaterialTheme.typography.titleLarge,
-                color = colors.accent,
+            WaiveraLogo(
+                variant = WaiveraLogoVariant.Lockup,
+                height = if (compact) WaiveraSizes.BrandLockup else WaiveraSizes.BrandLockupHero,
+                contentDescription = stringResource(R.string.feature_auth_brand),
             )
         }
         Text(
@@ -270,7 +282,6 @@ private fun SignInHero(showTagline: Boolean) {
             color = colors.text,
             modifier = Modifier.semantics { heading() },
         )
-        // At large text the form has to start on the first screen; the tagline is the first to go.
         if (showTagline) {
             Text(
                 text = stringResource(R.string.feature_auth_sign_in_subtitle),

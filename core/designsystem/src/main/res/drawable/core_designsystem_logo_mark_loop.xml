@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Waivera mark, gradient layer: the looped "W" in the brand gradient. Drawn under core_designsystem_logo_mark_base by WaiveraLogo; never tint it. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android" xmlns:aapt="http://schemas.android.com/aapt"
+    android:width="48.5dp"
+    android:height="52dp"
+    android:autoMirrored="false"
+    android:viewportWidth="48.5"
+    android:viewportHeight="52">
+    <path
+        android:pathData="M2.46265 14.0053C2.46265 14.0053 7.6205 35.3062 13.97 34.9595C20.3195 34.6129 32.3129 15.891 30.5492 8.61027C28.7854 1.32954 21.3777 1.32954 19.9667 8.61027C18.5557 15.891 31.6074 35.3062 35.8404 34.9595C40.0734 34.6129 44.5813 25.3258 46.7756 14.0053"
+        android:strokeWidth="4.54492"
+        android:strokeLineCap="round"
+        android:fillColor="#00000000">
+        <aapt:attr name="android:strokeColor">
+            <gradient
+                android:type="linear"
+                android:startX="24.7288"
+                android:startY="3.14972"
+                android:endX="24.7288"
+                android:endY="34.9641">
+                <item android:offset="0.245234" android:color="#FFA640DA" />
+                <item android:offset="0.567368" android:color="#FFFF6FBC" />
+                <item android:offset="1" android:color="#FFFFD45C" />
+            </gradient>
+        </aapt:attr>
+    </path>
+</vector>

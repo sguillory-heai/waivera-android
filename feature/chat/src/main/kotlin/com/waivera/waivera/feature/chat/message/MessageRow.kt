@@ -50,6 +50,8 @@ import com.waivera.waivera.core.designsystem.component.WaiveraButtonVariant
 import com.waivera.waivera.core.designsystem.component.WaiveraIconButton
 import com.waivera.waivera.core.designsystem.component.WaiveraPressable
 import com.waivera.waivera.core.designsystem.component.WaiveraStatusBadge
+import com.waivera.waivera.core.designsystem.component.bubbleArrival
+import com.waivera.waivera.core.designsystem.component.rememberBubbleArrival
 import com.waivera.waivera.core.designsystem.icon.WaiveraIcons
 import com.waivera.waivera.core.designsystem.theme.WaiveraShapes
 import com.waivera.waivera.core.designsystem.theme.WaiveraSizes
@@ -109,7 +111,7 @@ fun MessageRowView(
     showAuthorLine: Boolean = true,
 ) {
     val colors = WaiveraTheme.colors
-    val arrival = rememberArrivalProgress(row.isLiveArrival)
+    val arrival = rememberBubbleArrival(row.isLiveArrival, mine = row.isMine)
     val rowBackground = when {
         highlighted -> colors.accentWash
         row.isBot -> colors.accentWash.copy(alpha = colors.accentWash.alpha / 2)
@@ -118,10 +120,7 @@ fun MessageRowView(
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .graphicsLayer {
-                translationY = (1f - arrival) * ChatDimens.ArrivalOffset.toPx()
-                alpha = ARRIVAL_MIN_ALPHA + (1f - ARRIVAL_MIN_ALPHA) * arrival
-            }
+            .bubbleArrival(progress = arrival, mine = row.isMine, offset = ChatDimens.ArrivalOffset)
             .background(rowBackground)
             .then(if (highlighted) Modifier.border(WaiveraSpacing.Hairline, colors.accentBorderStrong) else Modifier),
     ) {
@@ -145,26 +144,15 @@ fun MessageRowView(
                 horizontalAlignment = if (row.isMine) Alignment.End else Alignment.Start,
             ) {
                 if (row.startsIncomingRun() && (showAuthorLine || row.isBot)) AuthorLine(authorName, row.isBot)
-                Bubble(row, authorName, time, callbacks, arrival)
+                Bubble(row, authorName, time, callbacks, arrival.coerceAtMost(1f))
                 Footer(row, time, timestampVisible, callbacks)
             }
         }
     }
 }
 
-private const val ARRIVAL_MIN_ALPHA = 0.35f
-
 /** The first bubble of someone else's run: where the author line goes. */
 private fun TimelineItem.MessageRow.startsIncomingRun(): Boolean = !isMine && !groupedWithPrevious
-
-/** 0 → 1 for a live arrival on the layout token; 1 at once for history or with motion reduced. */
-@Composable
-private fun rememberArrivalProgress(isLiveArrival: Boolean): Float {
-    val motion = WaiveraTheme.motion
-    val progress = remember { Animatable(if (isLiveArrival && !motion.reduced) 0f else 1f) }
-    LaunchedEffect(Unit) { if (progress.value < 1f) progress.animateTo(1f, motion.layout()) }
-    return progress.value
-}
 
 @Composable
 private fun AuthorAvatar(row: TimelineItem.MessageRow, authorName: String, callbacks: MessageRowCallbacks) {

@@ -1,6 +1,7 @@
 package com.waivera.waivera.core.designsystem.component
 
 import androidx.annotation.DrawableRes
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -9,7 +10,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -23,14 +23,38 @@ import androidx.compose.ui.text.style.TextAlign
 import com.waivera.waivera.core.designsystem.R
 import com.waivera.waivera.core.designsystem.icon.WaiveraIcons
 import com.waivera.waivera.core.designsystem.preview.WaiveraPreviews
-import com.waivera.waivera.core.designsystem.theme.WaiveraShapes
 import com.waivera.waivera.core.designsystem.theme.WaiveraSizes
 import com.waivera.waivera.core.designsystem.theme.WaiveraSpacing
 import com.waivera.waivera.core.designsystem.theme.WaiveraTheme
 
+/** Small brand illustrations for empty states: abstract, in the brand gradient, no people. */
+enum class WaiveraIllustration(@param:DrawableRes internal val drawable: Int) {
+    /** No conversations yet. */
+    Chats(R.drawable.core_designsystem_illustration_chats),
+
+    /** Nothing scheduled. */
+    Schedule(R.drawable.core_designsystem_illustration_schedule),
+
+    /** Everything done: the reward art. */
+    CaughtUp(R.drawable.core_designsystem_illustration_caught_up),
+
+    /** A search or filter matched nothing. */
+    Search(R.drawable.core_designsystem_illustration_search),
+
+    /** Nothing saved yet. */
+    Bookmarks(R.drawable.core_designsystem_illustration_bookmarks),
+
+    /** No activity or notifications yet. */
+    Activity(R.drawable.core_designsystem_illustration_activity),
+
+    /** No people to show. */
+    Connections(R.drawable.core_designsystem_illustration_connections),
+}
+
 /**
- * The shared empty-state block: icon tile, title, message and one clear action. Every screen
- * uses this so copy and spacing stay consistent.
+ * The shared empty-state block: a small brand illustration (or an icon tile), title, message
+ * and one clear action that invites the next step. Every screen uses this so copy and spacing
+ * stay consistent. [illustration] wins over [icon] when both are set.
  */
 @Composable
 fun WaiveraEmptyState(
@@ -40,6 +64,7 @@ fun WaiveraEmptyState(
     @DrawableRes icon: Int? = null,
     actionLabel: String? = null,
     onAction: (() -> Unit)? = null,
+    illustration: WaiveraIllustration? = null,
 ) {
     StateBlock(
         title = title,
@@ -48,6 +73,7 @@ fun WaiveraEmptyState(
         icon = icon,
         actionLabel = actionLabel,
         onAction = onAction,
+        illustration = illustration,
     )
 }
 
@@ -124,10 +150,9 @@ private fun StateBlock(
     onAction: (() -> Unit)?,
     tone: StateTone = StateTone.Neutral,
     dense: Boolean = false,
+    illustration: WaiveraIllustration? = null,
 ) {
     val colors = WaiveraTheme.colors
-    val tileContainer = if (tone == StateTone.Error) colors.dangerContainer else colors.accentSoft
-    val tileContent = if (tone == StateTone.Error) colors.onDangerContainer else colors.onAccentSoft
     Column(
         modifier = modifier
             .fillMaxWidth()
@@ -138,20 +163,18 @@ private fun StateBlock(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(WaiveraSpacing.MediumSmall),
     ) {
-        if (icon != null) {
-            Box(
-                modifier = Modifier
-                    .size(WaiveraSizes.StateIconTile)
-                    .background(tileContainer, WaiveraShapes.Button),
-                contentAlignment = Alignment.Center,
-            ) {
-                Icon(
-                    painterResource(icon),
-                    contentDescription = null,
-                    tint = tileContent,
-                    modifier = Modifier.size(WaiveraSizes.Icon),
-                )
-            }
+        if (illustration != null) {
+            Image(
+                painter = painterResource(illustration.drawable),
+                contentDescription = null,
+                modifier = Modifier.size(WaiveraSizes.Illustration),
+            )
+        } else if (icon != null) {
+            WaiveraIconTile(
+                icon = icon,
+                tone = if (tone == StateTone.Error) WaiveraTileTone.Danger else WaiveraTileTone.Brand,
+                size = WaiveraSizes.StateIconTile,
+            )
         }
         Text(
             text = title,
@@ -182,7 +205,14 @@ private fun WaiveraStatesPreview() {
     WaiveraTheme {
         Column {
             WaiveraEmptyState(
-                title = "All caught up",
+                title = "No conversations yet",
+                message = "Start one with a teammate and it will show up here.",
+                illustration = WaiveraIllustration.Chats,
+                actionLabel = "New chat",
+                onAction = {},
+            )
+            WaiveraEmptyState(
+                title = "Nothing here yet",
                 message = "New messages and mentions will show up here.",
                 icon = WaiveraIcons.Check,
             )

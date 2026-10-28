@@ -63,8 +63,10 @@ import com.waivera.waivera.core.designsystem.component.SkeletonBlock
 import com.waivera.waivera.core.designsystem.component.WaiveraButton
 import com.waivera.waivera.core.designsystem.component.WaiveraButtonVariant
 import com.waivera.waivera.core.designsystem.component.WaiveraDivider
+import com.waivera.waivera.core.designsystem.component.WaiveraIconTile
 import com.waivera.waivera.core.designsystem.component.WaiveraPressable
 import com.waivera.waivera.core.designsystem.component.WaiveraStatusBadge
+import com.waivera.waivera.core.designsystem.component.WaiveraTileTone
 import com.waivera.waivera.core.designsystem.icon.WaiveraIcons
 import com.waivera.waivera.core.designsystem.text.fileNameHeadAndTail
 import com.waivera.waivera.core.designsystem.text.withBreaksAfterHyphens
@@ -336,19 +338,7 @@ private fun FileAttachment(message: Message, attachment: Attachment, onOpen: () 
             horizontalArrangement = Arrangement.spacedBy(WaiveraSpacing.Small),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Box(
-                modifier = Modifier
-                    .size(WaiveraSizes.IconTile)
-                    .background(colors.surfaceMuted, WaiveraShapes.Chip),
-                contentAlignment = Alignment.Center,
-            ) {
-                Icon(
-                    painterResource(icon),
-                    contentDescription = null,
-                    tint = colors.accent,
-                    modifier = Modifier.size(WaiveraSizes.Icon),
-                )
-            }
+            WaiveraIconTile(icon = icon, tone = WaiveraTileTone.Neutral)
             // At large font the helper line would wrap into a column of words; the name gets
             // the room instead, and the tap's label still says what it does (UI3-11). At 100%
             // the name is one line cut in the middle, so the extension stays visible ("north-
@@ -677,22 +667,10 @@ fun CallLogCard(item: TimelineItem.CallLog, time: RowTime, highlighted: Boolean,
                 horizontalArrangement = Arrangement.spacedBy(WaiveraSpacing.Small),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Box(
-                    modifier = Modifier
-                        .size(WaiveraSizes.IconTile)
-                        .background(
-                            if (summary.isMissed) colors.dangerContainer else colors.accentWash,
-                            WaiveraShapes.Chip,
-                        ),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Icon(
-                        painterResource(if (summary.isMissed) ChatIcons.PhoneMissed else WaiveraIcons.Video),
-                        contentDescription = null,
-                        tint = if (summary.isMissed) colors.onDangerContainer else colors.accent,
-                        modifier = Modifier.size(WaiveraSizes.Icon),
-                    )
-                }
+                WaiveraIconTile(
+                    icon = if (summary.isMissed) ChatIcons.PhoneMissed else WaiveraIcons.Video,
+                    tone = if (summary.isMissed) WaiveraTileTone.Danger else WaiveraTileTone.Brand,
+                )
                 Column(Modifier.weight(1f)) {
                     Text(text = label, style = MaterialTheme.typography.titleSmall, color = colors.text)
                     summary.duration?.let {

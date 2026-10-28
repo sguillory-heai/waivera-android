@@ -1,6 +1,8 @@
 package com.waivera.waivera.core.designsystem.screenshot
 
 import android.graphics.BitmapFactory
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -8,15 +10,19 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.painter.BitmapPainter
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import com.waivera.waivera.core.designsystem.component.BadgeTone
@@ -39,16 +45,21 @@ import com.waivera.waivera.core.designsystem.component.WaiveraBottomActionLayout
 import com.waivera.waivera.core.designsystem.component.WaiveraBusyIndicator
 import com.waivera.waivera.core.designsystem.component.WaiveraButton
 import com.waivera.waivera.core.designsystem.component.WaiveraButtonVariant
+import com.waivera.waivera.core.designsystem.component.WaiveraCelebrationBurst
 import com.waivera.waivera.core.designsystem.component.WaiveraCountBadge
 import com.waivera.waivera.core.designsystem.component.WaiveraDivider
+import com.waivera.waivera.core.designsystem.component.WaiveraEmojiTile
 import com.waivera.waivera.core.designsystem.component.WaiveraEmptyState
 import com.waivera.waivera.core.designsystem.component.WaiveraErrorState
 import com.waivera.waivera.core.designsystem.component.WaiveraFilterChip
 import com.waivera.waivera.core.designsystem.component.WaiveraIconButton
 import com.waivera.waivera.core.designsystem.component.WaiveraIconTile
+import com.waivera.waivera.core.designsystem.component.WaiveraIllustration
 import com.waivera.waivera.core.designsystem.component.WaiveraListRow
 import com.waivera.waivera.core.designsystem.component.WaiveraLoadingScreen
 import com.waivera.waivera.core.designsystem.component.WaiveraLoadingState
+import com.waivera.waivera.core.designsystem.component.WaiveraLogo
+import com.waivera.waivera.core.designsystem.component.WaiveraLogoVariant
 import com.waivera.waivera.core.designsystem.component.WaiveraMilestoneAvatar
 import com.waivera.waivera.core.designsystem.component.WaiveraNavigationBar
 import com.waivera.waivera.core.designsystem.component.WaiveraPlaceholderScreen
@@ -60,10 +71,14 @@ import com.waivera.waivera.core.designsystem.component.WaiveraStatusBadge
 import com.waivera.waivera.core.designsystem.component.WaiveraSwitchRow
 import com.waivera.waivera.core.designsystem.component.WaiveraSyncIndicator
 import com.waivera.waivera.core.designsystem.component.WaiveraTextField
+import com.waivera.waivera.core.designsystem.component.WaiveraTileTone
 import com.waivera.waivera.core.designsystem.component.WaiveraTopBar
 import com.waivera.waivera.core.designsystem.icon.WaiveraIcons
+import com.waivera.waivera.core.designsystem.theme.WaiveraBrand
+import com.waivera.waivera.core.designsystem.theme.WaiveraShapes
 import com.waivera.waivera.core.designsystem.theme.WaiveraSizes
 import com.waivera.waivera.core.designsystem.theme.WaiveraSpacing
+import com.waivera.waivera.core.designsystem.theme.WaiveraTheme
 import com.waivera.waivera.core.screenshottesting.ScreenshotSdk
 import com.waivera.waivera.core.screenshottesting.captureScreenshots
 import org.junit.Test
@@ -152,6 +167,81 @@ class DesignSystemScreenshotTest {
             onClick = {},
             showChevron = true,
         )
+    }
+
+    /** The real logo: mark and lockup, gradient loop with text-coloured lines in both themes. */
+    @Test
+    fun logo() = capture("Logo") {
+        WaiveraLogo()
+        WaiveraLogo(variant = WaiveraLogoVariant.Lockup, height = WaiveraSizes.BrandLockupHero)
+        Row(horizontalArrangement = Arrangement.spacedBy(WaiveraSpacing.Small)) {
+            WaiveraLogo(height = WaiveraSizes.Icon)
+            WaiveraLogo(variant = WaiveraLogoVariant.Lockup, height = WaiveraSizes.BrandLockup)
+        }
+    }
+
+    /** One icon language: every tone, plus emoji tiles, in light and dark. */
+    @OptIn(ExperimentalLayoutApi::class)
+    @Test
+    fun iconTiles() = capture("IconTiles") {
+        FlowRow(
+            horizontalArrangement = Arrangement.spacedBy(WaiveraSpacing.Small),
+            verticalArrangement = Arrangement.spacedBy(WaiveraSpacing.Small),
+        ) {
+            WaiveraIconTile(icon = WaiveraIcons.Chat)
+            WaiveraIconTile(icon = WaiveraIcons.Bookmark, tone = WaiveraTileTone.Rose)
+            WaiveraIconTile(icon = WaiveraIcons.Notifications, tone = WaiveraTileTone.Amber)
+            WaiveraIconTile(icon = WaiveraIcons.Calendar, tone = WaiveraTileTone.Teal)
+            WaiveraIconTile(icon = WaiveraIcons.Archive, tone = WaiveraTileTone.Neutral)
+            WaiveraIconTile(icon = WaiveraIcons.Error, tone = WaiveraTileTone.Danger)
+            WaiveraEmojiTile(emoji = "🎂")
+            WaiveraEmojiTile(emoji = "🎉", tone = WaiveraTileTone.Brand)
+            WaiveraEmojiTile(emoji = "👍", tone = WaiveraTileTone.Rose)
+        }
+        WaiveraListRow(
+            headline = "Bookmarks",
+            onClick = {},
+            showChevron = true,
+            leading = { WaiveraIconTile(icon = WaiveraIcons.Bookmark, tone = WaiveraTileTone.Rose) },
+        )
+    }
+
+    /** Empty states with their brand illustrations and an inviting action. */
+    @Test
+    fun illustratedEmptyStates() = capture("EmptyStatesIllustrated") {
+        WaiveraEmptyState(
+            title = "No conversations yet",
+            message = "Say hello to a teammate and it will show up here.",
+            illustration = WaiveraIllustration.Chats,
+            actionLabel = "New chat",
+            onAction = {},
+        )
+        Row(horizontalArrangement = Arrangement.spacedBy(WaiveraSpacing.Small)) {
+            WaiveraIllustration.entries.forEach { art ->
+                Image(
+                    painter = painterResource(art.drawable),
+                    contentDescription = null,
+                    modifier = Modifier.size(WaiveraSizes.IconTile),
+                )
+            }
+        }
+    }
+
+    /** The brand wash behind the lockup. The confetti waits for its clock, so a capture shows the wash alone. */
+    @Test
+    fun brandWash() = capture("BrandWash") {
+        Box(
+            modifier = Modifier
+                .height(WaiveraSizes.HeroBand)
+                .fillMaxWidth()
+                .clip(WaiveraShapes.Hero)
+                .background(WaiveraTheme.colors.surface)
+                .background(WaiveraBrand.wash()),
+            contentAlignment = Alignment.Center,
+        ) {
+            WaiveraLogo(variant = WaiveraLogoVariant.Lockup, height = WaiveraSizes.BrandLockupHero)
+            WaiveraCelebrationBurst(trigger = Unit, modifier = Modifier.matchParentSize())
+        }
     }
 
     @Test
@@ -270,15 +360,27 @@ class DesignSystemScreenshotTest {
     @Test
     fun textFields() = capture("TextFields") {
         WaiveraTextField(value = "", onValueChange = {}, label = "Email", placeholder = "you@company.com")
-        WaiveraTextField(value = "alex@waivera.test", onValueChange = {}, label = "Email")
+        WaiveraTextField(
+            value = "alex@waivera.test",
+            onValueChange = {},
+            label = "Email",
+            placeholder = "you@company.com",
+        )
         WaiveraTextField(
             value = "secret",
             onValueChange = {},
             label = "Password",
+            placeholder = "Enter your password",
             errorText = "That email and password don't match. Try again.",
             visualTransformation = PasswordVisualTransformation(),
         )
-        WaiveraTextField(value = "Read only", onValueChange = {}, label = "Organization", enabled = false)
+        WaiveraTextField(
+            value = "Read only",
+            onValueChange = {},
+            label = "Organization",
+            placeholder = "Your organization",
+            enabled = false,
+        )
     }
 
     @Test
@@ -487,6 +589,7 @@ class DesignSystemScreenshotTest {
                         value = "",
                         onValueChange = {},
                         label = "Field ${index + 1}",
+                        placeholder = "Type here",
                         modifier = Modifier.padding(horizontal = WaiveraSpacing.Gutter),
                     )
                 }

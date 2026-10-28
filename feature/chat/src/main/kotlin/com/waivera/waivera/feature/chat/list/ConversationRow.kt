@@ -41,7 +41,9 @@ import androidx.compose.ui.text.withStyle
 import com.waivera.waivera.core.designsystem.component.WaiveraAvatar
 import com.waivera.waivera.core.designsystem.component.WaiveraBusyIndicator
 import com.waivera.waivera.core.designsystem.component.WaiveraCountBadge
+import com.waivera.waivera.core.designsystem.component.WaiveraIconTile
 import com.waivera.waivera.core.designsystem.component.WaiveraPressable
+import com.waivera.waivera.core.designsystem.component.WaiveraTileTone
 import com.waivera.waivera.core.designsystem.icon.WaiveraIcons
 import com.waivera.waivera.core.designsystem.preview.WaiveraPreviews
 import com.waivera.waivera.core.designsystem.text.withBreaksAfterHyphens
@@ -369,21 +371,11 @@ internal fun LeadingTile(leading: RowLeading, avatar: ImageBitmap?) {
 
 @Composable
 private fun IconTile(icon: Int, description: String, accent: Boolean) {
-    val colors = WaiveraTheme.colors
-    Box(
-        modifier = Modifier
-            .size(WaiveraSizes.IconTile)
-            .background(if (accent) colors.accentWash else colors.surfaceMuted, WaiveraShapes.Button)
-            .semantics { contentDescription = description },
-        contentAlignment = Alignment.Center,
-    ) {
-        Icon(
-            painter = painterResource(icon),
-            contentDescription = null,
-            tint = if (accent) colors.accent else colors.textSecondary,
-            modifier = Modifier.size(WaiveraSizes.Icon),
-        )
-    }
+    WaiveraIconTile(
+        icon = icon,
+        tone = if (accent) WaiveraTileTone.Brand else WaiveraTileTone.Neutral,
+        modifier = Modifier.semantics { contentDescription = description },
+    )
 }
 
 /**

@@ -45,8 +45,10 @@ import com.waivera.waivera.core.designsystem.component.SkeletonListRow
 import com.waivera.waivera.core.designsystem.component.WaiveraBanner
 import com.waivera.waivera.core.designsystem.component.WaiveraButton
 import com.waivera.waivera.core.designsystem.component.WaiveraButtonVariant
+import com.waivera.waivera.core.designsystem.component.WaiveraIconTile
 import com.waivera.waivera.core.designsystem.component.WaiveraListRow
 import com.waivera.waivera.core.designsystem.component.WaiveraSectionHeader
+import com.waivera.waivera.core.designsystem.component.WaiveraTileTone
 import com.waivera.waivera.core.designsystem.component.rememberSkeletonPulse
 import com.waivera.waivera.core.designsystem.component.rememberSkeletonVisible
 import com.waivera.waivera.core.designsystem.icon.WaiveraIcons
@@ -263,11 +265,10 @@ private fun DetailRow(
         horizontalArrangement = Arrangement.spacedBy(WaiveraSpacing.MediumSmall),
         verticalAlignment = Alignment.Top,
     ) {
-        Icon(
-            painter = painterResource(icon),
-            contentDescription = iconLabel,
-            tint = colors.accent,
-            modifier = Modifier.size(WaiveraSizes.Icon),
+        WaiveraIconTile(
+            icon = icon,
+            tone = WaiveraTileTone.Teal,
+            modifier = if (iconLabel != null) Modifier.semantics { contentDescription = iconLabel } else Modifier,
         )
         Column(
             modifier = Modifier.weight(1f),

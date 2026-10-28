@@ -43,6 +43,8 @@ import kotlinx.coroutines.launch
  * appears, so in a scrolling form the field the person has to fix is never under the actions or
  * the keyboard.
  *
+ * @param placeholder required: every field shows helpful example text while empty (for example
+ *   "you@organization.com" or "Enter your password"), so the person knows what goes in it.
  * @param contentType autofill hint for password managers, set on the input itself (for example
  *   `ContentType.EmailAddress + ContentType.Username`, `ContentType.Password` or
  *   `ContentType.NewPassword`).
@@ -53,8 +55,8 @@ fun WaiveraTextField(
     value: String,
     onValueChange: (String) -> Unit,
     label: String,
+    placeholder: String,
     modifier: Modifier = Modifier,
-    placeholder: String? = null,
     errorText: String? = null,
     enabled: Boolean = true,
     singleLine: Boolean = true,
@@ -95,18 +97,14 @@ fun WaiveraTextField(
             // The placeholder lays out like the text that replaces it, in the same style and, for
             // a single-line field, on one line, so the field keeps its height on the first
             // keystroke. With the decoration's own style it was 9dp taller at 200% (UI7-02).
-            placeholder = if (placeholder != null) {
-                {
-                    Text(
-                        text = placeholder,
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = colors.textSecondary,
-                        maxLines = if (singleLine) 1 else Int.MAX_VALUE,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                }
-            } else {
-                null
+            placeholder = {
+                Text(
+                    text = placeholder,
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = colors.textSecondary,
+                    maxLines = if (singleLine) 1 else Int.MAX_VALUE,
+                    overflow = TextOverflow.Ellipsis,
+                )
             },
             leadingIcon = leadingIcon,
             trailingIcon = trailingIcon,
@@ -155,6 +153,7 @@ private fun WaiveraTextFieldPreview() {
                 value = "secret",
                 onValueChange = {},
                 label = "Password",
+                placeholder = "Enter your password",
                 errorText = "That password didn't work. Try again.",
                 visualTransformation = PasswordVisualTransformation(),
                 trailingIcon = {

@@ -11,6 +11,9 @@ import kotlin.math.roundToInt
 /** Corner radii taken from the recurring values in the Expo app (spec 10 §2). */
 object WaiveraShapes {
     val Chip: Shape = RoundedCornerShape(8.dp)
+
+    /** The soft rounded square behind every leading icon (`WaiveraIconTile`). */
+    val Tile: Shape = RoundedCornerShape(14.dp)
     val Button: Shape = RoundedCornerShape(12.dp)
     val Card: Shape = RoundedCornerShape(12.dp)
     val Field: Shape = RoundedCornerShape(12.dp)
@@ -19,6 +22,9 @@ object WaiveraShapes {
     val Composer: Shape = RoundedCornerShape(18.dp)
     val Pill: Shape = RoundedCornerShape(18.dp)
     val Bubble: Shape = RoundedCornerShape(20.dp)
+
+    /** Brand moments: the sign-in hero band and celebration cards. */
+    val Hero: Shape = RoundedCornerShape(24.dp)
     val Sheet: Shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp)
     val Circle: Shape = CircleShape
 

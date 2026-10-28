@@ -98,6 +98,9 @@ object WaiveraIcons {
 
     @DrawableRes val Warning: Int = R.drawable.core_designsystem_ic_warning
 
-    /** The Waivera brand mark, single colour: tint it with the accent. */
-    @DrawableRes val WaiveraMark: Int = R.drawable.core_designsystem_ic_waivera_mark
+    /**
+     * The Waivera mark (looped "W" over two base lines) in one colour, for small tinted spots.
+     * Everywhere the brand shows, use `WaiveraLogo`, which keeps the gradient.
+     */
+    @DrawableRes val WaiveraMark: Int = R.drawable.core_designsystem_logo_mark_mono
 }

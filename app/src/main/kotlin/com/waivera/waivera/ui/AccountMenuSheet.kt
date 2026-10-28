@@ -10,6 +10,7 @@ import com.waivera.waivera.core.designsystem.component.WaiveraAvatar
 import com.waivera.waivera.core.designsystem.component.WaiveraBottomSheet
 import com.waivera.waivera.core.designsystem.component.WaiveraIconTile
 import com.waivera.waivera.core.designsystem.component.WaiveraListRow
+import com.waivera.waivera.core.designsystem.component.WaiveraTileTone
 import com.waivera.waivera.core.designsystem.icon.WaiveraIcons
 import com.waivera.waivera.navigation.AppRoute
 import com.waivera.waivera.navigation.BookmarksRoute
@@ -35,17 +36,22 @@ fun AccountMenuSheet(
             leading = { WaiveraAvatar(name = accountName, imageModel = accountImage, contentDescription = null) },
         )
         MenuRow(R.string.shell_menu_people, WaiveraIcons.People) { onSelect(PeopleRoute) }
-        MenuRow(R.string.shell_menu_bookmarks, WaiveraIcons.Bookmark) { onSelect(BookmarksRoute) }
+        MenuRow(R.string.shell_menu_bookmarks, WaiveraIcons.Bookmark, WaiveraTileTone.Rose) { onSelect(BookmarksRoute) }
         MenuRow(R.string.shell_menu_settings, WaiveraIcons.Settings) { onSelect(SettingsRoute) }
     }
 }
 
 @Composable
-private fun MenuRow(@StringRes label: Int, @DrawableRes icon: Int, onClick: () -> Unit) {
+private fun MenuRow(
+    @StringRes label: Int,
+    @DrawableRes icon: Int,
+    tone: WaiveraTileTone = WaiveraTileTone.Brand,
+    onClick: () -> Unit,
+) {
     WaiveraListRow(
         headline = stringResource(label),
         onClick = onClick,
         showChevron = true,
-        leading = { WaiveraIconTile(icon = icon) },
+        leading = { WaiveraIconTile(icon = icon, tone = tone) },
     )
 }

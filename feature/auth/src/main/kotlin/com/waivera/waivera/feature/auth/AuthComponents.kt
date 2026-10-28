@@ -46,6 +46,7 @@ import com.waivera.waivera.core.designsystem.component.WaiveraBottomActionLayout
 import com.waivera.waivera.core.designsystem.component.WaiveraIconButton
 import com.waivera.waivera.core.designsystem.component.WaiveraIconTile
 import com.waivera.waivera.core.designsystem.component.WaiveraTextField
+import com.waivera.waivera.core.designsystem.component.WaiveraTileTone
 import com.waivera.waivera.core.designsystem.theme.WaiveraSizes
 import com.waivera.waivera.core.designsystem.theme.WaiveraSpacing
 import com.waivera.waivera.core.designsystem.theme.WaiveraTheme
@@ -103,7 +104,13 @@ internal val GutterPadding = Modifier.padding(horizontal = WaiveraSpacing.Gutter
 
 /** Icon tile, heading and supporting text at the top of a gate screen. */
 @Composable
-internal fun AuthHeader(title: String, message: String, @DrawableRes icon: Int, modifier: Modifier = Modifier) {
+internal fun AuthHeader(
+    title: String,
+    message: String,
+    @DrawableRes icon: Int,
+    modifier: Modifier = Modifier,
+    tone: WaiveraTileTone = WaiveraTileTone.Brand,
+) {
     val colors = WaiveraTheme.colors
     Column(
         modifier = modifier
@@ -111,7 +118,7 @@ internal fun AuthHeader(title: String, message: String, @DrawableRes icon: Int, 
             .then(GutterPadding),
         verticalArrangement = Arrangement.spacedBy(WaiveraSpacing.MediumSmall),
     ) {
-        WaiveraIconTile(icon = icon)
+        WaiveraIconTile(icon = icon, tone = tone, size = WaiveraSizes.StateIconTile)
         Text(
             text = title,
             style = MaterialTheme.typography.headlineSmall,
@@ -145,6 +152,7 @@ internal fun PasswordField(
     value: String,
     onValueChange: (String) -> Unit,
     label: String,
+    placeholder: String,
     imeAction: ImeAction,
     onImeAction: () -> Unit,
     modifier: Modifier = Modifier,
@@ -157,6 +165,7 @@ internal fun PasswordField(
         value = value,
         onValueChange = onValueChange,
         label = label,
+        placeholder = placeholder,
         modifier = modifier,
         errorText = errorText,
         enabled = enabled,

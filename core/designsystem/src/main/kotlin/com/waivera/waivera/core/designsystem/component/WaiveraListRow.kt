@@ -1,6 +1,5 @@
 package com.waivera.waivera.core.designsystem.component
 
-import androidx.annotation.DrawableRes
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -30,7 +29,6 @@ import com.waivera.waivera.core.designsystem.feedback.rememberHaptics
 import com.waivera.waivera.core.designsystem.icon.WaiveraIcons
 import com.waivera.waivera.core.designsystem.preview.WaiveraPreviews
 import com.waivera.waivera.core.designsystem.text.withBreaksAfterHyphens
-import com.waivera.waivera.core.designsystem.theme.WaiveraShapes
 import com.waivera.waivera.core.designsystem.theme.WaiveraSizes
 import com.waivera.waivera.core.designsystem.theme.WaiveraSpacing
 import com.waivera.waivera.core.designsystem.theme.WaiveraTextStyles
@@ -137,7 +135,7 @@ fun WaiveraSwitchRow(
             enabled = enabled,
             colors = SwitchDefaults.colors(
                 checkedThumbColor = colors.onAccent,
-                checkedTrackColor = colors.accent,
+                checkedTrackColor = colors.accentFill,
                 uncheckedThumbColor = colors.borderStrong,
                 uncheckedTrackColor = colors.surfaceMuted,
                 uncheckedBorderColor = colors.borderStrong,
@@ -186,24 +184,6 @@ private fun RowText(
         if (detail != null) {
             WaiveraAddressText(address = detail, style = MaterialTheme.typography.bodySmall, color = subtitleColor)
         }
-    }
-}
-
-/** A rounded tile holding a leading icon, as on settings and account rows. */
-@Composable
-fun WaiveraIconTile(@DrawableRes icon: Int, modifier: Modifier = Modifier) {
-    Box(
-        modifier = modifier
-            .size(WaiveraSizes.IconTile)
-            .background(WaiveraTheme.colors.accentSoft, WaiveraShapes.Button),
-        contentAlignment = Alignment.Center,
-    ) {
-        Icon(
-            painter = painterResource(icon),
-            contentDescription = null,
-            tint = WaiveraTheme.colors.onAccentSoft,
-            modifier = Modifier.size(WaiveraSizes.Icon),
-        )
     }
 }
 

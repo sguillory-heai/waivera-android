@@ -16,7 +16,6 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -25,7 +24,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
@@ -34,6 +32,7 @@ import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.style.TextOverflow
 import com.waivera.waivera.core.designsystem.component.WaiveraIconTile
 import com.waivera.waivera.core.designsystem.component.WaiveraPressable
+import com.waivera.waivera.core.designsystem.component.WaiveraTileTone
 import com.waivera.waivera.core.designsystem.icon.WaiveraIcons
 import com.waivera.waivera.core.designsystem.theme.WaiveraShapes
 import com.waivera.waivera.core.designsystem.theme.WaiveraSizes
@@ -73,7 +72,7 @@ internal fun AgendaCard(
         is AgendaItem.MilestoneCard -> MilestoneCard(item, modifier)
         is AgendaItem.HolidayCard -> InfoCard(
             icon = WaiveraIcons.Calendar,
-            iconTint = WaiveraTheme.colors.holidayIcon,
+            tone = WaiveraTileTone.Brand,
             title = item.holiday.title?.takeIf(String::isNotBlank)
                 ?: stringResource(R.string.feature_calendar_holiday_default),
             subtitle = item.holiday.description?.takeIf(String::isNotBlank)
@@ -82,7 +81,7 @@ internal fun AgendaCard(
         )
         is AgendaItem.TimeOffCard -> InfoCard(
             icon = CalendarIcons.TimeOff,
-            iconTint = WaiveraTheme.colors.success,
+            tone = WaiveraTileTone.Teal,
             title = item.entry.leaveType?.takeIf(String::isNotBlank)
                 ?: stringResource(R.string.feature_calendar_time_off_default),
             subtitle = timeOffSubtitle(item.entry),
@@ -156,26 +155,14 @@ private fun MilestoneCard(item: AgendaItem.MilestoneCard, modifier: Modifier = M
 @Composable
 private fun InfoCard(
     @DrawableRes icon: Int,
-    iconTint: Color,
+    tone: WaiveraTileTone,
     title: String,
     subtitle: String,
     modifier: Modifier = Modifier,
     ended: Boolean = false,
 ) {
     CardSurface(modifier = modifier.semantics(mergeDescendants = true) { }) {
-        Box(
-            modifier = Modifier
-                .size(WaiveraSizes.IconTile)
-                .background(WaiveraTheme.colors.surfaceMuted, WaiveraShapes.Button),
-            contentAlignment = Alignment.Center,
-        ) {
-            Icon(
-                painter = painterResource(icon),
-                contentDescription = null,
-                tint = iconTint,
-                modifier = Modifier.size(WaiveraSizes.Icon),
-            )
-        }
+        WaiveraIconTile(icon = icon, tone = if (ended) WaiveraTileTone.Neutral else tone)
         Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(WaiveraSpacing.XxSmall)) {
             Text(
                 text = title,
@@ -240,6 +227,7 @@ private fun EventCard(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 WaiveraIconTile(
+                    tone = WaiveraTileTone.Teal,
                     icon = if (event.online ||
                         event.isSprout
                     ) {

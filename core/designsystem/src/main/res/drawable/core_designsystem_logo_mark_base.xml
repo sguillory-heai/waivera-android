@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Waivera mark, ink layer: the two base lines. WaiveraLogo tints it with the text colour so it works in dark mode. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="48.5dp"
+    android:height="52dp"
+    android:autoMirrored="false"
+    android:viewportWidth="48.5"
+    android:viewportHeight="52">
+    <path
+        android:pathData="M1.8645 43.7415H46.5786"
+        android:strokeWidth="3.40869"
+        android:strokeLineCap="round"
+        android:strokeColor="@android:color/white" />
+    <path
+        android:pathData="M9.28003 50H39.5573"
+        android:strokeWidth="3.40869"
+        android:strokeLineCap="round"
+        android:strokeColor="@android:color/white" />
+</vector>

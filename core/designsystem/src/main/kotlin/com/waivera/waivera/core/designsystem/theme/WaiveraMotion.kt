@@ -45,7 +45,10 @@ enum class MotionToken {
     /** Screen changes. Predictive back and system-like transitions. */
     Navigate,
 
-    /** Rare, earned moments only: task completed, all caught up. */
+    /**
+     * Rare, earned moments only: all caught up, a celebration. A bouncy spring for the thing
+     * that arrives, plus [WaiveraMotionScheme.celebrateBurst] for the confetti around it.
+     */
     Celebrate,
 }
 
@@ -86,6 +89,22 @@ class WaiveraMotionScheme internal constructor(val reduced: Boolean) {
 
     fun <T> celebrate(): FiniteAnimationSpec<T> =
         if (reduced) reducedFade() else spring(dampingRatio = CELEBRATE_DAMPING, stiffness = CELEBRATE_STIFFNESS)
+
+    /**
+     * Timeline of the celebrate token's confetti burst, from 0 (launch) to 1 (gone). Confetti
+     * follows time rather than a spring so every piece finishes falling. Reduced motion snaps
+     * straight to the end, and `WaiveraCelebrationBurst` draws nothing at all.
+     */
+    val celebrateBurst: FiniteAnimationSpec<Float> =
+        if (reduced) snap() else tween(durationMillis = CELEBRATE_BURST_MILLIS, easing = LinearEasing)
+
+    /**
+     * Your own message landing in the conversation: a quick, slightly springy pop up from the
+     * composer. It finishes well inside a tap, so it never slows a run of sends, and it never
+     * vibrates. Reduced motion snaps.
+     */
+    val sendPop: FiniteAnimationSpec<Float> =
+        if (reduced) snap() else spring(dampingRatio = SEND_POP_DAMPING, stiffness = SEND_POP_STIFFNESS)
 
     /** Forward screen change: content slides in from the end, or cross-fades when reduced. */
     fun forwardTransition(): ContentTransform = if (reduced) {
@@ -149,6 +168,9 @@ class WaiveraMotionScheme internal constructor(val reduced: Boolean) {
         internal const val FAST_EFFECTS_STIFFNESS = 3800f
         internal const val CELEBRATE_DAMPING = 0.8f
         internal const val CELEBRATE_STIFFNESS = 200f
+        const val CELEBRATE_BURST_MILLIS = 1_400
+        internal const val SEND_POP_DAMPING = 0.62f
+        internal const val SEND_POP_STIFFNESS = 520f
         private const val SLIDE_DIVISOR = 4
         const val BACK_PREVIEW_SCALE = 0.9f
 

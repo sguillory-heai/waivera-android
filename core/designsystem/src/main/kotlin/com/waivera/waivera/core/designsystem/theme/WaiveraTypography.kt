@@ -132,4 +132,15 @@ object WaiveraTextStyles {
 
     /** Count and status badges. */
     val Badge = TextStyle(fontSize = 11.sp, lineHeight = 14.sp, fontWeight = FontWeight.Bold, hyphens = WaiveraHyphens)
+
+    /** The large emoji on a celebration card. */
+    val CelebrationEmoji = TextStyle(fontSize = 28.sp, lineHeight = 34.sp)
+
+    /** Today's greeting ("Good morning, Alex"): warmer and larger than a section title. */
+    val Greeting = TextStyle(
+        fontSize = 24.sp,
+        lineHeight = 30.sp,
+        fontWeight = FontWeight.ExtraBold,
+        hyphens = WaiveraHyphens,
+    )
 }

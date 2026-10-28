@@ -38,6 +38,7 @@ import com.waivera.waivera.core.designsystem.component.WaiveraIconTile
 import com.waivera.waivera.core.designsystem.component.WaiveraListRow
 import com.waivera.waivera.core.designsystem.component.WaiveraSectionHeader
 import com.waivera.waivera.core.designsystem.component.WaiveraSnackbarHost
+import com.waivera.waivera.core.designsystem.component.WaiveraTileTone
 import com.waivera.waivera.core.designsystem.component.WaiveraTopBar
 import com.waivera.waivera.core.designsystem.feedback.rememberHaptics
 import com.waivera.waivera.core.designsystem.icon.WaiveraIcons
@@ -130,7 +131,7 @@ internal fun SettingsContent(
                         onClick = onOpenNotificationSettings,
                         enabled = rowsEnabled,
                         showChevron = true,
-                        leading = { WaiveraIconTile(icon = WaiveraIcons.Notifications) },
+                        leading = { WaiveraIconTile(icon = WaiveraIcons.Notifications, tone = WaiveraTileTone.Amber) },
                     )
                     WaiveraListRow(
                         headline = stringResource(R.string.feature_settings_appearance_title),
@@ -138,7 +139,9 @@ internal fun SettingsContent(
                         onClick = onOpenAppearance,
                         enabled = rowsEnabled,
                         showChevron = true,
-                        leading = { WaiveraIconTile(icon = R.drawable.feature_settings_ic_palette) },
+                        leading = {
+                            WaiveraIconTile(icon = R.drawable.feature_settings_ic_palette, tone = WaiveraTileTone.Rose)
+                        },
                     )
                 }
                 if (onOpenChangePassword != null) {
