@@ -210,7 +210,8 @@ class Path04ChatTest : NavTourHarness() {
         click(hasContentDescription("Message $JORDAN"))
         waitUntil("a new direct chat over the members") {
             val top = nav.top
-            top is ConversationRoute && top.conversationId != DemoData.DM_PRIYA &&
+            top is ConversationRoute &&
+                top.conversationId != DemoData.DM_PRIYA &&
                 nav.visibleBackStack.size == MEMBERS_STACK.size + 1
         }
         assertEquals(MEMBERS_STACK.toList(), nav.visibleBackStack.take(MEMBERS_STACK.size))

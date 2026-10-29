@@ -54,6 +54,7 @@ import com.waivera.waivera.core.designsystem.preview.WaiveraPreviews
 import com.waivera.waivera.core.designsystem.theme.WaiveraSizes
 import com.waivera.waivera.core.designsystem.theme.WaiveraSpacing
 import com.waivera.waivera.core.designsystem.theme.WaiveraTheme
+import com.waivera.waivera.core.designsystem.theme.exit
 import com.waivera.waivera.feature.chat.R
 import com.waivera.waivera.feature.chat.message.ConnectionUi
 
