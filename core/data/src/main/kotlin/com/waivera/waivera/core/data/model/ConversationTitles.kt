@@ -35,7 +35,7 @@ object ConversationTitles {
     fun format(c: Conversation, myUserId: String?, text: ConversationTitleText): String {
         if (isChannel(c)) return c.channel?.name?.trim()?.takeIf(String::isNotEmpty) ?: text.channelFallback
         if (isBot(c, myUserId)) return text.botTitle
-        val names = others(c, myUserId).map { displayName(it).ifEmpty { text.unknownPerson } }
+        val names = otherNames(c, myUserId, text)
         return when (names.size) {
             0 -> text.conversationFallback
             1 -> names.first()
@@ -43,6 +43,23 @@ object ConversationTitles {
             else -> text.groupTitle(compactLabel(names.first()), names.size - 1)
         }
     }
+
+    /**
+     * Where the first person's name sits in [format]'s title for a group of three or more ("Priya
+     * Raman" in "Priya Raman & 2 others"): the only part a one-line title may shorten, so the count
+     * around it always shows (v7 follow-up, item 4). Null for every other title.
+     */
+    fun groupNameRange(c: Conversation, myUserId: String?, text: ConversationTitleText): IntRange? {
+        if (isChannel(c) || isBot(c, myUserId)) return null
+        val names = otherNames(c, myUserId, text)
+        if (names.size <= PAIR) return null
+        val name = compactLabel(names.first())
+        val start = text.groupTitle(name, names.size - 1).indexOf(name)
+        return if (start < 0 || name.isEmpty()) null else start until start + name.length
+    }
+
+    private fun otherNames(c: Conversation, myUserId: String?, text: ConversationTitleText): List<String> =
+        others(c, myUserId).map { displayName(it).ifEmpty { text.unknownPerson } }
 
     /** A conversation with any channel object is a channel, even when the kind says otherwise. */
     fun isChannel(c: Conversation): Boolean = c.kind == ConversationKind.CHANNEL || c.channel != null

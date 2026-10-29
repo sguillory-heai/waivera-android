@@ -1,6 +1,7 @@
 package com.waivera.waivera.feature.chat.list
 
 import com.waivera.waivera.core.data.model.Conversation
+import com.waivera.waivera.core.data.model.ConversationTitles
 import com.waivera.waivera.core.data.model.RealtimeStatus
 import com.waivera.waivera.core.data.model.SessionState
 import com.waivera.waivera.core.data.model.Synced
@@ -351,6 +352,7 @@ class ChatListStateHolder(
         return ChatRowUi(
             id = c.id,
             title = ConversationPresentation.title(c, me, text),
+            titleNameRange = ConversationTitles.groupNameRange(c, me, text),
             leading = ConversationPresentation.leading(c, me),
             preview = preview.text,
             previewKind = preview.kind,

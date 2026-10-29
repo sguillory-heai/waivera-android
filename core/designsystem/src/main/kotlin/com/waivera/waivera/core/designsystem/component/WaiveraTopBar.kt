@@ -116,7 +116,9 @@ fun rememberTopBarAccount(onClick: () -> Unit, fallbackName: String = "", painte
  *
  * [titleIsName] and [subtitleIsName] say the line is a person's or a chat's name: it stays on one
  * line at any font scale, shrinking a little and then ending in "…" ([WaiveraOneLineName], v7
- * item 3); TalkBack still reads it whole.
+ * item 3); TalkBack still reads it whole. [titleShortenable] and [subtitleShortenable] are the
+ * part of such a line that may be cut, for a group's composed title ("M. Rui & 4 others"), so the
+ * count always shows.
  *
  * [onSubtitleClick] makes the subtitle a button (the group's "N members" opens its members):
  * it presses like other controls, takes at least a 48dp target that overhangs the line without
@@ -143,6 +145,8 @@ fun WaiveraTopBar(
     subtitleIsName: Boolean = false,
     onSubtitleClick: (() -> Unit)? = null,
     subtitleClickLabel: String? = null,
+    titleShortenable: IntRange? = null,
+    subtitleShortenable: IntRange? = null,
 ) {
     val hero = WaiveraHero.colors
     val lip = if (isLargeFontScale()) WaiveraHero.BarSheetLipCompact else tabSheetLip()
@@ -181,6 +185,7 @@ fun WaiveraTopBar(
                         if (titleIsName) {
                             WaiveraOneLineName(
                                 text = title,
+                                shortenable = titleShortenable,
                                 style = MaterialTheme.typography.headlineSmall,
                                 color = hero.onHeader,
                                 modifier = Modifier
@@ -205,6 +210,7 @@ fun WaiveraTopBar(
                                 subtitle = subtitle,
                                 maxLines = subtitleMaxLines,
                                 isName = subtitleIsName,
+                                shortenable = subtitleShortenable,
                                 onClick = onSubtitleClick,
                                 clickLabel = subtitleClickLabel,
                             )
@@ -241,12 +247,14 @@ private fun TopBarSubtitle(
     isName: Boolean,
     onClick: (() -> Unit)?,
     clickLabel: String?,
+    shortenable: IntRange? = null,
 ) {
     val hero = WaiveraHero.colors
     val text: @Composable () -> Unit = {
         if (isName) {
             WaiveraOneLineName(
                 text = subtitle,
+                shortenable = shortenable,
                 style = MaterialTheme.typography.labelMedium,
                 color = hero.onHeaderSecondary,
                 modifier = Modifier.testTag(TOP_BAR_SUBTITLE_TAG).semantics { contentDescription = subtitle },

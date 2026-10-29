@@ -197,6 +197,7 @@ fun RowActionsContent(
         WaiveraListRow(
             headline = row.title,
             oneLineName = true,
+            nameShortenable = row.titleNameRange,
             leading = { LeadingTile(row.leading, avatar) },
             modifier = Modifier.semantics { heading() },
         )

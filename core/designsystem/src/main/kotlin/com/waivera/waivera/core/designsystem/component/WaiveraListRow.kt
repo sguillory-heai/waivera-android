@@ -55,7 +55,8 @@ import com.waivera.waivera.core.designsystem.theme.isLargeFontScale
  * (UI3-14), and it isn't cut either (UI6-02). A [nameHeadline] is a person's name: one line, two
  * at large font, ending in "…" and never broken mid-word ([WaiveraNameText], wave 29 N5). A
  * [oneLineName] is a name in chat: one line at every font scale, shrinking a little before its
- * "…" ([WaiveraOneLineName], v7 item 3).
+ * "…" ([WaiveraOneLineName], v7 item 3); [nameShortenable] is the part of such a name that may be
+ * cut, for a group's composed title, so its "& 2 others" always shows.
  */
 @Composable
 fun WaiveraListRow(
@@ -72,6 +73,7 @@ fun WaiveraListRow(
     detail: String? = null,
     nameHeadline: Boolean = false,
     oneLineName: Boolean = false,
+    nameShortenable: IntRange? = null,
 ) {
     val body: @Composable () -> Unit = {
         Row(
@@ -99,6 +101,7 @@ fun WaiveraListRow(
                 detail = detail,
                 nameTitle = nameHeadline,
                 oneLineName = oneLineName,
+                nameShortenable = nameShortenable,
             )
             if (trailing != null) trailing()
             if (showChevron) {
@@ -198,6 +201,7 @@ private fun RowText(
     detail: String? = null,
     nameTitle: Boolean = false,
     oneLineName: Boolean = false,
+    nameShortenable: IntRange? = null,
 ) {
     val colors = WaiveraTheme.colors
     val subtitleColor = if (enabled) {
@@ -212,6 +216,7 @@ private fun RowText(
         if (oneLineName) {
             WaiveraOneLineName(
                 text = title,
+                shortenable = nameShortenable,
                 style = MaterialTheme.typography.titleSmall,
                 color = if (enabled) colors.text else colors.textSecondary,
                 modifier = Modifier.testTag(LIST_ROW_NAME_TAG),

@@ -32,6 +32,8 @@ data class CallUi(val available: Boolean = false, val isLive: Boolean = false, v
 data class ConversationUiState(
     /** Null until the conversation loads; from the shared title rule, so it matches the inbox row. */
     val title: String? = null,
+    /** The name inside a group's composed [title], the only part the header may cut. */
+    val titleNameRange: IntRange? = null,
     /** Everyone in a group chat, me included, for the "3 members" header line; null outside groups. */
     val memberCount: Int? = null,
     /** A one-to-one chat: the header already names the other person, so rows skip the author line. */

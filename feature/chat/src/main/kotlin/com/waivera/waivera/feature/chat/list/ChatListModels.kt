@@ -28,6 +28,11 @@ sealed interface RowLeading {
 data class ChatRowUi(
     val id: Long,
     val title: String,
+    /**
+     * The name inside a group's composed [title] ("Priya Raman" in "Priya Raman & 2 others"):
+     * the only part a one-line title may cut, so the count always shows. Null for other titles.
+     */
+    val titleNameRange: IntRange? = null,
     val leading: RowLeading,
     val preview: String,
     val previewKind: PreviewKind,

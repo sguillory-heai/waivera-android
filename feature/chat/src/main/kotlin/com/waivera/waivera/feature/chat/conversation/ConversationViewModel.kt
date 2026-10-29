@@ -256,6 +256,7 @@ class ConversationViewModel @AssistedInject constructor(
         _state.update {
             it.copy(
                 title = value?.let { c -> ConversationTitles.format(c, me, titles) },
+                titleNameRange = value?.let { c -> ConversationTitles.groupNameRange(c, me, titles) },
                 memberCount = value?.takeIf { c -> ConversationTitles.isGroup(c, me) }?.participants?.size,
                 isDirect = value?.let { c -> isDirect(c, me) } == true,
                 names = names,

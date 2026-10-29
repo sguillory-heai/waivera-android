@@ -4,6 +4,7 @@ import com.waivera.waivera.core.data.live.ConversationMerge
 import com.waivera.waivera.core.data.model.ChannelInfo
 import com.waivera.waivera.core.data.model.Conversation
 import com.waivera.waivera.core.data.model.ConversationKind
+import com.waivera.waivera.core.data.model.ConversationTitles
 import com.waivera.waivera.core.data.model.MeetingInfo
 import com.waivera.waivera.core.data.model.OngoingCall
 import com.waivera.waivera.core.data.model.Person
@@ -79,6 +80,25 @@ class ConversationPresentationTest {
         assertTrue(p.isGroup(c, ME))
         assertEquals(RowLeading.Group, p.leading(c, ME))
         assertEquals("Priya Raman & 2 others", p.title(c, ME, text))
+    }
+
+    @Test
+    fun aGroupTitleMarksOnlyItsNameAsShortenable() {
+        val sam = Person("usr_sam", "Sam", "Okafor")
+        val c = Conversation(11, ConversationKind.GROUP, listOf(me, priya, jordan, sam))
+        val title = p.title(c, ME, text)
+        val range = requireNotNull(ConversationTitles.groupNameRange(c, ME, text))
+        assertEquals("Priya Raman", title.substring(range))
+        assertEquals(" & 2 others", title.substring(range.last + 1))
+        assertNull(
+            ConversationTitles.groupNameRange(
+                Conversation(11, ConversationKind.GROUP, listOf(me, priya, jordan)),
+                ME,
+                text,
+            ),
+        )
+        assertNull(ConversationTitles.groupNameRange(dm(7), ME, text))
+        assertNull(ConversationTitles.groupNameRange(channel(41), ME, text))
     }
 
     @Test

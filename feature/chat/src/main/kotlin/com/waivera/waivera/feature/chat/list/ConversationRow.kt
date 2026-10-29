@@ -175,6 +175,8 @@ private fun RowBody(row: ChatRowUi, avatar: ImageBitmap?, onJoinCall: () -> Unit
                 // A chat's name is one line: it shrinks a little, then ends in "…" (v7, item 3).
                 WaiveraOneLineName(
                     text = row.title,
+                    // A group's "& 2 others" always shows; only the name before it is cut.
+                    shortenable = row.titleNameRange,
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = if (row.isUnread) FontWeight.ExtraBold else FontWeight.SemiBold,
                     color = colors.text,

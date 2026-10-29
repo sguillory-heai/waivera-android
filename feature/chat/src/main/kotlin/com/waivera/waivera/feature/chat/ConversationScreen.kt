@@ -311,6 +311,8 @@ fun ConversationScreenContent(
             WaiveraTopBar(
                 title = title,
                 titleIsName = true,
+                // A group's "& 2 others" always shows; only the name before it is cut.
+                titleShortenable = state.titleNameRange,
                 // The connection banner is the one connection signal; the header names the group.
                 subtitle = state.memberCount?.let { pluralStringResource(R.plurals.feature_chat_members, it, it) },
                 // The count is a button: it opens the members, announced as "Show members".

@@ -301,6 +301,11 @@ fun ThreadScreenContent(
     val scope = rememberCoroutineScope()
     val sendError = SendErrorState(sendErrorUi) { index -> scope.launch { listState.animateScrollToItem(index) } }
     val focusAnchors = remember { MessageFocusAnchors() }
+    val conversationTitle = state.conversationTitle
+    val subtitle = conversationTitle?.let { stringResource(R.string.feature_chat_thread_in, it) }
+    val subtitleNameRange = remember(subtitle, conversationTitle, state.conversationTitleNameRange) {
+        nameRangeIn(subtitle, conversationTitle, state.conversationTitleNameRange)
+    }
     Box(
         modifier = modifier
             .fillMaxSize()
@@ -310,7 +315,9 @@ fun ThreadScreenContent(
             WaiveraTopBar(
                 title = stringResource(R.string.feature_chat_thread_screen_title),
                 // Where the thread lives; the connection banner is the one connection signal.
-                subtitle = state.conversationTitle?.let { stringResource(R.string.feature_chat_thread_in, it) },
+                subtitle = subtitle,
+                // A group's "& 2 others" always shows; only the name in it is cut.
+                subtitleShortenable = subtitleNameRange,
                 // One line under the one-word title keeps the header at two lines at 200%; a long
                 // channel name ends in "…" and is still read whole.
                 subtitleMaxLines = THREAD_SUBTITLE_LINES,
@@ -582,4 +589,11 @@ private fun ThreadScreenPreview() {
             actions = ThreadActions.None,
         )
     }
+}
+
+/** [range] in [title] moved to where [title] sits inside [line] ("In Priya Raman & 2 others"). */
+internal fun nameRangeIn(line: String?, title: String?, range: IntRange?): IntRange? {
+    if (line == null || title == null || range == null) return null
+    val start = line.indexOf(title)
+    return if (start < 0) null else (range.first + start)..(range.last + start)
 }

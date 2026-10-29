@@ -93,6 +93,8 @@ data class ThreadUiState(
     val visibleTimestamps: Set<String> = emptySet(),
     val names: Map<String, String> = emptyMap(),
     val conversationTitle: String? = null,
+    /** The name inside a group's composed [conversationTitle], the only part the header may cut. */
+    val conversationTitleNameRange: IntRange? = null,
     val canWrite: Boolean? = null,
     val readOnlyReason: ReadOnlyReason? = null,
     val sendError: SendErrorKind? = null,
@@ -284,6 +286,7 @@ class ThreadViewModel @AssistedInject constructor(
             it.copy(
                 names = names,
                 conversationTitle = value?.let { c -> ConversationTitles.format(c, me, titles) },
+                conversationTitleNameRange = value?.let { c -> ConversationTitles.groupNameRange(c, me, titles) },
                 canWrite = value?.let { c -> c.canWrite && c.kind != ConversationKind.BOT },
                 readOnlyReason = value?.let(ConversationViewModel::readOnlyReason),
                 myUserId = me,

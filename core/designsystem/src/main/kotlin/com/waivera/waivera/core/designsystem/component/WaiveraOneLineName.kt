@@ -31,6 +31,10 @@ import com.waivera.waivera.core.designsystem.theme.WaiveraTheme
  *
  * Built on foundation's [BasicText] auto-size ([TextAutoSize.StepBased], after a full-size try). A style without an sp
  * size cannot be stepped, so it shows at its size and only ellipsizes.
+ *
+ * [shortenable] is the only part of [text] that may be cut, for a title composed around a name
+ * ("Maria-Fernanda R. & 4 others"): past the floor size, that part ends in "…" and the rest (the
+ * "& 4 others" count) always shows whole ([WaiveraShortenedName], v7 follow-up item 4).
  */
 @Composable
 fun WaiveraOneLineName(
@@ -40,6 +44,7 @@ fun WaiveraOneLineName(
     color: Color = Color.Unspecified,
     fontWeight: FontWeight? = null,
     textAlign: TextAlign? = null,
+    shortenable: IntRange? = null,
 ) {
     val ink = color.takeOrElse { style.color.takeOrElse { LocalContentColor.current } }
     val merged = style.copy(
@@ -47,6 +52,10 @@ fun WaiveraOneLineName(
         fontWeight = fontWeight ?: style.fontWeight,
         textAlign = textAlign ?: style.textAlign,
     )
+    if (shortenable != null && style.fontSize.isSp && shortenable.isWithin(text)) {
+        WaiveraShortenedName(text = text, shortenable = shortenable, style = merged, modifier = modifier)
+        return
+    }
     val autoSize = remember(style.fontSize) { nameAutoSize(style.fontSize) }
     BasicText(
         text = text,
@@ -58,6 +67,8 @@ fun WaiveraOneLineName(
         autoSize = autoSize,
     )
 }
+
+private fun IntRange.isWithin(text: String): Boolean = !isEmpty() && first >= 0 && last < text.length
 
 /** The auto-size for a name set at [size], or null when [size] is not in sp. */
 internal fun nameAutoSize(size: TextUnit): TextAutoSize? = if (size.isSp) NameAutoSize(size) else null
@@ -99,6 +110,11 @@ private fun WaiveraOneLineNamePreview() {
             WaiveraOneLineName(
                 text = "Wolfeschlegelsteinhausenbergerdorffvoral",
                 style = MaterialTheme.typography.titleSmall,
+            )
+            WaiveraOneLineName(
+                text = "Maria-Fernanda Alejandra Castellanos & 4 others",
+                style = MaterialTheme.typography.titleSmall,
+                shortenable = 0 until "Maria-Fernanda Alejandra Castellanos".length,
             )
         }
     }
