@@ -88,6 +88,21 @@ class MessageRowCallbacks(
     val onEditFailed: (Message) -> Unit,
     val onDiscard: (clientMessageId: String) -> Unit,
 ) {
+    /** These callbacks, with [onToggle] in place of [onToggleTimestamp]. */
+    fun withToggleTimestamp(onToggle: (key: String) -> Unit): MessageRowCallbacks = MessageRowCallbacks(
+        onToggleTimestamp = onToggle,
+        onLongPress = onLongPress,
+        onReact = onReact,
+        onReactionDetails = onReactionDetails,
+        onOpenThread = onOpenThread,
+        onOpenAttachment = onOpenAttachment,
+        onOpenPerson = onOpenPerson,
+        onLink = onLink,
+        onRetry = onRetry,
+        onEditFailed = onEditFailed,
+        onDiscard = onDiscard,
+    )
+
     companion object {
         val None = MessageRowCallbacks(
             onToggleTimestamp = {},

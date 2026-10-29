@@ -68,6 +68,8 @@ import com.waivera.waivera.core.designsystem.component.WaiveraIllustration
 import com.waivera.waivera.core.designsystem.component.WaiveraLoadSwap
 import com.waivera.waivera.core.designsystem.component.WaiveraSnackbarHost
 import com.waivera.waivera.core.designsystem.component.WaiveraTopBar
+import com.waivera.waivera.core.designsystem.component.landingGrow
+import com.waivera.waivera.core.designsystem.component.rememberLandingGrow
 import com.waivera.waivera.core.designsystem.icon.WaiveraIcons
 import com.waivera.waivera.core.designsystem.preview.WaiveraPreviews
 import com.waivera.waivera.core.designsystem.theme.WaiveraTheme
@@ -95,7 +97,6 @@ import com.waivera.waivera.feature.chat.message.RowTime
 import com.waivera.waivera.feature.chat.message.SendErrorSignal
 import com.waivera.waivera.feature.chat.message.SendErrorUi
 import com.waivera.waivera.feature.chat.message.TimelineContext
-import com.waivera.waivera.feature.chat.message.TimelineItem
 import com.waivera.waivera.feature.chat.message.TimelineItemView
 import com.waivera.waivera.feature.chat.message.TypingSlot
 import com.waivera.waivera.feature.chat.message.rememberChatImageEnvironment
@@ -478,17 +479,19 @@ private fun MessageList(
     val showJump = scrolledAway && onJumpToLatest != null
 
     HideKeyboardOnDrag(listState)
+    val listMotion = rememberListMotion(newestFirst, actions.rows)
     // A new newest row keeps the list pinned when the person was already at (or next to) it.
     val newest = newestFirst.firstOrNull()
     val newestKey = newest?.key
     // My own send is pinned in the very frame it lands, before the list lays out, so its pop
     // plays in view at the composer instead of below the fold while a scroll catches up (M1-08).
+    // The pin is a jump, but the rows that land start at no height and grow (M2-01), so the
+    // conversation above is pushed up smoothly rather than cut up by their height.
     val pinnedKey = remember { PinnedKey(newestKey) }
     SideEffect {
         if (newestKey == pinnedKey.value) return@SideEffect
         pinnedKey.value = newestKey
-        val mySend = newest is TimelineItem.MessageRow && newest.isMine && newest.isLiveArrival
-        if (mySend &&
+        if (newest.isOwnLiveSend() &&
             listState.firstVisibleItemIndex <= 1 &&
             listState.firstVisibleItemScrollOffset <= stickThresholdPx
         ) {
@@ -530,15 +533,18 @@ private fun MessageList(
                 .semantics { contentDescription = listLabel },
         ) {
             items(items = newestFirst, key = { it.key }, contentType = { it::class }) { item ->
+                val grow = rememberLandingGrow(grows = item.key in listMotion.landingKeys)
                 TimelineItemView(
                     item = item,
                     context = context,
-                    callbacks = actions.rows,
-                    modifier = Modifier.animateItem(
-                        fadeInSpec = null,
-                        placementSpec = motion.layout(),
-                        fadeOutSpec = motion.state(),
-                    ),
+                    callbacks = listMotion.rows,
+                    modifier = Modifier
+                        .animateItem(
+                            fadeInSpec = null,
+                            placementSpec = if (listMotion.holdsPlacement) null else motion.layout(),
+                            fadeOutSpec = motion.state(),
+                        )
+                        .then(if (grow != null) Modifier.landingGrow(grow) else Modifier),
                 )
             }
             if (state.hasOlder || state.olderFailed) {
