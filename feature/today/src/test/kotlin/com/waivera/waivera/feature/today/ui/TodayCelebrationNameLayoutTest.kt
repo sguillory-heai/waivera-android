@@ -2,6 +2,8 @@ package com.waivera.waivera.feature.today.ui
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
@@ -57,7 +59,9 @@ class TodayCelebrationNameLayoutTest {
             val density = LocalDensity.current
             CompositionLocalProvider(LocalDensity provides Density(density.density, fontScale)) {
                 WaiveraTheme(darkTheme = false, motion = WaiveraMotionScheme.Reduced, hapticsEnabled = false) {
-                    Column(Modifier.fillMaxWidth()) {
+                    // Scrollable, so every card is laid out at its full height: stacked in the window, the
+                    // cards below the fold got a zero height limit and read as cut.
+                    Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState())) {
                         items.forEach { item -> CelebrationCard(item = item, onOpen = {}, onSendWishes = {}) }
                     }
                 }

@@ -2,6 +2,8 @@ package com.waivera.waivera.feature.calendar.schedule
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
@@ -77,7 +79,9 @@ class MilestoneCardNameLayoutTest {
             val density = LocalDensity.current
             CompositionLocalProvider(LocalDensity provides Density(density.density, fontScale)) {
                 WaiveraTheme(darkTheme = false, motion = WaiveraMotionScheme.Reduced, hapticsEnabled = false) {
-                    Column(Modifier.width(DAY_VIEW_CARD)) {
+                    // Scrollable, so every card is laid out at its full height: stacked in the window, the
+                    // cards below the fold got a zero height limit and read as cut.
+                    Column(Modifier.width(DAY_VIEW_CARD).verticalScroll(rememberScrollState())) {
                         cards.forEach { card ->
                             AgendaCard(item = card, currentYear = 2026, onOpenEvent = {}, myUserId = "usr_alex")
                         }
