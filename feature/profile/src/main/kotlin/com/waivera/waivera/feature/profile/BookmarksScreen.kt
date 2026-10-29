@@ -50,6 +50,7 @@ import com.waivera.waivera.core.designsystem.component.WaiveraAvatar
 import com.waivera.waivera.core.designsystem.component.WaiveraBanner
 import com.waivera.waivera.core.designsystem.component.WaiveraEmptyState
 import com.waivera.waivera.core.designsystem.component.WaiveraErrorState
+import com.waivera.waivera.core.designsystem.component.WaiveraExpandVisibility
 import com.waivera.waivera.core.designsystem.component.WaiveraFilterChip
 import com.waivera.waivera.core.designsystem.component.WaiveraIconButton
 import com.waivera.waivera.core.designsystem.component.WaiveraIllustration
@@ -63,6 +64,7 @@ import com.waivera.waivera.core.designsystem.component.showUndo
 import com.waivera.waivera.core.designsystem.icon.WaiveraIcons
 import com.waivera.waivera.core.designsystem.preview.WaiveraPreviews
 import com.waivera.waivera.core.designsystem.theme.PressDepth
+import com.waivera.waivera.core.designsystem.theme.SwapAxis
 import com.waivera.waivera.core.designsystem.theme.WaiveraElevation
 import com.waivera.waivera.core.designsystem.theme.WaiveraMotionScheme
 import com.waivera.waivera.core.designsystem.theme.WaiveraShapes
@@ -158,7 +160,10 @@ internal fun BookmarksContent(
                 clearDescription = stringResource(R.string.feature_profile_bookmarks_search_clear),
             )
             // Nothing to narrow until something is saved; a chip still on stays visible to turn off.
-            if (state.totalCount > 0 || state.filter != BookmarkFilter.All) {
+            // The row arrives with the first load, outside the load swap: it opens on the layout
+            // token, so the list below is pushed down as the skeleton fades instead of being shoved
+            // about 40dp in one frame (M2-08). Already showing on first composition, it is simply there.
+            WaiveraExpandVisibility(visible = state.totalCount > 0 || state.filter != BookmarkFilter.All) {
                 BookmarkFilterChips(selected = state.filter, onSelect = onFilterChange)
             }
             if (showsRefreshFailed(state.connection, state.error != null && state.phase == ListPhase.Content)) {
@@ -315,11 +320,13 @@ private fun BookmarksList(state: BookmarksUiState, onOpen: (BookmarkRow) -> Unit
                     state.totalCount,
                 )
             }
-            // The count rolls back as a bookmark goes, the way the list moved (M1-14).
+            // The count rolls as a bookmark goes: down when it falls, up when it grows, masked by
+            // its line so the old count never slides through the gutter (M1-14, M2-07).
             WaiveraSwap(
                 targetState = CountLine(count = state.rows.size, text = text),
                 contentKey = { it.text },
                 direction = { from, to -> to.count.compareTo(from.count) },
+                axis = SwapAxis.Vertical,
             ) { line ->
                 Text(
                     text = line.text,
@@ -399,8 +406,9 @@ private fun BookmarkCard(row: BookmarkRow, onOpen: () -> Unit, onRemove: () -> U
                         WaiveraStatusBadge(text = stringResource(R.string.feature_profile_bookmarks_thread_root))
                 }
             }
-            // The glyph answers on its own control first: it pops to the plain, unsaved bookmark,
-            // and the card leaves a beat later (M1-14).
+            // The glyph answers on its own control first: it pops to the plain, unsaved bookmark
+            // (the icon button pops any new glyph on the pop token), and the card leaves a beat
+            // later (M1-14, M2-07).
             WaiveraIconButton(
                 icon = if (removing.started) WaiveraIcons.Bookmark else R.drawable.feature_profile_ic_bookmark_remove,
                 contentDescription = stringResource(R.string.feature_profile_bookmarks_remove, author),
