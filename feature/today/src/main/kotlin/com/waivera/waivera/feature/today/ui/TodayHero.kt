@@ -33,11 +33,13 @@ import com.waivera.waivera.core.designsystem.component.WaiveraHeroCard
 import com.waivera.waivera.core.designsystem.component.WaiveraHeroSection
 import com.waivera.waivera.core.designsystem.component.WaiveraHeroTopBar
 import com.waivera.waivera.core.designsystem.component.WaiveraHeroTrail
+import com.waivera.waivera.core.designsystem.component.WaiveraLoadSwap
 import com.waivera.waivera.core.designsystem.component.WaiveraPressable
 import com.waivera.waivera.core.designsystem.component.WaiveraProgressRing
 import com.waivera.waivera.core.designsystem.component.WaiveraRewardRing
 import com.waivera.waivera.core.designsystem.component.WaiveraStat
 import com.waivera.waivera.core.designsystem.component.WaiveraStatGroup
+import com.waivera.waivera.core.designsystem.component.rememberLatestNonNull
 import com.waivera.waivera.core.designsystem.component.rememberTopBarAccount
 import com.waivera.waivera.core.designsystem.component.skeletonLineHeight
 import com.waivera.waivera.core.designsystem.icon.WaiveraIcons
@@ -119,17 +121,23 @@ private fun DayHeroBody(state: TodayUiState, onOpenEvent: (String) -> Unit) {
     }
     Spacer(Modifier.height(if (compact) WaiveraSpacing.Small else WaiveraSpacing.Medium + WaiveraSpacing.XxSmall))
     val progress = state.progress
+    // The card keeps the day it showed if the summary goes back to loading, while it fades out.
+    val shownProgress = rememberLatestNonNull(progress)
     val cardModifier = Modifier.padding(horizontal = WaiveraSpacing.Gutter)
-    when {
-        progress != null -> SummaryCard(
-            progress = progress,
-            next = state.nextUp.featured,
-            onOpenEvent = onOpenEvent,
-            compact = compact,
-            modifier = cardModifier,
-        )
-        state.loadError == null -> SummaryPlaceholder(compact = compact, modifier = cardModifier)
-        else -> Unit
+    // The placeholder hands over to the card on the shared load swap, so the first screen settles
+    // in place instead of cutting on the frame the day loads (M3-04).
+    WaiveraLoadSwap(loading = progress == null) { loading ->
+        when {
+            !loading && shownProgress != null -> SummaryCard(
+                progress = shownProgress,
+                next = state.nextUp.featured,
+                onOpenEvent = onOpenEvent,
+                compact = compact,
+                modifier = cardModifier,
+            )
+            loading && state.loadError == null -> SummaryPlaceholder(compact = compact, modifier = cardModifier)
+            else -> Unit
+        }
     }
     Spacer(Modifier.height(if (compact) WaiveraSpacing.Small else WaiveraSpacing.Small + WaiveraSpacing.XxSmall))
     WaiveraStatGroup(

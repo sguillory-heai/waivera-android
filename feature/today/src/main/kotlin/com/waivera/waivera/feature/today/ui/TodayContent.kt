@@ -43,6 +43,7 @@ import com.waivera.waivera.core.designsystem.theme.WaiveraSizes
 import com.waivera.waivera.core.designsystem.theme.WaiveraSpacing
 import com.waivera.waivera.core.designsystem.theme.WaiveraTheme
 import com.waivera.waivera.core.designsystem.theme.exit
+import com.waivera.waivera.core.designsystem.theme.swapEnterFade
 import com.waivera.waivera.feature.today.R
 import com.waivera.waivera.feature.today.TodayAction
 import com.waivera.waivera.feature.today.model.ActivityRow
@@ -150,10 +151,11 @@ private fun TodayList(state: TodayUiState, callbacks: TodayCallbacks, listState:
             state.isInitialLoad -> if (showSkeleton) {
                 item(key = "skeleton", contentType = "skeleton") {
                     // The skeleton leaves faster than the day fades in over it, so loaded rows
-                    // settle in place instead of cutting (M1-16).
+                    // settle in place instead of cutting (M1-16). It fades in too, rather than
+                    // appearing whole on a blank sheet once its wait is over (M3-04).
                     Box(
                         Modifier.animateItem(
-                            fadeInSpec = null,
+                            fadeInSpec = WaiveraTheme.motion.state(),
                             placementSpec = null,
                             fadeOutSpec = WaiveraTheme.motion.exit(),
                         ),
@@ -185,6 +187,7 @@ private fun LazyListScope.needsYouItems(state: TodayUiState, callbacks: TodayCal
     // All caught up is the hero's reward; the sheet goes straight on to the day.
     if (state.isAllCaughtUp || (!section.failed && section.items.isEmpty())) return
     item(key = "needs-header", contentType = "header") {
+        val motion = WaiveraTheme.motion
         WaiveraSectionHeader(
             title = stringResource(R.string.feature_today_section_needs_you),
             count = section.totalCount.takeIf { !section.failed },
@@ -194,7 +197,11 @@ private fun LazyListScope.needsYouItems(state: TodayUiState, callbacks: TodayCal
                 section.totalCount,
             ),
             action = needsYouToggle(section, onToggle = { callbacks.onAction(TodayAction.ToggleNeedsYouExpanded) }),
-            modifier = Modifier.sheetHeader(first = true),
+            // The header arrives with its rows, on the fade-through's wait, rather than a few
+            // frames ahead of them (M3-04).
+            modifier = Modifier
+                .animateItem(fadeInSpec = motion.swapEnterFade(), placementSpec = null, fadeOutSpec = motion.exit())
+                .sheetHeader(first = true),
         )
     }
     if (section.failed) {

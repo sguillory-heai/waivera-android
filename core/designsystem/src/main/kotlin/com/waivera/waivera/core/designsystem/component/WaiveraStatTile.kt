@@ -76,7 +76,7 @@ fun RowScope.WaiveraStatTile(
             horizontalArrangement = Arrangement.spacedBy(WaiveraSpacing.ExtraSmall + WaiveraSpacing.XxSmall),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Text(text = value, style = WaiveraTextStyles.StatNumeral, color = hero.onHeader, maxLines = 1)
+            StatNumber(value)
             Text(text = label, style = WaiveraTextStyles.StatLabel, color = hero.onHeaderSecondary, maxLines = 2)
         }
         return
@@ -88,8 +88,20 @@ fun RowScope.WaiveraStatTile(
         ),
         verticalArrangement = Arrangement.spacedBy(WaiveraSpacing.XxSmall),
     ) {
-        Text(text = value, style = WaiveraTextStyles.StatNumeral, color = hero.onHeader, maxLines = 1)
+        StatNumber(value)
         Text(text = label, style = WaiveraTextStyles.StatLabel, color = hero.onHeaderSecondary)
+    }
+}
+
+/**
+ * A stat's number. A new value (the "–" while loading giving way to "4") swaps in place on the
+ * shared swap motion instead of cutting (M3-04). TalkBack reads the tile's description, not this.
+ */
+@Composable
+private fun StatNumber(value: String) {
+    val hero = WaiveraHero.colors
+    WaiveraSwap(targetState = value) { shown ->
+        Text(text = shown, style = WaiveraTextStyles.StatNumeral, color = hero.onHeader, maxLines = 1)
     }
 }
 
@@ -159,7 +171,7 @@ private fun StatCard(stats: List<WaiveraStat>) {
                 horizontalArrangement = Arrangement.spacedBy(WaiveraSpacing.Small),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Text(text = stat.value, style = WaiveraTextStyles.StatNumeral, color = hero.onHeader, maxLines = 1)
+                StatNumber(stat.value)
                 Text(
                     text = stat.label,
                     style = WaiveraTextStyles.StatLabel,
