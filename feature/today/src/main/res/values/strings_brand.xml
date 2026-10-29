@@ -28,28 +28,30 @@
         <item quantity="other">%d things need you</item>
     </plurals>
     <string name="feature_today_brand_needs_you_none">Nothing needs you right now</string>
-    <!-- What is waiting, by kind, under the headline: "2 messages · 1 invite · 1 ticket". Kinds with none are left out. -->
+    <!-- What is waiting, by kind, under the headline: "2 messages · 1 invite · 1 ticket". Kinds with none are left out.
+         Each count is joined to its noun by a no-break space, so a wrap never strands "1" at a line end over "ticket"
+         (wave 30 R1); the separator keeps its dot with the kind before it. -->
     <plurals name="feature_today_brand_kind_not_sent">
-        <item quantity="one">%d not sent</item>
-        <item quantity="other">%d not sent</item>
+        <item quantity="one">%d\u00A0not\u00A0sent</item>
+        <item quantity="other">%d\u00A0not\u00A0sent</item>
     </plurals>
     <plurals name="feature_today_brand_kind_messages">
-        <item quantity="one">%d message</item>
-        <item quantity="other">%d messages</item>
+        <item quantity="one">%d\u00A0message</item>
+        <item quantity="other">%d\u00A0messages</item>
     </plurals>
     <plurals name="feature_today_brand_kind_mentions">
-        <item quantity="one">%d mention</item>
-        <item quantity="other">%d mentions</item>
+        <item quantity="one">%d\u00A0mention</item>
+        <item quantity="other">%d\u00A0mentions</item>
     </plurals>
     <plurals name="feature_today_brand_kind_invites">
-        <item quantity="one">%d invite</item>
-        <item quantity="other">%d invites</item>
+        <item quantity="one">%d\u00A0invite</item>
+        <item quantity="other">%d\u00A0invites</item>
     </plurals>
     <plurals name="feature_today_brand_kind_tickets">
-        <item quantity="one">%d ticket</item>
-        <item quantity="other">%d tickets</item>
+        <item quantity="one">%d\u00A0ticket</item>
+        <item quantity="other">%d\u00A0tickets</item>
     </plurals>
-    <string name="feature_today_brand_kind_separator">" · "</string>
+    <string name="feature_today_brand_kind_separator">"\u00A0· "</string>
     <!-- No-break spaces, so at 200% the kicker never breaks as "NEXT ·" over its time (UI11-01). -->
     <string name="feature_today_brand_next">Next\u00A0·\u00A0%1$s</string>
     <string name="feature_today_brand_next_a11y">Next: %1$s, %2$s</string>

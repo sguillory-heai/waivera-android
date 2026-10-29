@@ -23,6 +23,7 @@ import com.waivera.waivera.feature.today.model.TodayStats
 import com.waivera.waivera.feature.today.model.TodayUiState
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
+import kotlin.test.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -63,7 +64,7 @@ class TodayHeroRobolectricTest {
         assertEquals(5f / 7f, range.current, 0.001f)
         compose.onNodeWithText("2 things need you").assertExists()
         // Option A: the line under the headline says what is waiting, not the handled count again.
-        compose.onNodeWithText("1 message · 1 invite").assertExists()
+        compose.onNodeWithText("1${NB}message$NB· 1${NB}invite").assertExists()
     }
 
     /** Option A: the ring holds only the count, "5" and "/7"; the word "handled" is gone. */
@@ -79,31 +80,37 @@ class TodayHeroRobolectricTest {
     @Test
     fun theWaitingLineNamesEachKindWithItsPlural() {
         assertEquals(
-            "1 message · 1 invite · 1 ticket",
+            "1${NB}message$NB· 1${NB}invite$NB· 1${NB}ticket",
             breakdown(NeedsYouKind.Message to 1, NeedsYouKind.Invitation to 1, NeedsYouKind.Ticket to 1),
         )
         assertEquals(
-            "2 messages · 3 invites · 4 tickets",
+            "2${NB}messages$NB· 3${NB}invites$NB· 4${NB}tickets",
             breakdown(NeedsYouKind.Message to 2, NeedsYouKind.Invitation to 3, NeedsYouKind.Ticket to 4),
         )
-        assertEquals("1 not sent · 1 mention", breakdown(NeedsYouKind.Mention to 1, NeedsYouKind.NotSent to 1))
-        assertEquals("2 mentions", breakdown(NeedsYouKind.Mention to 2, NeedsYouKind.Ticket to 0))
+        assertEquals(
+            "1${NB}not${NB}sent$NB· 1${NB}mention",
+            breakdown(
+                NeedsYouKind.Mention to 1,
+                NeedsYouKind.NotSent to 1,
+            ),
+        )
+        assertEquals("2${NB}mentions", breakdown(NeedsYouKind.Mention to 2, NeedsYouKind.Ticket to 0))
         assertEquals("", breakdown(NeedsYouKind.Message to 0), "nothing waiting is no line")
         listOf(0, 1, 5).forEach { n ->
-            val expected = if (n == 1) "1 invite" else "$n invites"
+            val expected = if (n == 1) "1${NB}invite" else "$n${NB}invites"
             assertEquals(expected, quantity(R.plurals.feature_today_brand_kind_invites, n))
         }
-        assertEquals("0 messages", quantity(R.plurals.feature_today_brand_kind_messages, 0))
-        assertEquals("1 message", quantity(R.plurals.feature_today_brand_kind_messages, 1))
-        assertEquals("12 messages", quantity(R.plurals.feature_today_brand_kind_messages, 12))
+        assertEquals("0${NB}messages", quantity(R.plurals.feature_today_brand_kind_messages, 0))
+        assertEquals("1${NB}message", quantity(R.plurals.feature_today_brand_kind_messages, 1))
+        assertEquals("12${NB}messages", quantity(R.plurals.feature_today_brand_kind_messages, 12))
     }
 
     @Test
     fun aKindWithNothingWaitingIsLeftOutOfTheHero() {
         val kinds = NeedsYouKinds(mapOf(NeedsYouKind.Ticket to 2, NeedsYouKind.Message to 0))
         show(TodayPreviewStates.populated().let { it.copy(needsYou = it.needsYou.copy(kinds = kinds)) })
-        compose.onNodeWithText("2 tickets").assertExists()
-        compose.onAllNodesWithText("0 messages", substring = true).assertCountEquals(0)
+        compose.onNodeWithText("2${NB}tickets").assertExists()
+        compose.onAllNodesWithText("0${NB}messages", substring = true).assertCountEquals(0)
     }
 
     @Test
@@ -114,6 +121,24 @@ class TodayHeroRobolectricTest {
             NeedsYouKinds.of(items).parts,
         )
         assertEquals(emptyList(), NeedsYouKinds.of(emptyList()).parts)
+    }
+
+    /**
+     * Wave 30 R1: each count is joined to its noun by a no-break space, so a wrap can never leave
+     * "1" at a line end over "ticket"; the separator holds its dot to the kind before it, so a line
+     * breaks only after "· ". [TodayBreakdownWrapTest] checks the wrap itself.
+     */
+    @Test
+    fun theSublineJoinsEachCountToItsNounWithANoBreakSpace() {
+        NeedsYouKind.entries.forEach { kind ->
+            listOf(1, 2, 12).forEach { n ->
+                val part = quantity(kind.pluralRes, n)
+                assertTrue(part.startsWith("$n$NB"), "\"$part\" does not hold $n to its noun")
+                assertFalse(part.contains(' '), "\"$part\" has a breaking space")
+            }
+        }
+        val separator = context.getString(R.string.feature_today_brand_kind_separator)
+        assertEquals("$NB· ", separator, "the dot does not stay with the kind before it")
     }
 
     private fun quantity(id: Int, count: Int): String = context.resources.getQuantityString(id, count, count)
@@ -176,3 +201,6 @@ class TodayHeroRobolectricTest {
         }
     }
 }
+
+/** A no-break space, as the waiting line joins each count to its noun with. */
+internal const val NB = "\u00A0"
