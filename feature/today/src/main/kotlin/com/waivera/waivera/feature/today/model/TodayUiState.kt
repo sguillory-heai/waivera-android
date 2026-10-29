@@ -67,12 +67,43 @@ data class NeedsYouSection(
     val isExpanded: Boolean = false,
     val isReady: Boolean = false,
     val failed: Boolean = false,
+    /** Every open item counted by kind, including the collapsed ones: the hero's "what is waiting" line. */
+    val kinds: NeedsYouKinds = NeedsYouKinds.of(items),
 ) {
     companion object {
         /** Concept A folds after three rows, so the day's first cards still show on a short phone. */
         const val COLLAPSED_COUNT = 3
     }
 }
+
+/** The kinds of thing that can need the person, in the order the hero names them. */
+enum class NeedsYouKind { NotSent, Message, Mention, Invitation, Ticket }
+
+/**
+ * How many open Needs you items there are of each [NeedsYouKind], counted on the device from the
+ * items themselves (option A's subline, "2 messages · 1 invite · 1 ticket"). A direct message
+ * counts once per conversation, as its row does, not once per unread message.
+ */
+@Immutable
+data class NeedsYouKinds(val counts: Map<NeedsYouKind, Int> = emptyMap()) {
+    /** The kinds with at least one item, in [NeedsYouKind] order; a kind with none is left out. */
+    val parts: List<Pair<NeedsYouKind, Int>>
+        get() = NeedsYouKind.entries.mapNotNull { kind -> counts[kind]?.takeIf { it > 0 }?.let { kind to it } }
+
+    companion object {
+        fun of(items: List<NeedsYouItem>): NeedsYouKinds = NeedsYouKinds(items.groupingBy { it.kind }.eachCount())
+    }
+}
+
+/** Which [NeedsYouKind] this item counts as. */
+val NeedsYouItem.kind: NeedsYouKind
+    get() = when (this) {
+        is NeedsYouItem.NotSent -> NeedsYouKind.NotSent
+        is NeedsYouItem.DirectMessage -> NeedsYouKind.Message
+        is NeedsYouItem.Mention -> NeedsYouKind.Mention
+        is NeedsYouItem.Invitation -> NeedsYouKind.Invitation
+        is NeedsYouItem.Ticket -> NeedsYouKind.Ticket
+    }
 
 @Immutable
 sealed interface NeedsYouItem {

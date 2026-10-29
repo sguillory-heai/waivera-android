@@ -180,6 +180,7 @@ object TodayAssembler {
             items = visible,
             totalCount = all.size,
             hiddenCount = all.size - visible.size,
+            kinds = NeedsYouKinds.of(all),
             isExpanded = context.local.needsYouExpanded && all.size > NeedsYouSection.COLLAPSED_COUNT,
             isReady = ready,
             failed = !ready && sources.conversations.error != null,

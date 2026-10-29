@@ -56,6 +56,8 @@ import com.waivera.waivera.core.designsystem.theme.isExtraLargeFontScale
 import com.waivera.waivera.core.designsystem.theme.isLargeFontScale
 import com.waivera.waivera.core.designsystem.theme.isShortWindow
 import com.waivera.waivera.feature.today.R
+import com.waivera.waivera.feature.today.model.NeedsYouKind
+import com.waivera.waivera.feature.today.model.NeedsYouKinds
 import com.waivera.waivera.feature.today.model.NextUpItem
 import com.waivera.waivera.feature.today.model.TodayProgress
 import com.waivera.waivera.feature.today.model.TodayStats
@@ -143,6 +145,7 @@ private fun DayHeroBody(state: TodayUiState, onOpenEvent: (String) -> Unit) {
                         // It keeps the day it showed if the summary goes back to loading, while it fades out.
                         shownProgress != null -> SummaryCard(
                             progress = shownProgress,
+                            kinds = state.needsYou.kinds,
                             next = state.nextUp.featured,
                             onOpenEvent = onOpenEvent,
                             compact = compact,
@@ -173,6 +176,7 @@ private fun DayHeroBody(state: TodayUiState, onOpenEvent: (String) -> Unit) {
 @Composable
 private fun ColumnScope.SummaryCard(
     progress: TodayProgress,
+    kinds: NeedsYouKinds,
     next: NextUpItem?,
     onOpenEvent: (String) -> Unit,
     compact: Boolean = false,
@@ -186,7 +190,6 @@ private fun ColumnScope.SummaryCard(
             compact = smallRing,
             done = progress.handled,
             total = progress.total,
-            caption = stringResource(R.string.feature_today_brand_ring_caption),
             contentDescription = stringResource(
                 R.string.feature_today_brand_ring_a11y,
                 progress.handled,
@@ -197,7 +200,7 @@ private fun ColumnScope.SummaryCard(
     if (isLargeFontScale()) {
         Column(verticalArrangement = Arrangement.spacedBy(WaiveraSpacing.MediumSmall)) {
             ring()
-            SummaryText(progress)
+            SummaryText(progress, kinds)
         }
     } else {
         Row(
@@ -205,7 +208,7 @@ private fun ColumnScope.SummaryCard(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             ring()
-            Column(modifier = Modifier.weight(1f)) { SummaryText(progress) }
+            Column(modifier = Modifier.weight(1f)) { SummaryText(progress, kinds) }
         }
     }
     if (next != null) {
@@ -213,12 +216,15 @@ private fun ColumnScope.SummaryCard(
     }
 }
 
+/**
+ * "4 things need you" and, under it, what is waiting by kind ("2 messages · 1 invite · 1
+ * ticket"). The ring already shows how many are handled, so the line under the headline says
+ * something new instead of repeating it (owner's pick, option A). A kind with nothing waiting is
+ * left out, and with nothing waiting there is no line at all.
+ */
 @Composable
-private fun SummaryText(progress: TodayProgress) {
+private fun SummaryText(progress: TodayProgress, kinds: NeedsYouKinds) {
     val hero = WaiveraHero.colors
-    // At 150% and up the ring already says how many are handled, so its sentence gives the
-    // room back and the sheet starts sooner (UI10-08).
-    val showHandled = !isExtraLargeFontScale()
     Text(
         text = if (progress.open > 0) {
             pluralStringResource(R.plurals.feature_today_brand_needs_you_count, progress.open, progress.open)
@@ -228,18 +234,34 @@ private fun SummaryText(progress: TodayProgress) {
         style = WaiveraTextStyles.HeroTitle,
         color = hero.onHeader,
     )
-    if (!showHandled) return
+    val breakdown = needsYouBreakdown(kinds) ?: return
     Text(
-        text = if (progress.handled > 0) {
-            stringResource(R.string.feature_today_brand_handled_since, progress.handled)
-        } else {
-            stringResource(R.string.feature_today_brand_handled_none)
-        },
+        text = breakdown,
         style = WaiveraTextStyles.HeroBody,
         color = hero.onHeaderSecondary,
         modifier = Modifier.padding(top = WaiveraSpacing.ExtraSmall),
     )
 }
+
+/** The kinds waiting, each as its own plural, joined with " · "; null when nothing is waiting. */
+@Composable
+private fun needsYouBreakdown(kinds: NeedsYouKinds): String? {
+    val parts = kinds.parts
+    if (parts.isEmpty()) return null
+    val separator = stringResource(R.string.feature_today_brand_kind_separator)
+    return parts.map { (kind, count) -> pluralStringResource(kind.pluralRes, count, count) }.joinToString(separator)
+}
+
+/** The plural that names [this] kind with its count ("2 messages"). */
+@get:PluralsRes
+internal val NeedsYouKind.pluralRes: Int
+    get() = when (this) {
+        NeedsYouKind.NotSent -> R.plurals.feature_today_brand_kind_not_sent
+        NeedsYouKind.Message -> R.plurals.feature_today_brand_kind_messages
+        NeedsYouKind.Mention -> R.plurals.feature_today_brand_kind_mentions
+        NeedsYouKind.Invitation -> R.plurals.feature_today_brand_kind_invites
+        NeedsYouKind.Ticket -> R.plurals.feature_today_brand_kind_tickets
+    }
 
 /**
  * "NEXT · 11:00 AM / Client home visit" with a countdown chip ("in 30 min") while it is close.
@@ -347,7 +369,7 @@ internal fun NextLine(kicker: String, title: String, countdown: String?, modifie
 }
 
 /**
- * The card's shape while Needs you loads: the ring's track, the headline and handled lines, and
+ * The card's shape while Needs you loads: the ring's track, the headline and what-is-waiting lines, and
  * the Next row under its hairline, without numbers. Each line reserves its text style's height,
  * so the card is as tall as the summary that replaces it. TalkBack hears the card's "loading"
  * description instead, set on the shared glass card.

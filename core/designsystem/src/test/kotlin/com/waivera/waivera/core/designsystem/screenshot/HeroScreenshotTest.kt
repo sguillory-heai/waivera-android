@@ -125,7 +125,6 @@ class HeroScreenshotTest {
                             WaiveraProgressRing(
                                 done = 5,
                                 total = 9,
-                                caption = "handled",
                                 contentDescription = "5 of 9 handled today",
                             )
                             Text(

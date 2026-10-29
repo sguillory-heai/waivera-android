@@ -20,17 +20,36 @@
     <string name="feature_today_brand_send_wishes_a11y">Send wishes to %1$s</string>
     <string name="feature_today_brand_send_wishes_opening">Opening chat…</string>
     <string name="feature_today_brand_wishes_failed">We couldn’t open the chat. Try again in a moment.</string>
-    <!-- Hero summary card -->
-    <string name="feature_today_brand_ring_caption">handled</string>
-    <!-- "handled" reads the same for one and many, so these stay strings. -->
+    <!-- Hero summary card. The ring shows only the count ("5/9"); this is what TalkBack reads for it. -->
+    <!-- "handled" reads the same for one and many, so this stays a string. -->
     <string name="feature_today_brand_ring_a11y" tools:ignore="PluralsCandidate">%1$d of %2$d handled today</string>
     <plurals name="feature_today_brand_needs_you_count">
         <item quantity="one">%d thing needs you</item>
         <item quantity="other">%d things need you</item>
     </plurals>
     <string name="feature_today_brand_needs_you_none">Nothing needs you right now</string>
-    <string name="feature_today_brand_handled_since" tools:ignore="PluralsCandidate">%1$d handled since this morning.</string>
-    <string name="feature_today_brand_handled_none">Each one you clear counts here.</string>
+    <!-- What is waiting, by kind, under the headline: "2 messages · 1 invite · 1 ticket". Kinds with none are left out. -->
+    <plurals name="feature_today_brand_kind_not_sent">
+        <item quantity="one">%d not sent</item>
+        <item quantity="other">%d not sent</item>
+    </plurals>
+    <plurals name="feature_today_brand_kind_messages">
+        <item quantity="one">%d message</item>
+        <item quantity="other">%d messages</item>
+    </plurals>
+    <plurals name="feature_today_brand_kind_mentions">
+        <item quantity="one">%d mention</item>
+        <item quantity="other">%d mentions</item>
+    </plurals>
+    <plurals name="feature_today_brand_kind_invites">
+        <item quantity="one">%d invite</item>
+        <item quantity="other">%d invites</item>
+    </plurals>
+    <plurals name="feature_today_brand_kind_tickets">
+        <item quantity="one">%d ticket</item>
+        <item quantity="other">%d tickets</item>
+    </plurals>
+    <string name="feature_today_brand_kind_separator">" · "</string>
     <!-- No-break spaces, so at 200% the kicker never breaks as "NEXT ·" over its time (UI11-01). -->
     <string name="feature_today_brand_next">Next\u00A0·\u00A0%1$s</string>
     <string name="feature_today_brand_next_a11y">Next: %1$s, %2$s</string>

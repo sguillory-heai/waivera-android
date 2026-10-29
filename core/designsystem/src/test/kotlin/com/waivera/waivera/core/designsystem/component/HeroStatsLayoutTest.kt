@@ -8,9 +8,11 @@ import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performSemanticsAction
@@ -33,9 +35,9 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 /**
- * The hero's stats and compact ring at the sizes the critic checks: no stat label ever breaks
- * inside a word ("handle / d", UI10-04), at 150% and up a phone's stats stack as rows on one
- * card (UI10-08), and the compact ring's caption keeps clear of the arc (UI10-06).
+ * The hero's stats and ring at the sizes the critic checks: no stat label ever breaks inside a
+ * word ("handle / d", UI10-04), at 150% and up a phone's stats stack as rows on one card
+ * (UI10-08), and the ring's count keeps clear of the arc (UI10-06, option A).
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [ScreenshotSdk.VALUE], qualifiers = "w360dp-h640dp-notnight-xhdpi")
@@ -117,47 +119,74 @@ class HeroStatsLayoutTest {
         }
     }
 
+    /**
+     * Option A: only the count sits in the ring. At every fill, for one- and two-digit totals, in
+     * the regular and the compact ring and at 100% and 200% font, the count's box stays inside the
+     * opening with [CLEARANCE] to the stroke, centred, and "handled" is not drawn in the ring.
+     */
     @Test
-    fun theCompactRingCaptionClearsTheArc() {
+    fun theCountClearsTheArcAtEveryFillAndFontSize() {
+        var case by mutableStateOf(RingCase(done = 0, total = 9, compact = false))
         compose.setContent {
-            WaiveraTheme(darkTheme = false, motion = WaiveraMotionScheme.Reduced, hapticsEnabled = false) {
-                WaiveraProgressRing(
-                    done = 5,
-                    total = 9,
-                    caption = CAPTION,
-                    contentDescription = "5 of 9 handled today",
-                    size = WaiveraSizes.RingCompact,
-                    stroke = WaiveraSizes.RingStrokeCompact,
-                    compact = true,
-                )
+            val density = LocalDensity.current
+            CompositionLocalProvider(LocalDensity provides Density(density.density, fontScale)) {
+                WaiveraTheme(darkTheme = false, motion = WaiveraMotionScheme.Reduced, hapticsEnabled = false) {
+                    val c = case
+                    WaiveraProgressRing(
+                        done = c.done,
+                        total = c.total,
+                        contentDescription = "${c.done} of ${c.total} handled today",
+                        size = if (c.compact) WaiveraSizes.RingCompact else WaiveraSizes.Ring,
+                        stroke = if (c.compact) WaiveraSizes.RingStrokeCompact else WaiveraSizes.RingStroke,
+                        compact = c.compact,
+                    )
+                }
             }
         }
-        compose.waitForIdle()
-        val inner = WaiveraSizes.RingCompact - WaiveraSizes.RingStrokeCompact * 2
-        val caption = compose.onNodeWithText(CAPTION, useUnmergedTree = true).fetchSemanticsNode()
-        val width = with(compose.density) { caption.size.width.toDp() }
-        assertTrue(
-            "the caption is $width wide, more than ${inner - CLEARANCE} inside the arc",
-            width <= inner - CLEARANCE,
-        )
-        val layout = layoutOf(CAPTION)
-        assertEquals("the caption wraps", 1, layout.lineCount)
-        // Not hasVisualOverflow: a one-line Text sized to its words keeps the paragraph at the
-        // full width it was offered, which Compose reports as width overflow though nothing is cut.
-        assertFalse("the caption is cut vertically", layout.didOverflowHeight)
-        assertFalse("the caption is ellipsized", layout.isLineEllipsized(0))
-        assertTrue(
-            "the caption is ${layout.getLineRight(0) - layout.getLineLeft(0)} wide in ${layout.size.width}",
-            layout.getLineRight(0) - layout.getLineLeft(0) <= layout.size.width,
-        )
-        val ring = compose.onNodeWithContentDescription("5 of 9 handled today").fetchSemanticsNode().boundsInRoot
-        val centre = (caption.positionInRoot.x + caption.size.width / 2f)
-        assertTrue("the caption is off centre", abs(centre - ring.center.x) <= 1f)
+        val fills = listOf(0 to 9, 5 to 9, 8 to 9, 9 to 9, 12 to 15)
+        for (scale in listOf(1f, 2f)) {
+            for (compact in listOf(false, true)) {
+                for ((done, total) in fills) {
+                    fontScale = scale
+                    case = RingCase(done, total, compact)
+                    compose.waitForIdle()
+                    assertCountClearsTheArc(case, scale)
+                }
+            }
+        }
     }
 
+    private fun assertCountClearsTheArc(case: RingCase, scale: Float) {
+        val label = "${case.done}/${case.total} compact=${case.compact} font=$scale"
+        val ring = compose.onNodeWithContentDescription("${case.done} of ${case.total} handled today")
+            .fetchSemanticsNode().boundsInRoot
+        val numeral = compose.onNodeWithText(case.done.toString(), useUnmergedTree = true).fetchSemanticsNode()
+        val total = compose.onNodeWithText("/${case.total}", useUnmergedTree = true).fetchSemanticsNode()
+        val box = Rect(
+            left = numeral.boundsInRoot.left,
+            top = minOf(numeral.boundsInRoot.top, total.boundsInRoot.top),
+            right = total.boundsInRoot.right,
+            bottom = maxOf(numeral.boundsInRoot.bottom, total.boundsInRoot.bottom),
+        )
+        val stroke = if (case.compact) WaiveraSizes.RingStrokeCompact else WaiveraSizes.RingStroke
+        val innerRadius = with(compose.density) { (ring.width / 2f) - stroke.toPx() }
+        val corners = listOf(box.topLeft, box.topRight, box.bottomLeft, box.bottomRight)
+        val farthest = corners.maxOf { (it - ring.center).getDistance() }
+        val clearance = with(compose.density) { (innerRadius - farthest).toDp() }
+        assertTrue("$label: the count is $clearance from the stroke, under $CLEARANCE", clearance >= CLEARANCE)
+        assertTrue("$label: the count is off centre", abs(box.center.x - ring.center.x) <= 1f)
+        assertFalse(
+            "$label: the ring still draws a caption",
+            compose.onAllNodesWithText("handled", substring = true, useUnmergedTree = true)
+                .fetchSemanticsNodes().isNotEmpty(),
+        )
+    }
+
+    private data class RingCase(val done: Int, val total: Int, val compact: Boolean)
+
     private companion object {
-        const val CAPTION = "handled"
-        val CLEARANCE: Dp = 8.dp
+        /** The least room between the count and the stroke (option A's board measures 15 to 19dp). */
+        val CLEARANCE: Dp = 4.dp
 
         /** The stats' width on each phone: the window less the hero's 16dp gutters. */
         val SMALL_PHONE_GROUP: Dp = 328.dp

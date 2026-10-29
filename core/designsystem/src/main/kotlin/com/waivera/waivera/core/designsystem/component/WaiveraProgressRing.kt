@@ -6,12 +6,10 @@ import androidx.compose.animation.core.snap
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
@@ -35,7 +33,6 @@ import androidx.compose.ui.semantics.ProgressBarRangeInfo
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.progressBarRangeInfo
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.Dp
 import com.waivera.waivera.core.designsystem.preview.WaiveraPreviews
@@ -52,22 +49,23 @@ fun ringFraction(done: Int, total: Int): Float = if (total <= 0) 0f else (done.t
 
 /**
  * The hero's progress ring: a faint track with a solid lilac-violet arc for [done] of [total]
- * from twelve o'clock (v5 rule A: nothing drawn on the hero is a gradient), the count in the
- * middle ("5/9" over [caption]). The arc grows from empty on first show and follows changes;
- * under reduced motion it simply shows the value.
+ * from twelve o'clock (v5 rule A: nothing drawn on the hero is a gradient), and only the count in
+ * the middle, a big "5" with a small "/9" (owner's pick, option A: the word "handled" is gone, so
+ * nothing in the opening is boxed in as the arc closes). The arc grows from empty on first show
+ * and follows changes; under reduced motion it simply shows the value.
  *
  * TalkBack reads it once, as [contentDescription] (for example "5 of 9 handled today") with the
- * progress, never the separate numbers. The count inside keeps its size up to 130% font: the
- * ring is a fixed graphic, and the same numbers are in the text beside it at any size.
+ * progress, never the separate numbers. The count keeps its size up to 130% font: the ring is a
+ * fixed graphic, and the same numbers are in the text beside it at any size.
  *
- * [compact] is the small ring on a short window: its caption is set smaller and kept to one
- * line within [ringCaptionMaxWidth], so it never touches the arc (UI10-06).
+ * A two-digit count or total steps the numeral down a size ([ringUsesSmallNumeral]) so it takes
+ * the room a one-digit one does. [compact] is the small ring on a short window: it always uses the
+ * smaller numeral and does not grow with the font at all, so the count never reaches the arc.
  */
 @Composable
 fun WaiveraProgressRing(
     done: Int,
     total: Int,
-    caption: String,
     contentDescription: String,
     modifier: Modifier = Modifier,
     size: Dp = WaiveraSizes.Ring,
@@ -90,24 +88,23 @@ fun WaiveraProgressRing(
             },
         contentAlignment = Alignment.Center,
     ) {
-        CappedFontScale {
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Row(verticalAlignment = Alignment.Bottom) {
-                    Text(text = done.toString(), style = WaiveraTextStyles.RingNumeral, color = hero.onHeader)
-                    Text(
-                        text = "/$total",
-                        style = WaiveraTextStyles.RingDenominator,
-                        color = hero.onHeaderSecondary,
-                        modifier = Modifier.padding(bottom = WaiveraSpacing.XxSmall),
-                    )
-                }
+        val small = ringUsesSmallNumeral(done, total, compact)
+        CappedFontScale(maxScale = if (compact) 1f else RING_MAX_FONT_SCALE) {
+            Row(verticalAlignment = Alignment.Bottom) {
                 Text(
-                    text = caption,
-                    style = if (compact) WaiveraTextStyles.RingCaptionCompact else WaiveraTextStyles.RingCaption,
+                    text = done.toString(),
+                    style = if (small) WaiveraTextStyles.RingNumeralSmall else WaiveraTextStyles.RingNumeral,
+                    color = hero.onHeader,
+                    maxLines = 1,
+                    softWrap = false,
+                )
+                Text(
+                    text = "/$total",
+                    style = if (small) WaiveraTextStyles.RingDenominatorSmall else WaiveraTextStyles.RingDenominator,
                     color = hero.onHeaderSecondary,
                     maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.widthIn(max = ringCaptionMaxWidth(size, stroke)),
+                    softWrap = false,
+                    modifier = Modifier.padding(bottom = WaiveraSpacing.XxSmall),
                 )
             }
         }
@@ -245,21 +242,20 @@ private fun DrawScope.drawCheck(progress: Float, color: Color) {
     }
 }
 
-/**
- * The widest the caption may set inside a ring of [size] with [stroke]: the inner diameter less a
- * 4dp clearance from the track on each side.
- */
-internal fun ringCaptionMaxWidth(size: Dp, stroke: Dp): Dp = size - stroke * 2 - WaiveraSpacing.Small
+/** Whether the ring sets its count a size down: in the compact ring, or for a two-digit count or total. */
+fun ringUsesSmallNumeral(done: Int, total: Int, compact: Boolean): Boolean =
+    compact || done >= TWO_DIGITS || total >= TWO_DIGITS
 
-/** Keeps the ring's count at its size up to [RING_MAX_FONT_SCALE]: the ring itself does not grow. */
+/** Keeps the ring's count at its size up to [maxScale]: the ring itself does not grow. */
 @Composable
-private fun CappedFontScale(content: @Composable () -> Unit) {
+private fun CappedFontScale(maxScale: Float, content: @Composable () -> Unit) {
     val density = LocalDensity.current
-    val capped = minOf(density.fontScale, RING_MAX_FONT_SCALE)
+    val capped = minOf(density.fontScale, maxScale)
     CompositionLocalProvider(LocalDensity provides Density(density.density, capped), content = content)
 }
 
 internal const val RING_MAX_FONT_SCALE = 1.3f
+private const val TWO_DIGITS = 10
 private const val FULL_TURN = 360f
 private const val TWELVE_O_CLOCK = -90f
 private const val HALO_ALPHA = 0.3f
@@ -288,12 +284,8 @@ private fun WaiveraProgressRingPreview() {
                 horizontalArrangement = Arrangement.spacedBy(WaiveraSpacing.Large),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                WaiveraProgressRing(
-                    done = 5,
-                    total = 9,
-                    caption = "handled",
-                    contentDescription = "5 of 9 handled today",
-                )
+                WaiveraProgressRing(done = 5, total = 9, contentDescription = "5 of 9 handled today")
+                WaiveraProgressRing(done = 12, total = 15, contentDescription = "12 of 15 handled today")
                 WaiveraRewardRing(contentDescription = null)
             }
         }

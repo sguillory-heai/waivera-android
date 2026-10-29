@@ -1,6 +1,7 @@
 package com.waivera.waivera.core.designsystem.component
 
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import org.junit.Test
@@ -15,6 +16,15 @@ class HeroComponentLogicTest {
         assertEquals(1f, ringFraction(done = 12, total = 9))
         assertEquals(0f, ringFraction(done = 3, total = 0), "nothing to do is an empty ring, not a division by zero")
         assertEquals(0f, ringFraction(done = -1, total = 4))
+    }
+
+    @Test
+    fun `a two-digit count or total steps the ring's numeral down a size`() {
+        assertFalse(ringUsesSmallNumeral(done = 5, total = 9, compact = false))
+        assertFalse(ringUsesSmallNumeral(done = 9, total = 9, compact = false))
+        assertTrue(ringUsesSmallNumeral(done = 5, total = 12, compact = false), "two-digit total")
+        assertTrue(ringUsesSmallNumeral(done = 12, total = 15, compact = false))
+        assertTrue(ringUsesSmallNumeral(done = 1, total = 3, compact = true), "the compact ring is always smaller")
     }
 
     @Test

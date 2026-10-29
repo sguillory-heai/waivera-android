@@ -257,25 +257,25 @@ object WaiveraTextStyles {
         hyphens = WaiveraHyphens,
     )
 
-    /** The word under the ring's count ("handled"): 11 / 600. */
-    val RingCaption = TextStyle(
+    /**
+     * The ring's count a size down ("12"): 20 / 800, for a two-digit count or total and for the
+     * compact ring, so "12/15" takes the room "5/9" does and still clears the arc.
+     */
+    val RingNumeralSmall = TextStyle(
         fontFamily = Jakarta,
-        fontSize = 11.sp,
-        lineHeight = 14.sp,
-        fontWeight = FontWeight.SemiBold,
+        fontSize = 20.sp,
+        lineHeight = 22.sp,
+        fontWeight = FontWeight.ExtraBold,
+        letterSpacing = (-0.03).em,
         hyphens = WaiveraHyphens,
     )
 
-    /**
-     * The caption in the compact ring on a short window: 10 / 600 with no tracking, so "handled"
-     * clears the arc inside a 72dp ring (UI10-06).
-     */
-    val RingCaptionCompact = TextStyle(
+    /** The total beside [RingNumeralSmall] ("/15"): 12 / 700. */
+    val RingDenominatorSmall = TextStyle(
         fontFamily = Jakarta,
-        fontSize = 10.sp,
-        lineHeight = 12.sp,
-        fontWeight = FontWeight.SemiBold,
-        letterSpacing = 0.sp,
+        fontSize = 12.sp,
+        lineHeight = 14.sp,
+        fontWeight = FontWeight.Bold,
         hyphens = WaiveraHyphens,
     )
 

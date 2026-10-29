@@ -136,13 +136,16 @@ object WaiveraSizes {
     val FieldHalo: Dp = 4.dp
     val FieldBorder: Dp = 1.5.dp
 
-    /** The hero's progress ring and its stroke. */
+    /**
+     * The hero's progress ring and its stroke. The stroke is 8dp (owner's pick, option A: "just
+     * the number"), so the count has an 80dp opening and clears the arc at any fill.
+     */
     val Ring: Dp = 96.dp
-    val RingStroke: Dp = 10.dp
+    val RingStroke: Dp = 8.dp
 
-    /** The progress ring on a short window (`isShortWindow`). */
+    /** The progress ring on a short window (`isShortWindow`): the same proportion, a 60dp opening. */
     val RingCompact: Dp = 72.dp
-    val RingStrokeCompact: Dp = 8.dp
+    val RingStrokeCompact: Dp = 6.dp
 
     /**
      * At 150% font and up, a stat group narrower than this (a phone's hero) lays its stats out as
