@@ -4,7 +4,10 @@ import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.core.AnimationVector1D
 import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.FiniteAnimationSpec
 import androidx.compose.animation.core.KeyframesSpec
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.LinearOutSlowInEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.SnapSpec
 import androidx.compose.animation.core.SpringSpec
@@ -131,20 +134,24 @@ class WaiveraMotionSchemeTest {
     }
 
     @Test
-    fun `the long-press sink is eased over the time it is given, and snaps when animations are off`() {
+    fun `the long-press sink keeps an even pace over the time it is given, and snaps when animations are off`() {
         val sink = assertIs<TweenSpec<*>>(WaiveraMotionScheme.Standard.longPressSink(durationMillis = 250))
         assertEquals(250, sink.durationMillis)
-        assertSame(FastOutSlowInEasing, sink.easing)
+        // M2-06: an ease-out sat still for its last third, so the bubble stalled before the pop.
+        assertSame(LinearEasing, sink.easing)
         assertIs<SnapSpec<*>>(WaiveraMotionScheme.Reduced.longPressSink(durationMillis = 250))
     }
 
     @Test
-    fun `leaving content clears in 90 ms, and waiting content starts as it clears`() {
+    fun `leaving content drops off in 60 ms, and waiting content starts as it clears`() {
         val exit = assertIs<TweenSpec<*>>(WaiveraMotionScheme.Standard.exit<Float>())
         assertEquals(WaiveraMotionScheme.EXIT_MILLIS, exit.durationMillis)
-        assertEquals(90, WaiveraMotionScheme.EXIT_MILLIS)
+        assertEquals(60, WaiveraMotionScheme.EXIT_MILLIS)
+        assertSame(LinearOutSlowInEasing, exit.easing, "the leaving side drops off at once (M2-02)")
         val after = assertIs<TweenSpec<*>>(WaiveraMotionScheme.Standard.enterAfterExit<Float>())
         assertTrue(after.delay in 1 until WaiveraMotionScheme.EXIT_MILLIS, "starts once the exit is mostly done")
+        val leftAtStart = 1f - WaiveraMotionScheme.Standard.exit<Float>().valueAt(after.delay.toLong(), 0f, 1f)
+        assertTrue(leftAtStart < MOSTLY_GONE, "the leaving side still shows $leftAtStart when the next one starts")
         listOf(
             WaiveraMotionScheme.Reduced.exit<Float>(),
             WaiveraMotionScheme.Reduced.enterAfterExit<Float>(),
@@ -156,11 +163,21 @@ class WaiveraMotionSchemeTest {
     }
 
     @Test
-    fun `a swap never clips what arrives, and follows the layout token`() {
+    fun `an in-place swap never clips what arrives, and a slide is masked by its slot`() {
         listOf(WaiveraMotionScheme.Standard, WaiveraMotionScheme.Reduced).forEach { motion ->
-            listOf(-1, 0, 1).forEach { direction ->
-                val size = assertNotNull(motion.swapTransition(direction).sizeTransform, "direction $direction")
-                assertFalse(size.clip, "a swap clips its content (reduced=${motion.reduced}, direction $direction)")
+            val inPlace = assertNotNull(motion.swapTransition(direction = 0).sizeTransform)
+            assertFalse(inPlace.clip, "an in-place swap clips its content (reduced=${motion.reduced})")
+            listOf(-1, 1).forEach { direction ->
+                SwapAxis.entries.forEach { axis ->
+                    val size = assertNotNull(motion.swapTransition(direction, axis).sizeTransform)
+                    // M2-04: an unclipped month slid past its card. With animations off nothing
+                    // slides, and the size snaps, so there is nothing to mask.
+                    assertEquals(
+                        !motion.reduced,
+                        size.clip,
+                        "a slide's mask (reduced=${motion.reduced}, direction $direction, $axis)",
+                    )
+                }
             }
             val load = motion.loadTransition()
             assertFalse(assertNotNull(load.sizeTransform).clip, "the load swap clips (reduced=${motion.reduced})")
@@ -173,13 +190,73 @@ class WaiveraMotionSchemeTest {
 
     // Neither spec class overrides toString, so the fade's spec shows as its class name.
     @Test
-    fun `the old side of a swap fades on the short exit tween, not the state spring`() {
+    fun `both sides of a swap fade on the fade-through tweens, not the state spring`() {
         val tweenFade = Regex("""Fade\(alpha=[0-9.]+, animationSpec=[\w.]*TweenSpec@""")
-        listOf(-1, 0, 1).forEach { direction ->
-            val exit = WaiveraMotionScheme.Standard.swapTransition(direction).initialContentExit.toString()
-            assertTrue(tweenFade.containsMatchIn(exit), "the leaving side fades on the exit tween ($direction): $exit")
+        val snapFade = Regex("""Fade\(alpha=[0-9.]+, animationSpec=[\w.]*SnapSpec""")
+        val standard = listOf(-1, 0, 1).flatMap { direction ->
+            SwapAxis.entries.map { axis -> WaiveraMotionScheme.Standard.swapTransition(direction, axis) }
+        } + WaiveraMotionScheme.Standard.loadTransition()
+        standard.forEach { swap ->
+            val exit = swap.initialContentExit.toString()
+            val enter = swap.targetContentEnter.toString()
+            assertTrue(tweenFade.containsMatchIn(exit), "the leaving side fades on the exit tween: $exit")
+            assertTrue(tweenFade.containsMatchIn(enter), "the arriving side fades on the delayed tween: $enter")
+        }
+        val reduced = listOf(-1, 0, 1).map { WaiveraMotionScheme.Reduced.swapTransition(it) } +
+            WaiveraMotionScheme.Reduced.loadTransition()
+        reduced.forEach { swap ->
+            val exit = swap.initialContentExit.toString()
+            assertTrue(snapFade.containsMatchIn(exit), "with animations off the leaving side goes at once: $exit")
         }
     }
+
+    /**
+     * M2-02. The busy button's label and progress use the same pair ([swapExitFade] out,
+     * [swapEnterFade] in), so this covers the swap, the load swap and the button, with animations
+     * on and off.
+     */
+    @Test
+    fun `the old side of a swap is gone before the new side is halfway, and never shows with it`() {
+        listOf(WaiveraMotionScheme.Standard, WaiveraMotionScheme.Reduced).forEach { motion ->
+            val enter = motion.swapEnterFade<Float>()
+            val exit = motion.swapExitFade<Float>()
+            for (millis in 0L..FADE_WINDOW_MILLIS) {
+                val arriving = enter.valueAt(millis, from = 0f, to = 1f)
+                val leaving = 1f - exit.valueAt(millis, from = 0f, to = 1f)
+                val label = "reduced=${motion.reduced} at $millis ms: arriving $arriving, leaving $leaving"
+                assertTrue(arriving + leaving <= MAX_COMBINED_ALPHA, "both sides show: $label")
+                if (arriving >= HALF) {
+                    assertEquals(0f, leaving, ALPHA_TOLERANCE, "the old side is still there: $label")
+                }
+            }
+        }
+        val reducedExit = WaiveraMotionScheme.Reduced.swapExitFade<Float>()
+        assertEquals(1f, reducedExit.valueAt(0L, from = 0f, to = 1f), 0f, "with animations off it goes at once")
+    }
+
+    @Test
+    fun `the pop and the press end on fine thresholds, so their small overshoots play out`() {
+        val pop = assertIs<SpringSpec<*>>(WaiveraMotionScheme.Standard.pop)
+        assertEquals<Any?>(WaiveraMotionScheme.POP_VISIBILITY_THRESHOLD, pop.visibilityThreshold)
+        assertEquals(0.001f, WaiveraMotionScheme.POP_VISIBILITY_THRESHOLD)
+        val press = assertIs<SpringSpec<*>>(WaiveraMotionScheme.Standard.press<Float>())
+        val pressIn = assertIs<SpringSpec<*>>(WaiveraMotionScheme.Standard.pressIn(FINE_THRESHOLD))
+        assertEquals(press.dampingRatio, pressIn.dampingRatio, "the way in is the press spring")
+        assertEquals(press.stiffness, pressIn.stiffness, "the way in is the press spring")
+        assertEquals<Any?>(FINE_THRESHOLD, pressIn.visibilityThreshold)
+        val cancel = assertIs<SpringSpec<*>>(WaiveraMotionScheme.Standard.pressCancel(FINE_THRESHOLD))
+        assertEquals<Any?>(FINE_THRESHOLD, cancel.visibilityThreshold)
+        assertIs<SnapSpec<*>>(WaiveraMotionScheme.Reduced.pressIn(FINE_THRESHOLD))
+        assertIs<SnapSpec<*>>(WaiveraMotionScheme.Reduced.pressCancel(FINE_THRESHOLD))
+    }
+
+    private fun FiniteAnimationSpec<Float>.valueAt(millis: Long, from: Float, to: Float): Float =
+        vectorize(Float.VectorConverter).getValueFromNanos(
+            millis * NANOS_PER_MILLI,
+            AnimationVector1D(from),
+            AnimationVector1D(to),
+            AnimationVector1D(0f),
+        ).value
 
     @Test
     fun `the reject shake eases into each turn and swings 8dp`() {
@@ -252,6 +329,12 @@ class WaiveraMotionSchemeTest {
 
     private companion object {
         const val NANOS_PER_MILLI = 1_000_000L
+        const val FADE_WINDOW_MILLIS = 300L
+        const val MAX_COMBINED_ALPHA = 1.05f
+        const val HALF = 0.5f
+        const val ALPHA_TOLERANCE = 0.001f
+        const val MOSTLY_GONE = 0.1f
+        const val FINE_THRESHOLD = 0.0005f
         const val FIRST_TURN_MILLIS = 40L
         const val HALFWAY_TO_FIRST_TURN_MILLIS = 20L
 

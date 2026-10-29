@@ -49,6 +49,8 @@ import com.waivera.waivera.core.designsystem.theme.WaiveraSizes
 import com.waivera.waivera.core.designsystem.theme.WaiveraSpacing
 import com.waivera.waivera.core.designsystem.theme.WaiveraTheme
 import com.waivera.waivera.core.designsystem.theme.isLargeFontScale
+import com.waivera.waivera.core.designsystem.theme.swapEnterFade
+import com.waivera.waivera.core.designsystem.theme.swapExitFade
 
 /**
  * The v5 family (owner pick, option C): [Primary] is brand violet with a 1dp light top edge, a
@@ -145,9 +147,11 @@ fun WaiveraButton(
         label = "buttonContent",
     )
     // The label fades out as the progress pops in, in the same space, so the size never changes.
+    // Fade-through order (M2-02): whichever side leaves drops off first and the arriving side's
+    // fade waits for it, so the label and the progress never show at half strength together.
     val labelAlpha by animateFloatAsState(
         targetValue = if (loading) 0f else 1f,
-        animationSpec = motion.state(),
+        animationSpec = if (loading) motion.swapExitFade() else motion.swapEnterFade(),
         label = "buttonLabelAlpha",
     )
     val progressLabel = rememberLatestNonNull(loadingText)
@@ -184,7 +188,7 @@ fun WaiveraButton(
                 compact = compact,
                 modifier = Modifier.graphicsLayer { alpha = labelAlpha },
             )
-            WaiveraPopVisibility(visible = loading) {
+            WaiveraPopVisibility(visible = loading, swapsInPlace = true) {
                 ButtonProgress(
                     label = progressLabel.orEmpty(),
                     color = if (enabled) style.content else colors.textSecondary,

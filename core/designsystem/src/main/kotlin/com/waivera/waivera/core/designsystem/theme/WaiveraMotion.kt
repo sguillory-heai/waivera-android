@@ -24,7 +24,9 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -141,9 +143,15 @@ class WaiveraMotionScheme internal constructor(val reduced: Boolean) {
      * A control that just changed state on its own spot: the selected tab's icon, a count that
      * moved, a check or a bookmark that filled. A short, bouncy spring that settles well inside
      * a tap, so it adds punch without delaying anything. Reduced motion snaps.
+     * It ends on [POP_VISIBILITY_THRESHOLD], not the default 0.01 (M2-03): a long press's pop
+     * from 0.93 peaks near 1.011 and then snapped to rest in one frame, and the Row depth's
+     * smaller overshoot never played at all.
      */
-    val pop: FiniteAnimationSpec<Float> =
-        if (reduced) snap() else spring(dampingRatio = POP_DAMPING, stiffness = POP_STIFFNESS)
+    val pop: FiniteAnimationSpec<Float> = if (reduced) {
+        snap()
+    } else {
+        spring(dampingRatio = POP_DAMPING, stiffness = POP_STIFFNESS, visibilityThreshold = POP_VISIBILITY_THRESHOLD)
+    }
 
     /**
      * A wrong sign-in: the form moves side to side once and settles, as a head shake says "no".
@@ -249,8 +257,11 @@ class WaiveraMotionScheme internal constructor(val reduced: Boolean) {
         const val PRESSED_TINT_ALPHA = 0.10f
         const val LONG_PRESS_TINT_ALPHA = 0.16f
 
-        /** [exit]: the leaving side of a swap, gone before the arriving side is halfway (M1-01). */
-        const val EXIT_MILLIS = 90
+        /** [exit]: the leaving side of a swap, gone before the arriving side is halfway (M1-01, M2-02). */
+        const val EXIT_MILLIS = 60
+
+        /** How long a swap's arriving side waits before it starts to fade in ([swapEnterFade], M2-02). */
+        const val SWAP_ENTER_DELAY_MILLIS = 40
 
         /** One half of a [skeletonPulse] breath. */
         const val SKELETON_PULSE_MILLIS = 900
@@ -292,6 +303,9 @@ class WaiveraMotionScheme internal constructor(val reduced: Boolean) {
         internal const val POP_DAMPING = 0.5f
         internal const val POP_STIFFNESS = 900f
 
+        /** Where a [pop] may stop: fine enough for a Row long press's 0.005 overshoot to play. */
+        const val POP_VISIBILITY_THRESHOLD = 0.001f
+
         /** The whole [rejectShake], from the first move to rest. */
         const val REJECT_SHAKE_MILLIS = 300
         private const val SHAKE_FIRST_MILLIS = 40
@@ -320,41 +334,89 @@ class WaiveraMotionScheme internal constructor(val reduced: Boolean) {
 }
 
 /**
- * Content replacing other content in the same place (a status line, a period title). A
- * [direction] above 0 slides the new content in from the end side, below 0 from the start side,
- * as when stepping to the next or previous period; 0 fades it in with a small pop. The leaving
- * side fades on [WaiveraMotionScheme.exit], faster than the new side arrives, so two texts never
- * sit on top of each other at half strength. Reduced motion cross-fades (the state token is then
- * a short fade).
- *
- * The slot's size follows the new content on the layout token without clipping (M1-01): the
- * default size transform clipped the arriving content to the growing bounds and an untokened
- * spring, so "Discard" showed as "iscard" and end-aligned text was revealed from its trailing
- * edge. Reduced motion jumps to the new size.
+ * The arriving side of a swap (M2-02), Material's fade-through order: its fade waits
+ * [WaiveraMotionScheme.SWAP_ENTER_DELAY_MILLIS], by when the leaving side is nearly gone, then
+ * eases in. The leaving side has cleared before this one is halfway, so two texts never sit on
+ * top of each other. Only the fade waits: a swap's slide or pop starts on the first frame, so it
+ * still answers at once. Reduced motion is the short fade, at once.
  */
-fun WaiveraMotionScheme.swapTransition(direction: Int = 0): ContentTransform {
-    val transform = when {
-        reduced -> fadeIn(state()) togetherWith fadeOut(state())
-        direction == 0 -> fadeIn(state()) + scaleIn(pop, initialScale = SWAP_START_SCALE) togetherWith fadeOut(exit())
-        else -> {
-            val sign = if (direction > 0) 1 else -1
-            slideInHorizontally(layout<IntOffset>()) { sign * it / SWAP_DIVISOR } + fadeIn(state()) togetherWith
-                slideOutHorizontally(layout<IntOffset>()) { -sign * it / SWAP_DIVISOR } + fadeOut(exit())
-        }
-    }
-    return transform.withSize(swapSizeTransform())
+fun <T> WaiveraMotionScheme.swapEnterFade(): FiniteAnimationSpec<T> = if (reduced) {
+    tween(WaiveraMotionScheme.REDUCED_FADE_MILLIS, easing = LinearEasing)
+} else {
+    tween(
+        durationMillis = SWAP_ENTER_FADE_MILLIS,
+        delayMillis = WaiveraMotionScheme.SWAP_ENTER_DELAY_MILLIS,
+        easing = LinearOutSlowInEasing,
+    )
 }
 
-/** The swap's size change: unclipped, on the layout token (a snap with animations off). */
-fun WaiveraMotionScheme.swapSizeTransform(): SizeTransform = SizeTransform(clip = false) { _, _ -> layout<IntSize>() }
+/**
+ * The leaving side of a swap: [exit], and with animations off gone at once, so the short fade of
+ * what arrives never sits over what leaves (M2-02, verifier note c).
+ */
+fun <T> WaiveraMotionScheme.swapExitFade(): FiniteAnimationSpec<T> = if (reduced) snap() else exit()
+
+/** Which way a directional [swapTransition] moves: across, as a period step, or up and down, as a count roll. */
+enum class SwapAxis { Horizontal, Vertical }
 
 /**
- * Skeleton to content, or content back to a skeleton (M1-16): the new side fades in on the state
- * token while the old one leaves on [WaiveraMotionScheme.exit], with no slide or scale, so loaded
- * content settles in place instead of cutting. Reduced motion cross-fades.
+ * Content replacing other content in the same place (a status line, a period title). A
+ * [direction] above 0 slides the new content in from the end side (or from below on the
+ * [SwapAxis.Vertical] [axis]), below 0 from the start side (or from above), as when stepping to
+ * the next or previous period or a count going up or down; 0 fades it in with a small pop.
+ *
+ * The fades run in Material's fade-through order (M2-02): the leaving side drops off on
+ * [swapExitFade] while the arriving side's fade waits ([swapEnterFade]), so two texts never sit on
+ * top of each other at half strength. The slide or pop starts on the first frame, so the swap
+ * still answers at once. Reduced motion has no slide or pop: the leaving side goes at once and
+ * the new one takes the short fade.
+ *
+ * An in-place swap's slot follows the new content's size on the layout token without clipping
+ * (M1-01): the default size transform clipped the arriving content to the growing bounds, so
+ * "Discard" showed as "iscard". A slide is masked by its slot instead (M2-04), so a sliding month
+ * or count never draws past the card or the line it belongs to. Reduced motion jumps to the new
+ * size.
+ */
+fun WaiveraMotionScheme.swapTransition(direction: Int = 0, axis: SwapAxis = SwapAxis.Horizontal): ContentTransform {
+    val slides = !reduced && direction != 0
+    val transform = when {
+        reduced -> fadeIn(swapEnterFade()) togetherWith fadeOut(swapExitFade())
+        direction == 0 ->
+            fadeIn(swapEnterFade()) + scaleIn(pop, initialScale = SWAP_START_SCALE) togetherWith
+                fadeOut(swapExitFade())
+        else -> {
+            val sign = if (direction > 0) 1 else -1
+            swapSlideIn(axis, sign) + fadeIn(swapEnterFade()) togetherWith
+                swapSlideOut(axis, sign) + fadeOut(swapExitFade())
+        }
+    }
+    return transform.withSize(swapSizeTransform(clip = slides))
+}
+
+private fun WaiveraMotionScheme.swapSlideIn(axis: SwapAxis, sign: Int): EnterTransition = when (axis) {
+    SwapAxis.Horizontal -> slideInHorizontally(layout<IntOffset>()) { sign * it / SWAP_DIVISOR }
+    SwapAxis.Vertical -> slideInVertically(layout<IntOffset>()) { sign * it / SWAP_ROLL_DIVISOR }
+}
+
+private fun WaiveraMotionScheme.swapSlideOut(axis: SwapAxis, sign: Int): ExitTransition = when (axis) {
+    SwapAxis.Horizontal -> slideOutHorizontally(layout<IntOffset>()) { -sign * it / SWAP_DIVISOR }
+    SwapAxis.Vertical -> slideOutVertically(layout<IntOffset>()) { -sign * it / SWAP_ROLL_DIVISOR }
+}
+
+/**
+ * The swap's size change on the layout token (a snap with animations off). Unclipped unless
+ * [clip], which a slide asks for so its slot masks it.
+ */
+fun WaiveraMotionScheme.swapSizeTransform(clip: Boolean = false): SizeTransform =
+    SizeTransform(clip = clip) { _, _ -> layout<IntSize>() }
+
+/**
+ * Skeleton to content, or content back to a skeleton (M1-16): the same fade-through as a swap
+ * (M2-02), with no slide or scale, so loaded content settles in place instead of cutting. Reduced
+ * motion drops the old side at once and fades the new one in.
  */
 fun WaiveraMotionScheme.loadTransition(): ContentTransform =
-    (fadeIn(state()) togetherWith fadeOut(exit())).withSize(swapSizeTransform())
+    (fadeIn(swapEnterFade()) togetherWith fadeOut(swapExitFade())).withSize(swapSizeTransform())
 
 /**
  * `using` is only declared inside AnimatedContentTransitionScope, and these transitions are built
@@ -365,6 +427,8 @@ private fun ContentTransform.withSize(sizeTransform: SizeTransform): ContentTran
 
 private const val SWAP_START_SCALE = 0.92f
 private const val SWAP_DIVISOR = 3
+private const val SWAP_ROLL_DIVISOR = 2
+private const val SWAP_ENTER_FADE_MILLIS = 150
 
 val LocalWaiveraMotion = staticCompositionLocalOf { WaiveraMotionScheme.Standard }
 

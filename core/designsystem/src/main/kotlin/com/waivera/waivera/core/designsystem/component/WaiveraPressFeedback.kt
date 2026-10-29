@@ -33,6 +33,7 @@ import com.waivera.waivera.core.designsystem.theme.WaiveraTheme
 import com.waivera.waivera.core.designsystem.theme.longPressScaleFor
 import com.waivera.waivera.core.designsystem.theme.longPressSink
 import com.waivera.waivera.core.designsystem.theme.pressCancel
+import com.waivera.waivera.core.designsystem.theme.pressIn
 import com.waivera.waivera.core.designsystem.theme.pressRelease
 import com.waivera.waivera.core.designsystem.theme.pressScaleFor
 import kotlinx.coroutines.CoroutineScope
@@ -120,7 +121,7 @@ class PressFeedbackState internal constructor(
         job?.cancel()
         if (motion.reduced) tint.floatValue = WaiveraMotionScheme.PRESSED_TINT_ALPHA
         job = scope.launch {
-            scale.animateTo(motion.pressScaleFor(depth), motion.press())
+            scale.animateTo(motion.pressScaleFor(depth), motion.pressIn(SCALE_VISIBILITY_THRESHOLD))
             if (armsLongPress) armLongPress()
         }
     }
@@ -153,7 +154,11 @@ class PressFeedbackState internal constructor(
             // Stop a long press that was still waiting to sink.
             pressing?.cancel()
             tint.floatValue = 0f
-            val spec = if (cancelled) motion.pressCancel() else motion.pressRelease(SCALE_VISIBILITY_THRESHOLD)
+            val spec = if (cancelled) {
+                motion.pressCancel(SCALE_VISIBILITY_THRESHOLD)
+            } else {
+                motion.pressRelease(SCALE_VISIBILITY_THRESHOLD)
+            }
             scale.animateTo(1f, spec)
         }
     }
@@ -162,7 +167,11 @@ class PressFeedbackState internal constructor(
 /** Android's default long-press timeout, used only where no view configuration is at hand. */
 private const val DEFAULT_LONG_PRESS_TIMEOUT_MILLIS = 400L
 
-/** Fine enough for the release's spring-back past rest (about 0.004) to play out. */
+/**
+ * Fine enough for the release's spring-back past rest (about 0.004) to play out, and for a Row
+ * press (0.015 deep) to spring in rather than snap (M2-03). The long press's pop ends on the pop
+ * token's own threshold.
+ */
 private const val SCALE_VISIBILITY_THRESHOLD = 0.0005f
 
 /**

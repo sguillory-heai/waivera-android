@@ -23,10 +23,13 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
+import com.waivera.waivera.core.designsystem.theme.SwapAxis
 import com.waivera.waivera.core.designsystem.theme.WaiveraMotionScheme
 import com.waivera.waivera.core.designsystem.theme.WaiveraSpacing
 import com.waivera.waivera.core.designsystem.theme.WaiveraTheme
 import com.waivera.waivera.core.designsystem.theme.loadTransition
+import com.waivera.waivera.core.designsystem.theme.swapEnterFade
+import com.waivera.waivera.core.designsystem.theme.swapExitFade
 import com.waivera.waivera.core.designsystem.theme.swapTransition
 
 /**
@@ -99,15 +102,29 @@ fun Modifier.popScale(scale: State<Float>): Modifier = graphicsLayer {
  * out, so a state that ends visibly goes rather than vanishing. A mark already showing on first
  * composition is simply there. The content stays composed while it leaves, so keep what it shows
  * (see [rememberLatestNonNull]).
+ *
+ * [swapsInPlace] is for a mark that takes another's place in the same spot, as a busy button's
+ * spinner takes its label's (M2-02): its fade waits for the leaving side ([swapEnterFade]), and it
+ * leaves on the quick [swapExitFade] without shrinking, so the two never show at half strength.
  */
 @Composable
-fun WaiveraPopVisibility(visible: Boolean, modifier: Modifier = Modifier, content: @Composable () -> Unit) {
+fun WaiveraPopVisibility(
+    visible: Boolean,
+    modifier: Modifier = Modifier,
+    swapsInPlace: Boolean = false,
+    content: @Composable () -> Unit,
+) {
     val motion = WaiveraTheme.motion
+    val pop = scaleIn(motion.pop, initialScale = WaiveraMotionScheme.POP_START_SCALE)
     AnimatedVisibility(
         visible = visible,
         modifier = modifier,
-        enter = scaleIn(motion.pop, initialScale = WaiveraMotionScheme.POP_START_SCALE) + fadeIn(motion.state()),
-        exit = scaleOut(motion.state(), targetScale = WaiveraMotionScheme.POP_START_SCALE) + fadeOut(motion.state()),
+        enter = if (swapsInPlace) pop + fadeIn(motion.swapEnterFade()) else pop + fadeIn(motion.state()),
+        exit = if (swapsInPlace) {
+            fadeOut(motion.swapExitFade())
+        } else {
+            scaleOut(motion.state(), targetScale = WaiveraMotionScheme.POP_START_SCALE) + fadeOut(motion.state())
+        },
         label = "popVisibility",
     ) {
         content()
@@ -185,8 +202,9 @@ private fun WaiveraMotionScheme.expandExit(axis: ExpandAxis): ExitTransition {
 /**
  * Swaps content in place with [swapTransition]: "Sending…"
  * to "Sent", one period title to the next. [direction] says which way the change went (above 0
- * forward, below 0 back, 0 neither). Only a new [contentKey] animates; other changes recompose
- * the content where it is.
+ * forward, below 0 back, 0 neither), and [axis] whether a directional change slides across (a
+ * period step) or rolls up and down (a count). Only a new [contentKey] animates; other changes
+ * recompose the content where it is.
  */
 @Composable
 fun <T> WaiveraSwap(
@@ -195,13 +213,14 @@ fun <T> WaiveraSwap(
     contentAlignment: Alignment = Alignment.TopStart,
     contentKey: (T) -> Any? = { it },
     direction: (from: T, to: T) -> Int = { _, _ -> 0 },
+    axis: SwapAxis = SwapAxis.Horizontal,
     content: @Composable (T) -> Unit,
 ) {
     val motion = WaiveraTheme.motion
     AnimatedContent(
         targetState = targetState,
         modifier = modifier,
-        transitionSpec = { motion.swapTransition(direction(initialState, targetState)) },
+        transitionSpec = { motion.swapTransition(direction(initialState, targetState), axis) },
         contentAlignment = contentAlignment,
         label = "swap",
         contentKey = contentKey,
@@ -211,10 +230,11 @@ fun <T> WaiveraSwap(
 }
 
 /**
- * Swaps a loading skeleton for the content it stands in for, and back (M1-16): the content fades
- * in on the state token while the skeleton leaves faster, with no slide, so loaded content
- * settles in place instead of cutting. [loading] decides which side shows; reduced motion
- * cross-fades. Content inside keeps its own keys and state across recompositions of one side.
+ * Swaps a loading skeleton for the content it stands in for, and back (M1-16): the skeleton drops
+ * off first and the content fades in as it clears ([loadTransition]), with no slide, so loaded
+ * content settles in place instead of cutting. [loading] decides which side shows; with
+ * animations off the old side goes at once and the new one fades in. Content inside keeps its own
+ * keys and state across recompositions of one side.
  */
 @Composable
 fun WaiveraLoadSwap(

@@ -7,6 +7,7 @@ import com.waivera.waivera.core.designsystem.theme.PressDepth
 import com.waivera.waivera.core.designsystem.theme.WaiveraMotionScheme
 import com.waivera.waivera.core.designsystem.theme.WaiveraTheme
 import com.waivera.waivera.core.screenshottesting.ScreenshotSdk
+import kotlin.math.abs
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -167,6 +168,61 @@ class PressMotionTest {
         assertEquals(1f, press.value, SETTLED)
     }
 
+    /** M2-03: a 0.015 press used to end on the default threshold after about 12 ms, one snapped frame. */
+    @Test
+    fun aRowPressSpringsInRatherThanSnapping() {
+        compose.mainClock.autoAdvance = false
+        val press = showPress(depth = PressDepth.Row)
+        compose.runOnUiThread { press.onPointer(down = true) }
+        val values = List(PRESS_IN_FRAMES) {
+            compose.mainClock.advanceTimeBy(FRAME_MILLIS)
+            press.value
+        }
+        assertTrue(
+            "the Row press never passed between rest and its depth: $values",
+            values.any { it < 1f - FINE_STEP && it > PressDepth.Row.scale + FINE_STEP },
+        )
+        compose.mainClock.advanceTimeBy(SETTLE_MILLIS)
+        assertEquals(PressDepth.Row.scale, press.value, DEPTH_TOLERANCE)
+    }
+
+    /** M2-03: from the Row's 0.97 sink the pop's overshoot is about 0.005, under the old 0.01 threshold. */
+    @Test
+    fun aRowLongPressPopsPastRest() {
+        compose.mainClock.autoAdvance = false
+        val press = showPress(depth = PressDepth.Row, armsLongPress = true)
+        compose.runOnUiThread { press.onPointer(down = true) }
+        compose.mainClock.advanceTimeBy(SETTLE_MILLIS)
+        compose.runOnUiThread { press.onLongPress() }
+        val range = watch(press, RELEASE_FRAMES)
+        assertTrue("the Row long press did not pop past rest: ${range.endInclusive}", range.endInclusive > MIN_ROW_POP)
+        compose.runOnUiThread { press.onPointer(down = false) }
+        compose.mainClock.advanceTimeBy(SETTLE_MILLIS)
+        assertEquals(1f, press.value, SETTLED)
+    }
+
+    /** M2-03: the bubble's pop reached about 1.012 and then snapped to rest in one frame, a 6 px tick. */
+    @Test
+    fun aLongPressPopSettlesWithoutATick() {
+        compose.mainClock.autoAdvance = false
+        val press = showPress(armsLongPress = true)
+        compose.runOnUiThread { press.onPointer(down = true) }
+        compose.mainClock.advanceTimeBy(SETTLE_MILLIS)
+        compose.runOnUiThread { press.onLongPress() }
+        val values = List(POP_FRAMES) {
+            compose.mainClock.advanceTimeBy(FRAME_MILLIS)
+            press.value
+        }
+        val peak = values.indices.maxBy { values[it] }
+        val steps = values.drop(peak).zipWithNext { a, b -> abs(b - a) }
+        assertTrue("the pop did not pass rest: ${values[peak]}", values[peak] > 1f + MIN_OVERSHOOT)
+        assertTrue(
+            "the pop ticks after its peak: largest step ${steps.max()} in $values",
+            steps.all { it <= MAX_SETTLE_STEP },
+        )
+        assertEquals(1f, values.last(), SETTLED)
+    }
+
     @Test
     fun aQuickTapOnALongPressControlNeverSinksPastItsPress() {
         compose.mainClock.autoAdvance = false
@@ -211,5 +267,14 @@ class PressMotionTest {
         /** The release peaks near 1.004 from a 0.04 dip, and the long press's pop near 1.011. */
         const val MIN_OVERSHOOT = 0.001f
         const val MAX_OVERSHOOT = 0.02f
+        const val PRESS_IN_FRAMES = 6
+        const val POP_FRAMES = 40
+        const val FINE_STEP = 0.001f
+
+        /** The Row pop peaks near 1.005; with the default threshold it never passed 1. */
+        const val MIN_ROW_POP = 1.002f
+
+        /** The pop moves under 0.006 a frame once past its peak; the old end snapped 0.012. */
+        const val MAX_SETTLE_STEP = 0.006f
     }
 }
