@@ -14,6 +14,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.PointerEventPass
+import androidx.compose.ui.input.pointer.PointerId
 import androidx.compose.ui.input.pointer.changedToDownIgnoreConsumed
 import androidx.compose.ui.input.pointer.isOutOfBounds
 import androidx.compose.ui.input.pointer.pointerInput
@@ -109,12 +110,16 @@ fun Modifier.pressScale(state: PressFeedbackState): Modifier = graphicsLayer {
 /**
  * Watches the finger without consuming anything: the press starts on the first touch, and ends
  * when every finger lifts, the finger leaves the control, or a scroll or swipe consumes the move.
+ * Only the innermost tracker under the finger answers, so a row does not shrink along with the
+ * control inside it (a Join call button in a chat row would otherwise scale twice).
  */
 fun Modifier.pressTracking(state: PressFeedbackState, enabled: Boolean = true): Modifier {
     if (!enabled) return this
     return pointerInput(state) {
         awaitEachGesture {
-            awaitFirstDown(requireUnconsumed = false, pass = PointerEventPass.Initial)
+            // The main pass reaches the innermost node first, in the same frame as the touch.
+            val down = awaitFirstDown(requireUnconsumed = false, pass = PointerEventPass.Main)
+            if (!PressClaim.take(down.id)) return@awaitEachGesture
             state.onPointer(down = true)
             try {
                 var holding = true
@@ -128,9 +133,29 @@ fun Modifier.pressTracking(state: PressFeedbackState, enabled: Boolean = true): 
                     holding = !lifted && !taken && !outside
                 }
             } finally {
+                PressClaim.release(down.id)
                 state.onPointer(down = false)
             }
         }
+    }
+}
+
+/**
+ * The finger a tracker is already answering, so the trackers around it leave that touch alone.
+ * Pointer input runs on the main thread only. A claim lasts for its gesture and no longer, so a
+ * reused pointer id never inherits it.
+ */
+private object PressClaim {
+    private var claimed: PointerId? = null
+
+    fun take(id: PointerId): Boolean {
+        if (claimed == id) return false
+        claimed = id
+        return true
+    }
+
+    fun release(id: PointerId) {
+        if (claimed == id) claimed = null
     }
 }
 

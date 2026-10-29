@@ -1,13 +1,21 @@
 package com.waivera.waivera.core.designsystem.component
 
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.State
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshots.Snapshot
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.performTouchInput
+import androidx.compose.ui.unit.dp
 import com.waivera.waivera.core.designsystem.theme.WaiveraMotionScheme
 import com.waivera.waivera.core.designsystem.theme.WaiveraTheme
 import com.waivera.waivera.core.screenshottesting.ScreenshotSdk
@@ -22,7 +30,8 @@ import org.robolectric.annotation.Config
 
 /**
  * The shared press, pop and reject-shake responses on the compose clock: a quick tap still dips
- * visibly, a pop or a shake runs only on a change, and with animations off none of them moves.
+ * visibly, a pop or a shake runs only on a change, a press answers in the innermost control only,
+ * and with animations off none of them moves.
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [ScreenshotSdk.VALUE])
@@ -71,6 +80,49 @@ class StateMotionTest {
         compose.runOnUiThread { press.onPointer(down = true) }
         compose.mainClock.advanceTimeBy(SETTLE_MILLIS)
         assertEquals(1f, press.value, 0f)
+    }
+
+    /** A row with a control inside it, each with its own press response, as a chat row's Join call. */
+    private fun showNested(): Pair<PressFeedbackState, PressFeedbackState> {
+        var outer: PressFeedbackState? = null
+        var inner: PressFeedbackState? = null
+        compose.setContent {
+            WaiveraTheme(darkTheme = false, motion = WaiveraMotionScheme.Standard, hapticsEnabled = false) {
+                val row = rememberPressFeedback(remember { MutableInteractionSource() }).also { outer = it }
+                val button = rememberPressFeedback(remember { MutableInteractionSource() }).also { inner = it }
+                Box(Modifier.size(ROW_DP.dp).testTag("row").pressFeedback(row)) {
+                    Box(Modifier.size(BUTTON_DP.dp).testTag("button").pressFeedback(button))
+                }
+            }
+        }
+        compose.waitForIdle()
+        return requireNotNull(outer) to requireNotNull(inner)
+    }
+
+    @Test
+    fun aPressOnANestedControlScalesOnlyThatControl() {
+        compose.mainClock.autoAdvance = false
+        val (row, button) = showNested()
+        compose.onNodeWithTag("button").performTouchInput { down(center) }
+        compose.mainClock.advanceTimeBy(SETTLE_MILLIS)
+        assertEquals(WaiveraMotionScheme.PRESS_SCALE, button.value, 0.005f)
+        assertEquals("the row shrank with its button", 1f, row.value, 0f)
+        compose.onNodeWithTag("button").performTouchInput { up() }
+        compose.mainClock.advanceTimeBy(SETTLE_MILLIS)
+        assertEquals(1f, button.value, 0.001f)
+    }
+
+    @Test
+    fun aPressBesideTheNestedControlScalesTheRow() {
+        compose.mainClock.autoAdvance = false
+        val (row, button) = showNested()
+        compose.onNodeWithTag("row").performTouchInput { down(bottomRight - Offset(1f, 1f)) }
+        compose.mainClock.advanceTimeBy(SETTLE_MILLIS)
+        assertEquals(WaiveraMotionScheme.PRESS_SCALE, row.value, 0.005f)
+        assertEquals(1f, button.value, 0f)
+        compose.onNodeWithTag("row").performTouchInput { up() }
+        compose.mainClock.advanceTimeBy(SETTLE_MILLIS)
+        assertEquals(1f, row.value, 0.001f)
     }
 
     private fun showPop(motion: WaiveraMotionScheme): Pair<State<Float>, (Int) -> Unit> {
@@ -168,5 +220,7 @@ class StateMotionTest {
         const val FRAMES_TO_WATCH = 20
         const val FRAME_MILLIS = 16L
         const val SETTLE_MILLIS = 1_000L
+        const val ROW_DP = 200
+        const val BUTTON_DP = 48
     }
 }
