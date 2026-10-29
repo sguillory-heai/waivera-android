@@ -418,19 +418,33 @@ private fun Footer(
     // "Sending…" fades into the quiet slot in place instead of swapping in. A swap side that is
     // still arriving when the ack lands leaves on Compose's default spring, not the quick exit,
     // so "Sent" would draw over a fading "Sending…" for about 100 ms.
+    // Each side draws from the snapshot it was swapped in with, never from the live message: on
+    // Retry the leaving side used to re-render as "Sending…" at full strength with its actions
+    // gone, then fade, while the real "Sending…" faded in (M3-01). Now "Not sent" and its actions
+    // fade out as they were, and the slot closes on the swap's size spring.
     WaiveraSwap(
-        targetState = footerPhase(message, sendingLabelDue),
+        targetState = FooterSnapshot(footerPhase(message, sendingLabelDue), message),
         contentAlignment = Alignment.TopEnd,
-        contentKey = { if (it == FooterPhase.Quiet) FooterPhase.Sending else it },
-    ) { phase ->
-        when (phase) {
+        contentKey = { it.swapKey },
+    ) { snapshot ->
+        when (snapshot.phase) {
             FooterPhase.Settled -> SettledFooter(row, time, timestampVisible)
             // The slot keeps the line's height, so nothing jumps when the line arrives.
             FooterPhase.Quiet, FooterPhase.Sending ->
-                SendingMeta(message, callbacks, shown = phase == FooterPhase.Sending)
-            FooterPhase.Failed -> PendingMeta(message, callbacks)
+                SendingMeta(snapshot.message, callbacks, shown = snapshot.phase == FooterPhase.Sending)
+            FooterPhase.Failed -> PendingMeta(snapshot.message, callbacks)
         }
     }
+}
+
+/**
+ * What one side of the footer swap shows: its [phase] and the [message] as it was then. A side
+ * that is leaving keeps its own snapshot, so it never re-renders with the next state's data.
+ */
+@Immutable
+internal data class FooterSnapshot(val phase: FooterPhase, val message: Message) {
+    /** The quiet slot and "Sending…" are one side, so the label fades in place (e1f7fe0). */
+    val swapKey: FooterPhase get() = if (phase == FooterPhase.Quiet) FooterPhase.Sending else phase
 }
 
 /** "Sending…" in the footer slot: invisible and silent until [shown], then faded in. */
