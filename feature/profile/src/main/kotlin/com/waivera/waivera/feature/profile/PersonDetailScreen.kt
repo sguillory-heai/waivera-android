@@ -16,7 +16,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -28,6 +27,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalResources
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
@@ -42,11 +42,12 @@ import com.waivera.waivera.core.designsystem.component.WaiveraAvatar
 import com.waivera.waivera.core.designsystem.component.WaiveraButton
 import com.waivera.waivera.core.designsystem.component.WaiveraButtonVariant
 import com.waivera.waivera.core.designsystem.component.WaiveraHeroCelebration
+import com.waivera.waivera.core.designsystem.component.WaiveraNameText
 import com.waivera.waivera.core.designsystem.component.WaiveraSnackbarHost
 import com.waivera.waivera.core.designsystem.component.WaiveraTopBar
 import com.waivera.waivera.core.designsystem.icon.WaiveraIcons
 import com.waivera.waivera.core.designsystem.preview.WaiveraPreviews
-import com.waivera.waivera.core.designsystem.text.withBreaksAfterHyphens
+import com.waivera.waivera.core.designsystem.text.CelebrationCopy
 import com.waivera.waivera.core.designsystem.theme.WaiveraHero
 import com.waivera.waivera.core.designsystem.theme.WaiveraSpacing
 import com.waivera.waivera.core.designsystem.theme.WaiveraTextStyles
@@ -226,13 +227,17 @@ private fun PersonHero(state: PersonDetailUiState) {
             contentDescription = null,
         )
         if (state.name.isNotBlank()) {
-            // Hyphenated names wrap after a hyphen, never mid-word (UI5-05).
-            Text(
-                text = state.name.withBreaksAfterHyphens(),
+            // Two lines, three at large font, wrapping only at a space or after a hyphen, so a
+            // long name leaves Message on the first screen at 200% (UI5-05, wave 29 N4).
+            WaiveraNameText(
+                text = state.name,
+                maxLines = heroNameMaxLines(),
                 style = WaiveraTextStyles.HeroGreetingCompact,
                 color = hero.onHeader,
                 textAlign = TextAlign.Center,
-                modifier = Modifier.semantics { heading() },
+                modifier = Modifier
+                    .testTag(PERSON_HERO_NAME_TAG)
+                    .semantics { heading() },
             )
         }
         state.email?.let {
@@ -244,9 +249,12 @@ private fun PersonHero(state: PersonDetailUiState) {
             )
         }
         state.celebration?.let { party ->
+            // The name is right above, so the note says only the first name (wave 29 N4).
+            val firstName = CelebrationCopy.firstName(state.name).orEmpty()
             WaiveraHeroCelebration(
                 emoji = party.emoji(),
-                text = party.fullLabel(state.name),
+                text = party.fullLabel(firstName),
+                name = firstName,
                 modifier = Modifier.padding(top = WaiveraSpacing.ExtraSmall),
             )
         }

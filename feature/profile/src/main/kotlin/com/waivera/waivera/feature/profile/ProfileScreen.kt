@@ -25,6 +25,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.semantics
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -47,13 +48,13 @@ import com.waivera.waivera.core.designsystem.component.WaiveraIconTile
 import com.waivera.waivera.core.designsystem.component.WaiveraIllustration
 import com.waivera.waivera.core.designsystem.component.WaiveraListRow
 import com.waivera.waivera.core.designsystem.component.WaiveraLoadSwap
+import com.waivera.waivera.core.designsystem.component.WaiveraNameText
 import com.waivera.waivera.core.designsystem.component.WaiveraPullToRefreshBox
 import com.waivera.waivera.core.designsystem.component.WaiveraTileTone
 import com.waivera.waivera.core.designsystem.component.WaiveraTopBar
 import com.waivera.waivera.core.designsystem.component.rememberLatestNonNull
 import com.waivera.waivera.core.designsystem.icon.WaiveraIcons
 import com.waivera.waivera.core.designsystem.preview.WaiveraPreviews
-import com.waivera.waivera.core.designsystem.text.withBreaksAfterHyphens
 import com.waivera.waivera.core.designsystem.theme.WaiveraHero
 import com.waivera.waivera.core.designsystem.theme.WaiveraSizes
 import com.waivera.waivera.core.designsystem.theme.WaiveraSpacing
@@ -243,11 +244,14 @@ internal fun IdentityCard(
             modifier = textModifier.semantics(mergeDescendants = true) {},
             verticalArrangement = Arrangement.spacedBy(WaiveraSpacing.XxSmall),
         ) {
-            // Hyphenated names wrap after a hyphen, never mid-word (UI5-05).
-            Text(
-                text = name.withBreaksAfterHyphens(),
+            // Hyphenated names wrap after a hyphen, never mid-word, and keep to the hero's lines
+            // (UI5-05, wave 29 N4).
+            WaiveraNameText(
+                text = name,
+                maxLines = heroNameMaxLines(),
                 style = WaiveraTextStyles.HeroGreetingCompact,
                 color = hero.onHeader,
+                modifier = Modifier.testTag(PROFILE_HERO_NAME_TAG),
             )
             if (jobTitle != null) {
                 Text(text = jobTitle, style = MaterialTheme.typography.bodyMedium, color = hero.onHeaderSecondary)
@@ -293,7 +297,11 @@ internal fun IdentityCard(
             val firstName = profile?.firstName?.takeIf(String::isNotBlank)
                 ?: user.firstName?.takeIf(String::isNotBlank)
                 ?: name.trim().substringBefore(' ').takeIf(String::isNotBlank)
-            WaiveraHeroCelebration(emoji = celebration.emoji(), text = celebration.selfLabel(firstName))
+            WaiveraHeroCelebration(
+                emoji = celebration.emoji(),
+                text = celebration.selfLabel(firstName),
+                name = firstName.orEmpty(),
+            )
         }
     }
 }
