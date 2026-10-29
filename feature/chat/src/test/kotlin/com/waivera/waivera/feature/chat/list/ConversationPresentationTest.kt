@@ -277,6 +277,18 @@ class ConversationPresentationTest {
     }
 
     @Test
+    fun typingNamesEndMarksTheOneTypersName() {
+        val group = Conversation(11, ConversationKind.GROUP, listOf(me, priya, jordan))
+        val label = requireNotNull(RowSubtitle.typingLabel(group, setOf(PRIYA), ME, text))
+        val end = requireNotNull(RowSubtitle.typingNamesEnd(group, setOf(PRIYA), ME, text))
+        assertEquals("Priya Raman", label.substring(0, end))
+        assertEquals(" is typing…", label.substring(end))
+        assertEquals("Someone".length, RowSubtitle.typingNamesEnd(group, setOf("usr_stranger"), ME, text))
+        assertNull(RowSubtitle.typingNamesEnd(group, setOf(PRIYA, JORDAN), ME, text))
+        assertNull(RowSubtitle.typingNamesEnd(group, emptySet(), ME, text))
+    }
+
+    @Test
     fun liveCallOrMeetingRoomShowsCallInProgressButUnknownStatusIsInert() {
         assertTrue(p.isCallLive(dm(7).copy(ongoingCall = OngoingCall("room", status = CallRecordStatus.ACTIVE))))
         assertTrue(p.isCallLive(dm(7).copy(activeMeeting = MeetingInfo(roomId = "room"))))

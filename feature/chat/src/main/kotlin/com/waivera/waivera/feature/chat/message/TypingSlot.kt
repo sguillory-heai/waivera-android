@@ -117,10 +117,11 @@ fun TypingSlot(line: TypingLine?, modifier: Modifier = Modifier) {
 
 /**
  * The line in one piece while it fits, so it draws exactly as before; once it would be cut, the
- * names and "is typing…" as two pieces, the names taking what "is typing…" leaves.
+ * names and "is typing…" as two pieces, the names taking what "is typing…" leaves. The chat
+ * list's typing preview uses it too, so both lines give way the same way.
  */
 @Composable
-private fun TypingText(line: TypingLine, style: TextStyle, color: Color) {
+internal fun TypingText(line: TypingLine, style: TextStyle, color: Color) {
     var split by remember(line) { mutableStateOf(false) }
     if (!split) {
         Text(

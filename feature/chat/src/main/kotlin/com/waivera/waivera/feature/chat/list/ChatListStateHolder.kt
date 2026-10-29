@@ -358,6 +358,7 @@ class ChatListStateHolder(
             previewKind = preview.kind,
             senderPrefix = RowSubtitle.senderPrefix(c, preview, me, text),
             typingLabel = RowSubtitle.typingLabel(c, typingIds, me, text),
+            typingNamesEnd = RowSubtitle.typingNamesEnd(c, typingIds, me, text),
             timeLabel = relativeTime.label(c.lastMessage?.createdAt, now, zone),
             // One unread rule with Today (UI2-09): a chat whose newest message is mine isn't unread for me.
             unreadCount = if (c.id in l.optimisticRead || !c.isUnreadFor(me)) 0 else c.unreadCount,

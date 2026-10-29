@@ -75,11 +75,25 @@ object RowSubtitle {
         return when {
             ids.isEmpty() -> null
             ids.size > 1 -> text.severalTyping
-            else -> {
-                val person = c.participants.firstOrNull { it.id == ids.first() }
-                val name = person?.let(ConversationPresentation::displayName)?.takeIf(String::isNotEmpty)
-                text.typing(name ?: text.someone)
-            }
+            else -> text.typing(typingName(c, ids.first(), text))
         }
+    }
+
+    /**
+     * Where the one typing person's name ends in [typingLabel]'s line ("Priya Raman" in "Priya
+     * Raman is typing…"), so a one-line row cuts the name and keeps "is typing…" whole, as the
+     * conversation's typing slot does. Null when no name shows (several people) or the copy has none.
+     */
+    fun typingNamesEnd(c: Conversation, typingUserIds: Set<String>, myUserId: String?, text: ChatListText): Int? {
+        val ids = typingUserIds - setOfNotNull(myUserId)
+        if (ids.size != 1) return null
+        val name = typingName(c, ids.first(), text)
+        val at = text.typing(name).lastIndexOf(name)
+        return if (at < 0) null else at + name.length
+    }
+
+    private fun typingName(c: Conversation, userId: String, text: ChatListText): String {
+        val person = c.participants.firstOrNull { it.id == userId }
+        return person?.let(ConversationPresentation::displayName)?.takeIf(String::isNotEmpty) ?: text.someone
     }
 }

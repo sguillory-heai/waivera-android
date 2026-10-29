@@ -38,6 +38,8 @@ data class ChatRowUi(
     val previewKind: PreviewKind,
     val senderPrefix: String? = null,
     val typingLabel: String? = null,
+    /** Where the name ends in [typingLabel], so the row cuts the name, never "is typing…". */
+    val typingNamesEnd: Int? = null,
     val timeLabel: String = "",
     val unreadCount: Int = 0,
     val hasAttachment: Boolean = false,

@@ -63,6 +63,8 @@ import com.waivera.waivera.core.designsystem.theme.WaiveraSpacing
 import com.waivera.waivera.core.designsystem.theme.WaiveraTheme
 import com.waivera.waivera.core.designsystem.theme.isLargeFontScale
 import com.waivera.waivera.feature.chat.R
+import com.waivera.waivera.feature.chat.message.TypingLine
+import com.waivera.waivera.feature.chat.message.TypingText
 import kotlinx.coroutines.delay
 
 /**
@@ -210,14 +212,20 @@ private fun RowBody(row: ChatRowUi, avatar: ImageBitmap?, onJoinCall: () -> Unit
                     when {
                         row.isCallLive -> CallJoin(opening = row.isOpeningCall, onJoin = onJoinCall)
                         row.isSendFailed -> NotSentLine()
-                        row.typingLabel != null -> Text(
-                            text = row.typingLabel,
-                            style = MaterialTheme.typography.bodySmall,
-                            fontStyle = FontStyle.Italic,
-                            fontWeight = FontWeight.Bold,
+                        // One line, as the conversation's typing slot: the name gives way, "is typing…" stays.
+                        row.typingLabel != null -> TypingText(
+                            line = remember(row.typingLabel, row.typingNamesEnd) {
+                                TypingLine(
+                                    shown = row.typingLabel,
+                                    namesEnd = row.typingNamesEnd ?: row.typingLabel.length,
+                                    spoken = row.typingLabel,
+                                )
+                            },
+                            style = MaterialTheme.typography.bodySmall.copy(
+                                fontStyle = FontStyle.Italic,
+                                fontWeight = FontWeight.Bold,
+                            ),
                             color = colors.accent,
-                            maxLines = 2,
-                            overflow = TextOverflow.Ellipsis,
                         )
                         else -> PreviewLine(row)
                     }
