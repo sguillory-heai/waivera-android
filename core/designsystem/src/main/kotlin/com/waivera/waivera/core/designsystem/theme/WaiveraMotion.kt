@@ -38,7 +38,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.IntOffset
-import androidx.compose.ui.unit.IntSize
 import kotlin.math.roundToInt
 
 /** The motion vocabulary from the UX research. Ad-hoc animation specs fail review. */
@@ -382,7 +381,7 @@ fun WaiveraMotionScheme.swapTransition(direction: Int = 0, axis: SwapAxis = Swap
     val transform = when {
         reduced -> fadeIn(swapEnterFade()) togetherWith fadeOut(swapExitFade())
         direction == 0 ->
-            fadeIn(swapEnterFade()) + scaleIn(pop, initialScale = SWAP_START_SCALE) togetherWith
+            fadeIn(swapEnterFade()) + scaleIn(swapPop(), initialScale = SWAP_START_SCALE) togetherWith
                 fadeOut(swapExitFade())
         else -> {
             val sign = if (direction > 0) 1 else -1
@@ -404,11 +403,11 @@ private fun WaiveraMotionScheme.swapSlideOut(axis: SwapAxis, sign: Int): ExitTra
 }
 
 /**
- * The swap's size change on the layout token (a snap with animations off). Unclipped unless
- * [clip], which a slide asks for so its slot masks it.
+ * The swap's size change on [swapSize] (a snap with animations off). Unclipped unless [clip],
+ * which a slide asks for so its slot masks it.
  */
 fun WaiveraMotionScheme.swapSizeTransform(clip: Boolean = false): SizeTransform =
-    SizeTransform(clip = clip) { _, _ -> layout<IntSize>() }
+    SizeTransform(clip = clip) { _, _ -> swapSize() }
 
 /**
  * Skeleton to content, or content back to a skeleton (M1-16): the same fade-through as a swap

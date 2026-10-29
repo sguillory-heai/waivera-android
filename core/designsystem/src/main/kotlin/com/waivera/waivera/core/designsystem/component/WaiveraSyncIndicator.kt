@@ -63,8 +63,12 @@ fun WaiveraSyncIndicator(state: SyncState, onRetry: () -> Unit, modifier: Modifi
     // folding across would hold its height until the end and then drop the item below it.
     WaiveraExpandVisibility(visibleState = visibility, modifier = modifier) {
         // Pending to failed (or back on retry), and on to the beat, swap in place on the shared
-        // swap motion. The leaving content keeps what it showed.
-        WaiveraSwap(targetState = lastLine.value) { line -> SyncLine(line, onRetry) }
+        // swap motion. The leaving content keeps what it showed. The lines are centred on one
+        // another, so mid-swap the 48dp failed line and a short line share a middle instead of
+        // sitting 14dp apart (M3-02); at rest the slot takes the settled line's size.
+        WaiveraSwap(targetState = lastLine.value, contentAlignment = Alignment.CenterStart) { line ->
+            SyncLine(line, onRetry)
+        }
     }
 }
 

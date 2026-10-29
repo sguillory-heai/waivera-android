@@ -2,10 +2,14 @@ package com.waivera.waivera.core.designsystem.component
 
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.AnimatedVisibilityScope
+import androidx.compose.animation.EnterExitState
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.MutableTransitionState
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.snap
 import androidx.compose.animation.expandHorizontally
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
@@ -14,6 +18,7 @@ import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
 import androidx.compose.animation.shrinkHorizontally
 import androidx.compose.animation.shrinkVertically
+import androidx.compose.foundation.layout.Box
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.State
@@ -225,8 +230,26 @@ fun <T> WaiveraSwap(
         label = "swap",
         contentKey = contentKey,
     ) { state ->
-        content(state)
+        SwapSide(motion) { content(state) }
     }
+}
+
+/**
+ * One side of a swap, which leaves on [swapExitFade] even when it was still arriving (M3-02).
+ * Compose fades a side that is interrupted mid-entrance on its default spring instead of the
+ * transition's exit, so a swap changed again within about 300 ms drew the old line under the new
+ * one ("Synced" over "Sending…"). This layer runs beside the built-in fade: it stays at 1 while
+ * the side arrives and shows, and drops on the quick exit as the side leaves, however far its
+ * arrival got. A settled side's own exit is the same tween, so its fade-out only ends a little
+ * sooner. The value is read in the layer, so a swap never recomposes for it.
+ */
+@Composable
+private fun AnimatedVisibilityScope.SwapSide(motion: WaiveraMotionScheme, content: @Composable () -> Unit) {
+    val leaving = transition.animateFloat(
+        transitionSpec = { if (targetState == EnterExitState.PostExit) motion.swapExitFade() else snap() },
+        label = "swapSide",
+    ) { state -> if (state == EnterExitState.PostExit) 0f else 1f }
+    Box(Modifier.graphicsLayer { alpha = leaving.value }, propagateMinConstraints = true) { content() }
 }
 
 /**
@@ -251,7 +274,7 @@ fun WaiveraLoadSwap(
         contentAlignment = contentAlignment,
         label = "loadSwap",
     ) { showsSkeleton ->
-        content(showsSkeleton)
+        SwapSide(motion) { content(showsSkeleton) }
     }
 }
 

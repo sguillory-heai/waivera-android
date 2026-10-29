@@ -3,6 +3,7 @@ package com.waivera.waivera.core.designsystem.theme
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.core.AnimationVector1D
+import androidx.compose.animation.core.AnimationVector2D
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.FiniteAnimationSpec
 import androidx.compose.animation.core.KeyframesSpec
@@ -13,6 +14,7 @@ import androidx.compose.animation.core.SnapSpec
 import androidx.compose.animation.core.SpringSpec
 import androidx.compose.animation.core.TweenSpec
 import androidx.compose.animation.core.VectorConverter
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -250,6 +252,35 @@ class WaiveraMotionSchemeTest {
         assertIs<SnapSpec<*>>(WaiveraMotionScheme.Reduced.pressCancel(FINE_THRESHOLD))
     }
 
+    /**
+     * M3-02. A swap counts as busy until its pop and its size change end, and a change in that
+     * time interrupts the arriving side. Both now end about as the arriving fade does.
+     */
+    @Test
+    fun `a swap's arrival and its size change are over in about 200 ms`() {
+        val motion = WaiveraMotionScheme.Standard
+        val pop = motion.swapPop().vectorize(Float.VectorConverter).getDurationNanos(
+            AnimationVector1D(SWAP_START_SCALE),
+            AnimationVector1D(1f),
+            AnimationVector1D(0f),
+        )
+        assertTrue(pop <= SWAP_SETTLED_MILLIS * NANOS_PER_MILLI, "the swap's pop runs ${pop / NANOS_PER_MILLI} ms")
+        val size = motion.swapSize().vectorize(IntSize.VectorConverter).getDurationNanos(
+            AnimationVector2D(SLOT_WIDTH_PX, FAILED_LINE_PX),
+            AnimationVector2D(SLOT_WIDTH_PX, SHORT_LINE_PX),
+            AnimationVector2D(0f, 0f),
+        )
+        assertTrue(size <= SIZE_SETTLED_MILLIS * NANOS_PER_MILLI, "the size change runs ${size / NANOS_PER_MILLI} ms")
+        val standalone = motion.pop.vectorize(Float.VectorConverter).getDurationNanos(
+            AnimationVector1D(SWAP_START_SCALE),
+            AnimationVector1D(1f),
+            AnimationVector1D(0f),
+        )
+        assertTrue(standalone > pop, "the stand-alone pop keeps its finer threshold")
+        assertIs<SnapSpec<*>>(WaiveraMotionScheme.Reduced.swapPop())
+        assertIs<SnapSpec<*>>(WaiveraMotionScheme.Reduced.swapSize())
+    }
+
     private fun FiniteAnimationSpec<Float>.valueAt(millis: Long, from: Float, to: Float): Float =
         vectorize(Float.VectorConverter).getValueFromNanos(
             millis * NANOS_PER_MILLI,
@@ -335,6 +366,14 @@ class WaiveraMotionSchemeTest {
         const val ALPHA_TOLERANCE = 0.001f
         const val MOSTLY_GONE = 0.1f
         const val FINE_THRESHOLD = 0.0005f
+        const val SWAP_START_SCALE = 0.92f
+        const val SWAP_SETTLED_MILLIS = 210L
+
+        /** The failed line (48dp) folding to a one-line status (about 20dp) at xhdpi. */
+        const val SLOT_WIDTH_PX = 300f
+        const val FAILED_LINE_PX = 96f
+        const val SHORT_LINE_PX = 40f
+        const val SIZE_SETTLED_MILLIS = 250L
         const val FIRST_TURN_MILLIS = 40L
         const val HALFWAY_TO_FIRST_TURN_MILLIS = 20L
 
