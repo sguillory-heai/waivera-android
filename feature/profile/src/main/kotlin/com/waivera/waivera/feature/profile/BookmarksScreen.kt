@@ -14,7 +14,9 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -33,6 +35,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshots.Snapshot
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
@@ -40,6 +44,7 @@ import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.zIndex
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.waivera.waivera.core.data.image.AvatarModel
@@ -299,8 +304,17 @@ private fun BookmarksEmpty(
 @Composable
 private fun BookmarksList(state: BookmarksUiState, onOpen: (BookmarkRow) -> Unit, onRemove: (BookmarkRow) -> Unit) {
     val motion = WaiveraTheme.motion
+    val listState = rememberLazyListState()
+    // A card composed after the list's first frame, while it is not scrolling, joined it: an undo.
+    val listShown = remember(listState) { ListShown(listState) }
+    LaunchedEffect(listShown) {
+        // The first frame's layout composes the cards already there; anything after joined.
+        withFrameNanos { }
+        listShown.shown = true
+    }
     val bottom = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
     LazyColumn(
+        state = listState,
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(
             start = WaiveraSpacing.Gutter,
@@ -338,20 +352,57 @@ private fun BookmarksList(state: BookmarksUiState, onOpen: (BookmarkRow) -> Unit
         }
         items(state.rows, key = { it.messageId }) { row ->
             // A removed bookmark is gone before the rest close up through its place on the
-            // shared springs, so no card ever slides over a fading one (M1-14).
+            // shared springs, so no card ever slides over a fading one (M1-14). A card that comes
+            // back (an undo) draws above its neighbours while they slide down out of its place,
+            // so it is never hidden under the card still moving through it (M3-06).
+            val returning = rememberReturningCard(listShown)
             BookmarkCard(
                 row = row,
                 onOpen = { onOpen(row) },
                 onRemove = { onRemove(row) },
-                modifier = Modifier.animateItem(
-                    fadeInSpec = motion.state(),
-                    placementSpec = motion.layout(),
-                    fadeOutSpec = motion.exit(),
-                ),
+                modifier = Modifier
+                    .zIndex(if (returning) RETURNING_Z_INDEX else 0f)
+                    .animateItem(
+                        fadeInSpec = motion.state(),
+                        placementSpec = motion.layout(),
+                        fadeOutSpec = motion.exit(),
+                    ),
             )
         }
     }
 }
+
+/** Whether the bookmark list has shown a frame yet, and so whether a new card joined it. */
+private class ListShown(private val listState: LazyListState) {
+    var shown: Boolean = false
+
+    /** Read once, when a card first composes, without following the scroll afterwards. */
+    fun cardJoins(): Boolean = shown && !Snapshot.withoutReadObservation { listState.isScrollInProgress }
+}
+
+/**
+ * True while a card that joined an already showing list settles: long enough for the cards it
+ * pushes down to finish sliding on the layout spring. One recomposition when it ends, once per
+ * returning card; cards there from the start, or scrolled into view, never raise. Reduced motion moves nothing, so
+ * nothing needs raising.
+ */
+@Composable
+private fun rememberReturningCard(listShown: ListShown): Boolean {
+    val motion = WaiveraTheme.motion
+    var raised by remember { mutableStateOf(!motion.reduced && listShown.cardJoins()) }
+    if (raised) {
+        LaunchedEffect(Unit) {
+            delay(RETURNING_RAISE_MILLIS)
+            raised = false
+        }
+    }
+    return raised
+}
+
+private const val RETURNING_Z_INDEX = 1f
+
+/** About as long as the layout spring takes to settle a card's slide. */
+private const val RETURNING_RAISE_MILLIS = 400L
 
 /** The list's count line: [count] says which way it moved, [text] is what it reads. */
 @Immutable
