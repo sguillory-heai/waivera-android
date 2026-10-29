@@ -3,6 +3,7 @@ package com.waivera.waivera.core.designsystem.component
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.text.BasicText
 import androidx.compose.foundation.text.TextAutoSize
+import androidx.compose.foundation.text.modifiers.TextAutoSizeLayoutScope
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
@@ -11,10 +12,12 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.takeOrElse
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.TextUnit
 import com.waivera.waivera.core.designsystem.preview.WaiveraPreviews
 import com.waivera.waivera.core.designsystem.theme.WaiveraNameFit
@@ -26,7 +29,7 @@ import com.waivera.waivera.core.designsystem.theme.WaiveraTheme
  * and past that ends in "…"; it never wraps to a second line. A name that fits keeps the full
  * size. TalkBack reads the whole name, ellipsized or not.
  *
- * Built on foundation's [BasicText] auto-size ([TextAutoSize.StepBased]). A style without an sp
+ * Built on foundation's [BasicText] auto-size ([TextAutoSize.StepBased], after a full-size try). A style without an sp
  * size cannot be stepped, so it shows at its size and only ellipsizes.
  */
 @Composable
@@ -57,14 +60,30 @@ fun WaiveraOneLineName(
 }
 
 /** The auto-size for a name set at [size], or null when [size] is not in sp. */
-internal fun nameAutoSize(size: TextUnit): TextAutoSize? = if (size.isSp) {
-    TextAutoSize.StepBased(
+internal fun nameAutoSize(size: TextUnit): TextAutoSize? = if (size.isSp) NameAutoSize(size) else null
+
+/**
+ * Full size whenever the name fits, then [TextAutoSize.StepBased] down to the floor. StepBased
+ * alone steps up from the floor in pixels, and under Android's non-linear font scaling (200%)
+ * the full size falls between two of its steps, so even a short name was drawn a step smaller.
+ */
+private class NameAutoSize(private val size: TextUnit) : TextAutoSize {
+    private val shrink = TextAutoSize.StepBased(
         minFontSize = size * WaiveraNameFit.MIN_FONT_SCALE,
         maxFontSize = size,
         stepSize = WaiveraNameFit.Step,
     )
-} else {
-    null
+
+    override fun TextAutoSizeLayoutScope.getFontSize(constraints: Constraints, text: AnnotatedString): TextUnit {
+        val full = performLayout(constraints, text, size)
+        if (full.lineCount == 1 && !full.isLineEllipsized(0)) return size
+        val scope = this
+        return with(shrink) { scope.getFontSize(constraints, text) }
+    }
+
+    override fun equals(other: Any?): Boolean = other is NameAutoSize && other.size == size
+
+    override fun hashCode(): Int = size.hashCode()
 }
 
 @WaiveraPreviews
