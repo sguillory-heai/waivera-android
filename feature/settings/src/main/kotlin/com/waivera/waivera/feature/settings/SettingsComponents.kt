@@ -1,5 +1,6 @@
 package com.waivera.waivera.feature.settings
 
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
@@ -12,12 +13,16 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.RadioButtonDefaults
 import androidx.compose.material3.Text
+import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.Role
 import com.waivera.waivera.core.designsystem.component.WaiveraCardGroup
 import com.waivera.waivera.core.designsystem.component.WaiveraInsetDivider
+import com.waivera.waivera.core.designsystem.component.pressFeedback
+import com.waivera.waivera.core.designsystem.component.rememberPressFeedback
 import com.waivera.waivera.core.designsystem.feedback.rememberHaptics
 import com.waivera.waivera.core.designsystem.preview.WaiveraPreviews
 import com.waivera.waivera.core.designsystem.theme.WaiveraSizes
@@ -46,12 +51,17 @@ internal fun SettingsRadioRow(
 ) {
     val colors = WaiveraTheme.colors
     val haptics = rememberHaptics()
+    val interactions = remember { MutableInteractionSource() }
+    val press = rememberPressFeedback(interactions)
     Row(
         modifier = modifier
             .fillMaxWidth()
             .heightIn(min = WaiveraSizes.ListRowMinHeight)
+            .pressFeedback(press)
             .selectable(
                 selected = selected,
+                interactionSource = interactions,
+                indication = ripple(),
                 role = Role.RadioButton,
                 onClick = {
                     if (!selected) haptics.selection()

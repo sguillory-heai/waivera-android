@@ -278,6 +278,7 @@ private fun BookmarksEmpty(
 
 @Composable
 private fun BookmarksList(state: BookmarksUiState, onOpen: (BookmarkRow) -> Unit, onRemove: (BookmarkRow) -> Unit) {
+    val motion = WaiveraTheme.motion
     val bottom = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
@@ -306,11 +307,16 @@ private fun BookmarksList(state: BookmarksUiState, onOpen: (BookmarkRow) -> Unit
             )
         }
         items(state.rows, key = { it.messageId }) { row ->
+            // A removed bookmark fades and the rest close up on the shared springs.
             BookmarkCard(
                 row = row,
                 onOpen = { onOpen(row) },
                 onRemove = { onRemove(row) },
-                modifier = Modifier.animateItem(),
+                modifier = Modifier.animateItem(
+                    fadeInSpec = motion.state(),
+                    placementSpec = motion.layout(),
+                    fadeOutSpec = motion.state(),
+                ),
             )
         }
     }
