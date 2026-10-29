@@ -191,12 +191,13 @@ private fun MilestoneCard(
             contentPadding = PaddingValues(WaiveraSpacing.Medium),
             verticalArrangement = Arrangement.spacedBy(WaiveraSpacing.MediumSmall),
         ) {
-            val avatar: @Composable () -> Unit = {
+            val avatar: @Composable (Modifier) -> Unit = { avatarModifier ->
                 WaiveraAvatar(
                     name = name,
                     imageModel = AvatarModel.of(milestone.userId),
                     size = WaiveraSizes.AvatarMedium,
                     contentDescription = null,
+                    modifier = avatarModifier.testTag(MILESTONE_AVATAR_TAG),
                 )
             }
             // The name keeps to two lines, wrapping only at a space or hyphen (wave 29 N3).
@@ -220,7 +221,7 @@ private fun MilestoneCard(
                     modifier = sentenceOnly,
                     verticalArrangement = Arrangement.spacedBy(WaiveraSpacing.MediumSmall),
                 ) {
-                    avatar()
+                    avatar(Modifier)
                     text(Modifier.fillMaxWidth())
                 }
             } else {
@@ -229,7 +230,9 @@ private fun MilestoneCard(
                     horizontalArrangement = Arrangement.spacedBy(WaiveraSpacing.MediumSmall),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    avatar()
+                    // Level with the sentence's first line once it wraps the card tall, as the
+                    // other agenda cards' tiles are (v7, item 1).
+                    avatar(Modifier.align(rememberLeadingTileAlignment()))
                     text(
                         Modifier
                             .weight(1f)
@@ -430,6 +433,9 @@ private const val CELEBRATION_NAME_MAX_LINES = 2
 
 /** Test tag for an event, holiday or time off card's leading tile. */
 internal const val AGENDA_CARD_TILE_TAG = "calendar_agenda_card_tile"
+
+/** Test tag for a milestone card's avatar. */
+internal const val MILESTONE_AVATAR_TAG = "calendar_milestone_avatar"
 
 /** Test tag for a milestone card's sentence. */
 internal const val MILESTONE_SENTENCE_TAG = "calendar_milestone_sentence"
