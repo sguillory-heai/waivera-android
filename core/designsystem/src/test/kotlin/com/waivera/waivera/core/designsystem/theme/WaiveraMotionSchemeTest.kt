@@ -53,6 +53,29 @@ class WaiveraMotionSchemeTest {
         assertFalse(motion.allowsLoopingMotion, "no skeleton pulse when animations are off")
     }
 
+    @Test
+    fun `the pop is a quick bouncy spring, and snaps when animations are off`() {
+        val pop = assertIs<SpringSpec<*>>(WaiveraMotionScheme.Standard.pop)
+        assertTrue(pop.dampingRatio < 1f, "a pop overshoots a little")
+        assertTrue(pop.stiffness >= WaiveraMotionScheme.SEND_POP_STIFFNESS, "a pop is at least as quick as a send")
+        assertIs<SnapSpec<*>>(WaiveraMotionScheme.Reduced.pop)
+    }
+
+    @Test
+    fun `a swap slides the way the change went and only fades when animations are off`() {
+        val forward = WaiveraMotionScheme.Standard.swapTransition(direction = 1)
+        assertTrue("Slide(" in forward.targetContentEnter.toString(), "forward slides in")
+        val inPlace = WaiveraMotionScheme.Standard.swapTransition(direction = 0)
+        assertFalse("Slide(" in inPlace.targetContentEnter.toString(), "an in-place swap does not slide")
+        listOf(-1, 0, 1).forEach { direction ->
+            val reduced = WaiveraMotionScheme.Reduced.swapTransition(direction)
+            listOf(reduced.targetContentEnter.toString(), reduced.initialContentExit.toString()).forEach { part ->
+                assertFalse("Slide(" in part, "nothing slides with animations off ($direction)")
+                assertFalse("Scale(" in part, "nothing scales with animations off ($direction)")
+            }
+        }
+    }
+
     // Transition data is internal to Compose; the public toString() names each part (Fade(...), Scale(...)).
     @Test
     fun `predictive back moves nothing itself and keeps the leaving screen on top`() {

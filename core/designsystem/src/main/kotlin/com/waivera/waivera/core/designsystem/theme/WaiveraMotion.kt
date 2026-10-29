@@ -16,6 +16,7 @@ import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
@@ -106,6 +107,14 @@ class WaiveraMotionScheme internal constructor(val reduced: Boolean) {
     val sendPop: FiniteAnimationSpec<Float> =
         if (reduced) snap() else spring(dampingRatio = SEND_POP_DAMPING, stiffness = SEND_POP_STIFFNESS)
 
+    /**
+     * A control that just changed state on its own spot: the selected tab's icon, a count that
+     * moved, a check or a bookmark that filled. A short, bouncy spring that settles well inside
+     * a tap, so it adds punch without delaying anything. Reduced motion snaps.
+     */
+    val pop: FiniteAnimationSpec<Float> =
+        if (reduced) snap() else spring(dampingRatio = POP_DAMPING, stiffness = POP_STIFFNESS)
+
     /** Forward screen change: content slides in from the end, or cross-fades when reduced. */
     fun forwardTransition(): ContentTransform = if (reduced) {
         fadeIn(reducedFade()) togetherWith fadeOut(reducedFade())
@@ -171,6 +180,11 @@ class WaiveraMotionScheme internal constructor(val reduced: Boolean) {
         const val CELEBRATE_BURST_MILLIS = 1_400
         internal const val SEND_POP_DAMPING = 0.62f
         internal const val SEND_POP_STIFFNESS = 520f
+        internal const val POP_DAMPING = 0.5f
+        internal const val POP_STIFFNESS = 900f
+
+        /** Where a [pop] starts: a little small, so the spring's overshoot reads as a pop. */
+        const val POP_START_SCALE = 0.8f
         private const val SLIDE_DIVISOR = 4
         const val BACK_PREVIEW_SCALE = 0.9f
 
@@ -186,6 +200,25 @@ class WaiveraMotionScheme internal constructor(val reduced: Boolean) {
         fun forAnimatorScale(animatorScale: Float): WaiveraMotionScheme = if (animatorScale <= 0f) Reduced else Standard
     }
 }
+
+/**
+ * Content replacing other content in the same place (a status line, a period title). A
+ * [direction] above 0 slides the new content in from the end side, below 0 from the start side,
+ * as when stepping to the next or previous period; 0 fades it in with a small pop. Reduced
+ * motion cross-fades (the state token is then a short fade).
+ */
+fun WaiveraMotionScheme.swapTransition(direction: Int = 0): ContentTransform = when {
+    reduced -> fadeIn(state()) togetherWith fadeOut(state())
+    direction == 0 -> fadeIn(state()) + scaleIn(pop, initialScale = SWAP_START_SCALE) togetherWith fadeOut(state())
+    else -> {
+        val sign = if (direction > 0) 1 else -1
+        slideInHorizontally(layout<IntOffset>()) { sign * it / SWAP_DIVISOR } + fadeIn(state()) togetherWith
+            slideOutHorizontally(layout<IntOffset>()) { -sign * it / SWAP_DIVISOR } + fadeOut(state())
+    }
+}
+
+private const val SWAP_START_SCALE = 0.92f
+private const val SWAP_DIVISOR = 3
 
 val LocalWaiveraMotion = staticCompositionLocalOf { WaiveraMotionScheme.Standard }
 
