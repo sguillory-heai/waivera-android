@@ -6,6 +6,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.referentialEqualityPolicy
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
@@ -97,7 +98,9 @@ internal fun rememberFocusCloseHold(sheet: ChatSheet?, items: List<Any>): Boolea
     val last = remember { LastFocus() }
     // A plain holder, written as the overlay shows, so the close is known in its own composition.
     if (open != null) last.sheet = open
-    var settled by remember { mutableStateOf<ChatSheet.Actions?>(null) }
+    // By identity, as the sheets are compared: a second opening of the same message is an equal
+    // sheet, and an equality check would drop its settling write and hold placement for good.
+    var settled by remember { mutableStateOf<ChatSheet.Actions?>(null, referentialEqualityPolicy()) }
     val closing = last.sheet?.takeIf { open == null && it !== settled }
     val latestItems by rememberUpdatedState(items)
     LaunchedEffect(closing) {
