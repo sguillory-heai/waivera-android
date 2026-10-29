@@ -5,6 +5,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -30,6 +31,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import com.waivera.waivera.core.designsystem.component.WaiveraCelebrationBurst
 import com.waivera.waivera.core.designsystem.component.WaiveraHeroCard
+import com.waivera.waivera.core.designsystem.component.WaiveraHeroCardContent
 import com.waivera.waivera.core.designsystem.component.WaiveraHeroSection
 import com.waivera.waivera.core.designsystem.component.WaiveraHeroTopBar
 import com.waivera.waivera.core.designsystem.component.WaiveraHeroTrail
@@ -121,22 +123,33 @@ private fun DayHeroBody(state: TodayUiState, onOpenEvent: (String) -> Unit) {
     }
     Spacer(Modifier.height(if (compact) WaiveraSpacing.Small else WaiveraSpacing.Medium + WaiveraSpacing.XxSmall))
     val progress = state.progress
-    // The card keeps the day it showed if the summary goes back to loading, while it fades out.
     val shownProgress = rememberLatestNonNull(progress)
-    val cardModifier = Modifier.padding(horizontal = WaiveraSpacing.Gutter)
-    // The placeholder hands over to the card on the shared load swap, so the first screen settles
-    // in place instead of cutting on the frame the day loads (M3-04).
-    WaiveraLoadSwap(loading = progress == null) { loading ->
-        when {
-            !loading && shownProgress != null -> SummaryCard(
-                progress = shownProgress,
-                next = state.nextUp.featured,
-                onOpenEvent = onOpenEvent,
-                compact = compact,
-                modifier = cardModifier,
-            )
-            loading && state.loadError == null -> SummaryPlaceholder(compact = compact, modifier = cardModifier)
-            else -> Unit
+    val loading = progress == null
+    // The placeholder hands over to the summary on the shared load swap, so the first screen
+    // settles in place instead of cutting on the frame the day loads (M3-04). The glass card is
+    // one surface around the swap and only what is inside it swaps, so the card itself never
+    // blinks out between the two (M4-02). A failed first load shows no card, as before.
+    if (!loading || state.loadError == null) {
+        val placeholderSpeech = stringResource(R.string.feature_today_brand_loading_summary)
+        val speech = if (loading) Modifier.clearAndSetSemantics { contentDescription = placeholderSpeech } else Modifier
+        WaiveraHeroCard(
+            modifier = Modifier.padding(horizontal = WaiveraSpacing.Gutter).then(speech),
+            compact = compact,
+        ) {
+            WaiveraLoadSwap(loading = loading, modifier = Modifier.fillMaxWidth()) { showsPlaceholder ->
+                WaiveraHeroCardContent(compact = compact) {
+                    when {
+                        showsPlaceholder -> SummaryPlaceholder(compact = compact)
+                        // It keeps the day it showed if the summary goes back to loading, while it fades out.
+                        shownProgress != null -> SummaryCard(
+                            progress = shownProgress,
+                            next = state.nextUp.featured,
+                            onOpenEvent = onOpenEvent,
+                            compact = compact,
+                        )
+                    }
+                }
+            }
         }
     }
     Spacer(Modifier.height(if (compact) WaiveraSpacing.Small else WaiveraSpacing.Small + WaiveraSpacing.XxSmall))
@@ -153,52 +166,50 @@ private fun DayHeroBody(state: TodayUiState, onOpenEvent: (String) -> Unit) {
 }
 
 /**
- * The ring with what needs the person beside it, and the next item under a hairline. At large
- * font the ring sits above the words so the headline keeps the card's full width.
+ * The ring with what needs the person beside it, and the next item under a hairline: the summary
+ * card's content, drawn inside the shared glass card. At large font the ring sits above the
+ * words so the headline keeps the card's full width.
  */
 @Composable
-private fun SummaryCard(
+private fun ColumnScope.SummaryCard(
     progress: TodayProgress,
     next: NextUpItem?,
     onOpenEvent: (String) -> Unit,
-    modifier: Modifier = Modifier,
     compact: Boolean = false,
 ) {
     // The count inside the ring grows to 130%, which the compact ring has no room for.
     val smallRing = compact && !isLargeFontScale()
-    WaiveraHeroCard(modifier = modifier, compact = compact) {
-        val ring: @Composable () -> Unit = {
-            WaiveraProgressRing(
-                size = if (smallRing) WaiveraSizes.RingCompact else WaiveraSizes.Ring,
-                stroke = if (smallRing) WaiveraSizes.RingStrokeCompact else WaiveraSizes.RingStroke,
-                compact = smallRing,
-                done = progress.handled,
-                total = progress.total,
-                caption = stringResource(R.string.feature_today_brand_ring_caption),
-                contentDescription = stringResource(
-                    R.string.feature_today_brand_ring_a11y,
-                    progress.handled,
-                    progress.total,
-                ),
-            )
+    val ring: @Composable () -> Unit = {
+        WaiveraProgressRing(
+            size = if (smallRing) WaiveraSizes.RingCompact else WaiveraSizes.Ring,
+            stroke = if (smallRing) WaiveraSizes.RingStrokeCompact else WaiveraSizes.RingStroke,
+            compact = smallRing,
+            done = progress.handled,
+            total = progress.total,
+            caption = stringResource(R.string.feature_today_brand_ring_caption),
+            contentDescription = stringResource(
+                R.string.feature_today_brand_ring_a11y,
+                progress.handled,
+                progress.total,
+            ),
+        )
+    }
+    if (isLargeFontScale()) {
+        Column(verticalArrangement = Arrangement.spacedBy(WaiveraSpacing.MediumSmall)) {
+            ring()
+            SummaryText(progress)
         }
-        if (isLargeFontScale()) {
-            Column(verticalArrangement = Arrangement.spacedBy(WaiveraSpacing.MediumSmall)) {
-                ring()
-                SummaryText(progress)
-            }
-        } else {
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(WaiveraSpacing.Medium + WaiveraSpacing.XxSmall),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                ring()
-                Column(modifier = Modifier.weight(1f)) { SummaryText(progress) }
-            }
+    } else {
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(WaiveraSpacing.Medium + WaiveraSpacing.XxSmall),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            ring()
+            Column(modifier = Modifier.weight(1f)) { SummaryText(progress) }
         }
-        if (next != null) {
-            NextRow(item = next, compact = compact, onClick = { onOpenEvent(next.eventId) })
-        }
+    }
+    if (next != null) {
+        NextRow(item = next, compact = compact, onClick = { onOpenEvent(next.eventId) })
     }
 }
 
@@ -338,54 +349,52 @@ internal fun NextLine(kicker: String, title: String, countdown: String?, modifie
 /**
  * The card's shape while Needs you loads: the ring's track, the headline and handled lines, and
  * the Next row under its hairline, without numbers. Each line reserves its text style's height,
- * so the card is as tall as the summary that replaces it.
+ * so the card is as tall as the summary that replaces it. TalkBack hears the card's "loading"
+ * description instead, set on the shared glass card.
  */
 @Composable
-private fun SummaryPlaceholder(modifier: Modifier = Modifier, compact: Boolean = false) {
+private fun ColumnScope.SummaryPlaceholder(compact: Boolean = false) {
     val hero = WaiveraHero.colors
-    val loading = stringResource(R.string.feature_today_brand_loading_summary)
-    WaiveraHeroCard(modifier = modifier.clearAndSetSemantics { contentDescription = loading }, compact = compact) {
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(WaiveraSpacing.Medium + WaiveraSpacing.XxSmall),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Box(
+            modifier = Modifier
+                .size(if (compact && !isLargeFontScale()) WaiveraSizes.RingCompact else WaiveraSizes.Ring)
+                .background(hero.tile, WaiveraShapes.Circle),
+        )
+        Column(modifier = Modifier.weight(1f)) {
+            PlaceholderLine(fraction = PLACEHOLDER_TITLE, style = WaiveraTextStyles.HeroTitle)
+            PlaceholderLine(
+                fraction = PLACEHOLDER_BODY,
+                style = WaiveraTextStyles.HeroBody,
+                modifier = Modifier.padding(top = WaiveraSpacing.ExtraSmall),
+            )
+        }
+    }
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(WaiveraSpacing.Hairline)
+                .background(hero.cardBorder),
+        )
         Row(
-            horizontalArrangement = Arrangement.spacedBy(WaiveraSpacing.Medium + WaiveraSpacing.XxSmall),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = if (compact) WaiveraSpacing.Small else WaiveraSpacing.MediumSmall),
+            horizontalArrangement = Arrangement.spacedBy(WaiveraSpacing.Small),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Box(
                 modifier = Modifier
-                    .size(if (compact && !isLargeFontScale()) WaiveraSizes.RingCompact else WaiveraSizes.Ring)
+                    .size(WaiveraSizes.IconTileSmallGlyph)
                     .background(hero.tile, WaiveraShapes.Circle),
             )
             Column(modifier = Modifier.weight(1f)) {
-                PlaceholderLine(fraction = PLACEHOLDER_TITLE, style = WaiveraTextStyles.HeroTitle)
-                PlaceholderLine(
-                    fraction = PLACEHOLDER_BODY,
-                    style = WaiveraTextStyles.HeroBody,
-                    modifier = Modifier.padding(top = WaiveraSpacing.ExtraSmall),
-                )
-            }
-        }
-        Column(modifier = Modifier.fillMaxWidth()) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(WaiveraSpacing.Hairline)
-                    .background(hero.cardBorder),
-            )
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = if (compact) WaiveraSpacing.Small else WaiveraSpacing.MediumSmall),
-                horizontalArrangement = Arrangement.spacedBy(WaiveraSpacing.Small),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Box(
-                    modifier = Modifier
-                        .size(WaiveraSizes.IconTileSmallGlyph)
-                        .background(hero.tile, WaiveraShapes.Circle),
-                )
-                Column(modifier = Modifier.weight(1f)) {
-                    PlaceholderLine(fraction = PLACEHOLDER_KICKER, style = WaiveraTextStyles.HeroEyebrow)
-                    PlaceholderLine(fraction = PLACEHOLDER_NEXT, style = MaterialTheme.typography.titleSmall)
-                }
+                PlaceholderLine(fraction = PLACEHOLDER_KICKER, style = WaiveraTextStyles.HeroEyebrow)
+                PlaceholderLine(fraction = PLACEHOLDER_NEXT, style = MaterialTheme.typography.titleSmall)
             }
         }
     }

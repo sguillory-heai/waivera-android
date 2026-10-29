@@ -164,10 +164,27 @@ fun WaiveraHeroCard(
             .background(hero.card, WaiveraShapes.HeroCard)
             .border(BorderStroke(WaiveraSpacing.Hairline, hero.cardBorder), WaiveraShapes.HeroCard)
             .padding(if (compact) WaiveraSpacing.MediumSmall else WaiveraSpacing.Medium + WaiveraSpacing.XxSmall),
-        verticalArrangement = Arrangement.spacedBy(if (compact) WaiveraSpacing.MediumSmall else WaiveraSpacing.Medium),
+        verticalArrangement = heroCardArrangement(compact),
         content = content,
     )
 }
+
+/**
+ * A [WaiveraHeroCard]'s content laid out as the card lays it out, for content that swaps inside
+ * one card (a placeholder handing over to the summary): the glass stays put and only this
+ * changes, so the card never blinks out between the two (M4-02).
+ */
+@Composable
+fun WaiveraHeroCardContent(
+    modifier: Modifier = Modifier,
+    compact: Boolean = false,
+    content: @Composable ColumnScope.() -> Unit,
+) {
+    Column(modifier = modifier.fillMaxWidth(), verticalArrangement = heroCardArrangement(compact), content = content)
+}
+
+private fun heroCardArrangement(compact: Boolean): Arrangement.Vertical =
+    Arrangement.spacedBy(if (compact) WaiveraSpacing.MediumSmall else WaiveraSpacing.Medium)
 
 /**
  * Light status bar icons while the caller is composed, restored to the theme's when it leaves.
@@ -214,6 +231,29 @@ private fun WaiveraHeroSectionPreview() {
                         text = "4 things need you",
                         style = WaiveraTextStyles.HeroTitle,
                         color = WaiveraHero.colors.onHeader,
+                    )
+                }
+            }
+        }
+    }
+}
+
+@WaiveraPreviews
+@Composable
+private fun WaiveraHeroCardContentPreview() {
+    WaiveraTheme {
+        Column(modifier = Modifier.background(WaiveraHero.colors.headerBottom).padding(WaiveraSpacing.Medium)) {
+            WaiveraHeroCard {
+                WaiveraHeroCardContent {
+                    Text(
+                        text = "4 things need you",
+                        style = WaiveraTextStyles.HeroTitle,
+                        color = WaiveraHero.colors.onHeader,
+                    )
+                    Text(
+                        text = "5 handled",
+                        style = WaiveraTextStyles.HeroBody,
+                        color = WaiveraHero.colors.onHeaderSecondary,
                     )
                 }
             }
