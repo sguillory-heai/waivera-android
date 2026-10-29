@@ -20,6 +20,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
@@ -32,9 +33,11 @@ import com.waivera.waivera.core.designsystem.component.WaiveraButton
 import com.waivera.waivera.core.designsystem.component.WaiveraButtonVariant
 import com.waivera.waivera.core.designsystem.component.WaiveraCelebrationBurst
 import com.waivera.waivera.core.designsystem.component.WaiveraEmojiTile
+import com.waivera.waivera.core.designsystem.component.WaiveraNameText
 import com.waivera.waivera.core.designsystem.component.WaiveraPressable
 import com.waivera.waivera.core.designsystem.icon.WaiveraIcons
 import com.waivera.waivera.core.designsystem.preview.WaiveraPreviews
+import com.waivera.waivera.core.designsystem.text.CelebrationCopy
 import com.waivera.waivera.core.designsystem.theme.PressDepth
 import com.waivera.waivera.core.designsystem.theme.WaiveraBrand
 import com.waivera.waivera.core.designsystem.theme.WaiveraShapes
@@ -130,7 +133,15 @@ internal fun CelebrationCard(
                         verticalArrangement = Arrangement.spacedBy(WaiveraSpacing.XxSmall),
                     ) {
                         Text(text = label, style = MaterialTheme.typography.labelMedium, color = colors.textSecondary)
-                        Text(text = sentence, style = MaterialTheme.typography.titleSmall, color = colors.text)
+                        // The name keeps to two lines, wrapping only at a space or hyphen (wave 29 N3).
+                        WaiveraNameText(
+                            text = sentence,
+                            name = CelebrationCopy.nameIn(sentence, name),
+                            maxLines = CELEBRATION_NAME_MAX_LINES,
+                            style = MaterialTheme.typography.titleSmall,
+                            color = colors.text,
+                            modifier = Modifier.testTag(CELEBRATION_SENTENCE_TAG),
+                        )
                     }
                     // The same emoji tile as Schedule and Profile: one celebration treatment (UI9-07).
                     WaiveraEmojiTile(emoji = stringResource(celebrationEmoji(item)))
@@ -167,6 +178,12 @@ internal fun CelebrationCard(
 
 /** Below this card width Send wishes starts at the card's content start, not under the sentence. */
 private val WishesIndentMinCardWidth: Dp = 300.dp
+
+/** The most lines a name takes in a celebration sentence. */
+private const val CELEBRATION_NAME_MAX_LINES = 2
+
+/** Test tag for a celebration card's sentence. */
+internal const val CELEBRATION_SENTENCE_TAG = "today_celebration_sentence"
 
 @StringRes
 private fun celebrationEmoji(item: CelebrationItem): Int = when {

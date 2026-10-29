@@ -28,6 +28,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
@@ -43,9 +44,11 @@ import com.waivera.waivera.core.designsystem.component.WaiveraButton
 import com.waivera.waivera.core.designsystem.component.WaiveraButtonVariant
 import com.waivera.waivera.core.designsystem.component.WaiveraEmojiTile
 import com.waivera.waivera.core.designsystem.component.WaiveraIconTile
+import com.waivera.waivera.core.designsystem.component.WaiveraNameText
 import com.waivera.waivera.core.designsystem.component.WaiveraPressable
 import com.waivera.waivera.core.designsystem.component.WaiveraTileTone
 import com.waivera.waivera.core.designsystem.icon.WaiveraIcons
+import com.waivera.waivera.core.designsystem.text.CelebrationCopy
 import com.waivera.waivera.core.designsystem.text.resolve
 import com.waivera.waivera.core.designsystem.theme.PressDepth
 import com.waivera.waivera.core.designsystem.theme.WaiveraElevation
@@ -198,12 +201,16 @@ private fun MilestoneCard(
                     size = WaiveraSizes.AvatarMedium,
                     contentDescription = null,
                 )
-                Text(
+                // The name keeps to two lines, wrapping only at a space or hyphen (wave 29 N3).
+                WaiveraNameText(
                     text = sentence,
+                    name = CelebrationCopy.nameIn(sentence, name),
+                    maxLines = CELEBRATION_NAME_MAX_LINES,
                     style = MaterialTheme.typography.titleSmall,
                     color = WaiveraTheme.colors.text,
                     modifier = Modifier
                         .weight(1f)
+                        .testTag(MILESTONE_SENTENCE_TAG)
                         // Clear of the corner tile, which reaches 20dp past the card's padding.
                         .padding(end = if (narrow) WaiveraSpacing.MediumLarge else WaiveraSpacing.None),
                 )
@@ -386,6 +393,12 @@ internal fun AgendaCardSkeleton(pulse: State<Float>, modifier: Modifier = Modifi
 }
 
 private const val TIME_BONE_FRACTION = 0.5f
+
+/** The most lines a name takes in a celebration sentence. */
+private const val CELEBRATION_NAME_MAX_LINES = 2
+
+/** Test tag for a milestone card's sentence. */
+internal const val MILESTONE_SENTENCE_TAG = "calendar_milestone_sentence"
 
 @Composable
 private fun CardSurface(modifier: Modifier = Modifier, content: @Composable RowScope.() -> Unit) {

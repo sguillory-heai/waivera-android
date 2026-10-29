@@ -78,5 +78,15 @@ object CelebrationCopy {
     fun firstName(displayName: String?): String? =
         displayName?.trim()?.split(WHITESPACE)?.firstOrNull()?.takeIf(String::isNotEmpty)
 
+    /**
+     * Which form of [displayName] a celebration [sentence] names, the full name (a teammate's
+     * card) or the first name (your own), so the name text can hold just that part to its lines.
+     * Empty when the sentence names neither.
+     */
+    fun nameIn(sentence: String, displayName: String?): String =
+        listOfNotNull(displayName?.trim(), firstName(displayName))
+            .firstOrNull { it.isNotEmpty() && it in sentence }
+            .orEmpty()
+
     private val WHITESPACE = Regex("\\s+")
 }
