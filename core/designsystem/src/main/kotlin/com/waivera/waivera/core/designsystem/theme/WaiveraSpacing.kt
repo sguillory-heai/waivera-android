@@ -17,6 +17,9 @@ object WaiveraSpacing {
     val ExtraLarge: Dp = 32.dp
     val XxLarge: Dp = 48.dp
 
+    /** How far a rejected form moves to each side at the widest swing of its shake. */
+    val ShakeAmplitude: Dp = 6.dp
+
     /** Horizontal screen gutter. */
     val Gutter: Dp = 16.dp
 

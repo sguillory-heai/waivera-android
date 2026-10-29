@@ -10,6 +10,7 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import com.waivera.waivera.core.designsystem.theme.WaiveraMotionScheme
 import com.waivera.waivera.core.designsystem.theme.WaiveraTheme
 import com.waivera.waivera.core.screenshottesting.ScreenshotSdk
+import kotlin.math.abs
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -19,8 +20,8 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 /**
- * The shared press and pop responses on the compose clock: a quick tap still dips visibly, a pop
- * runs only on a change, and with animations off neither moves anything.
+ * The shared press, pop and reject-shake responses on the compose clock: a quick tap still dips
+ * visibly, a pop or a shake runs only on a change, and with animations off none of them moves.
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [ScreenshotSdk.VALUE])
@@ -107,7 +108,53 @@ class StateMotionTest {
         assertEquals(1f, scale.value, 0f)
     }
 
+    private fun showShake(motion: WaiveraMotionScheme): Pair<State<Float>, (Int) -> Unit> {
+        var offset: State<Float>? = null
+        var setKey: ((Int) -> Unit)? = null
+        compose.setContent {
+            WaiveraTheme(darkTheme = false, motion = motion, hapticsEnabled = false) {
+                var key by remember { mutableIntStateOf(0) }
+                setKey = { key = it }
+                offset = rememberRejectShake(key = key)
+            }
+        }
+        compose.waitForIdle()
+        return requireNotNull(offset) to requireNotNull(setKey)
+    }
+
+    @Test
+    fun aRejectShakeRunsOnceOnAChangeAndSettlesInAboutThreeHundredMillis() {
+        compose.mainClock.autoAdvance = false
+        val (offset, setKey) = showShake(WaiveraMotionScheme.Standard)
+        compose.mainClock.advanceTimeBy(FRAME_MILLIS)
+        assertEquals("nothing shakes on first show", 0f, offset.value, 0f)
+        compose.runOnUiThread { setKey(1) }
+        var widest = 0f
+        repeat((WaiveraMotionScheme.REJECT_SHAKE_MILLIS / FRAME_MILLIS).toInt()) {
+            compose.mainClock.advanceTimeBy(FRAME_MILLIS)
+            widest = maxOf(widest, abs(offset.value))
+        }
+        assertTrue("the rejection did not shake: $widest", widest > 0.5f)
+        assertTrue("the shake overshot its amplitude: $widest", widest <= 1f)
+        compose.mainClock.advanceTimeBy(FRAME_MILLIS * 4)
+        assertEquals("the shake comes to rest", 0f, offset.value, 0.001f)
+        compose.mainClock.advanceTimeBy(SETTLE_MILLIS)
+        assertEquals("it runs once, not on a loop", 0f, offset.value, 0f)
+    }
+
+    @Test
+    fun reducedMotionNeverShakes() {
+        compose.mainClock.autoAdvance = false
+        val (offset, setKey) = showShake(WaiveraMotionScheme.Reduced)
+        compose.runOnUiThread { setKey(1) }
+        repeat(FRAMES_TO_WATCH) {
+            compose.mainClock.advanceTimeBy(FRAME_MILLIS)
+            assertEquals(0f, offset.value, 0f)
+        }
+    }
+
     private companion object {
+        const val FRAMES_TO_WATCH = 20
         const val FRAME_MILLIS = 16L
         const val SETTLE_MILLIS = 1_000L
     }

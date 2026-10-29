@@ -47,7 +47,8 @@ class PasswordChangeViewModelTest {
         vm.effects.test {
             vm.fill(current = "same-password", new = "short", confirm = "other")
             vm.submit()
-            assertEquals(AuthEffect.Error, awaitItem())
+            // Haptics policy: a validation error shows on its field and never vibrates.
+            expectNoEvents()
         }
         assertEquals(R.string.feature_auth_error_new_password_short, vm.state.value.newError)
         assertEquals(R.string.feature_auth_error_confirm_mismatch, vm.state.value.confirmError)
@@ -78,7 +79,7 @@ class PasswordChangeViewModelTest {
         vm.effects.test {
             vm.fill()
             vm.submit()
-            assertEquals(AuthEffect.Success, awaitItem())
+            assertEquals(PasswordChangeEffect.Changed, awaitItem())
         }
         assertEquals(listOf("old password" to "a much longer phrase"), session.passwordChanges)
         val state = vm.state.value

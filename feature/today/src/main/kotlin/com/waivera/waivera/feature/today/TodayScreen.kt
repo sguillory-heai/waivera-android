@@ -12,8 +12,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.waivera.waivera.core.designsystem.feedback.Haptics
-import com.waivera.waivera.core.designsystem.feedback.rememberHaptics
 import com.waivera.waivera.core.designsystem.preview.WaiveraPreviews
 import com.waivera.waivera.core.designsystem.theme.WaiveraTheme
 import com.waivera.waivera.feature.today.ui.TodayCallbacks
@@ -57,14 +55,13 @@ fun TodayScreen(
     TodayContent(state = state, callbacks = callbacks, snackbarHostState = snackbarHostState, modifier = modifier)
 }
 
-/** Turns one-off results into a snackbar (with Retry where it helps) and the matching haptic. */
+/** Turns one-off results into a snackbar, with Retry where it helps. None of them vibrates. */
 @Composable
 private fun TodayEffects(
     viewModel: TodayViewModel,
     snackbarHostState: SnackbarHostState,
     onOpenConversation: (Long) -> Unit,
 ) {
-    val haptics = rememberHaptics()
     val messages = TodayMessages(
         refreshFailed = stringResource(R.string.feature_today_refresh_failed),
         markReadFailed = stringResource(R.string.feature_today_mark_read_failed),
@@ -83,7 +80,7 @@ private fun TodayEffects(
             if (effect is TodayEffect.OpenConversation) {
                 openConversation(effect.conversationId)
             } else {
-                handleEffect(effect, currentMessages, haptics, snackbarHostState, viewModel::onAction)
+                handleEffect(effect, currentMessages, snackbarHostState, viewModel::onAction)
             }
         }
     }
@@ -104,27 +101,19 @@ private data class TodayMessages(
 private suspend fun handleEffect(
     effect: TodayEffect,
     messages: TodayMessages,
-    haptics: Haptics,
     snackbar: SnackbarHostState,
     onAction: (TodayAction) -> Unit,
 ) {
     when (effect) {
         is TodayEffect.RefreshFailed ->
             snackbar.showRetry(messages.refreshFailed, messages.retry) { onAction(TodayAction.Refresh) }
-        is TodayEffect.MarkReadFailed -> {
-            haptics.error()
+        is TodayEffect.MarkReadFailed ->
             snackbar.showRetry(messages.markReadFailed, messages.retry) {
                 onAction(TodayAction.MarkActivityRead(effect.activityId))
             }
-        }
-        TodayEffect.MarkAllReadFailed -> {
-            haptics.error()
+        TodayEffect.MarkAllReadFailed ->
             snackbar.showRetry(messages.markAllFailed, messages.retry) { onAction(TodayAction.MarkAllActivityRead) }
-        }
-        TodayEffect.MarkedAllRead -> haptics.success()
         is TodayEffect.OfferUndo -> {
-            // As on the event screen: accepting confirms, declining is a lighter tick.
-            if (effect.accept) haptics.success() else haptics.selection()
             val result = snackbar.showSnackbar(
                 message = if (effect.accept) messages.accepted else messages.declined,
                 actionLabel = messages.undo,
@@ -138,18 +127,14 @@ private suspend fun handleEffect(
                 },
             )
         }
-        is TodayEffect.InvitationFailed -> {
-            haptics.error()
+        is TodayEffect.InvitationFailed ->
             snackbar.showRetry(messages.invitationFailed, messages.retry) {
                 onAction(TodayAction.RetryInvitation(effect.eventId, effect.accept))
             }
-        }
-        is TodayEffect.WishesFailed -> {
-            haptics.error()
+        is TodayEffect.WishesFailed ->
             snackbar.showRetry(messages.wishesFailed, messages.retry) {
                 onAction(TodayAction.SendWishes(effect.userId))
             }
-        }
         // Navigation, handled by the collector before it gets here.
         is TodayEffect.OpenConversation -> Unit
     }

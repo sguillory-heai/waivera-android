@@ -262,7 +262,8 @@ class TodayViewModelTest {
         activity.markAllResult = Result.success(Unit)
         viewModel.onAction(TodayAction.MarkAllActivityRead)
         assertEquals(0, viewModel.ui.activity.unreadCount)
-        assertEquals(TodayEffect.MarkedAllRead, effects.last())
+        // Haptics policy: a success is silent; the header's count shrinking away is the feedback.
+        assertEquals(listOf<TodayEffect>(TodayEffect.MarkAllReadFailed), effects, "no effect for a success")
     }
 
     @Test

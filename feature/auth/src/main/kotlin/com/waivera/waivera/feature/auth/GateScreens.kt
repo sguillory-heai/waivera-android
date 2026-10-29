@@ -15,7 +15,6 @@ import com.waivera.waivera.core.designsystem.component.WaiveraBanner
 import com.waivera.waivera.core.designsystem.component.WaiveraButton
 import com.waivera.waivera.core.designsystem.component.WaiveraButtonVariant
 import com.waivera.waivera.core.designsystem.component.WaiveraTileTone
-import com.waivera.waivera.core.designsystem.feedback.rememberHaptics
 import com.waivera.waivera.core.designsystem.icon.WaiveraIcons
 import com.waivera.waivera.core.designsystem.preview.WaiveraPreviews
 import com.waivera.waivera.core.designsystem.theme.WaiveraTheme
@@ -34,7 +33,6 @@ import java.time.format.FormatStyle
 fun BootstrapFailedScreen(onSignOut: () -> Unit, modifier: Modifier = Modifier) {
     val viewModel: BootstrapFailedViewModel = hiltViewModel()
     val state by viewModel.state.collectAsStateWithLifecycle()
-    AuthEffects(viewModel.effects, rememberHaptics())
     BootstrapFailedContent(state = state, onRetry = viewModel::retry, onSignOut = onSignOut, modifier = modifier)
 }
 
@@ -110,7 +108,6 @@ private fun RetryFailedBanner(at: Instant) {
 fun OnboardingRequiredScreen(onSignOut: () -> Unit, modifier: Modifier = Modifier) {
     val viewModel: OnboardingRequiredViewModel = hiltViewModel()
     val state by viewModel.state.collectAsStateWithLifecycle()
-    AuthEffects(viewModel.effects, rememberHaptics())
     OnboardingRequiredContent(
         state = state,
         onCheckAgain = viewModel::checkAgain,

@@ -207,9 +207,6 @@ class ConversationViewModel @AssistedInject constructor(
                 liveArrivals.update { it - arrivals }
             }
         }
-        if (isResumed && ArrivalTracker.hasIncoming(visible, arrivals, me)) {
-            emit(ChatEffect.Haptic(HapticMoment.Receive))
-        }
         val events = sendTracker.update(visible)
         if (events.newFailures > 0) {
             val status = realtime.status.value
@@ -221,7 +218,7 @@ class ConversationViewModel @AssistedInject constructor(
                 isArchived = conversation?.channel?.isArchived == true,
             )
             _state.update { it.copy(sendError = kind) }
-            emit(ChatEffect.Haptic(HapticMoment.Error))
+            emit(ChatEffect.Haptic(HapticMoment.SendFailed))
         }
         return Prepared(timeline, visible, me, bot)
     }
@@ -403,7 +400,6 @@ class ConversationViewModel @AssistedInject constructor(
             val image = io.describe(uri)
             if (image == null) {
                 emit(ChatEffect.Snackbar(R.string.feature_chat_image_unreadable))
-                emit(ChatEffect.Haptic(HapticMoment.Error))
             } else {
                 _state.update { it.copy(stagedImage = image) }
             }
@@ -436,7 +432,7 @@ class ConversationViewModel @AssistedInject constructor(
                     val typed = error as? WaiveraError ?: WaiveraError.from(error)
                     _state.update { it.copy(sendError = SendErrors.from(typed), stagedImage = image) }
                     emit(ChatEffect.SetDraft(draft))
-                    emit(ChatEffect.Haptic(HapticMoment.Error))
+                    emit(ChatEffect.Haptic(HapticMoment.SendFailed))
                 }
         }
     }
@@ -453,7 +449,6 @@ class ConversationViewModel @AssistedInject constructor(
                 .onFailure { error ->
                     val typed = error as? WaiveraError ?: WaiveraError.from(error)
                     emit(ChatEffect.Snackbar(R.string.feature_chat_edit_failed, detail = typed.messageRes))
-                    emit(ChatEffect.Haptic(HapticMoment.Error))
                 }
         }
     }
@@ -488,7 +483,6 @@ class ConversationViewModel @AssistedInject constructor(
     fun openActions(message: Message) {
         if (!ChatActions.canOpen(message)) return
         val current = _state.value
-        emit(ChatEffect.Haptic(HapticMoment.LongPress))
         interactions.openActions(ChatActions.model(message, current.myUserId, current.canWrite, allowReply = true))
     }
 
@@ -565,7 +559,6 @@ class ConversationViewModel @AssistedInject constructor(
                 .onFailure { error ->
                     val typed = error as? WaiveraError ?: WaiveraError.from(error)
                     emit(ChatEffect.Snackbar(R.string.feature_chat_call_open_failed, detail = typed.messageRes))
-                    emit(ChatEffect.Haptic(HapticMoment.Error))
                 }
             _state.update { it.copy(call = it.call.copy(isOpening = false)) }
         }

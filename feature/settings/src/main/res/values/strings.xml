@@ -24,7 +24,7 @@
     <string name="feature_settings_theme_dark_detail">Always use the dark theme</string>
     <string name="feature_settings_feedback_section">Feedback</string>
     <string name="feature_settings_haptics_title">Haptics</string>
-    <string name="feature_settings_haptics_subtitle">Small vibrations when messages arrive, when you use menus and switches, when an action is done, and when something goes wrong.</string>
+    <string name="feature_settings_haptics_subtitle">One short vibration when a message fails to send or a sign-in is not accepted. Nothing else vibrates.</string>
 
     <!-- Notifications -->
     <string name="feature_settings_notification_settings_title">Notifications</string>

@@ -44,7 +44,6 @@ import com.waivera.waivera.core.designsystem.component.WaiveraButtonVariant
 import com.waivera.waivera.core.designsystem.component.WaiveraHeroCelebration
 import com.waivera.waivera.core.designsystem.component.WaiveraSnackbarHost
 import com.waivera.waivera.core.designsystem.component.WaiveraTopBar
-import com.waivera.waivera.core.designsystem.feedback.rememberHaptics
 import com.waivera.waivera.core.designsystem.icon.WaiveraIcons
 import com.waivera.waivera.core.designsystem.preview.WaiveraPreviews
 import com.waivera.waivera.core.designsystem.text.withBreaksAfterHyphens
@@ -68,7 +67,6 @@ fun PersonDetailScreen(
     )
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbar = remember { SnackbarHostState() }
-    val haptics = rememberHaptics()
     val resources = LocalResources.current
     val openConversation by rememberUpdatedState(onOpenConversation)
     LaunchedEffect(viewModel) {
@@ -76,7 +74,6 @@ fun PersonDetailScreen(
             when (effect) {
                 is PersonDetailEffect.OpenConversation -> openConversation(effect.conversationId)
                 is PersonDetailEffect.MessageFailed -> {
-                    haptics.error()
                     snackbar.showSnackbar(
                         resources.getString(
                             R.string.feature_profile_person_message_failed,

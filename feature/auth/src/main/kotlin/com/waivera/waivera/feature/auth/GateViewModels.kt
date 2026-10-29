@@ -13,12 +13,9 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import java.time.Clock
 import java.time.Instant
 import javax.inject.Inject
-import kotlinx.coroutines.channels.Channel
-import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
@@ -46,9 +43,6 @@ class BootstrapFailedViewModel @Inject constructor(private val session: SessionR
     private val _state = MutableStateFlow(BootstrapFailedUiState())
     val state: StateFlow<BootstrapFailedUiState> = _state.asStateFlow()
 
-    private val _effects = Channel<AuthEffect>(Channel.BUFFERED)
-    val effects: Flow<AuthEffect> = _effects.receiveAsFlow()
-
     init {
         viewModelScope.launch {
             session.state.collect { state ->
@@ -74,7 +68,6 @@ class BootstrapFailedViewModel @Inject constructor(private val session: SessionR
                         lastFailedRetryAt = clock.instant(),
                     )
                 }
-                _effects.trySend(AuthEffect.Warning)
             }
         }
     }
@@ -101,9 +94,6 @@ class OnboardingRequiredViewModel @Inject constructor(private val session: Sessi
     private val _state = MutableStateFlow(OnboardingUiState())
     val state: StateFlow<OnboardingUiState> = _state.asStateFlow()
 
-    private val _effects = Channel<AuthEffect>(Channel.BUFFERED)
-    val effects: Flow<AuthEffect> = _effects.receiveAsFlow()
-
     init {
         viewModelScope.launch {
             session.state.collect { if (it is SessionState.SignedOut) _state.value = OnboardingUiState() }
@@ -121,7 +111,6 @@ class OnboardingRequiredViewModel @Inject constructor(private val session: Sessi
                 session.state.value.currentUser?.requiresOnboarding == true -> OnboardingUiState(stillPending = true)
                 else -> OnboardingUiState()
             }
-            if (_state.value.stillPending || _state.value.errorMessage != null) _effects.trySend(AuthEffect.Error)
         }
     }
 }

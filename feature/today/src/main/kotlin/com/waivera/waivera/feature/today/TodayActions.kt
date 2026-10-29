@@ -39,7 +39,7 @@ sealed interface TodayAction {
     data class SendWishes(val userId: String) : TodayAction
 }
 
-/** One-off results the screen turns into a snackbar and a haptic. */
+/** One-off results the screen turns into a snackbar (never a vibration). */
 sealed interface TodayEffect {
     /** A refresh failed; cached data stays on screen. */
     data class RefreshFailed(val error: WaiveraError) : TodayEffect
@@ -48,8 +48,6 @@ sealed interface TodayEffect {
     data class MarkReadFailed(val activityId: Long) : TodayEffect
 
     data object MarkAllReadFailed : TodayEffect
-
-    data object MarkedAllRead : TodayEffect
 
     /** The invitation is answered on screen; the snackbar offers Undo until the answer is sent. */
     data class OfferUndo(val eventId: String, val accept: Boolean, val token: Long) : TodayEffect

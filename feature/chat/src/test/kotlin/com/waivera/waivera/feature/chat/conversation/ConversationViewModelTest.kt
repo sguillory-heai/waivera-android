@@ -249,7 +249,7 @@ class ConversationViewModelTest {
             // state (draft cleared, scroll) comes first and the one failure cue follows it.
             assertEquals(ChatEffect.SetDraft(""), awaitItem())
             assertEquals(ChatEffect.ScrollToLatest, awaitItem())
-            assertEquals(ChatEffect.Haptic(HapticMoment.Error), awaitItem())
+            assertEquals(ChatEffect.Haptic(HapticMoment.SendFailed), awaitItem())
             val rest = cancelAndConsumeRemainingEvents()
             assertTrue(rest.none { it is Event.Item && it.value is ChatEffect.Haptic }, "one cue per failure")
         }
@@ -395,7 +395,9 @@ class ConversationViewModelTest {
             val snackbar = assertIs<ChatEffect.Snackbar>(awaitItem())
             assertEquals(R.string.feature_chat_reaction_failed, snackbar.message)
             assertEquals(R.string.feature_chat_reaction_needs_connection, snackbar.detail)
-            cancelAndIgnoreRemainingEvents()
+            // Haptics policy: only a failed send vibrates, never a reaction that could not be sent.
+            val rest = cancelAndConsumeRemainingEvents()
+            assertTrue(rest.none { it is Event.Item && it.value is ChatEffect.Haptic }, "no reaction cue")
         }
         assertEquals(
             target.reactions,
@@ -455,12 +457,12 @@ class ConversationViewModelTest {
                 it.message.type == MessageType.USER &&
                 it.message.plainText().isNotEmpty()
         }.message
-        s.viewModel.openActions(message)
         s.viewModel.effects.test {
-            skipItems(1)
+            // Haptics policy: neither the long press nor the copy vibrates; the sheet says "Copied".
+            s.viewModel.openActions(message)
             s.viewModel.copy(message)
             assertIs<ChatEffect.CopyText>(awaitItem())
-            assertEquals(ChatEffect.Haptic(HapticMoment.Success), awaitItem())
+            expectNoEvents()
         }
         assertTrue(assertIs<ChatSheet.Actions>(s.viewModel.state.value.sheet).model.copied)
     }
@@ -581,7 +583,7 @@ class ConversationViewModelTest {
 
     // endregion
 
-    // region Receive cue
+    // region Receive (silent)
 
     private fun DemoGraph.incoming(text: String, ageSeconds: Long = 0) = Message(
         id = backend.nextMessageId(),
@@ -592,15 +594,18 @@ class ConversationViewModelTest {
     )
 
     @Test
-    fun someoneElsesMessageArrivingOnScreenGivesTheReceiveCue() = runTest {
+    fun someoneElsesMessageArrivingOnScreenNeverVibrates() = runTest {
         val s = subject()
         s.viewModel.onResumed()
         runCurrent()
         s.viewModel.effects.test {
             s.graph.backend.append(s.graph.incoming("Running ten minutes late"))
             runCurrent()
-            assertEquals(ChatEffect.Haptic(HapticMoment.Receive), awaitItem())
+            // Haptics policy: the bubble's arrival motion is the cue, never a vibration.
+            val events = cancelAndConsumeRemainingEvents()
+            assertTrue(events.none { it is Event.Item && it.value is ChatEffect.Haptic }, "no receive cue")
         }
+        assertTrue(s.viewModel.state.value.rows.any { it.message.text == "Running ten minutes late" })
     }
 
     @Test

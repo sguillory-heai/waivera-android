@@ -3,6 +3,7 @@ package com.waivera.waivera.feature.auth
 import androidx.lifecycle.SavedStateHandle
 import app.cash.turbine.test
 import com.waivera.waivera.core.data.model.SessionState
+import com.waivera.waivera.core.designsystem.feedback.HapticMoment
 import com.waivera.waivera.core.network.NetworkConfig
 import com.waivera.waivera.core.network.R as NetworkR
 import com.waivera.waivera.core.network.error.WaiveraError
@@ -106,12 +107,13 @@ class SignInViewModelTest {
     }
 
     @Test
-    fun `invalid email shows a field error, haptic, and no call`() = runTest {
+    fun `invalid email shows a field error, no vibration or shake, and no call`() = runTest {
         val vm = viewModel()
         vm.effects.test {
             vm.fill(email = "alex.rivera")
             vm.signIn()
-            assertEquals(AuthEffect.Error, awaitItem())
+            // Haptics policy: only rejected credentials vibrate, not a field the person can see.
+            expectNoEvents()
         }
         assertEquals(R.string.feature_auth_error_email_invalid, vm.state.value.emailError)
         assertTrue(session.signIns.isEmpty())
@@ -171,12 +173,63 @@ class SignInViewModelTest {
         vm.effects.test {
             vm.fill()
             vm.signIn()
-            assertEquals(AuthEffect.Error, awaitItem())
+            assertEquals(SignInEffect.Haptic(HapticMoment.SignInRejected), awaitItem())
+            assertEquals(SignInEffect.Shake, awaitItem())
         }
         val state = vm.state.value
         assertEquals(NetworkR.string.core_network_error_invalid_credentials, state.errorMessage)
         assertEquals("correct horse", state.password)
         assertEquals(SignInPhase.Idle, state.phase)
+    }
+
+    /** Haptics policy 2026-10-29: a wrong sign-in is one Reject vibration and one shake. */
+    @Test
+    fun `wrong credentials vibrate once and shake once per attempt`() = runTest {
+        session.nextSignIn = Result.failure(WaiveraError.InvalidCredentials())
+        val vm = viewModel()
+        vm.effects.test {
+            vm.fill()
+            vm.signIn()
+            assertEquals(SignInEffect.Haptic(HapticMoment.SignInRejected), awaitItem())
+            assertEquals(SignInEffect.Shake, awaitItem())
+            expectNoEvents()
+            vm.signIn()
+            assertEquals(SignInEffect.Haptic(HapticMoment.SignInRejected), awaitItem(), "each attempt runs again")
+            assertEquals(SignInEffect.Shake, awaitItem())
+            expectNoEvents()
+        }
+    }
+
+    @Test
+    fun `a network, offline or server failure neither vibrates nor shakes`() = runTest {
+        listOf(
+            WaiveraError.Network(),
+            WaiveraError.Timeout(),
+            WaiveraError.Server(503),
+            WaiveraError.TooManyAttempts(),
+            WaiveraError.AccountDisabled(),
+        ).forEach { error ->
+            session.nextSignIn = Result.failure(error)
+            val vm = viewModel()
+            vm.effects.test {
+                vm.fill()
+                vm.signIn()
+                expectNoEvents()
+            }
+            assertEquals(error.messageRes, vm.state.value.errorMessage, "${error::class.simpleName} keeps its message")
+        }
+    }
+
+    @Test
+    fun `a failed password reset shows its message without a vibration`() = runTest {
+        session.nextReset = Result.failure(WaiveraError.Network())
+        val vm = viewModel()
+        vm.effects.test {
+            vm.onEmailChange("alex.rivera@example.org")
+            vm.sendPasswordReset()
+            expectNoEvents()
+        }
+        assertEquals(NetworkR.string.core_network_error_network, vm.state.value.errorMessage)
     }
 
     @Test

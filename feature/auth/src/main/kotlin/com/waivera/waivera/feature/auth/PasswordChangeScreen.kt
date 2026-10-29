@@ -36,7 +36,6 @@ import com.waivera.waivera.core.designsystem.component.WaiveraButtonVariant
 import com.waivera.waivera.core.designsystem.component.WaiveraEmptyState
 import com.waivera.waivera.core.designsystem.component.WaiveraIllustration
 import com.waivera.waivera.core.designsystem.component.WaiveraTopBar
-import com.waivera.waivera.core.designsystem.feedback.rememberHaptics
 import com.waivera.waivera.core.designsystem.icon.WaiveraIcons
 import com.waivera.waivera.core.designsystem.preview.WaiveraPreviews
 import com.waivera.waivera.core.designsystem.theme.WaiveraSpacing
@@ -61,17 +60,11 @@ fun PasswordChangeScreen(
 ) {
     val viewModel: PasswordChangeViewModel = hiltViewModel()
     val state by viewModel.state.collectAsStateWithLifecycle()
-    val haptics = rememberHaptics()
     val latestOnChanged by rememberUpdatedState(onChanged)
-    LaunchedEffect(viewModel, haptics) {
+    LaunchedEffect(viewModel) {
         viewModel.effects.collect { effect ->
             when (effect) {
-                AuthEffect.Error -> haptics.error()
-                AuthEffect.Warning -> haptics.warning()
-                AuthEffect.Success -> {
-                    haptics.success()
-                    latestOnChanged()
-                }
+                PasswordChangeEffect.Changed -> latestOnChanged()
             }
         }
     }

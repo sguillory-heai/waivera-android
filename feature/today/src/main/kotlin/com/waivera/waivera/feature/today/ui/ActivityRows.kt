@@ -52,8 +52,8 @@ internal fun ActivityHeader(section: ActivitySection, onMarkAllRead: () -> Unit,
         modifier = modifier,
         trailing = {
             UnreadCountBadge(count = section.unreadCount, lowerBound = section.unreadIsLowerBound)
-            // Once all is read the count and the action shrink away together (the success haptic
-            // fires with it), so the header itself shows the job is done.
+            // Once all is read the count and the action shrink away together, with no vibration,
+            // so the header itself shows the job is done.
             WaiveraPopVisibility(visible = section.unreadCount > 0 || section.isMarkingAllRead) {
                 MarkAllReadAction(busy = section.isMarkingAllRead, onClick = onMarkAllRead)
             }

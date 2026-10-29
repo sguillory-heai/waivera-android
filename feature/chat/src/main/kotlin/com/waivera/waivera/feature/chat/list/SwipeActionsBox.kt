@@ -36,7 +36,6 @@ import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.unit.LayoutDirection
 import com.waivera.waivera.core.designsystem.component.popScale
 import com.waivera.waivera.core.designsystem.component.rememberPopScale
-import com.waivera.waivera.core.designsystem.feedback.rememberHaptics
 import com.waivera.waivera.core.designsystem.theme.WaiveraSizes
 import com.waivera.waivera.core.designsystem.theme.WaiveraSpacing
 import com.waivera.waivera.core.designsystem.theme.WaiveraTheme
@@ -54,8 +53,8 @@ data class SwipeAction(
 )
 
 /**
- * Horizontal swipe with one action per side. Dragging past the threshold ticks a haptic once and
- * pops the revealed action's glyph, so the row says "let go now"; releasing past it runs the
+ * Horizontal swipe with one action per side. Dragging past the threshold pops the revealed
+ * action's glyph (no vibration), so the row says "let go now"; releasing past it runs the
  * action and the row springs back with the layout motion token (a snap when animations are
  * off). [start] is revealed by dragging toward the end edge.
  */
@@ -68,7 +67,6 @@ fun SwipeActionsBox(
 ) {
     val density = LocalDensity.current
     val rtl = LocalLayoutDirection.current == LayoutDirection.Rtl
-    val haptics = rememberHaptics()
     val motion = WaiveraTheme.motion
     val scope = rememberCoroutineScope()
     val threshold = with(density) { SwipeThreshold.toPx() }
@@ -81,9 +79,7 @@ fun SwipeActionsBox(
         val max = if (currentStart != null) threshold * MAX_DRAG_FACTOR else 0f
         val min = if (currentEnd != null) -threshold * MAX_DRAG_FACTOR else 0f
         offset = (offset + delta).coerceIn(min, max)
-        val beyond = abs(offset) >= threshold
-        if (beyond && !armed) haptics.swipeThreshold()
-        armed = beyond
+        armed = abs(offset) >= threshold
     }
 
     // Which side shows changes only when the drag crosses zero; reading the offset itself here

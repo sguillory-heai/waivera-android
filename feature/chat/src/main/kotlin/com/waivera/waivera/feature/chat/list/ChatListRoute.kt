@@ -18,7 +18,6 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.waivera.waivera.core.designsystem.component.WaiveraBottomSheet
-import com.waivera.waivera.core.designsystem.feedback.rememberHaptics
 import com.waivera.waivera.feature.chat.R
 import com.waivera.waivera.feature.chat.newchat.NewChatSheet
 import com.waivera.waivera.feature.chat.newchat.NewChatViewModel
@@ -38,7 +37,6 @@ fun ChatListRoute(
     val avatars by viewModel.avatars.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
-    val haptics = rememberHaptics()
     val uriHandler = LocalUriHandler.current
     val resources = LocalResources.current
     val openConversation by rememberUpdatedState(onOpenConversation)
@@ -57,12 +55,10 @@ fun ChatListRoute(
                     uriHandler.openUri(effect.url)
                 } catch (_: IllegalArgumentException) {
                     // No browser can open the lobby.
-                    haptics.error()
                     val message = resources.getString(R.string.feature_chat_list_call_no_browser)
                     scope.launch { snackbarHostState.showSnackbar(message) }
                 }
                 is ChatListEffect.ShowMessage -> {
-                    haptics.error()
                     scope.launch {
                         val result = snackbarHostState.showSnackbar(
                             message = resources.getString(effect.messageRes),

@@ -16,8 +16,10 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.autofill.ContentType
@@ -41,7 +43,8 @@ import com.waivera.waivera.core.designsystem.component.WaiveraButton
 import com.waivera.waivera.core.designsystem.component.WaiveraButtonSize
 import com.waivera.waivera.core.designsystem.component.WaiveraButtonVariant
 import com.waivera.waivera.core.designsystem.component.WaiveraTextField
-import com.waivera.waivera.core.designsystem.feedback.Haptics
+import com.waivera.waivera.core.designsystem.component.rejectShake
+import com.waivera.waivera.core.designsystem.component.rememberRejectShake
 import com.waivera.waivera.core.designsystem.feedback.rememberHaptics
 import com.waivera.waivera.core.designsystem.icon.WaiveraIcons
 import com.waivera.waivera.core.designsystem.preview.WaiveraPreviews
@@ -62,7 +65,8 @@ fun SignInScreen(configurationMissing: Boolean, modifier: Modifier = Modifier) {
     val viewModel: SignInViewModel = hiltViewModel()
     val state by viewModel.state.collectAsStateWithLifecycle()
     val uriHandler = LocalUriHandler.current
-    AuthEffects(viewModel.effects, rememberHaptics())
+    var rejections by remember { mutableIntStateOf(0) }
+    SignInEffects(viewModel.effects, onShake = { rejections++ })
     SignInContent(
         state = if (configurationMissing && state.isConfigured) {
             state.copy(missingConfiguration = emptyList())
@@ -85,22 +89,24 @@ fun SignInScreen(configurationMissing: Boolean, modifier: Modifier = Modifier) {
             },
         ),
         legalLinks = viewModel.legalLinks,
+        rejections = rejections,
         modifier = modifier,
     )
 }
 
 /**
- * Plays the haptic for each one-off outcome: errors and warnings. Sign-in and the gates emit no
- * success; a sent reset link is confirmed by its banner alone (UI6-07).
+ * Plays a rejected sign-in: the one vibration through the shared [rememberHaptics] (which honours
+ * the Settings switch) and [onShake] for the form's shake. Nothing else on this screen has any.
  */
 @Composable
-internal fun AuthEffects(effects: Flow<AuthEffect>, haptics: Haptics) {
+private fun SignInEffects(effects: Flow<SignInEffect>, onShake: () -> Unit) {
+    val haptics = rememberHaptics()
+    val shake by rememberUpdatedState(onShake)
     LaunchedEffect(effects, haptics) {
         effects.collect { effect ->
             when (effect) {
-                AuthEffect.Error -> haptics.error()
-                AuthEffect.Warning -> haptics.warning()
-                AuthEffect.Success -> haptics.success()
+                is SignInEffect.Haptic -> haptics.perform(effect.moment)
+                SignInEffect.Shake -> shake()
             }
         }
     }
@@ -118,7 +124,8 @@ internal class SignInActions(
 /**
  * The sign-in screen: the brand header with the real logo, then the curved sheet with a short
  * welcome, any message, the two fields, Sign in, Forgot password? and the legal links. No
- * tagline or reassurance copy: everything on it helps someone sign in.
+ * tagline or reassurance copy: everything on it helps someone sign in. Each change of
+ * [rejections] shakes the two fields once (not when animations are off).
  */
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -127,6 +134,7 @@ internal fun SignInContent(
     actions: SignInActions,
     modifier: Modifier = Modifier,
     legalLinks: LegalLinks? = null,
+    rejections: Int = 0,
     showConfigurationKeys: Boolean = rememberIsDebuggableBuild(),
 ) {
     val keyboard = LocalSoftwareKeyboardController.current
@@ -172,6 +180,7 @@ internal fun SignInContent(
             actions = actions,
             onSubmit = submit,
             onPasswordFocusChange = { passwordFocused = it },
+            rejections = rejections,
         )
         SignInButtons(
             state = state,
@@ -254,10 +263,13 @@ private fun SignInForm(
     actions: SignInActions,
     onSubmit: () -> Unit,
     onPasswordFocusChange: (Boolean) -> Unit,
+    rejections: Int,
 ) {
     val focusManager = LocalFocusManager.current
+    val shake = rememberRejectShake(key = rejections)
     Column(
         modifier = Modifier
+            .rejectShake(shake)
             .fillMaxWidth()
             .then(GutterPadding)
             .padding(top = WaiveraSpacing.Small),

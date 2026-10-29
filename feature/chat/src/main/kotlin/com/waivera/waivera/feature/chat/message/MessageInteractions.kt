@@ -37,6 +37,7 @@ sealed interface ChatEffect {
 
     data class ScrollTo(val key: String) : ChatEffect
 
+    /** Only [HapticMoment.SendFailed] is ever sent: nothing else in chat vibrates. */
     data class Haptic(val moment: HapticMoment) : ChatEffect
 
     /** [detail] is a client-owned error message; server text never reaches it. */
@@ -79,7 +80,6 @@ class MessageInteractions(
         val text = message.plainText()
         if (text.isEmpty()) return
         emit(ChatEffect.CopyText(text))
-        emit(ChatEffect.Haptic(HapticMoment.Success))
         // The sheet stays open and the row reads "Copied" (03 §14).
         _sheet.update { current ->
             (current as? ChatSheet.Actions)?.let { it.copy(model = it.model.copy(copied = true)) }
@@ -120,7 +120,6 @@ class MessageInteractions(
         val confirm = _sheet.value as? ChatSheet.ConfirmDelete ?: return
         if (confirm.inProgress) return
         _sheet.value = confirm.copy(inProgress = true)
-        emit(ChatEffect.Haptic(HapticMoment.Warning))
         scope.launch {
             messages.delete(confirm.messageId)
                 .onSuccess { _sheet.value = null }
@@ -141,10 +140,8 @@ class MessageInteractions(
                     detail = R.string.feature_chat_reaction_needs_connection,
                 ),
             )
-            emit(ChatEffect.Haptic(HapticMoment.Error))
             return
         }
-        emit(ChatEffect.Haptic(HapticMoment.Selection))
         scope.launch {
             messages.react(messageId, emoji).onFailure { error ->
                 if (error is WaiveraError.RealtimeUnavailable) {
@@ -154,7 +151,6 @@ class MessageInteractions(
                             detail = R.string.feature_chat_reaction_needs_connection,
                         ),
                     )
-                    emit(ChatEffect.Haptic(HapticMoment.Error))
                 } else {
                     fail(R.string.feature_chat_reaction_failed, error)
                 }
@@ -196,7 +192,6 @@ class MessageInteractions(
                 .onSuccess {
                     _sheet.value = null
                     emit(ChatEffect.Snackbar(R.string.feature_chat_file_saved, argument = name))
-                    emit(ChatEffect.Haptic(HapticMoment.Success))
                 }
                 .onFailure { fail(R.string.feature_chat_file_save_failed, it) }
         }
@@ -234,7 +229,11 @@ class MessageInteractions(
         }
     }
 
-    /** A retry that sends is confirmed by the row's "Sent" label; only a failure buzzes. */
+    /**
+     * A retry that sends is confirmed by the row's "Sent" label. If the resend fails, the row
+     * turning failed again is what vibrates (the view model's send tracker); a retry that cannot
+     * even start says so in a snackbar only.
+     */
     fun retry(clientMessageId: String) {
         scope.launch { messages.retry(clientMessageId).onFailure { fail(R.string.feature_chat_send_error_server, it) } }
     }
@@ -250,6 +249,5 @@ class MessageInteractions(
     private fun fail(@StringRes title: Int, error: Throwable) {
         val typed = error as? WaiveraError ?: WaiveraError.from(error)
         emit(ChatEffect.Snackbar(title, detail = typed.messageRes))
-        emit(ChatEffect.Haptic(HapticMoment.Error))
     }
 }

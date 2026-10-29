@@ -11,6 +11,7 @@ import androidx.compose.animation.core.Easing
 import androidx.compose.animation.core.FiniteAnimationSpec
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.LinearOutSlowInEasing
+import androidx.compose.animation.core.keyframes
 import androidx.compose.animation.core.snap
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
@@ -115,6 +116,25 @@ class WaiveraMotionScheme internal constructor(val reduced: Boolean) {
     val pop: FiniteAnimationSpec<Float> =
         if (reduced) snap() else spring(dampingRatio = POP_DAMPING, stiffness = POP_STIFFNESS)
 
+    /**
+     * A wrong sign-in: the form moves side to side once and settles, as a head shake says "no".
+     * Values are fractions of [WaiveraSpacing.ShakeAmplitude], starting and ending at 0, and the
+     * swing shrinks each time so it reads as one small shake rather than a wobble. With the
+     * failed-send vibration it is the only feedback that pairs with a buzz (haptics policy,
+     * 2026-10-29). Reduced motion snaps, and `rememberRejectShake` does not run it at all.
+     */
+    val rejectShake: FiniteAnimationSpec<Float> = if (reduced) {
+        snap()
+    } else {
+        keyframes {
+            durationMillis = REJECT_SHAKE_MILLIS
+            -1f at SHAKE_FIRST_MILLIS
+            1f at SHAKE_SECOND_MILLIS
+            -SHAKE_THIRD_SWING at SHAKE_THIRD_MILLIS
+            SHAKE_FOURTH_SWING at SHAKE_FOURTH_MILLIS
+        }
+    }
+
     /** Forward screen change: content slides in from the end, or cross-fades when reduced. */
     fun forwardTransition(): ContentTransform = if (reduced) {
         fadeIn(reducedFade()) togetherWith fadeOut(reducedFade())
@@ -182,6 +202,15 @@ class WaiveraMotionScheme internal constructor(val reduced: Boolean) {
         internal const val SEND_POP_STIFFNESS = 520f
         internal const val POP_DAMPING = 0.5f
         internal const val POP_STIFFNESS = 900f
+
+        /** The whole [rejectShake], from the first move to rest. */
+        const val REJECT_SHAKE_MILLIS = 300
+        private const val SHAKE_FIRST_MILLIS = 40
+        private const val SHAKE_SECOND_MILLIS = 110
+        private const val SHAKE_THIRD_MILLIS = 180
+        private const val SHAKE_FOURTH_MILLIS = 245
+        private const val SHAKE_THIRD_SWING = 0.6f
+        private const val SHAKE_FOURTH_SWING = 0.25f
 
         /** Where a [pop] starts: a little small, so the spring's overshoot reads as a pop. */
         const val POP_START_SCALE = 0.8f

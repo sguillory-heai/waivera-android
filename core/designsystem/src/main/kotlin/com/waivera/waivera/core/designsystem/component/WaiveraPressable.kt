@@ -13,12 +13,12 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.semantics.Role
-import com.waivera.waivera.core.designsystem.feedback.rememberHaptics
 
 /**
  * The single press primitive: ripple plus a spring to the press scale from the moment the finger
- * lands ([pressFeedback]), which collapses to no scale when animations are off. A long press
- * fires the long-press haptic; a plain tap fires none (the feedback map keeps taps silent).
+ * lands ([pressFeedback]), which collapses to no scale when animations are off. Neither a tap
+ * nor a long press vibrates (haptics policy: the press and the menu it opens are the feedback),
+ * so the platform's own long-press buzz is switched off too.
  */
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -35,7 +35,6 @@ fun WaiveraPressable(
 ) {
     val interactionSource = remember { MutableInteractionSource() }
     val press = rememberPressFeedback(interactionSource)
-    val haptics = rememberHaptics()
     Box(
         modifier = modifier
             .pressFeedback(press, enabled = enabled)
@@ -47,12 +46,7 @@ fun WaiveraPressable(
                 onClickLabel = onClickLabel,
                 role = role,
                 onLongClickLabel = onLongClickLabel,
-                onLongClick = onLongClick?.let { longClick ->
-                    {
-                        haptics.longPress()
-                        longClick()
-                    }
-                },
+                onLongClick = onLongClick,
                 hapticFeedbackEnabled = false,
                 onClick = onClick,
             ),

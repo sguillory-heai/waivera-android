@@ -38,7 +38,6 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextAlign
-import com.waivera.waivera.core.designsystem.feedback.rememberHaptics
 import com.waivera.waivera.core.designsystem.icon.WaiveraIcons
 import com.waivera.waivera.core.designsystem.preview.WaiveraPreviews
 import com.waivera.waivera.core.designsystem.theme.WaiveraShapes
@@ -47,7 +46,7 @@ import com.waivera.waivera.core.designsystem.theme.WaiveraSpacing
 import com.waivera.waivera.core.designsystem.theme.WaiveraTheme
 
 /**
- * Filter chip (All, Mentions, Unread...). Selecting fires the selection haptic. [leadingIcon]
+ * Filter chip (All, Mentions, Unread...). Selecting never vibrates; the fill and check answer it. [leadingIcon]
  * is shown at rest; a selected chip always leads with a check.
  *
  * v5 decision 5, option A (owner pick), shared with [WaiveraSegmentedControl] and the tab pill:
@@ -65,7 +64,6 @@ fun WaiveraFilterChip(
     enabled: Boolean = true,
     @DrawableRes leadingIcon: Int? = null,
 ) {
-    val haptics = rememberHaptics()
     val colors = WaiveraTheme.colors
     val motion = WaiveraTheme.motion
     val shape = WaiveraShapes.FilterChip
@@ -118,10 +116,7 @@ fun WaiveraFilterChip(
                 role = Role.Checkbox,
                 interactionSource = interactionSource,
                 indication = ripple(),
-                onClick = {
-                    haptics.selection()
-                    onClick()
-                },
+                onClick = onClick,
             )
             .padding(horizontal = WaiveraSpacing.MediumSmall + WaiveraSpacing.XxSmall),
         horizontalArrangement = Arrangement.spacedBy(WaiveraSpacing.ExtraSmall + WaiveraSpacing.XxSmall),
@@ -195,7 +190,6 @@ fun WaiveraSegmentedControl(
 
 @Composable
 private fun Segment(label: String, selected: Boolean, onSelect: () -> Unit, modifier: Modifier = Modifier) {
-    val haptics = rememberHaptics()
     val colors = WaiveraTheme.colors
     val pill by animateFloatAsState(
         targetValue = if (selected) 1f else 0f,
@@ -219,12 +213,7 @@ private fun Segment(label: String, selected: Boolean, onSelect: () -> Unit, modi
                 interactionSource = interactionSource,
                 indication = ripple(),
                 role = Role.Tab,
-                onClick = {
-                    if (!selected) {
-                        haptics.selection()
-                        onSelect()
-                    }
-                },
+                onClick = { if (!selected) onSelect() },
             )
             .padding(horizontal = WaiveraSpacing.Small, vertical = WaiveraSpacing.Small),
         contentAlignment = Alignment.Center,

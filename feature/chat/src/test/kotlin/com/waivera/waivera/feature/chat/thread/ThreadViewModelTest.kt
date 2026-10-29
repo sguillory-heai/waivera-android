@@ -183,7 +183,8 @@ class ThreadViewModelTest {
             runCurrent()
             assertEquals(ChatEffect.SetDraft(""), awaitItem())
             assertEquals(ChatEffect.SetDraft("  Saturday works  "), awaitItem())
-            assertEquals(ChatEffect.Haptic(HapticMoment.Error), awaitItem())
+            assertEquals(ChatEffect.Haptic(HapticMoment.SendFailed), awaitItem())
+            expectNoEvents()
         }
         assertEquals(SendErrorKind.Offline, s.viewModel.state.value.sendError)
     }
@@ -222,11 +223,12 @@ class ThreadViewModelTest {
     fun longPressOpensTheFullActionSheetAndReplyFocusesTheComposer() = runTest {
         val s = subject()
         val mine = s.viewModel.state.value.replyRows.single { it.message.id == 9331L }.message
-        s.viewModel.openActions(mine)
-        val model = assertIs<ChatSheet.Actions>(s.viewModel.state.value.sheet).model
-        assertTrue(model.canCopy && model.canReply && model.canDelete && model.canReact && model.canEdit)
         s.viewModel.effects.test {
-            skipItems(1)
+            s.viewModel.openActions(mine)
+            // Haptics policy: a long press opens the sheet without a vibration.
+            expectNoEvents()
+            val model = assertIs<ChatSheet.Actions>(s.viewModel.state.value.sheet).model
+            assertTrue(model.canCopy && model.canReply && model.canDelete && model.canReact && model.canEdit)
             s.viewModel.replyFromSheet()
             assertEquals(ChatEffect.FocusComposer, awaitItem())
         }
@@ -259,7 +261,7 @@ class ThreadViewModelTest {
     // region Read-through and highlight
 
     @Test
-    fun aReplyFromSomeoneElseArrivingOnScreenGivesTheReceiveCueOnlyWhileResumed() = runTest {
+    fun aReplyFromSomeoneElseArrivingOnScreenNeverVibrates() = runTest {
         val s = subject()
         fun reply(text: String) = Message(
             id = s.graph.backend.nextMessageId(),
@@ -278,8 +280,11 @@ class ThreadViewModelTest {
             runCurrent()
             s.graph.backend.append(reply("Got it, thanks"))
             runCurrent()
-            assertEquals(ChatEffect.Haptic(HapticMoment.Receive), awaitItem())
+            // Haptics policy: not even while the thread is on screen.
+            val events = cancelAndConsumeRemainingEvents()
+            assertTrue(events.none { it is Event.Item && it.value is ChatEffect.Haptic }, "no receive cue")
         }
+        assertTrue(s.viewModel.state.value.replyRows.any { it.message.text == "Got it, thanks" })
     }
 
     @Test

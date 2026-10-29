@@ -19,6 +19,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
 import com.waivera.waivera.core.designsystem.theme.WaiveraMotionScheme
+import com.waivera.waivera.core.designsystem.theme.WaiveraSpacing
 import com.waivera.waivera.core.designsystem.theme.WaiveraTheme
 import com.waivera.waivera.core.designsystem.theme.swapTransition
 
@@ -54,6 +55,31 @@ fun rememberPopScale(
 }
 
 private class LastKey(var value: Any?)
+
+/**
+ * A wrong sign-in's shake: each time [key] changes after the first composition, the value runs
+ * the shared [rejectShake][WaiveraMotionScheme.rejectShake] keyframes once, about 300 ms, and
+ * comes to rest at 0. Bump [key] once per rejection. Under reduced motion ("Remove animations")
+ * nothing moves and the error state alone answers. Draw it with [rejectShake].
+ */
+@Composable
+fun rememberRejectShake(key: Int): State<Float> {
+    val motion = WaiveraTheme.motion
+    val offset = remember { Animatable(0f) }
+    val last = remember { LastKey(key) }
+    LaunchedEffect(key) {
+        if (last.value == key) return@LaunchedEffect
+        last.value = key
+        offset.snapTo(0f)
+        if (!motion.reduced) offset.animateTo(0f, motion.rejectShake)
+    }
+    return offset.asState()
+}
+
+/** Draws a [rememberRejectShake] value as a sideways move of up to [WaiveraSpacing.ShakeAmplitude]. */
+fun Modifier.rejectShake(offset: State<Float>): Modifier = graphicsLayer {
+    translationX = offset.value * WaiveraSpacing.ShakeAmplitude.toPx()
+}
 
 /** Draws a [rememberPopScale] value; read in the layer, so the pop never recomposes. */
 fun Modifier.popScale(scale: State<Float>): Modifier = graphicsLayer {

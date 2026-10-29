@@ -67,14 +67,4 @@ class ArrivalTracker {
                 .mapTo(mutableSetOf()) { it.id }
         }
     }
-
-    companion object {
-        /**
-         * True when [arrivals] hold a sent message from someone other than [myUserId], which earns
-         * the receive cue. Unknown identity never buzzes, so a cold start cannot misfire.
-         */
-        fun hasIncoming(messages: List<Message>, arrivals: Set<Long>, myUserId: String?): Boolean = myUserId != null &&
-            arrivals.isNotEmpty() &&
-            messages.any { it.id in arrivals && !it.isPending && it.authorId != myUserId }
-    }
 }

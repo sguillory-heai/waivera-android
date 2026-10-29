@@ -35,7 +35,6 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.Dp
-import com.waivera.waivera.core.designsystem.feedback.rememberHaptics
 import com.waivera.waivera.core.designsystem.icon.WaiveraIcons
 import com.waivera.waivera.core.designsystem.preview.WaiveraPreviews
 import com.waivera.waivera.core.designsystem.text.withBreaksAfterHyphens
@@ -111,7 +110,7 @@ fun WaiveraListRow(
 
 /**
  * A switch row for settings. The whole row toggles: it presses in like any row, the thumb slides
- * on Material's own spring, and toggling fires the toggle haptic.
+ * on Material's own spring. Toggling never vibrates (haptics policy); the thumb is the feedback.
  * [leading] is the row's icon tile, so switch rows share the icon language of every other row.
  */
 @Composable
@@ -124,7 +123,6 @@ fun WaiveraSwitchRow(
     enabled: Boolean = true,
     leading: (@Composable () -> Unit)? = null,
 ) {
-    val haptics = rememberHaptics()
     val colors = WaiveraTheme.colors
     val interactionSource = remember { MutableInteractionSource() }
     val press = rememberPressFeedback(interactionSource)
@@ -139,10 +137,7 @@ fun WaiveraSwitchRow(
                 indication = ripple(),
                 enabled = enabled,
                 role = Role.Switch,
-                onValueChange = { value ->
-                    haptics.toggle(value)
-                    onCheckedChange(value)
-                },
+                onValueChange = onCheckedChange,
             )
             .padding(horizontal = WaiveraSpacing.Gutter, vertical = WaiveraSpacing.MediumSmall),
         horizontalArrangement = Arrangement.spacedBy(WaiveraSpacing.MediumSmall),

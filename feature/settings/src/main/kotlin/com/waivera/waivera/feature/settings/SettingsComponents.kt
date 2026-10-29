@@ -23,7 +23,6 @@ import com.waivera.waivera.core.designsystem.component.WaiveraCardGroup
 import com.waivera.waivera.core.designsystem.component.WaiveraInsetDivider
 import com.waivera.waivera.core.designsystem.component.pressFeedback
 import com.waivera.waivera.core.designsystem.component.rememberPressFeedback
-import com.waivera.waivera.core.designsystem.feedback.rememberHaptics
 import com.waivera.waivera.core.designsystem.preview.WaiveraPreviews
 import com.waivera.waivera.core.designsystem.theme.WaiveraSizes
 import com.waivera.waivera.core.designsystem.theme.WaiveraSpacing
@@ -39,7 +38,7 @@ internal fun SettingsCard(modifier: Modifier = Modifier, content: @Composable Co
 
 /**
  * A single-choice row: a leading radio, title and subtitle. Announced as a radio
- * button with its selected state; picking fires the selection haptic.
+ * button with its selected state; picking never vibrates (haptics policy).
  */
 @Composable
 internal fun SettingsRadioRow(
@@ -50,7 +49,6 @@ internal fun SettingsRadioRow(
     modifier: Modifier = Modifier,
 ) {
     val colors = WaiveraTheme.colors
-    val haptics = rememberHaptics()
     val interactions = remember { MutableInteractionSource() }
     val press = rememberPressFeedback(interactions)
     Row(
@@ -63,10 +61,7 @@ internal fun SettingsRadioRow(
                 interactionSource = interactions,
                 indication = ripple(),
                 role = Role.RadioButton,
-                onClick = {
-                    if (!selected) haptics.selection()
-                    onSelect()
-                },
+                onClick = onSelect,
             )
             .padding(horizontal = WaiveraSpacing.Gutter, vertical = WaiveraSpacing.MediumSmall),
         horizontalArrangement = Arrangement.spacedBy(WaiveraSpacing.MediumSmall),

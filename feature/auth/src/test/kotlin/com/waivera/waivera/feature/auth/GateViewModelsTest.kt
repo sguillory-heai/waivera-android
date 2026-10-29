@@ -1,6 +1,5 @@
 package com.waivera.waivera.feature.auth
 
-import app.cash.turbine.test
 import com.waivera.waivera.core.data.model.SessionState
 import com.waivera.waivera.core.network.R as NetworkR
 import com.waivera.waivera.core.network.error.WaiveraError
@@ -13,7 +12,6 @@ import kotlin.test.assertFalse
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import kotlinx.coroutines.CompletableDeferred
-import kotlinx.coroutines.test.runTest
 import org.junit.Rule
 import org.junit.Test
 
@@ -55,14 +53,12 @@ class BootstrapFailedViewModelTest {
     }
 
     @Test
-    fun `reconnect - a retry that fails again updates the reason and buzzes`() = runTest {
+    fun `reconnect - a retry that fails again updates the reason without a vibration`() {
         val session = FakeSessionRepository(SessionState.BootstrapFailed(WaiveraError.Network()))
         session.nextRefresh = Result.failure(WaiveraError.Server(503))
         val vm = BootstrapFailedViewModel(session, clock)
-        vm.effects.test {
-            vm.retry()
-            assertEquals(AuthEffect.Warning, awaitItem(), "the server is unreachable; nothing the person did wrong")
-        }
+        // Haptics policy: the view model has no effects at all, so a failed retry cannot buzz.
+        vm.retry()
         assertEquals(NetworkR.string.core_network_error_server, vm.state.value.message)
         assertFalse(vm.state.value.isOffline)
         assertEquals(now, vm.state.value.lastFailedRetryAt, "a failed retry is visibly different")

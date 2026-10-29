@@ -32,7 +32,6 @@ import com.waivera.waivera.core.designsystem.component.WaiveraErrorState
 import com.waivera.waivera.core.designsystem.component.WaiveraIllustration
 import com.waivera.waivera.core.designsystem.component.WaiveraSnackbarHost
 import com.waivera.waivera.core.designsystem.component.WaiveraTopBar
-import com.waivera.waivera.core.designsystem.feedback.rememberHaptics
 import com.waivera.waivera.core.designsystem.preview.WaiveraPreviews
 import com.waivera.waivera.core.designsystem.theme.WaiveraSpacing
 import com.waivera.waivera.core.designsystem.theme.WaiveraTheme
@@ -66,7 +65,6 @@ fun CalendarEventScreen(
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbarHost = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
-    val haptics = rememberHaptics()
     val uriHandler = LocalUriHandler.current
     val openConversation by rememberUpdatedState(onOpenConversation)
     val acceptedMessage = stringResource(R.string.feature_calendar_undo_accepted)
@@ -96,7 +94,6 @@ fun CalendarEventScreen(
                 }
                 is EventEffect.OpenConversation -> openConversation(effect.conversationId)
                 is EventEffect.OfferUndo -> {
-                    if (effect.accept) haptics.success() else haptics.selection()
                     scope.launch {
                         snackbarHost.currentSnackbarData?.dismiss()
                         val result = snackbarHost.showSnackbar(
@@ -111,12 +108,9 @@ fun CalendarEventScreen(
                         }
                     }
                 }
-                is EventEffect.ResponseSaved -> Unit
-                EventEffect.ResponseFailed -> haptics.error()
-                is EventEffect.ChatFailed -> {
-                    haptics.error()
-                    scope.launch { snackbarHost.showSnackbar(chatFailed) }
-                }
+                // The response row shows both outcomes; neither vibrates (haptics policy).
+                is EventEffect.ResponseSaved, EventEffect.ResponseFailed -> Unit
+                is EventEffect.ChatFailed -> scope.launch { snackbarHost.showSnackbar(chatFailed) }
             }
         }
     }

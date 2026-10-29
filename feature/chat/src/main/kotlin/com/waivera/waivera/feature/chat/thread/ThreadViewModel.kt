@@ -226,9 +226,6 @@ class ThreadViewModel @AssistedInject constructor(
                 liveArrivals.update { it - arrivals }
             }
         }
-        if (isResumed && ArrivalTracker.hasIncoming(replies, arrivals, me)) {
-            emit(ChatEffect.Haptic(HapticMoment.Receive))
-        }
         val events = sendTracker.update(replies)
         if (events.newFailures > 0) {
             val kind = SendErrors.forFailedSend(
@@ -238,7 +235,7 @@ class ThreadViewModel @AssistedInject constructor(
                 isArchived = conversation?.channel?.isArchived == true,
             )
             _state.update { it.copy(sendError = kind) }
-            emit(ChatEffect.Haptic(HapticMoment.Error))
+            emit(ChatEffect.Haptic(HapticMoment.SendFailed))
         }
         return Prepared(thread, root, replies, me, bot)
     }
@@ -401,7 +398,7 @@ class ThreadViewModel @AssistedInject constructor(
                     _state.update { it.copy(sendError = SendErrors.from(typed)) }
                     // 04 §3: the exact draft comes back.
                     emit(ChatEffect.SetDraft(draft))
-                    emit(ChatEffect.Haptic(HapticMoment.Error))
+                    emit(ChatEffect.Haptic(HapticMoment.SendFailed))
                 }
         }
     }
@@ -418,7 +415,6 @@ class ThreadViewModel @AssistedInject constructor(
                 .onFailure { error ->
                     val typed = error as? WaiveraError ?: WaiveraError.from(error)
                     emit(ChatEffect.Snackbar(R.string.feature_chat_edit_failed, detail = typed.messageRes))
-                    emit(ChatEffect.Haptic(HapticMoment.Error))
                 }
         }
     }
@@ -453,7 +449,6 @@ class ThreadViewModel @AssistedInject constructor(
     fun openActions(message: Message) {
         if (!ChatActions.canOpen(message)) return
         val current = _state.value
-        emit(ChatEffect.Haptic(HapticMoment.LongPress))
         // Reply here focuses the reply box; it never opens a nested thread.
         val model = ChatActions.model(message, current.myUserId, current.canWrite, allowReply = false)
         interactions.openActions(model.copy(canReply = current.canWrite == true))

@@ -78,7 +78,7 @@ class TodayViewModel @Inject constructor(
     private val invitations = InvitationAnswers(viewModelScope, appScope, calendar, local, effectChannel)
     private var wishesJob: Job? = null
 
-    /** Snackbar and haptic moments, delivered once. */
+    /** Snackbar moments, delivered once. */
     val effects: Flow<TodayEffect> = effectChannel.receiveAsFlow()
 
     private val zone = calendar.zone.distinctUntilChanged()
@@ -242,7 +242,8 @@ class TodayViewModel @Inject constructor(
             // The repository rolls the cached flags back itself when the call fails.
             val result = activity.markAllRead()
             local.update { it.copy(isMarkingAllRead = false) }
-            effectChannel.send(if (result.isSuccess) TodayEffect.MarkedAllRead else TodayEffect.MarkAllReadFailed)
+            // Success needs no message: the count and the action shrink away together.
+            if (result.isFailure) effectChannel.send(TodayEffect.MarkAllReadFailed)
         }
     }
 

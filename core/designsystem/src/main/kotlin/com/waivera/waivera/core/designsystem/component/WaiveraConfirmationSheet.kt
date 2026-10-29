@@ -13,7 +13,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import com.waivera.waivera.core.designsystem.R
-import com.waivera.waivera.core.designsystem.feedback.rememberHaptics
 import com.waivera.waivera.core.designsystem.icon.WaiveraIcons
 import com.waivera.waivera.core.designsystem.preview.WaiveraPreviews
 import com.waivera.waivera.core.designsystem.text.withBreaksAfterHyphens
@@ -24,7 +23,7 @@ import com.waivera.waivera.core.designsystem.theme.WaiveraTheme
 /**
  * The styled confirmation that replaces `AlertDialog` everywhere (sign out, delete message,
  * leave conversation). Prefer an Undo snackbar where the action can be reversed.
- * A destructive confirm fires the warning haptic. While [confirmInProgress], the confirm button
+ * A destructive confirm does not vibrate (haptics policy). While [confirmInProgress], the confirm button
  * shows [confirmInProgressLabel] ("Signing out…"), or else its own label, beside its spinner.
  *
  * Concept A's sheet: a destructive question leads with the warning glyph in the danger tile, the
@@ -73,7 +72,6 @@ internal fun ConfirmationContent(
     modifier: Modifier = Modifier,
     confirmInProgressLabel: String? = null,
 ) {
-    val haptics = rememberHaptics()
     WaiveraSheetContent(title = null, modifier = modifier) {
         if (destructive) {
             WaiveraIconTile(icon = WaiveraIcons.Warning, tone = WaiveraTileTone.Danger, size = WaiveraSizes.CardTile)
@@ -94,10 +92,7 @@ internal fun ConfirmationContent(
         ) {
             WaiveraButton(
                 text = confirmLabel,
-                onClick = {
-                    if (destructive) haptics.warning()
-                    onConfirm()
-                },
+                onClick = onConfirm,
                 modifier = Modifier.heightIn(min = WaiveraSizes.CtaHeight),
                 variant = if (destructive) WaiveraButtonVariant.Destructive else WaiveraButtonVariant.Primary,
                 // Never a bare spinner: without its own progress copy the confirm label stays beside it.

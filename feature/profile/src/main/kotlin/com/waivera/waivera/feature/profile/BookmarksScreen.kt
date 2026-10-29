@@ -51,7 +51,6 @@ import com.waivera.waivera.core.designsystem.component.WaiveraSnackbarHost
 import com.waivera.waivera.core.designsystem.component.WaiveraStatusBadge
 import com.waivera.waivera.core.designsystem.component.WaiveraTopBar
 import com.waivera.waivera.core.designsystem.component.showUndo
-import com.waivera.waivera.core.designsystem.feedback.rememberHaptics
 import com.waivera.waivera.core.designsystem.icon.WaiveraIcons
 import com.waivera.waivera.core.designsystem.preview.WaiveraPreviews
 import com.waivera.waivera.core.designsystem.theme.WaiveraElevation
@@ -72,7 +71,6 @@ fun BookmarksScreen(
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbar = remember { SnackbarHostState() }
     val resources = LocalResources.current
-    val haptics = rememberHaptics()
     val words = BookmarkSearchWords(
         threadReply = stringResource(R.string.feature_profile_bookmarks_thread_reply),
         thread = stringResource(R.string.feature_profile_bookmarks_search_word_thread),
@@ -90,7 +88,6 @@ fun BookmarksScreen(
                     onUndo = { viewModel.undoRemove(effect.messageId) },
                 )
                 is BookmarksEffect.RemoveFailed -> {
-                    haptics.error()
                     val result = snackbar.showSnackbar(
                         message = resources.getString(R.string.feature_profile_bookmarks_remove_failed),
                         actionLabel = resources.getString(R.string.feature_profile_try_again),
@@ -99,10 +96,8 @@ fun BookmarksScreen(
                         viewModel.remove(effect.messageId)
                     }
                 }
-                is BookmarksEffect.RestoreFailed -> {
-                    haptics.error()
+                is BookmarksEffect.RestoreFailed ->
                     snackbar.showSnackbar(resources.getString(R.string.feature_profile_bookmarks_restore_failed))
-                }
             }
         }
     }

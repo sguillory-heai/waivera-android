@@ -2,6 +2,7 @@ package com.waivera.waivera.core.designsystem.theme
 
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
+import androidx.compose.animation.core.KeyframesSpec
 import androidx.compose.animation.core.SnapSpec
 import androidx.compose.animation.core.SpringSpec
 import androidx.compose.animation.core.TweenSpec
@@ -51,6 +52,14 @@ class WaiveraMotionSchemeTest {
         }
         assertEquals(1f, motion.pressScale, "no press scale when animations are off")
         assertFalse(motion.allowsLoopingMotion, "no skeleton pulse when animations are off")
+    }
+
+    @Test
+    fun `the reject shake is a 300 ms keyframe run, and snaps when animations are off`() {
+        val shake = assertIs<KeyframesSpec<Float>>(WaiveraMotionScheme.Standard.rejectShake)
+        assertEquals(WaiveraMotionScheme.REJECT_SHAKE_MILLIS, shake.config.durationMillis)
+        assertEquals(300, WaiveraMotionScheme.REJECT_SHAKE_MILLIS)
+        assertIs<SnapSpec<*>>(WaiveraMotionScheme.Reduced.rejectShake)
     }
 
     @Test

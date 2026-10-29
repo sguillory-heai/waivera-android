@@ -7,6 +7,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.waivera.waivera.core.data.model.SessionState
 import com.waivera.waivera.core.data.repository.SessionRepository
+import com.waivera.waivera.core.designsystem.feedback.HapticMoment
 import com.waivera.waivera.core.network.NetworkConfig
 import com.waivera.waivera.core.network.error.WaiveraError
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -64,8 +65,17 @@ data class SignInUiState(
             "signedOutNotice=$signedOutNotice, linkUnavailable=$linkUnavailable)"
 }
 
-/** Haptic moments: [Warning] is a failure the person did not cause and can retry (UI2-15). */
-enum class AuthEffect { Error, Warning, Success }
+/**
+ * One-off feedback for the sign-in form. Only rejected credentials produce any (haptics policy,
+ * 2026-10-29): one [HapticMoment.SignInRejected] vibration and one [Shake] of the form. Field
+ * errors, network and offline failures and reset failures show their message and nothing else.
+ */
+sealed interface SignInEffect {
+    data class Haptic(val moment: HapticMoment) : SignInEffect
+
+    /** Shake the form once; the screen skips it when animations are off. */
+    data object Shake : SignInEffect
+}
 
 /**
  * Sign-in form. The session repository owns Firebase and the backend bootstrap; this only
@@ -85,8 +95,8 @@ class SignInViewModel @Inject constructor(
     private val _state = MutableStateFlow(SignInUiState(email = savedState[KEY_EMAIL] ?: ""))
     val state: StateFlow<SignInUiState> = _state.asStateFlow()
 
-    private val _effects = Channel<AuthEffect>(Channel.BUFFERED)
-    val effects: Flow<AuthEffect> = _effects.receiveAsFlow()
+    private val _effects = Channel<SignInEffect>(Channel.BUFFERED)
+    val effects: Flow<SignInEffect> = _effects.receiveAsFlow()
 
     init {
         viewModelScope.launch {
@@ -134,7 +144,6 @@ class SignInViewModel @Inject constructor(
         val passwordError = AuthValidation.signInPasswordError(current.password)
         if (emailError != null || passwordError != null) {
             _state.update { it.copy(emailError = emailError, passwordError = passwordError) }
-            _effects.trySend(AuthEffect.Error)
             return
         }
         _state.update {
@@ -148,7 +157,11 @@ class SignInViewModel @Inject constructor(
                 .onFailure { failure ->
                     val error = WaiveraError.from(failure)
                     _state.update { it.copy(phase = SignInPhase.Idle, errorMessage = error.messageRes) }
-                    _effects.trySend(AuthEffect.Error)
+                    // A network or server failure is not the person's mistake: its message is enough.
+                    if (error is WaiveraError.InvalidCredentials) {
+                        _effects.trySend(SignInEffect.Haptic(HapticMoment.SignInRejected))
+                        _effects.trySend(SignInEffect.Shake)
+                    }
                 }
         }
     }
@@ -159,7 +172,6 @@ class SignInViewModel @Inject constructor(
         val emailError = AuthValidation.emailError(current.email)
         if (emailError != null) {
             _state.update { it.copy(emailError = emailError) }
-            _effects.trySend(AuthEffect.Error)
             return
         }
         val email = AuthValidation.normalizeEmail(current.email)
@@ -173,7 +185,6 @@ class SignInViewModel @Inject constructor(
                 _state.update { it.copy(phase = SignInPhase.Idle, resetSentTo = email) }
             } else {
                 _state.update { it.copy(phase = SignInPhase.Idle, errorMessage = error.messageRes) }
-                _effects.trySend(AuthEffect.Error)
             }
         }
     }

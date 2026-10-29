@@ -18,6 +18,9 @@ import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
+/** The password was saved; the screen decides what happens next. Nothing here vibrates. */
+enum class PasswordChangeEffect { Changed, }
+
 /** [Continuing]: the password is saved and the required flow is reloading the session to move on. */
 enum class PasswordChangePhase { Editing, Saving, Done, Continuing }
 
@@ -44,15 +47,15 @@ data class PasswordChangeUiState(
  * Changes the password: Firebase re-authenticates with the current password and sets the new
  * one, then the backend's `confirm-password-change` clears the gate and the session refreshes
  * (all inside [SessionRepository.changePassword]). Used for the required gate and for the
- * voluntary change from Settings; the screen decides what happens after [AuthEffect.Success].
+ * voluntary change from Settings; the screen decides what happens after [PasswordChangeEffect.Changed].
  */
 @HiltViewModel
 class PasswordChangeViewModel @Inject constructor(private val session: SessionRepository) : ViewModel() {
     private val _state = MutableStateFlow(PasswordChangeUiState())
     val state: StateFlow<PasswordChangeUiState> = _state.asStateFlow()
 
-    private val _effects = Channel<AuthEffect>(Channel.BUFFERED)
-    val effects: Flow<AuthEffect> = _effects.receiveAsFlow()
+    private val _effects = Channel<PasswordChangeEffect>(Channel.BUFFERED)
+    val effects: Flow<PasswordChangeEffect> = _effects.receiveAsFlow()
 
     init {
         // The gate's ViewModel can outlive a sign-out; never show one person's typing to the next.
@@ -77,7 +80,6 @@ class PasswordChangeViewModel @Inject constructor(private val session: SessionRe
             _state.update {
                 it.copy(currentError = errors.current, newError = errors.new, confirmError = errors.confirm)
             }
-            _effects.trySend(AuthEffect.Error)
             return
         }
         _state.update { it.copy(phase = PasswordChangePhase.Saving, errorMessage = null) }
@@ -86,7 +88,7 @@ class PasswordChangeViewModel @Inject constructor(private val session: SessionRe
                 .onSuccess {
                     // Clear every secret from memory once it has been used.
                     _state.value = PasswordChangeUiState(phase = PasswordChangePhase.Done)
-                    _effects.trySend(AuthEffect.Success)
+                    _effects.trySend(PasswordChangeEffect.Changed)
                 }
                 .onFailure { failure -> onFailure(WaiveraError.from(failure)) }
         }
@@ -108,7 +110,6 @@ class PasswordChangeViewModel @Inject constructor(private val session: SessionRe
                 else -> it.copy(phase = PasswordChangePhase.Editing, errorMessage = error.messageRes)
             }
         }
-        _effects.trySend(AuthEffect.Error)
     }
 
     fun dismissMessage() = _state.update { it.copy(errorMessage = null) }
@@ -126,7 +127,6 @@ class PasswordChangeViewModel @Inject constructor(private val session: SessionRe
                 _state.update {
                     it.copy(phase = PasswordChangePhase.Done, errorMessage = WaiveraError.from(failure).messageRes)
                 }
-                _effects.trySend(AuthEffect.Error)
             }
         }
     }
