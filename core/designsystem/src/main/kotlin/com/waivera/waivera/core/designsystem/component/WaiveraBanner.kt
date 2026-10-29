@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -380,7 +381,7 @@ private fun BannerAction(action: BannerActionModel, color: Color, modifier: Modi
     TextButton(
         onClick = action.onClick,
         modifier = modifier
-            .pressFeedback(press)
+            .pressFeedback(press, shape = ButtonDefaults.textShape)
             .heightIn(min = WaiveraSpacing.MinTouchTarget),
         interactionSource = interactionSource,
     ) {

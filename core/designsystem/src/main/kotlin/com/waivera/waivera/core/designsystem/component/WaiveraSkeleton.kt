@@ -1,11 +1,7 @@
 package com.waivera.waivera.core.designsystem.component
 
-import androidx.compose.animation.core.LinearEasing
-import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -17,6 +13,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.State
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -44,22 +41,28 @@ import com.waivera.waivera.core.designsystem.theme.WaiveraTheme
 import kotlinx.coroutines.delay
 
 /**
- * Skeleton pulse position: 0 is the `skeletonBase` colour token, 1 is
- * `skeletonHighlight`, looping over 650ms. Reduced motion holds the base colour,
- * so the static frame is still clearly visible.
+ * Skeleton pulse position: 0 is the `skeletonBase` colour token, 1 is `skeletonHighlight`,
+ * breathing on the eased [skeletonPulse][com.waivera.waivera.core.designsystem.theme.WaiveraMotionScheme.skeletonPulse]
+ * (M1-16). Returned as state that the bones read in their draw blocks, so a pulsing skeleton
+ * redraws without recomposing every frame. Reduced motion holds the base colour, so the static
+ * frame is still clearly visible.
  */
 @Composable
-fun rememberSkeletonPulse(): Float {
+fun rememberSkeletonPulse(): State<Float> {
     val motion = WaiveraTheme.motion
-    if (!motion.allowsLoopingMotion) return SKELETON_STATIC_PULSE
+    if (!motion.allowsLoopingMotion) return StaticPulse
     val transition = rememberInfiniteTransition(label = "skeleton")
-    val pulse by transition.animateFloat(
+    return transition.animateFloat(
         initialValue = 0f,
         targetValue = 1f,
-        animationSpec = infiniteRepeatable(tween(SKELETON_PULSE_MILLIS, easing = LinearEasing), RepeatMode.Reverse),
+        animationSpec = motion.skeletonPulse,
         label = "skeletonPulse",
     )
-    return pulse
+}
+
+/** The pulse with animations off: the base colour, held. */
+private object StaticPulse : State<Float> {
+    override val value: Float = SKELETON_STATIC_PULSE
 }
 
 /** A skeleton block. Compose these into shapes that match the final layout. */
@@ -67,19 +70,23 @@ fun rememberSkeletonPulse(): Float {
 fun SkeletonBlock(
     modifier: Modifier = Modifier,
     shape: Shape = WaiveraShapes.Chip,
-    pulse: Float = rememberSkeletonPulse(),
+    pulse: State<Float> = rememberSkeletonPulse(),
 ) {
     val colors = WaiveraTheme.colors
     Box(
         modifier = modifier.drawBehind {
-            val color = lerp(colors.skeletonBase, colors.skeletonHighlight, pulse)
+            val color = lerp(colors.skeletonBase, colors.skeletonHighlight, pulse.value)
             drawOutline(shape.createOutline(size, layoutDirection, this), color)
         },
     )
 }
 
 @Composable
-fun SkeletonLine(modifier: Modifier = Modifier, widthFraction: Float = 1f, pulse: Float = rememberSkeletonPulse()) {
+fun SkeletonLine(
+    modifier: Modifier = Modifier,
+    widthFraction: Float = 1f,
+    pulse: State<Float> = rememberSkeletonPulse(),
+) {
     SkeletonBlock(
         modifier = modifier
             .fillMaxWidth(widthFraction)
@@ -114,7 +121,7 @@ fun SkeletonText(
     style: TextStyle,
     modifier: Modifier = Modifier,
     widthFraction: Float = 1f,
-    pulse: Float = rememberSkeletonPulse(),
+    pulse: State<Float> = rememberSkeletonPulse(),
 ) {
     val line = skeletonLineHeight(style)
     Box(
@@ -135,13 +142,13 @@ fun SkeletonText(
 
 /** An avatar's bone, in the one avatar shape, so loading rows match what lands. */
 @Composable
-fun SkeletonAvatar(size: Dp, modifier: Modifier = Modifier, pulse: Float = rememberSkeletonPulse()) {
+fun SkeletonAvatar(size: Dp, modifier: Modifier = Modifier, pulse: State<Float> = rememberSkeletonPulse()) {
     SkeletonBlock(modifier = modifier.size(size), shape = WaiveraShapes.avatar(size), pulse = pulse)
 }
 
 /** A list row skeleton (avatar, two lines), matching [WaiveraListRow] with a leading avatar. */
 @Composable
-fun SkeletonListRow(modifier: Modifier = Modifier, pulse: Float = rememberSkeletonPulse()) {
+fun SkeletonListRow(modifier: Modifier = Modifier, pulse: State<Float> = rememberSkeletonPulse()) {
     Row(
         modifier = modifier
             .fillMaxWidth()
@@ -198,7 +205,6 @@ fun rememberSkeletonVisible(
 }
 
 private const val SKELETON_STATIC_PULSE = 0f
-private const val SKELETON_PULSE_MILLIS = 650
 private const val HEADLINE_FRACTION = 0.6f
 private const val SUPPORTING_FRACTION = 0.85f
 private const val DEFAULT_ROWS = 6

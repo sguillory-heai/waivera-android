@@ -40,6 +40,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.core.view.WindowCompat
 import com.waivera.waivera.core.designsystem.R
 import com.waivera.waivera.core.designsystem.preview.WaiveraPreviews
+import com.waivera.waivera.core.designsystem.theme.PressDepth
 import com.waivera.waivera.core.designsystem.theme.WaiveraHero
 import com.waivera.waivera.core.designsystem.theme.WaiveraShapes
 import com.waivera.waivera.core.designsystem.theme.WaiveraSizes
@@ -124,6 +125,7 @@ fun WaiveraHeroTopBar(title: String, modifier: Modifier = Modifier, account: Top
         if (account != null) {
             val label = stringResource(R.string.core_designsystem_account_menu)
             WaiveraPressable(
+                depth = PressDepth.Compact,
                 onClick = account.onClick,
                 modifier = Modifier.size(WaiveraSizes.IconButton),
                 onClickLabel = label,

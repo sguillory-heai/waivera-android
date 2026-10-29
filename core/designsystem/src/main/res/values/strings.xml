@@ -38,6 +38,7 @@
     <string name="core_designsystem_connection_offline_detail">Anything you send will go out once you’re back online.</string>
     <string name="core_designsystem_connection_retry">Retry now</string>
     <string name="core_designsystem_sync_pending">Sending…</string>
+    <string name="core_designsystem_sync_done">Synced</string>
     <string name="core_designsystem_sync_failed">Not sent · Tap to retry</string>
     <string name="core_designsystem_sync_failed_a11y">Not sent</string>
     <plurals name="core_designsystem_badge_count">

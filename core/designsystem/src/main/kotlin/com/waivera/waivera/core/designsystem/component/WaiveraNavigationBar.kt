@@ -20,7 +20,7 @@ import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
-import androidx.compose.runtime.getValue
+import androidx.compose.runtime.State
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -39,12 +39,15 @@ import androidx.compose.ui.unit.Constraints
 import com.waivera.waivera.core.designsystem.icon.WaiveraIcons
 import com.waivera.waivera.core.designsystem.preview.WaiveraPreviews
 import com.waivera.waivera.core.designsystem.theme.EXTRA_LARGE_FONT_SCALE
+import com.waivera.waivera.core.designsystem.theme.PressDepth
 import com.waivera.waivera.core.designsystem.theme.WaiveraElevation
+import com.waivera.waivera.core.designsystem.theme.WaiveraMotionScheme
 import com.waivera.waivera.core.designsystem.theme.WaiveraShapes
 import com.waivera.waivera.core.designsystem.theme.WaiveraSizes
 import com.waivera.waivera.core.designsystem.theme.WaiveraSpacing
 import com.waivera.waivera.core.designsystem.theme.WaiveraTextStyles
 import com.waivera.waivera.core.designsystem.theme.WaiveraTheme
+import com.waivera.waivera.core.designsystem.theme.exit
 
 /** One bottom tab. [key] is the caller's stable id for the tab. */
 @Immutable
@@ -65,8 +68,10 @@ data class NavigationBarItemModel(
  * the glyph's top-end corner in the attention rose, ringed in the bar's colour so it reads as cut
  * out of it. The pill is decoration; the label, the selected state and the count carry the meaning.
  *
- * Feedback: a tab's glyph and pill shrink from touch-down, the tab just picked pops them, and its
- * pill fades in on the state token. A tab switch has no haptic (the feedback map keeps taps silent).
+ * Feedback: a tab's glyph and pill shrink from touch-down and the tab just picked pops them. Its
+ * pill grows out from the glyph on the pop token while it fades in, and the pill it replaces
+ * fades out faster than that, so the bar never shows two half pills (M1-11). A tab switch has no
+ * haptic (the feedback map keeps taps silent).
  */
 @Composable
 fun WaiveraNavigationBar(
@@ -109,9 +114,14 @@ fun WaiveraNavigationBar(
             val selected = item.key == selectedKey
             val washAlpha = rememberTabWashAlpha(selected)
             val interactionSource = remember { MutableInteractionSource() }
-            val press = rememberPressFeedback(interactionSource)
+            val press = rememberPressFeedback(interactionSource, depth = PressDepth.Compact)
             // The tab just picked pops its glyph and pill; the press shrinks them from touch-down.
             val pop = rememberPopScale(key = selected, enabled = selected)
+            val pillWidth = rememberPopScale(
+                key = selected,
+                enabled = selected,
+                from = WaiveraMotionScheme.TAB_PILL_START_SCALE_X,
+            )
             NavigationBarItem(
                 selected = selected,
                 onClick = { onSelect(item.key) },
@@ -125,7 +135,11 @@ fun WaiveraNavigationBar(
                             .testTag(NAV_ICON_TEST_TAG)
                             .pressScale(press)
                             .popScale(pop)
-                            .selectedTabPill(fill = colors.selectedFill, alpha = { washAlpha }),
+                            .selectedTabPill(
+                                fill = colors.selectedFill,
+                                alpha = { washAlpha.value },
+                                widthScale = { pillWidth.value },
+                            ),
                     ) {
                         Icon(
                             painterResource(item.icon),
@@ -157,25 +171,30 @@ fun WaiveraNavigationBar(
     }
 }
 
-/** Fades the selected tab's pill in and out. */
+/**
+ * Fades the selected tab's pill in on the state token, and out on the faster exit, so the old
+ * pill is gone before the new one peaks. Returned as state for the draw block to read, so the
+ * fade never recomposes the bar.
+ */
 @Composable
-private fun rememberTabWashAlpha(selected: Boolean): Float {
-    val alpha by animateFloatAsState(
+private fun rememberTabWashAlpha(selected: Boolean): State<Float> {
+    val motion = WaiveraTheme.motion
+    return animateFloatAsState(
         targetValue = if (selected) 1f else 0f,
-        animationSpec = WaiveraTheme.motion.state(),
+        animationSpec = if (selected) motion.state() else motion.exit(),
         label = "tabWash",
     )
-    return alpha
 }
 
 /**
  * The selected tab's one pill, solid [fill]. It draws behind the icon and outside the icon's
- * bounds, centred on it, so it never changes the layout.
+ * bounds, centred on it, so it never changes the layout. [widthScale] grows it across from the
+ * glyph's centre; both values are read here, in the draw block only.
  */
-private fun Modifier.selectedTabPill(fill: Color, alpha: () -> Float): Modifier = drawBehind {
+private fun Modifier.selectedTabPill(fill: Color, alpha: () -> Float, widthScale: () -> Float): Modifier = drawBehind {
     val shown = alpha()
     if (shown == 0f) return@drawBehind
-    val width = WaiveraSizes.NavIndicatorWidth.toPx()
+    val width = WaiveraSizes.NavIndicatorWidth.toPx() * widthScale()
     val height = WaiveraSizes.NavIndicatorHeight.toPx()
     val topLeft = Offset(center.x - width / 2f, center.y - height / 2f)
     drawRoundRect(

@@ -13,12 +13,15 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.semantics.Role
+import com.waivera.waivera.core.designsystem.theme.PressDepth
 
 /**
- * The single press primitive: ripple plus a spring to the press scale from the moment the finger
- * lands ([pressFeedback]), which collapses to no scale when animations are off. Neither a tap
- * nor a long press vibrates (haptics policy: the press and the menu it opens are the feedback),
- * so the platform's own long-press buzz is switched off too.
+ * The single press primitive: ripple plus a spring to [depth] from the moment the finger lands
+ * ([pressFeedback]), which becomes an instant state-layer tint when animations are off. Neither a
+ * tap nor a long press vibrates (haptics policy: the press and the menu it opens are the
+ * feedback), so the platform's own long-press buzz is switched off too. With [onLongClick], a held
+ * press keeps sinking while the long press arms and springs back as it fires, so the hold is
+ * visibly working before the menu appears (M1-02).
  */
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -31,13 +34,14 @@ fun WaiveraPressable(
     onLongClickLabel: String? = null,
     role: Role? = Role.Button,
     shape: Shape = RectangleShape,
+    depth: PressDepth = PressDepth.Button,
     content: @Composable BoxScope.() -> Unit,
 ) {
     val interactionSource = remember { MutableInteractionSource() }
-    val press = rememberPressFeedback(interactionSource)
+    val press = rememberPressFeedback(interactionSource, depth = depth, armsLongPress = onLongClick != null)
     Box(
         modifier = modifier
-            .pressFeedback(press, enabled = enabled)
+            .pressFeedback(press, enabled = enabled, shape = shape)
             .clip(shape)
             .combinedClickable(
                 interactionSource = interactionSource,
@@ -46,7 +50,12 @@ fun WaiveraPressable(
                 onClickLabel = onClickLabel,
                 role = role,
                 onLongClickLabel = onLongClickLabel,
-                onLongClick = onLongClick,
+                onLongClick = onLongClick?.let { longClick ->
+                    {
+                        press.onLongPress()
+                        longClick()
+                    }
+                },
                 hapticFeedbackEnabled = false,
                 onClick = onClick,
             ),

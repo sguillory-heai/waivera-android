@@ -101,11 +101,12 @@ fun WaiveraFilterChip(
     )
     val outlineWidth = if (selected && !filled) WaiveraSizes.SelectedOutline else WaiveraSpacing.Hairline
     val icon = if (filled) WaiveraIcons.Check else leadingIcon
+    val shownIcon = rememberLatestNonNull(icon)
     val iconPop = rememberPopScale(key = icon, enabled = filled)
     Row(
         modifier = modifier
             .minimumInteractiveComponentSize()
-            .pressFeedback(press, enabled = enabled)
+            .pressFeedback(press, enabled = enabled, shape = shape)
             .heightIn(min = WaiveraSizes.FilterChipHeight)
             .background(color = fillColor, shape = shape)
             .border(width = outlineWidth, color = outlineColor, shape = shape)
@@ -119,18 +120,22 @@ fun WaiveraFilterChip(
                 onClick = onClick,
             )
             .padding(horizontal = WaiveraSpacing.MediumSmall + WaiveraSpacing.XxSmall),
-        horizontalArrangement = Arrangement.spacedBy(WaiveraSpacing.ExtraSmall + WaiveraSpacing.XxSmall),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        if (icon != null) {
-            Icon(
-                painter = painterResource(icon),
-                contentDescription = null,
-                tint = content,
-                modifier = Modifier
-                    .size(WaiveraSizes.FilterChipIcon)
-                    .popScale(iconPop),
-            )
+        // The leading slot, with the gap after it, grows and shrinks across on the layout token,
+        // so the chip widens with its fill and its neighbours slide instead of jumping (M1-10).
+        WaiveraExpandVisibility(visible = icon != null, axis = ExpandAxis.Horizontal) {
+            shownIcon?.let { shown ->
+                Icon(
+                    painter = painterResource(shown),
+                    contentDescription = null,
+                    tint = content,
+                    modifier = Modifier
+                        .padding(end = WaiveraSpacing.ExtraSmall + WaiveraSpacing.XxSmall)
+                        .size(WaiveraSizes.FilterChipIcon)
+                        .popScale(iconPop),
+                )
+            }
         }
         Text(
             text = label,
@@ -201,7 +206,7 @@ private fun Segment(label: String, selected: Boolean, onSelect: () -> Unit, modi
     val press = rememberPressFeedback(interactionSource)
     Box(
         modifier = modifier
-            .pressFeedback(press)
+            .pressFeedback(press, shape = WaiveraShapes.Segment)
             .heightIn(min = WaiveraSizes.SegmentMinHeight)
             .clip(WaiveraShapes.Segment)
             // The chosen segment is the solid violet with white ink in the heavier weight. In dark the

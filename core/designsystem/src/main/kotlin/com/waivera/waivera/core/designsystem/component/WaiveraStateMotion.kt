@@ -2,12 +2,17 @@ package com.waivera.waivera.core.designsystem.component
 
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.MutableTransitionState
+import androidx.compose.animation.expandHorizontally
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
+import androidx.compose.animation.shrinkHorizontally
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -21,6 +26,7 @@ import androidx.compose.ui.graphics.graphicsLayer
 import com.waivera.waivera.core.designsystem.theme.WaiveraMotionScheme
 import com.waivera.waivera.core.designsystem.theme.WaiveraSpacing
 import com.waivera.waivera.core.designsystem.theme.WaiveraTheme
+import com.waivera.waivera.core.designsystem.theme.loadTransition
 import com.waivera.waivera.core.designsystem.theme.swapTransition
 
 /**
@@ -108,22 +114,72 @@ fun WaiveraPopVisibility(visible: Boolean, modifier: Modifier = Modifier, conten
     }
 }
 
+/** Which way a [WaiveraExpandVisibility] grows: a strip's height, or an inline slot's width. */
+enum class ExpandAxis { Vertical, Horizontal }
+
 /**
- * Shows and hides a strip (an editing bar, a staged image) by growing and shrinking its height on
- * the layout token, with a fade, so the content around it moves rather than jumps.
+ * Shows and hides a strip (an editing bar, a staged image, a timestamp line) by growing and
+ * shrinking its height on the layout token, with a fade, so the content around it moves rather
+ * than jumps. [axis] Horizontal grows the width instead, for an inline slot such as a chip's check
+ * or a status beside a title, so its neighbours slide over rather than jump. Under reduced
+ * motion the size snaps and only the fade remains.
  */
 @Composable
-fun WaiveraExpandVisibility(visible: Boolean, modifier: Modifier = Modifier, content: @Composable () -> Unit) {
+fun WaiveraExpandVisibility(
+    visible: Boolean,
+    modifier: Modifier = Modifier,
+    axis: ExpandAxis = ExpandAxis.Vertical,
+    content: @Composable () -> Unit,
+) {
     val motion = WaiveraTheme.motion
     AnimatedVisibility(
         visible = visible,
         modifier = modifier,
-        enter = expandVertically(motion.layout()) + fadeIn(motion.state()),
-        exit = shrinkVertically(motion.layout()) + fadeOut(motion.state()),
+        enter = motion.expandEnter(axis),
+        exit = motion.expandExit(axis),
         label = "expandVisibility",
     ) {
         content()
     }
+}
+
+/**
+ * [WaiveraExpandVisibility] driven by [visibleState], for a caller that needs to know when the
+ * leaving content has finished collapsing (`currentState` false and `isIdle`).
+ */
+@Composable
+fun WaiveraExpandVisibility(
+    visibleState: MutableTransitionState<Boolean>,
+    modifier: Modifier = Modifier,
+    axis: ExpandAxis = ExpandAxis.Vertical,
+    content: @Composable () -> Unit,
+) {
+    val motion = WaiveraTheme.motion
+    AnimatedVisibility(
+        visibleState = visibleState,
+        modifier = modifier,
+        enter = motion.expandEnter(axis),
+        exit = motion.expandExit(axis),
+        label = "expandVisibility",
+    ) {
+        content()
+    }
+}
+
+private fun WaiveraMotionScheme.expandEnter(axis: ExpandAxis): EnterTransition {
+    val grow = when (axis) {
+        ExpandAxis.Vertical -> expandVertically(layout())
+        ExpandAxis.Horizontal -> expandHorizontally(layout())
+    }
+    return grow + fadeIn(state())
+}
+
+private fun WaiveraMotionScheme.expandExit(axis: ExpandAxis): ExitTransition {
+    val shrink = when (axis) {
+        ExpandAxis.Vertical -> shrinkVertically(layout())
+        ExpandAxis.Horizontal -> shrinkHorizontally(layout())
+    }
+    return shrink + fadeOut(state())
 }
 
 /**
@@ -151,6 +207,31 @@ fun <T> WaiveraSwap(
         contentKey = contentKey,
     ) { state ->
         content(state)
+    }
+}
+
+/**
+ * Swaps a loading skeleton for the content it stands in for, and back (M1-16): the content fades
+ * in on the state token while the skeleton leaves faster, with no slide, so loaded content
+ * settles in place instead of cutting. [loading] decides which side shows; reduced motion
+ * cross-fades. Content inside keeps its own keys and state across recompositions of one side.
+ */
+@Composable
+fun WaiveraLoadSwap(
+    loading: Boolean,
+    modifier: Modifier = Modifier,
+    contentAlignment: Alignment = Alignment.TopStart,
+    content: @Composable (loading: Boolean) -> Unit,
+) {
+    val motion = WaiveraTheme.motion
+    AnimatedContent(
+        targetState = loading,
+        modifier = modifier,
+        transitionSpec = { motion.loadTransition() },
+        contentAlignment = contentAlignment,
+        label = "loadSwap",
+    ) { showsSkeleton ->
+        content(showsSkeleton)
     }
 }
 

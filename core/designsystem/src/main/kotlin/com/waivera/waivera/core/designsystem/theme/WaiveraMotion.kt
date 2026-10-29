@@ -7,10 +7,15 @@ import android.provider.Settings
 import androidx.compose.animation.ContentTransform
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
+import androidx.compose.animation.SizeTransform
 import androidx.compose.animation.core.Easing
+import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.FiniteAnimationSpec
+import androidx.compose.animation.core.InfiniteRepeatableSpec
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.LinearOutSlowInEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.keyframes
 import androidx.compose.animation.core.snap
 import androidx.compose.animation.core.spring
@@ -21,6 +26,7 @@ import androidx.compose.animation.scaleIn
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
+import androidx.compose.animation.using
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.Immutable
@@ -31,11 +37,12 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.IntSize
 import kotlin.math.roundToInt
 
 /** The motion vocabulary from the UX research. Ad-hoc animation specs fail review. */
 enum class MotionToken {
-    /** Button and row press: a quick spatial spring to 0.96 scale. */
+    /** Button and row press: a quick spatial spring to the control's [PressDepth]. */
     Press,
 
     /** Colour, opacity, badge and toggle changes. Never overshoots. */
@@ -55,6 +62,29 @@ enum class MotionToken {
 }
 
 /**
+ * How far a control sinks under the finger, by its size (M1-04). One depth for everything pulled a
+ * full-bleed row's edges in about 7dp, enough to shift its text, while a 40dp icon moved under 1dp
+ * and the press was not seen. Large surfaces dip a little; small targets dip more. [scale] is the
+ * press itself and [longPressScale] how far a control with a long press keeps sinking while the
+ * hold arms (M1-02): the Button pair is the critic's 0.96 to 0.93, and the others keep the same
+ * proportion so a full-bleed row never sinks enough to shift its text. Reduced motion uses 1 for
+ * every depth ([WaiveraMotionScheme.pressScale]).
+ */
+enum class PressDepth(val scale: Float, val longPressScale: Float) {
+    /** Full-bleed list rows: settings, switch and radio rows, conversation rows. */
+    Row(scale = 0.985f, longPressScale = 0.97f),
+
+    /** Cards with a margin: agenda cards, bookmark cards, the Today celebration card. */
+    Card(scale = 0.97f, longPressScale = 0.95f),
+
+    /** Buttons, chips, segments and message bubbles. */
+    Button(scale = 0.96f, longPressScale = 0.93f),
+
+    /** Small targets: icon buttons, the tab icon box, the send glyph, a search clear. */
+    Compact(scale = 0.90f, longPressScale = 0.86f),
+}
+
+/**
  * Resolved motion specs. Normal values mirror Material 3's standard motion scheme springs
  * (fast/default spatial, fast effects) and its expressive slow spatial spring for [MotionToken.Celebrate].
  * When [reduced] is true (animator scale 0 / "Remove animations"), spatial motion snaps and
@@ -63,8 +93,8 @@ enum class MotionToken {
 @Immutable
 class WaiveraMotionScheme internal constructor(val reduced: Boolean) {
 
-    /** Target scale while a control is pressed. */
-    val pressScale: Float = if (reduced) 1f else PRESS_SCALE
+    /** Target scale while a [PressDepth.Button] control is pressed; see [pressScaleFor]. */
+    val pressScale: Float = if (reduced) 1f else PressDepth.Button.scale
 
     /** Whether loops such as the skeleton pulse should animate at all. */
     val allowsLoopingMotion: Boolean = !reduced
@@ -119,21 +149,34 @@ class WaiveraMotionScheme internal constructor(val reduced: Boolean) {
     /**
      * A wrong sign-in: the form moves side to side once and settles, as a head shake says "no".
      * Values are fractions of [WaiveraSpacing.ShakeAmplitude], starting and ending at 0, and the
-     * swing shrinks each time so it reads as one small shake rather than a wobble. With the
-     * failed-send vibration it is the only feedback that pairs with a buzz (haptics policy,
-     * 2026-10-29). Reduced motion snaps, and `rememberRejectShake` does not run it at all.
+     * swing shrinks each time so it reads as one small shake rather than a wobble. Each segment
+     * eases in and out, so the form slows into every turn instead of bouncing off it as a
+     * triangle wave (M1-15). With the failed-send vibration it is the only feedback that pairs
+     * with a buzz (haptics policy, 2026-10-29). Reduced motion snaps, and `rememberRejectShake`
+     * does not run it at all.
      */
     val rejectShake: FiniteAnimationSpec<Float> = if (reduced) {
         snap()
     } else {
         keyframes {
             durationMillis = REJECT_SHAKE_MILLIS
-            -1f at SHAKE_FIRST_MILLIS
-            1f at SHAKE_SECOND_MILLIS
-            -SHAKE_THIRD_SWING at SHAKE_THIRD_MILLIS
-            SHAKE_FOURTH_SWING at SHAKE_FOURTH_MILLIS
+            0f at 0 using FastOutSlowInEasing
+            -1f at SHAKE_FIRST_MILLIS using FastOutSlowInEasing
+            1f at SHAKE_SECOND_MILLIS using FastOutSlowInEasing
+            -SHAKE_THIRD_SWING at SHAKE_THIRD_MILLIS using FastOutSlowInEasing
+            SHAKE_FOURTH_SWING at SHAKE_FOURTH_MILLIS using FastOutSlowInEasing
         }
     }
+
+    /**
+     * The skeleton's breathing between the base and highlight colours: eased, so it slows at each
+     * end like a breath instead of bouncing between them (M1-16). Only used while
+     * [allowsLoopingMotion]; with animations off the skeleton holds its base colour.
+     */
+    val skeletonPulse: InfiniteRepeatableSpec<Float> = infiniteRepeatable(
+        animation = tween(durationMillis = SKELETON_PULSE_MILLIS, easing = FastOutSlowInEasing),
+        repeatMode = RepeatMode.Reverse,
+    )
 
     /** Forward screen change: content slides in from the end, or cross-fades when reduced. */
     fun forwardTransition(): ContentTransform = if (reduced) {
@@ -188,7 +231,54 @@ class WaiveraMotionScheme internal constructor(val reduced: Boolean) {
     override fun hashCode(): Int = reduced.hashCode()
 
     companion object {
+        /** The [PressDepth.Button] press scale, the one most controls use. */
         const val PRESS_SCALE = 0.96f
+        internal const val PRESS_RELEASE_DAMPING = 0.6f
+        internal const val PRESS_RELEASE_STIFFNESS = 800f
+        internal const val PRESS_CANCEL_STIFFNESS = 2400f
+
+        /** How long a held press waits before it starts sinking toward its long press (M1-02). */
+        const val LONG_PRESS_ARM_DELAY_MILLIS = 150L
+
+        /** The shortest sink, for a system long-press timeout barely past the arm delay. */
+        const val LONG_PRESS_MIN_SINK_MILLIS = 100
+
+        /**
+         * With animations off, a press answers with a state-layer tint at once instead of a scale
+         * (M1-12): Material's pressed alpha, and its dragged alpha while a long press arms.
+         */
+        const val PRESSED_TINT_ALPHA = 0.10f
+        const val LONG_PRESS_TINT_ALPHA = 0.16f
+
+        /** [exit]: the leaving side of a swap, gone before the arriving side is halfway (M1-01). */
+        const val EXIT_MILLIS = 90
+
+        /** One half of a [skeletonPulse] breath. */
+        const val SKELETON_PULSE_MILLIS = 900
+
+        /** How long "Synced" shows, its check popped, before the sync line folds away (M1-07). */
+        const val SYNCED_BEAT_MILLIS = 900L
+
+        /**
+         * How long a send waits before it says "Sending…" (M1-09). A good connection acks inside
+         * this, so the footer goes straight to the time in one swap instead of flashing twice.
+         */
+        const val SENDING_LABEL_DELAY_MILLIS = 400L
+
+        /** How long the send button keeps its enabled fill after a send, so its pop is seen (M1-08). */
+        const val SEND_PAYOFF_HOLD_MILLIS = 180L
+
+        /** How long a removed item shows its control's change before it starts to leave (M1-14). */
+        const val REMOVAL_BEAT_MILLIS = 120L
+
+        /**
+         * How long after its removal was asked for an item may still be on screen before the
+         * removal counts as not held (failed or undone), and its control goes back.
+         */
+        const val REMOVAL_HELD_MILLIS = 1_000L
+
+        /** Where the selected tab's pill starts across: grown out from the glyph (M1-11). */
+        const val TAB_PILL_START_SCALE_X = 0.55f
         const val REDUCED_FADE_MILLIS = 150
         internal const val SPATIAL_DAMPING = 0.9f
         internal const val FAST_SPATIAL_STIFFNESS = 1400f
@@ -233,18 +323,39 @@ class WaiveraMotionScheme internal constructor(val reduced: Boolean) {
 /**
  * Content replacing other content in the same place (a status line, a period title). A
  * [direction] above 0 slides the new content in from the end side, below 0 from the start side,
- * as when stepping to the next or previous period; 0 fades it in with a small pop. Reduced
- * motion cross-fades (the state token is then a short fade).
+ * as when stepping to the next or previous period; 0 fades it in with a small pop. The leaving
+ * side fades on [WaiveraMotionScheme.exit], faster than the new side arrives, so two texts never
+ * sit on top of each other at half strength. Reduced motion cross-fades (the state token is then
+ * a short fade).
+ *
+ * The slot's size follows the new content on the layout token without clipping (M1-01): the
+ * default size transform clipped the arriving content to the growing bounds and an untokened
+ * spring, so "Discard" showed as "iscard" and end-aligned text was revealed from its trailing
+ * edge. Reduced motion jumps to the new size.
  */
-fun WaiveraMotionScheme.swapTransition(direction: Int = 0): ContentTransform = when {
-    reduced -> fadeIn(state()) togetherWith fadeOut(state())
-    direction == 0 -> fadeIn(state()) + scaleIn(pop, initialScale = SWAP_START_SCALE) togetherWith fadeOut(state())
-    else -> {
-        val sign = if (direction > 0) 1 else -1
-        slideInHorizontally(layout<IntOffset>()) { sign * it / SWAP_DIVISOR } + fadeIn(state()) togetherWith
-            slideOutHorizontally(layout<IntOffset>()) { -sign * it / SWAP_DIVISOR } + fadeOut(state())
+fun WaiveraMotionScheme.swapTransition(direction: Int = 0): ContentTransform {
+    val transform = when {
+        reduced -> fadeIn(state()) togetherWith fadeOut(state())
+        direction == 0 -> fadeIn(state()) + scaleIn(pop, initialScale = SWAP_START_SCALE) togetherWith fadeOut(exit())
+        else -> {
+            val sign = if (direction > 0) 1 else -1
+            slideInHorizontally(layout<IntOffset>()) { sign * it / SWAP_DIVISOR } + fadeIn(state()) togetherWith
+                slideOutHorizontally(layout<IntOffset>()) { -sign * it / SWAP_DIVISOR } + fadeOut(exit())
+        }
     }
+    return transform using swapSizeTransform()
 }
+
+/** The swap's size change: unclipped, on the layout token (a snap with animations off). */
+fun WaiveraMotionScheme.swapSizeTransform(): SizeTransform = SizeTransform(clip = false) { _, _ -> layout<IntSize>() }
+
+/**
+ * Skeleton to content, or content back to a skeleton (M1-16): the new side fades in on the state
+ * token while the old one leaves on [WaiveraMotionScheme.exit], with no slide or scale, so loaded
+ * content settles in place instead of cutting. Reduced motion cross-fades.
+ */
+fun WaiveraMotionScheme.loadTransition(): ContentTransform =
+    fadeIn(state()) togetherWith fadeOut(exit()) using swapSizeTransform()
 
 private const val SWAP_START_SCALE = 0.92f
 private const val SWAP_DIVISOR = 3

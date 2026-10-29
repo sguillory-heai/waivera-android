@@ -4,6 +4,7 @@ import androidx.annotation.DrawableRes
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
@@ -14,6 +15,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import com.waivera.waivera.core.designsystem.icon.WaiveraIcons
 import com.waivera.waivera.core.designsystem.preview.WaiveraPreviews
+import com.waivera.waivera.core.designsystem.theme.PressDepth
 import com.waivera.waivera.core.designsystem.theme.WaiveraSizes
 import com.waivera.waivera.core.designsystem.theme.WaiveraTheme
 
@@ -33,13 +35,13 @@ fun WaiveraIconButton(
 ) {
     val resolvedTint = if (tint == Color.Unspecified) WaiveraTheme.colors.text else tint
     val interactionSource = remember { MutableInteractionSource() }
-    val press = rememberPressFeedback(interactionSource)
+    val press = rememberPressFeedback(interactionSource, depth = PressDepth.Compact)
     val iconPop = rememberPopScale(key = icon)
     IconButton(
         onClick = onClick,
         modifier = modifier
             .size(WaiveraSizes.IconButton)
-            .pressFeedback(press, enabled = enabled),
+            .pressFeedback(press, enabled = enabled, shape = CircleShape),
         enabled = enabled,
         interactionSource = interactionSource,
         colors = IconButtonDefaults.iconButtonColors(

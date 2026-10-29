@@ -154,7 +154,7 @@ fun WaiveraButton(
     Button(
         onClick = { if (!loading) onClick() },
         modifier = modifier
-            .pressFeedback(press, enabled = enabled)
+            .pressFeedback(press, enabled = enabled, shape = shape)
             .buttonLift(finish, shape, colors)
             .heightIn(min = if (large) WaiveraSizes.CtaHeight else WaiveraSizes.ButtonMinHeight)
             .then(if (fullWidth || large) Modifier.fillMaxWidth() else Modifier)

@@ -4,6 +4,7 @@ import androidx.compose.animation.core.Animatable
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.State
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.TransformOrigin
@@ -41,34 +42,37 @@ object BubbleArrival {
 /**
  * 0 → 1 for a live arrival (your send on `sendPop`, others on `layout`), 1 at once for history
  * or with reduced motion. The value can briefly pass 1 on a send; clamp it before using it as
- * an opacity.
+ * an opacity. Returned as state: read it in a layer or draw block only, so an arriving bubble
+ * never recomposes per frame (M1-08).
  */
 @Composable
-fun rememberBubbleArrival(isLiveArrival: Boolean, mine: Boolean): Float {
+fun rememberBubbleArrival(isLiveArrival: Boolean, mine: Boolean): State<Float> {
     val motion = WaiveraTheme.motion
     val progress = remember { Animatable(if (isLiveArrival && !motion.reduced) 0f else 1f) }
     LaunchedEffect(Unit) {
         if (progress.value < 1f) progress.animateTo(1f, if (mine) motion.sendPop else motion.layout<Float>())
     }
-    return progress.value
+    return progress.asState()
 }
 
 /**
  * Draws [progress] as a [BubbleArrival] frame: own bubbles grow from their bottom end corner.
  * The layer is placed from a layout modifier because the graphics layer scope has no layout
- * direction, and the end corner flips in right-to-left layouts.
+ * direction, and the end corner flips in right-to-left layouts. The progress is read in the
+ * layer block, so the arrival updates the layer and never re-measures or recomposes the row.
  */
-fun Modifier.bubbleArrival(progress: Float, mine: Boolean, offset: Dp): Modifier = layout { measurable, constraints ->
-    val placeable = measurable.measure(constraints)
-    val endX = if (layoutDirection == LayoutDirection.Rtl) 0f else 1f
-    layout(placeable.width, placeable.height) {
-        placeable.placeWithLayer(0, 0) {
-            val frame = BubbleArrival.frame(progress, mine)
-            transformOrigin = TransformOrigin(pivotFractionX = if (mine) endX else 0f, pivotFractionY = 1f)
-            scaleX = frame.scale
-            scaleY = frame.scale
-            translationY = frame.offsetFraction * offset.toPx()
-            alpha = frame.alpha
+fun Modifier.bubbleArrival(progress: State<Float>, mine: Boolean, offset: Dp): Modifier =
+    layout { measurable, constraints ->
+        val placeable = measurable.measure(constraints)
+        val endX = if (layoutDirection == LayoutDirection.Rtl) 0f else 1f
+        layout(placeable.width, placeable.height) {
+            placeable.placeWithLayer(0, 0) {
+                val frame = BubbleArrival.frame(progress.value, mine)
+                transformOrigin = TransformOrigin(pivotFractionX = if (mine) endX else 0f, pivotFractionY = 1f)
+                scaleX = frame.scale
+                scaleY = frame.scale
+                translationY = frame.offsetFraction * offset.toPx()
+                alpha = frame.alpha
+            }
         }
     }
-}

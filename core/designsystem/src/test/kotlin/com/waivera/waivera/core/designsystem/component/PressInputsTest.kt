@@ -47,4 +47,15 @@ class PressInputsTest {
         assertEquals(0L, PressTiming.releaseDelayMillis(500, 500 + PressTiming.MIN_VISIBLE_PRESS_MILLIS))
         assertEquals(0L, PressTiming.releaseDelayMillis(500, 2_000), "a long press releases at once")
     }
+
+    @Test
+    fun `a press a scroll or swipe took lets go at once, however short it was`() {
+        assertEquals(0L, PressTiming.releaseDelayMillis(500, 500, cancelled = true), "no minimum hold mid-scroll")
+        assertEquals(0L, PressTiming.releaseDelayMillis(500, 530, cancelled = true))
+        assertEquals(
+            PressTiming.MIN_VISIBLE_PRESS_MILLIS,
+            PressTiming.releaseDelayMillis(500, 500, cancelled = false),
+            "a real lift keeps its minimum",
+        )
+    }
 }

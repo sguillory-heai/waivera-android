@@ -38,6 +38,7 @@ import androidx.compose.ui.unit.Dp
 import com.waivera.waivera.core.designsystem.icon.WaiveraIcons
 import com.waivera.waivera.core.designsystem.preview.WaiveraPreviews
 import com.waivera.waivera.core.designsystem.text.withBreaksAfterHyphens
+import com.waivera.waivera.core.designsystem.theme.PressDepth
 import com.waivera.waivera.core.designsystem.theme.WaiveraElevation
 import com.waivera.waivera.core.designsystem.theme.WaiveraShapes
 import com.waivera.waivera.core.designsystem.theme.WaiveraSizes
@@ -102,6 +103,7 @@ fun WaiveraListRow(
             enabled = enabled,
             onClickLabel = onClickLabel,
             onLongClick = onLongClick,
+            depth = PressDepth.Row,
         ) { body() }
     } else {
         Box(modifier = modifier.fillMaxWidth().semantics(mergeDescendants = true) {}) { body() }
@@ -125,7 +127,7 @@ fun WaiveraSwitchRow(
 ) {
     val colors = WaiveraTheme.colors
     val interactionSource = remember { MutableInteractionSource() }
-    val press = rememberPressFeedback(interactionSource)
+    val press = rememberPressFeedback(interactionSource, depth = PressDepth.Row)
     Row(
         modifier = modifier
             .fillMaxWidth()
