@@ -144,3 +144,44 @@ private fun FocusGeometry.sideAligned(width: Int, left: Int, right: Int, minLeft
     val desired = if (mine) right - width else left
     return desired.coerceAtMost(maxRight - width).coerceAtLeast(minLeft)
 }
+
+/**
+ * One frame of the overlay's entrance, from the lift's spring [progress] (0 at the press, 1 at
+ * rest, past 1 while it overshoots). The bubble scales about its centre from [from] and moves from
+ * [travel] pixels below its place (above it when negative), on the bouncy pop spring.
+ *
+ * The reaction pill and the menu ride the bubble's edges so that the spring can never carry the
+ * bubble under them (wave 30 O1: its overshoot put its first line under the pill for about 100 ms).
+ * When the bubble's drawn top is above its resting top, the pill moves up by as much; when its
+ * drawn bottom is below its resting bottom, the menu under it moves down by as much ([menuFollows],
+ * the stacked arrangement only; beside, the menu is in its own column). So at every frame the gaps
+ * are at least their resting [FocusGeometry.gap], and at rest nothing is shifted.
+ */
+@Immutable
+internal data class LiftFrame(
+    val bubbleScale: Float,
+    val bubbleShift: Float,
+    val pillShift: Float,
+    val menuShift: Float,
+)
+
+internal fun liftFrame(
+    progress: Float,
+    from: Float,
+    travel: Float,
+    bubbleHeight: Int,
+    menuFollows: Boolean,
+): LiftFrame {
+    val scale = from + (1f - from) * progress
+    val shift = travel * (1f - progress)
+    // Scaled about its centre, each edge of the bubble moves in by half the height it loses.
+    val inset = bubbleHeight * (1f - scale) / 2f
+    val topShift = shift + inset
+    val bottomShift = shift - inset
+    return LiftFrame(
+        bubbleScale = scale,
+        bubbleShift = shift,
+        pillShift = min(0f, topShift),
+        menuShift = if (menuFollows) max(0f, bottomShift) else 0f,
+    )
+}

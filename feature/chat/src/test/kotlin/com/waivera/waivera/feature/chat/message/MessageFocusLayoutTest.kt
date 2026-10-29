@@ -2,7 +2,9 @@ package com.waivera.waivera.feature.chat.message
 
 import androidx.compose.animation.core.SnapSpec
 import androidx.compose.animation.core.SpringSpec
+import androidx.compose.animation.core.TargetBasedAnimation
 import androidx.compose.animation.core.TweenSpec
+import androidx.compose.animation.core.VectorConverter
 import androidx.compose.ui.unit.IntRect
 import androidx.compose.ui.unit.IntSize
 import com.waivera.waivera.core.designsystem.theme.PressDepth
@@ -143,5 +145,74 @@ class MessageFocusLayoutTest {
         assertFalse("the real bubble does not fade", standard.bubbleFades)
         assertTrue("the pill and menu grow out of the bubble", standard.piecesFrom < 1f)
         assertTrue(standard.lift is SpringSpec)
+    }
+
+    /**
+     * Wave 30 O1: at every 16 ms frame of the pop spring, upright and beside, rising from the
+     * composer and dropping from under the top bar, short and clamped tall: the pill's bottom stays
+     * at least the gap above the bubble's drawn top, and stacked, the menu's top at least the gap
+     * below its drawn bottom. At rest nothing is shifted.
+     */
+    @Test
+    fun theSpringNeverCarriesTheBubbleUnderThePillOrTheMenu() {
+        val spring = focusEntrance(WaiveraMotionScheme.Standard)
+        val animation = TargetBasedAnimation(spring.lift, Float.VectorConverter, 0f, 1f)
+        val frames = (0..animation.durationNanos / FRAME_NANOS).map { animation.getValueFromNanos(it * FRAME_NANOS) }
+        assertTrue("the pop spring does not overshoot, so this checks nothing", frames.any { it > 1f })
+        val cases = listOf(260f, 40f, -640f, 0f).flatMap { travel ->
+            listOf(40, 268).flatMap { height -> listOf(true, false).map { stacked -> Triple(travel, height, stacked) } }
+        }
+        for ((travel, height, stacked) in cases) {
+            val label = "travel $travel, height $height, ${if (stacked) "stacked" else "beside"}"
+            frames.forEachIndexed { frame, progress ->
+                assertClearOfTheBubble(
+                    liftFrame(progress, spring.bubbleFrom, travel, height, menuFollows = stacked),
+                    height,
+                    stacked,
+                    "$label, frame $frame",
+                )
+            }
+            assertAtRest(liftFrame(1f, spring.bubbleFrom, travel, height, menuFollows = stacked), label)
+        }
+    }
+
+    /** With the bubble at rest at y 300: the pill and (stacked) the menu keep the gap from its drawn edges. */
+    private fun assertClearOfTheBubble(f: LiftFrame, height: Int, stacked: Boolean, label: String) {
+        val restTop = 300
+        val inset = height * (1f - f.bubbleScale) / 2f
+        val drawnTop = restTop + f.bubbleShift + inset
+        val drawnBottom = restTop + height + f.bubbleShift - inset
+        val pillBottom = restTop - gap + f.pillShift
+        assertTrue(
+            "$label: the pill ($pillBottom) is under ${gap}px from the bubble ($drawnTop)",
+            drawnTop - pillBottom >= gap - EPSILON,
+        )
+        if (stacked) {
+            val menuTop = restTop + height + gap + f.menuShift
+            assertTrue(
+                "$label: the menu ($menuTop) is under ${gap}px from the bubble ($drawnBottom)",
+                menuTop - drawnBottom >= gap - EPSILON,
+            )
+        } else {
+            assertEquals("$label: the menu beside moves", 0f, f.menuShift, EPSILON)
+        }
+    }
+
+    @Test
+    fun withReducedMotionNothingIsShifted() {
+        val reduced = focusEntrance(WaiveraMotionScheme.Reduced)
+        assertAtRest(liftFrame(1f, reduced.bubbleFrom, travel = 0f, bubbleHeight = 268, menuFollows = true), "reduced")
+    }
+
+    private fun assertAtRest(f: LiftFrame, label: String) {
+        assertEquals("$label: the bubble's scale at rest", 1f, f.bubbleScale, EPSILON)
+        assertEquals("$label: the bubble's shift at rest", 0f, f.bubbleShift, EPSILON)
+        assertEquals("$label: the pill's shift at rest", 0f, f.pillShift, EPSILON)
+        assertEquals("$label: the menu's shift at rest", 0f, f.menuShift, EPSILON)
+    }
+
+    private companion object {
+        const val FRAME_NANOS = 16_000_000L
+        const val EPSILON = 0.01f
     }
 }

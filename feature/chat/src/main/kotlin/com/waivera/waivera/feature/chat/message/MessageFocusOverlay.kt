@@ -48,6 +48,7 @@ import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.layout.layoutId
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
@@ -296,7 +297,11 @@ fun MessageFocusLayer(
             )
             val at = geometry.place(frame, IntSize(bubble.width, bubble.height))
             // The bubble starts where the press left it and springs to where it fits.
-            val travel = ((anchorPx?.top ?: at.bubble.y) - at.bubble.y).toFloat()
+            val travel = if (entrance.travels) ((anchorPx?.top ?: at.bubble.y) - at.bubble.y).toFloat() else 0f
+            val menuFollows = at.arrangement == FocusArrangement.Stacked
+
+            // Read in each layer, so the spring only redraws; the pill and menu keep clear of the bubble.
+            fun lifted() = liftFrame(lift.value, entrance.bubbleFrom, travel, bubble.height, menuFollows)
             val pivotX = if (mine) 1f else 0f
             fun GraphicsLayerScope.piece(pivotY: Float) {
                 val scale = entrance.piecesFrom + (1f - entrance.piecesFrom) * lift.value
@@ -308,16 +313,24 @@ fun MessageFocusLayer(
             }
             layout(width, height) {
                 bubble.placeWithLayer(at.bubble) {
-                    val progress = lift.value
-                    val scale = entrance.bubbleFrom + (1f - entrance.bubbleFrom) * progress
-                    scaleX = scale
-                    scaleY = scale
-                    translationY = if (entrance.travels) travel * (1f - progress) else 0f
+                    val now = lifted()
+                    scaleX = now.bubbleScale
+                    scaleY = now.bubbleScale
+                    translationY = now.bubbleShift
                     alpha = if (entrance.bubbleFades) appear.value else 1f
                 }
                 val pillAt = at.pill
-                if (pill != null && pillAt != null) pill.placeWithLayer(pillAt) { piece(pivotY = 1f) }
-                menu.placeWithLayer(at.menu) { piece(pivotY = 0f) }
+                if (pill != null && pillAt != null) {
+                    // Grown from its bottom edge, the one facing the bubble, so its pop never reaches down.
+                    pill.placeWithLayer(pillAt) {
+                        piece(pivotY = 1f)
+                        translationY = lifted().pillShift
+                    }
+                }
+                menu.placeWithLayer(at.menu) {
+                    piece(pivotY = 0f)
+                    translationY = lifted().menuShift
+                }
             }
         }
     }
@@ -325,11 +338,16 @@ fun MessageFocusLayer(
 
 private enum class FocusPart { Pill, Bubble, Menu }
 
+/** The lifted bubble and the reaction pill, for tests that follow them through the entrance. */
+internal const val FOCUS_BUBBLE_TAG = "message_focus_bubble"
+internal const val FOCUS_PILL_TAG = "message_focus_pill"
+
 /**
  * How the overlay arrives (WaiveraMotion). With motion on, the bubble starts at the long press's
  * sink ([PressDepth.longPressScale]) where it was pressed and lifts to its place on the bouncy
- * pop spring, while the pill and the menu scale out of its edge and fade in. With animations
- * removed nothing moves or scales: the overlay only fades in, the bubble with it.
+ * pop spring, while the pill and the menu scale out of its edge and fade in, riding its edges
+ * through the spring so they never cover it ([liftFrame]). With animations removed nothing moves
+ * or scales: the overlay only fades in, the bubble with it.
  */
 @Immutable
 internal class FocusEntrance(
@@ -374,6 +392,7 @@ private fun LiftedBubble(model: MessageActionsModel, mine: Boolean, onLink: (Str
     val fill = if (mine) colors.myBubble else colors.surface
     Box(
         modifier = modifier
+            .testTag(FOCUS_BUBBLE_TAG)
             .shadow(elevation = WaiveraElevation.Overlay, shape = shape, clip = false)
             .background(fill, shape)
             .then(if (mine) Modifier else Modifier.border(WaiveraSpacing.Hairline, colors.border, shape))
@@ -438,6 +457,7 @@ private fun ReactionPill(onReact: (String) -> Unit, modifier: Modifier = Modifie
     val emojiSp = with(LocalDensity.current) { ChatDimens.FocusEmojiGlyph.toSp() }
     Row(
         modifier = modifier
+            .testTag(FOCUS_PILL_TAG)
             .shadow(elevation = WaiveraElevation.Overlay, shape = WaiveraShapes.Pill, clip = false)
             .background(colors.raised, WaiveraShapes.Pill)
             .border(WaiveraSpacing.Hairline, colors.border, WaiveraShapes.Pill)
