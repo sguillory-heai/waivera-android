@@ -26,6 +26,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextOverflow
 import com.waivera.waivera.core.designsystem.preview.WaiveraPreviews
 import com.waivera.waivera.core.designsystem.text.CelebrationCopy
@@ -89,7 +90,13 @@ fun typingLine(names: List<String>): TypingLine? {
 @Composable
 fun TypingSlot(line: TypingLine?, modifier: Modifier = Modifier) {
     val style = MaterialTheme.typography.labelMedium
-    val lineHeight = with(LocalDensity.current) { style.lineHeight.toDp() }
+    // The drawn line, not style.lineHeight: at large font the glyphs need more than the
+    // style's line height, and a slot sized from it clips their descenders.
+    val measurer = rememberTextMeasurer()
+    val density = LocalDensity.current
+    val lineHeight = remember(style, density) {
+        with(density) { measurer.measure(TYPING_MEASURE_SAMPLE, style, maxLines = 1).size.height.toDp() }
+    }
     Box(
         modifier = modifier
             .fillMaxWidth()
@@ -158,6 +165,9 @@ internal const val TYPING_NAMES_TAG = "chat_typing_names"
 
 /** Test tag for "is typing…" once the names are cut. */
 internal const val TYPING_TAIL_TAG = "chat_typing_tail"
+
+/** Tall and deep glyphs, so the slot is sized for any line it shows. */
+private const val TYPING_MEASURE_SAMPLE = "Ág"
 
 @WaiveraPreviews
 @Composable

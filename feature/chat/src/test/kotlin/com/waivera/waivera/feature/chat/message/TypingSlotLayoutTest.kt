@@ -84,7 +84,11 @@ class TypingSlotLayoutTest {
             assertEquals(empty, slotHeight(), "the slot changes height for $typing at ${fontScale}x")
             val shown = layoutOf(TYPING_NAMES_TAG)
             assertEquals(1, shown.lineCount, "the names wrap for $typing at ${fontScale}x")
-            assertFalse(shown.didOverflowHeight, "the names are cut vertically for $typing")
+            // Not didOverflowHeight: with maxLines = 1 it is also true for an ellipsized line that fits.
+            assertTrue(
+                shown.getLineBottom(0) <= shown.size.height,
+                "the names are cut vertically for $typing at ${fontScale}x",
+            )
             val tails = compose.onAllNodesWithTag(TYPING_TAIL_TAG, useUnmergedTree = true).fetchSemanticsNodes()
             if (tails.isNotEmpty()) {
                 val tail = layoutOf(TYPING_TAIL_TAG)
