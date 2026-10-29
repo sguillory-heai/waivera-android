@@ -33,6 +33,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
@@ -107,6 +108,9 @@ fun rememberTopBarAccount(onClick: () -> Unit, fallbackName: String = "", painte
  * to two lines at large font scales instead of clipping, and the sheet band narrows there so the
  * header stays compact.
  *
+ * [subtitleMaxLines] caps the subtitle, for a screen whose subtitle is a long name under a
+ * one-word title (a thread "In" its channel), so the header stays at two lines.
+ *
  * [heroContent] goes on the plum under the bar row, for a screen that has a hero of its own (a
  * person's avatar and name). It uses the hero inks ([WaiveraHero.colors]).
  */
@@ -117,6 +121,7 @@ fun WaiveraTopBar(
     title: String,
     modifier: Modifier = Modifier,
     subtitle: String? = null,
+    subtitleMaxLines: Int = 2,
     onBack: (() -> Unit)? = null,
     actions: List<TopBarAction> = emptyList(),
     account: TopBarAccount? = null,
@@ -167,12 +172,14 @@ fun WaiveraTopBar(
                             modifier = Modifier.semantics { heading() },
                         )
                         if (subtitle != null) {
+                            // TalkBack reads the whole subtitle even when its line limit cuts it.
                             Text(
                                 text = subtitle,
                                 style = MaterialTheme.typography.labelMedium,
                                 color = hero.onHeaderSecondary,
-                                maxLines = 2,
+                                maxLines = subtitleMaxLines,
                                 overflow = TextOverflow.Ellipsis,
+                                modifier = Modifier.semantics { contentDescription = subtitle },
                             )
                         }
                     }

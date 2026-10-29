@@ -213,6 +213,7 @@ fun ThreadScreen(
 }
 
 private const val THREAD_SAVE_MIME_TYPE = "application/octet-stream"
+internal const val THREAD_SUBTITLE_LINES = 1
 
 @Immutable
 class ThreadActions(
@@ -307,6 +308,9 @@ fun ThreadScreenContent(
                 title = stringResource(R.string.feature_chat_thread_screen_title),
                 // Where the thread lives; the connection banner is the one connection signal.
                 subtitle = state.conversationTitle?.let { stringResource(R.string.feature_chat_thread_in, it) },
+                // One line under the one-word title keeps the header at two lines at 200%; a long
+                // channel name ends in "…" and is still read whole.
+                subtitleMaxLines = THREAD_SUBTITLE_LINES,
                 onBack = actions.onBack,
             )
             Column(
