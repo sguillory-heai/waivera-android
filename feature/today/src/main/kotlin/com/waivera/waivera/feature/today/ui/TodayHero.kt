@@ -36,6 +36,7 @@ import com.waivera.waivera.core.designsystem.component.WaiveraHeroSection
 import com.waivera.waivera.core.designsystem.component.WaiveraHeroTopBar
 import com.waivera.waivera.core.designsystem.component.WaiveraHeroTrail
 import com.waivera.waivera.core.designsystem.component.WaiveraLoadSwap
+import com.waivera.waivera.core.designsystem.component.WaiveraNameText
 import com.waivera.waivera.core.designsystem.component.WaiveraPressable
 import com.waivera.waivera.core.designsystem.component.WaiveraProgressRing
 import com.waivera.waivera.core.designsystem.component.WaiveraRewardRing
@@ -113,8 +114,12 @@ private fun DayHeroBody(state: TodayUiState, onOpenEvent: (String) -> Unit) {
             )
         }
         state.greeting?.let { greeting ->
-            Text(
+            // A first name too long for the line ends in "…" on one line instead of breaking
+            // mid-word down the hero (wave 29 N2); TalkBack still reads the whole greeting.
+            WaiveraNameText(
                 text = greetingText(greeting),
+                name = greeting.firstName.orEmpty(),
+                maxLines = GREETING_NAME_MAX_LINES,
                 style = if (compact) WaiveraTextStyles.HeroGreetingCompact else WaiveraTextStyles.HeroGreeting,
                 color = hero.onHeader,
                 modifier = Modifier
@@ -479,7 +484,10 @@ private fun RewardHeroBody(state: TodayUiState) {
                     .padding(top = WaiveraSpacing.Large)
                     .semantics { heading() },
             )
-            Text(
+            // The first name follows the greeting's rule: never broken mid-word (wave 29 N2).
+            WaiveraNameText(
+                name = name.orEmpty(),
+                maxLines = GREETING_NAME_MAX_LINES,
                 text = when {
                     handled <= 0 -> stringResource(R.string.feature_today_all_caught_up_message)
                     name != null -> pluralStringResource(
@@ -527,6 +535,9 @@ private fun handledStat(progress: TodayProgress?): WaiveraStat {
 
 private const val PLACEHOLDER_TITLE = 0.8f
 private const val NEXT_TITLE_LINES = 2
+
+/** A first name of two words may wrap at its space; a single word too long for the line ellipsizes. */
+private const val GREETING_NAME_MAX_LINES = 2
 private const val PLACEHOLDER_BODY = 0.55f
 private const val PLACEHOLDER_KICKER = 0.35f
 private const val PLACEHOLDER_NEXT = 0.6f
