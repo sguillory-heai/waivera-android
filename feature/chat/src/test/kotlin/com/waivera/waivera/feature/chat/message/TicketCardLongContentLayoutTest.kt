@@ -150,7 +150,12 @@ class TicketCardLongContentLayoutTest {
             assertTrue("\"$badge\" ($left..$right) leaves the card ($cardLeft..$cardRight)", left >= cardLeft)
             assertTrue("\"$badge\" ($left..$right) leaves the card ($cardLeft..$cardRight)", right <= cardRight)
         }
-        assertFalse("CRITICAL is squeezed or cut", layoutOf(CRITICAL).didOverflowWidth)
+        // A badge never wraps (softWrap = false), and for such text didOverflowWidth compares the
+        // drawn width with the paragraph laid out at the full row width, so it reads true even
+        // when the badge fits. Its one line ending inside the badge is what shows it is whole.
+        val critical = layoutOf(CRITICAL)
+        assertFalse("CRITICAL is ellipsized", critical.isLineEllipsized(0))
+        assertTrue("CRITICAL is squeezed or cut", critical.getLineRight(0) <= critical.size.width)
         // The badges still lead the card, above the title.
         assertTrue("CRITICAL is below the title", bounds(CRITICAL).bottom <= bounds(LONG_TITLE).top)
     }
