@@ -37,6 +37,9 @@ enum class SyncState { Synced, Pending, Failed }
  */
 @Composable
 fun WaiveraSyncIndicator(state: SyncState, onRetry: () -> Unit, modifier: Modifier = Modifier) {
+    // Synced leaves no node at all, as before: an empty swap still takes a slot, and a column's
+    // spacedBy would keep a gap for it under every synced item.
+    if (state == SyncState.Synced) return
     // Pending to failed (or back on retry) swaps in place on the shared swap motion.
     WaiveraSwap(targetState = state, modifier = modifier) { shown -> SyncLine(shown, onRetry) }
 }
