@@ -90,6 +90,8 @@ import com.waivera.waivera.feature.chat.message.DelayedListSkeleton
 import com.waivera.waivera.feature.chat.message.HideKeyboardOnDrag
 import com.waivera.waivera.feature.chat.message.JumpToLatestPill
 import com.waivera.waivera.feature.chat.message.LocalChatImages
+import com.waivera.waivera.feature.chat.message.LocalMessageFocusAnchors
+import com.waivera.waivera.feature.chat.message.MessageFocusAnchors
 import com.waivera.waivera.feature.chat.message.MessageRowCallbacks
 import com.waivera.waivera.feature.chat.message.OlderMessagesRow
 import com.waivera.waivera.feature.chat.message.ReadOnlyNotice
@@ -295,6 +297,7 @@ fun ConversationScreenContent(
     )
     val scope = rememberCoroutineScope()
     val onShowFailed: (Int) -> Unit = { index -> scope.launch { listState.animateScrollToItem(index) } }
+    val focusAnchors = remember { MessageFocusAnchors() }
     Box(
         modifier = modifier
             .fillMaxSize()
@@ -345,7 +348,9 @@ fun ConversationScreenContent(
                 ) {
                     // With the not-sent banner up, its Show is the way down; a pill would stack on it.
                     val jump = onJumpToLatest.takeIf { sendErrorUi !is SendErrorUi.Offscreen }
-                    MessageArea(state, time, actions, listState, jump, skeletonDelayMillis)
+                    CompositionLocalProvider(LocalMessageFocusAnchors provides focusAnchors) {
+                        MessageArea(state, time, actions, listState, jump, skeletonDelayMillis)
+                    }
                 }
                 if (state.content.offersComposer()) {
                     ComposerArea(state, draft, onDraftChange, actions, SendErrorState(sendErrorUi, onShowFailed))
@@ -366,6 +371,7 @@ fun ConversationScreenContent(
         myUserId = state.myUserId,
         nameFor = reactionNameFor(state.names, state.myUserId),
         callbacks = actions.sheets,
+        anchors = focusAnchors,
     )
 }
 

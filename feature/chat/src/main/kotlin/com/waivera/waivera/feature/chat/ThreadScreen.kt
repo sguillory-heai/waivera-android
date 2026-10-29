@@ -78,6 +78,8 @@ import com.waivera.waivera.feature.chat.message.ComposerConfig
 import com.waivera.waivera.feature.chat.message.DelayedListSkeleton
 import com.waivera.waivera.feature.chat.message.HideKeyboardOnDrag
 import com.waivera.waivera.feature.chat.message.LocalChatImages
+import com.waivera.waivera.feature.chat.message.LocalMessageFocusAnchors
+import com.waivera.waivera.feature.chat.message.MessageFocusAnchors
 import com.waivera.waivera.feature.chat.message.MessageRowCallbacks
 import com.waivera.waivera.feature.chat.message.ReadOnlyNotice
 import com.waivera.waivera.feature.chat.message.RowTime
@@ -298,6 +300,7 @@ fun ThreadScreenContent(
     )
     val scope = rememberCoroutineScope()
     val sendError = SendErrorState(sendErrorUi) { index -> scope.launch { listState.animateScrollToItem(index) } }
+    val focusAnchors = remember { MessageFocusAnchors() }
     Box(
         modifier = modifier
             .fillMaxSize()
@@ -344,7 +347,9 @@ fun ThreadScreenContent(
                         .weight(1f)
                         .fillMaxWidth(),
                 ) {
-                    ThreadBody(state, time, actions, listState, scrollToNewestOnOpen, skeletonDelayMillis)
+                    CompositionLocalProvider(LocalMessageFocusAnchors provides focusAnchors) {
+                        ThreadBody(state, time, actions, listState, scrollToNewestOnOpen, skeletonDelayMillis)
+                    }
                 }
                 // Nothing to reply to when the thread is missing or failed to load (UI review UI-18).
                 if (state.content != ThreadContent.Invalid && state.content !is ThreadContent.Error) {
@@ -366,6 +371,7 @@ fun ThreadScreenContent(
         myUserId = state.myUserId,
         nameFor = reactionNameFor(state.names, state.myUserId),
         callbacks = actions.sheets,
+        anchors = focusAnchors,
     )
 }
 

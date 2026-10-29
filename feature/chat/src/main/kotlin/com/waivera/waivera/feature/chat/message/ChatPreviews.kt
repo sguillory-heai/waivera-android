@@ -1,7 +1,11 @@
 package com.waivera.waivera.feature.chat.message
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
 import com.waivera.waivera.core.data.model.Message
 import com.waivera.waivera.core.designsystem.preview.WaiveraPreviews
 import com.waivera.waivera.core.designsystem.theme.WaiveraTheme
@@ -118,19 +122,15 @@ private fun ListChromePreview() {
 
 @WaiveraPreviews
 @Composable
-private fun MessageActionsPreview() {
+private fun MessageFocusPreview() {
     val message = ChatPreviewData.messages[2]
     WaiveraTheme {
-        MessageActionsContent(
-            model = ChatActions.model(message, ChatPreviewData.ME, canWrite = true, allowReply = true),
-            onReact = {},
-            onCopy = {},
-            onReply = {},
-            onEdit = {},
-            onBookmark = {},
-            onDelete = {},
-            onClose = {},
-            onLink = {},
-        )
+        Box(Modifier.fillMaxSize().background(WaiveraTheme.colors.background)) {
+            MessageFocusLayer(
+                model = ChatActions.model(message, ChatPreviewData.ME, canWrite = true, allowReply = true),
+                mine = message.isMine(ChatPreviewData.ME),
+                actions = MessageFocusActions.None,
+            )
+        }
     }
 }

@@ -97,7 +97,6 @@
     <string name="feature_chat_reaction_needs_connection">Reactions need a connection. Try again once you’re back online.</string>
 
     <!-- Action sheet -->
-    <string name="feature_chat_preview_label">MESSAGE PREVIEW</string>
     <string name="feature_chat_action_copy">Copy text</string>
     <string name="feature_chat_action_copied">Copied</string>
     <string name="feature_chat_action_reply">Reply in thread</string>

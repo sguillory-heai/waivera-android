@@ -5,6 +5,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.waivera.waivera.core.designsystem.theme.WaiveraMotionScheme
 import com.waivera.waivera.core.designsystem.theme.WaiveraSpacing
 import com.waivera.waivera.feature.chat.R
 
@@ -41,8 +42,37 @@ internal object ChatDimens {
     /** The strip under the timeline that holds "Jump to latest": the 48dp pill and a margin on each side. */
     val JumpPillStrip: Dp = WaiveraSpacing.MinTouchTarget + WaiveraSpacing.Small * 2
     val ArrivalOffset: Dp = 18.dp
-    val PreviewMaxHeight: Dp = 220.dp
     val EmojiTarget: Dp = 48.dp
+
+    /**
+     * The long-press focus overlay (owner's pick, option B). The reaction pill is six 48dp emoji
+     * targets, [FocusPillGap] apart, inside [FocusPillPadding]: 316dp, which fits a 360dp phone's
+     * two 16dp gutters without scrolling (wave 28 B2). Its emoji keep [FocusEmojiGlyph] at any font
+     * scale, so they never fill their targets at 200%.
+     */
+    val FocusPillPadding: Dp = WaiveraSpacing.ExtraSmall
+    val FocusPillGap: Dp = WaiveraSpacing.ExtraSmall
+    val FocusEmojiGlyph: Dp = 26.dp
+
+    /** The action menu's width up to 130% font, and above it; never wider than the safe area. */
+    val FocusMenuWidth: Dp = 232.dp
+    val FocusMenuWidthLarge: Dp = 320.dp
+
+    /** The narrowest menu worth putting beside the bubble (landscape) instead of under it. */
+    val FocusMenuMinWidth: Dp = 200.dp
+
+    /** Space between the pill, the bubble and the menu, and the margin kept inside the safe area. */
+    val FocusGap: Dp = WaiveraSpacing.Small
+
+    /** The least of a lifted bubble that still shows: about two lines of body text. */
+    val FocusMinBubble: Dp = 56.dp
+    val FocusMinBubbleWidth: Dp = 160.dp
+
+    /** The lifted bubble's tallest, as a share of the safe height (the options board's 42%). */
+    const val FOCUS_BUBBLE_MAX_FRACTION = 0.42f
+
+    /** How long Copy's popped check and "Copied" show before the overlay closes on its own. */
+    const val FOCUS_COPIED_HOLD_MILLIS = WaiveraMotionScheme.SYNCED_BEAT_MILLIS
     val ReactionTabMinWidth: Dp = 62.dp
 
     /** Farther than this from the newest message shows "Jump to latest" (03 §15). */

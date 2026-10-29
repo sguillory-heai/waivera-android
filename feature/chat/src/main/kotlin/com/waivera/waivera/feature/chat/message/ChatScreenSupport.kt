@@ -194,7 +194,10 @@ class ChatSheetCallbacks(
     }
 }
 
-/** The one sheet or dialog open over a message list. */
+/**
+ * The one sheet or dialog open over a message list. A long press opens the focus overlay, lifted
+ * from where [anchors] saw the bubble pressed.
+ */
 @Composable
 fun ChatSheetHost(
     sheet: ChatSheet?,
@@ -202,21 +205,19 @@ fun ChatSheetHost(
     myUserId: String?,
     nameFor: (String) -> String,
     callbacks: ChatSheetCallbacks,
+    anchors: MessageFocusAnchors? = null,
 ) {
     when (sheet) {
         null -> Unit
-        is ChatSheet.Actions -> WaiveraBottomSheet(onDismissRequest = callbacks.onDismiss) {
+        is ChatSheet.Actions -> {
             val message = sheet.model.message
-            MessageActionsContent(
+            val anchor = remember(message.id, anchors) { anchors?.boundsOf(message.id) }
+            val actions = remember(message, callbacks) { focusActions(message, callbacks) }
+            MessageFocusOverlay(
                 model = sheet.model,
-                onReact = { emoji -> callbacks.onReact(message.id, emoji) },
-                onCopy = { callbacks.onCopy(message) },
-                onReply = { callbacks.onReply(message) },
-                onEdit = { callbacks.onEdit(message) },
-                onBookmark = { callbacks.onBookmark(message.id) },
-                onDelete = { callbacks.onRequestDelete(message.id) },
-                onClose = callbacks.onDismiss,
-                onLink = callbacks.onLink,
+                mine = message.isMine(myUserId),
+                anchorOnScreen = anchor,
+                actions = actions,
             )
         }
         is ChatSheet.ReactionDetails -> {
@@ -272,6 +273,18 @@ fun ChatSheetHost(
         )
     }
 }
+
+/** The focus overlay's controls for [message], on the screen's [callbacks]. */
+internal fun focusActions(message: Message, callbacks: ChatSheetCallbacks): MessageFocusActions = MessageFocusActions(
+    onDismiss = callbacks.onDismiss,
+    onReact = { emoji -> callbacks.onReact(message.id, emoji) },
+    onReply = { callbacks.onReply(message) },
+    onCopy = { callbacks.onCopy(message) },
+    onEdit = { callbacks.onEdit(message) },
+    onBookmark = { callbacks.onBookmark(message.id) },
+    onDelete = { callbacks.onRequestDelete(message.id) },
+    onLink = callbacks.onLink,
+)
 
 /** Names for rows, reactions and typing: the message's own author first, then the directory. */
 @Composable

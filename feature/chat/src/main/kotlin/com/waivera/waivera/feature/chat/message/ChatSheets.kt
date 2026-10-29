@@ -12,13 +12,11 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -55,19 +53,12 @@ import com.waivera.waivera.core.designsystem.component.WaiveraButton
 import com.waivera.waivera.core.designsystem.component.WaiveraButtonVariant
 import com.waivera.waivera.core.designsystem.component.WaiveraFilterChip
 import com.waivera.waivera.core.designsystem.component.WaiveraIconButton
-import com.waivera.waivera.core.designsystem.component.WaiveraIconTile
 import com.waivera.waivera.core.designsystem.component.WaiveraListRow
-import com.waivera.waivera.core.designsystem.component.WaiveraPressable
-import com.waivera.waivera.core.designsystem.component.WaiveraTileTone
-import com.waivera.waivera.core.designsystem.component.popScale
-import com.waivera.waivera.core.designsystem.component.rememberPopScale
 import com.waivera.waivera.core.designsystem.icon.WaiveraIcons
 import com.waivera.waivera.core.designsystem.preview.WaiveraPreviews
-import com.waivera.waivera.core.designsystem.theme.PressDepth
 import com.waivera.waivera.core.designsystem.theme.WaiveraShapes
 import com.waivera.waivera.core.designsystem.theme.WaiveraSizes
 import com.waivera.waivera.core.designsystem.theme.WaiveraSpacing
-import com.waivera.waivera.core.designsystem.theme.WaiveraTextStyles
 import com.waivera.waivera.core.designsystem.theme.WaiveraTheme
 import com.waivera.waivera.feature.chat.R
 
@@ -85,7 +76,10 @@ sealed interface ChatSheet {
     data class ConfirmDelete(val messageId: Long, val inProgress: Boolean = false) : ChatSheet
 }
 
-/** What the action sheet offers for one message (03 §14; threads get the same, 04 §1). */
+/**
+ * What the long-press focus overlay offers for one message (03 §14; threads get the same, 04 §1).
+ * [copied] is set once Copy has run, so its row reads "Copied" before the overlay closes.
+ */
 @Immutable
 data class MessageActionsModel(
     val message: Message,
@@ -97,171 +91,6 @@ data class MessageActionsModel(
     val canCopy: Boolean,
     val copied: Boolean = false,
 )
-
-@Composable
-fun MessageActionsContent(
-    model: MessageActionsModel,
-    onReact: (String) -> Unit,
-    onCopy: () -> Unit,
-    onReply: () -> Unit,
-    onEdit: () -> Unit,
-    onBookmark: () -> Unit,
-    onDelete: () -> Unit,
-    onClose: () -> Unit,
-    onLink: (String) -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    val colors = WaiveraTheme.colors
-    Column(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(bottom = WaiveraSpacing.Medium),
-        verticalArrangement = Arrangement.spacedBy(WaiveraSpacing.MediumSmall),
-    ) {
-        Column(
-            modifier = Modifier
-                .padding(horizontal = WaiveraSpacing.Gutter)
-                .fillMaxWidth()
-                // The message being acted on, on the sheet's muted step at the sheet card radius.
-                .background(colors.surfaceMuted, WaiveraShapes.SheetCard)
-                .padding(start = WaiveraSpacing.Medium, bottom = WaiveraSpacing.Medium),
-        ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    text = stringResource(R.string.feature_chat_preview_label),
-                    style = WaiveraTextStyles.Eyebrow,
-                    color = colors.textSecondary,
-                    modifier = Modifier
-                        .weight(1f)
-                        .semantics { heading() },
-                )
-                WaiveraIconButton(
-                    icon = WaiveraIcons.Close,
-                    contentDescription = stringResource(R.string.feature_chat_action_close),
-                    onClick = onClose,
-                )
-            }
-            Column(
-                Modifier
-                    .heightIn(max = ChatDimens.PreviewMaxHeight)
-                    .verticalScroll(rememberScrollState())
-                    .padding(end = WaiveraSpacing.MediumSmall),
-            ) {
-                when {
-                    model.rich != null -> RichText(document = model.rich, onLink = onLink)
-                    else -> Text(
-                        text = model.message.plainText(),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = colors.text,
-                    )
-                }
-            }
-        }
-        if (model.canReact) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .horizontalScroll(rememberScrollState())
-                    .padding(horizontal = WaiveraSpacing.Gutter),
-                horizontalArrangement = Arrangement.spacedBy(WaiveraSpacing.ExtraSmall, Alignment.CenterHorizontally),
-            ) {
-                Reactions.QUICK.forEach { emoji ->
-                    WaiveraPressable(
-                        onClick = { onReact(emoji) },
-                        onClickLabel = stringResource(R.string.feature_chat_react_with, emoji),
-                        // The emoji in the icon tile's shape and muted fill, like every other choice.
-                        shape = WaiveraShapes.Tile,
-                        modifier = Modifier
-                            .size(ChatDimens.EmojiTarget)
-                            .background(colors.surfaceMuted, WaiveraShapes.Tile)
-                            .semantics { contentDescription = emoji },
-                    ) {
-                        Text(
-                            text = emoji,
-                            style = MaterialTheme.typography.headlineSmall,
-                            modifier = Modifier.align(Alignment.Center),
-                        )
-                    }
-                }
-            }
-        }
-        Column {
-            if (model.canCopy) {
-                ActionRow(
-                    // Copied: the glyph turns into a check and pops, beside the "Copied" label.
-                    icon = if (model.copied) WaiveraIcons.Check else ChatIcons.Copy,
-                    label = stringResource(
-                        if (model.copied) R.string.feature_chat_action_copied else R.string.feature_chat_action_copy,
-                    ),
-                    onClick = onCopy,
-                    accent = model.copied,
-                )
-            }
-            if (model.canReply) {
-                ActionRow(WaiveraIcons.Reply, stringResource(R.string.feature_chat_action_reply), onReply)
-            }
-            if (model.canEdit) ActionRow(ChatIcons.Edit, stringResource(R.string.feature_chat_action_edit), onEdit)
-            ActionRow(
-                icon = if (model.message.isBookmarked) ChatIcons.BookmarkFilled else WaiveraIcons.Bookmark,
-                label = stringResource(
-                    if (model.message.isBookmarked) {
-                        R.string.feature_chat_action_bookmarked
-                    } else {
-                        R.string.feature_chat_action_bookmark
-                    },
-                ),
-                onClick = onBookmark,
-                tone = WaiveraTileTone.Rose,
-            )
-            if (model.canDelete) {
-                ActionRow(
-                    ChatIcons.Delete,
-                    stringResource(R.string.feature_chat_action_delete),
-                    onDelete,
-                    danger = true,
-                )
-            }
-        }
-    }
-}
-
-/**
- * One message action, led by the shared icon tile like every other row: brand for chat
- * actions, rose for bookmarks (about you), danger for delete.
- */
-@Composable
-private fun ActionRow(
-    icon: Int,
-    label: String,
-    onClick: () -> Unit,
-    danger: Boolean = false,
-    accent: Boolean = false,
-    tone: WaiveraTileTone = WaiveraTileTone.Brand,
-) {
-    val colors = WaiveraTheme.colors
-    val textColor = when {
-        danger -> colors.dangerText
-        accent -> colors.accent
-        else -> colors.text
-    }
-    WaiveraPressable(onClick = onClick, modifier = Modifier.fillMaxWidth(), depth = PressDepth.Row) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .heightIn(min = WaiveraSizes.ListRowMinHeight)
-                .padding(horizontal = WaiveraSpacing.Gutter, vertical = WaiveraSpacing.Small),
-            horizontalArrangement = Arrangement.spacedBy(WaiveraSpacing.MediumSmall),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            WaiveraIconTile(
-                icon = icon,
-                tone = if (danger) WaiveraTileTone.Danger else tone,
-                modifier = Modifier.popScale(rememberPopScale(key = icon)),
-            )
-            Text(text = label, style = MaterialTheme.typography.titleSmall, color = textColor)
-        }
-    }
-}
 
 /** Who reacted, one tab per emoji present (03 §13). */
 @Composable

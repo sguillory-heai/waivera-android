@@ -77,10 +77,11 @@ class NavigationPathVariantsTest : NavTourHarness() {
         expectStack(TodayRoute, ChatListRoute, ConversationRoute(DemoData.DM_PRIYA))
         shot("path_04_chat_02_conversation_font200")
         longPress(textOrDescription("schedule published", substring = true))
-        expectScreen("MESSAGE PREVIEW")
+        expectScreen("Close message actions")
+        expectScreen("Copy text")
         shot("path_04_chat_03_message_actions_font200")
         click("Close message actions")
-        expectGone("MESSAGE PREVIEW")
+        expectGone("Close message actions")
 
         systemBack()
         systemBack()

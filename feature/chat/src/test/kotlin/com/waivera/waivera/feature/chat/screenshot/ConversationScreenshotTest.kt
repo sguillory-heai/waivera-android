@@ -1,5 +1,6 @@
 package com.waivera.waivera.feature.chat.screenshot
 
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.runtime.Composable
@@ -27,7 +28,9 @@ import com.waivera.waivera.feature.chat.conversation.ConversationUiState
 import com.waivera.waivera.feature.chat.message.ChatActions
 import com.waivera.waivera.feature.chat.message.ConnectionUi
 import com.waivera.waivera.feature.chat.message.FileActionsContent
-import com.waivera.waivera.feature.chat.message.MessageActionsContent
+import com.waivera.waivera.feature.chat.message.FocusOverlayFixtures
+import com.waivera.waivera.feature.chat.message.MessageFocusActions
+import com.waivera.waivera.feature.chat.message.MessageFocusLayer
 import com.waivera.waivera.feature.chat.message.ReactionDetailsContent
 import com.waivera.waivera.feature.chat.message.Reactions
 import com.waivera.waivera.feature.chat.message.ReadOnlyReason
@@ -47,7 +50,7 @@ import org.robolectric.annotation.GraphicsMode
 
 /**
  * Conversation and thread screens in every state, from the demo data set, across the shared
- * matrix. Sheets are captured as their content: Robolectric does not draw a modal window.
+ * matrix. Sheets and the long-press overlay are captured as their content: Robolectric does not draw a modal window.
  */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
@@ -306,19 +309,33 @@ class ConversationScreenshotTest {
         )
     }
 
+    /**
+     * The long-press focus overlay (option B) over the conversation, as its layer: a rich message,
+     * then the wave 28 long message and link, each clamped with the menu whole under or beside it.
+     */
     @Test
-    fun actionSheet() = captureScreenshots("conversation_actions_sheet") {
-        MessageActionsContent(
-            model = ChatActions.model(richMessage(), DemoData.ME, canWrite = true, allowReply = true),
-            onReact = {},
-            onCopy = {},
-            onReply = {},
-            onEdit = {},
-            onBookmark = {},
-            onDelete = {},
-            onClose = {},
-            onLink = {},
-        )
+    fun actionSheet() = captureScreenshots("conversation_actions_sheet") { FocusView(richMessage()) }
+
+    @Test
+    fun actionSheetLongMessage() = captureScreenshots("conversation_actions_focus_long") {
+        FocusView(FocusOverlayFixtures.mine(FocusOverlayFixtures.PARAGRAPHS_3000))
+    }
+
+    @Test
+    fun actionSheetLongLink() = captureScreenshots("conversation_actions_focus_link") {
+        FocusView(FocusOverlayFixtures.mine(FocusOverlayFixtures.URL_400))
+    }
+
+    @Composable
+    private fun FocusView(message: Message) {
+        Box {
+            ConversationView(state())
+            MessageFocusLayer(
+                model = ChatActions.model(message, DemoData.ME, canWrite = true, allowReply = true),
+                mine = message.isMine(DemoData.ME),
+                actions = MessageFocusActions.None,
+            )
+        }
     }
 
     @Test

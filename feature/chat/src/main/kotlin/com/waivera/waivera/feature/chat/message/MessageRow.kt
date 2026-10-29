@@ -33,6 +33,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.painter.BitmapPainter
+import androidx.compose.ui.layout.onPlaced
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
@@ -259,16 +261,27 @@ private fun Bubble(
         else -> colors.surface to colors.border
     }
     val description = rowDescription(row, authorName, time)
+    // Where the bubble is when its long press fires, so the focus overlay lifts it in place.
+    val anchors = LocalMessageFocusAnchors.current
+    val view = LocalView.current
+    val anchor = remember { AnchorCoordinates() }
     WaiveraPressable(
         onClick = { callbacks.onToggleTimestamp(row.key) },
         onClickLabel = stringResource(R.string.feature_chat_show_time),
         onLongClick = callbacks.onLongPress?.takeIf {
             !message.isDeleted && !message.isPending
-        }?.let { { it(message) } },
+        }?.let { open ->
+            {
+                anchors?.record(message.id, anchor.screenBounds(view))
+                open(message)
+            }
+        },
         onLongClickLabel = stringResource(R.string.feature_chat_open_actions),
         role = null,
         shape = shape,
-        modifier = Modifier.semantics { contentDescription = description },
+        modifier = Modifier
+            .then(if (anchors != null) Modifier.onPlaced { anchor.coordinates = it } else Modifier)
+            .semantics { contentDescription = description },
     ) {
         Box(Modifier.background(color = fill, shape = shape)) {
             // A live arrival's wash fades in a layer of its own, read in the layer, so the fade
@@ -300,7 +313,7 @@ private fun Bubble(
 
 /** The inks that keep 4.5:1 on my tinted bubble ([onMyBubble]); the theme's own colours elsewhere. */
 @Composable
-private fun InMyBubbleColors(inMyBubble: Boolean, content: @Composable () -> Unit) {
+internal fun InMyBubbleColors(inMyBubble: Boolean, content: @Composable () -> Unit) {
     if (!inMyBubble) {
         content()
         return

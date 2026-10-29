@@ -21,7 +21,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * Path 4: the chat tab. List, conversation, the message action sheet, the reactions sheet, a
+ * Path 4: the chat tab. List, conversation, the long-press focus overlay, the reactions sheet, a
  * thread and back out; the new-chat sheet; a failed send and its retry.
  */
 @HiltAndroidTest
@@ -39,13 +39,14 @@ class Path04ChatTest : NavTourHarness() {
         shotDark("path_04_chat_02_conversation")
 
         longPress(textOrDescription(REACTED_MESSAGE, substring = true))
-        expectScreen("MESSAGE PREVIEW")
+        expectScreen("Close message actions")
+        expectScreen("Copy text")
         expectStack(TodayRoute, ChatListRoute, ConversationRoute(DemoData.DM_PRIYA))
         shot("path_04_chat_03_message_actions")
         shotDark("path_04_chat_03_message_actions")
 
         click("Close message actions")
-        expectGone("MESSAGE PREVIEW")
+        expectGone("Close message actions")
 
         // By touch, as a person would; path04_reactionPill_offersItsActionsToTalkBack covers TalkBack.
         node(hasContentDescription(PARTY_PILL)).performTouchInput { longClick() }

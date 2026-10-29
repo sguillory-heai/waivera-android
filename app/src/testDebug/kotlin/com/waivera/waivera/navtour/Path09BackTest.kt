@@ -190,10 +190,11 @@ class Path09BackTest : NavTourHarness() {
     fun path09_messageActionsSheet_backClosesOnlyTheSheet() {
         launch("waivera://chats/${DemoData.DM_PRIYA}")
         longPress(textOrDescription("schedule published", substring = true))
-        expectScreen("MESSAGE PREVIEW")
+        expectScreen("Close message actions")
+        expectScreen("Copy text")
 
         sheetBack()
-        expectGone("MESSAGE PREVIEW")
+        expectGone("Close message actions")
         expectStack(TodayRoute, ChatListRoute, ConversationRoute(DemoData.DM_PRIYA))
     }
 
@@ -229,7 +230,7 @@ class Path09BackTest : NavTourHarness() {
         shot("${name}_after")
     }
 
-    /** Back delivered to the newest dialog window, where a Material bottom sheet lives. */
+    /** Back delivered to the newest dialog window, where a Material bottom sheet or the focus overlay lives. */
     private fun sheetBack() {
         val dialog = ShadowDialog.getLatestDialog()
         if (dialog is ComponentDialog && dialog.isShowing) {
