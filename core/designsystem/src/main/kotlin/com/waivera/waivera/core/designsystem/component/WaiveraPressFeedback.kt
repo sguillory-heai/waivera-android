@@ -153,13 +153,17 @@ class PressFeedbackState internal constructor(
             // Stop a long press that was still waiting to sink.
             pressing?.cancel()
             tint.floatValue = 0f
-            scale.animateTo(1f, if (cancelled) motion.pressCancel() else motion.pressRelease())
+            val spec = if (cancelled) motion.pressCancel() else motion.pressRelease(SCALE_VISIBILITY_THRESHOLD)
+            scale.animateTo(1f, spec)
         }
     }
 }
 
 /** Android's default long-press timeout, used only where no view configuration is at hand. */
 private const val DEFAULT_LONG_PRESS_TIMEOUT_MILLIS = 400L
+
+/** Fine enough for the release's spring-back past rest (about 0.004) to play out. */
+private const val SCALE_VISIBILITY_THRESHOLD = 0.0005f
 
 /**
  * Remembers the press response for a control whose clickable uses [interactionSource]. [depth]

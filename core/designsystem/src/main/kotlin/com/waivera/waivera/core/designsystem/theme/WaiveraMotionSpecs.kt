@@ -20,14 +20,17 @@ fun WaiveraMotionScheme.longPressScaleFor(depth: PressDepth): Float = if (reduce
  * The way back out of a press after the finger lifts (M1-03): bouncier and softer than
  * [WaiveraMotionScheme.press], so a 0.04 dip springs back to about 1.004 and settles in about
  * 230 ms. It is felt as a bounce rather than seen as one. The press spring stays the way in.
- * Reduced motion snaps.
+ * Reduced motion snaps. The overshoot is smaller than the default visibility threshold (0.01),
+ * which would end the spring before it ever passed rest, so a scale passes a finer
+ * [visibilityThreshold].
  */
-fun <T> WaiveraMotionScheme.pressRelease(): FiniteAnimationSpec<T> = if (reduced) {
+fun <T> WaiveraMotionScheme.pressRelease(visibilityThreshold: T? = null): FiniteAnimationSpec<T> = if (reduced) {
     snap()
 } else {
     spring(
         dampingRatio = WaiveraMotionScheme.PRESS_RELEASE_DAMPING,
         stiffness = WaiveraMotionScheme.PRESS_RELEASE_STIFFNESS,
+        visibilityThreshold = visibilityThreshold,
     )
 }
 
