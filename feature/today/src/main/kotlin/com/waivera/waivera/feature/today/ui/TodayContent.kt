@@ -15,7 +15,6 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.Stable
@@ -34,6 +33,7 @@ import com.waivera.waivera.core.designsystem.component.ConnectionBannerState
 import com.waivera.waivera.core.designsystem.component.WaiveraEmptyState
 import com.waivera.waivera.core.designsystem.component.WaiveraErrorState
 import com.waivera.waivera.core.designsystem.component.WaiveraIllustration
+import com.waivera.waivera.core.designsystem.component.WaiveraPullToRefreshBox
 import com.waivera.waivera.core.designsystem.component.WaiveraSectionAction
 import com.waivera.waivera.core.designsystem.component.WaiveraSectionHeader
 import com.waivera.waivera.core.designsystem.component.WaiveraSnackbarHost
@@ -83,7 +83,7 @@ internal fun TodayContent(
             .fillMaxSize()
             .background(WaiveraTheme.colors.background),
     ) {
-        PullToRefreshBox(
+        WaiveraPullToRefreshBox(
             isRefreshing = state.isRefreshing,
             onRefresh = { callbacks.onAction(TodayAction.Refresh) },
             modifier = Modifier.fillMaxSize(),

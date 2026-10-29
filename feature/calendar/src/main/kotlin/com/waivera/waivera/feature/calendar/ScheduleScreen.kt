@@ -17,7 +17,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Text
-import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.LaunchedEffect
@@ -54,6 +53,7 @@ import com.waivera.waivera.core.designsystem.component.WaiveraEmptyState
 import com.waivera.waivera.core.designsystem.component.WaiveraIconButton
 import com.waivera.waivera.core.designsystem.component.WaiveraIconTile
 import com.waivera.waivera.core.designsystem.component.WaiveraIllustration
+import com.waivera.waivera.core.designsystem.component.WaiveraPullToRefreshBox
 import com.waivera.waivera.core.designsystem.component.WaiveraSegmentedControl
 import com.waivera.waivera.core.designsystem.component.WaiveraSnackbarHost
 import com.waivera.waivera.core.designsystem.component.WaiveraStatusBadge
@@ -197,7 +197,7 @@ fun ScheduleContent(state: ScheduleUiState, actions: ScheduleActions, modifier: 
                 fallbackName = "",
             ),
         )
-        PullToRefreshBox(
+        WaiveraPullToRefreshBox(
             isRefreshing = state.isRefreshing,
             onRefresh = actions.onRefresh,
             modifier = Modifier

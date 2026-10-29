@@ -22,7 +22,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Text
-import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.Immutable
@@ -56,6 +55,7 @@ import com.waivera.waivera.core.designsystem.component.WaiveraIconButton
 import com.waivera.waivera.core.designsystem.component.WaiveraIllustration
 import com.waivera.waivera.core.designsystem.component.WaiveraLoadSwap
 import com.waivera.waivera.core.designsystem.component.WaiveraPressable
+import com.waivera.waivera.core.designsystem.component.WaiveraPullToRefreshBox
 import com.waivera.waivera.core.designsystem.component.WaiveraSnackbarHost
 import com.waivera.waivera.core.designsystem.component.WaiveraStatusBadge
 import com.waivera.waivera.core.designsystem.component.WaiveraSwap
@@ -175,7 +175,7 @@ internal fun BookmarksContent(
                     actionIcon = WaiveraIcons.Refresh,
                 )
             }
-            PullToRefreshBox(
+            WaiveraPullToRefreshBox(
                 isRefreshing = state.isRefreshing && state.phase != ListPhase.Loading,
                 onRefresh = onRefresh,
                 modifier = Modifier.weight(1f),

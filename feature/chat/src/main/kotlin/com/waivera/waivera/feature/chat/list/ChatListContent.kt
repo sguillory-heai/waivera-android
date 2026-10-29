@@ -16,7 +16,6 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.getValue
@@ -39,6 +38,7 @@ import com.waivera.waivera.core.designsystem.component.WaiveraBanner
 import com.waivera.waivera.core.designsystem.component.WaiveraEmptyState
 import com.waivera.waivera.core.designsystem.component.WaiveraErrorState
 import com.waivera.waivera.core.designsystem.component.WaiveraIllustration
+import com.waivera.waivera.core.designsystem.component.WaiveraPullToRefreshBox
 import com.waivera.waivera.core.designsystem.component.WaiveraSegmentedControl
 import com.waivera.waivera.core.designsystem.component.WaiveraSnackbarHost
 import com.waivera.waivera.core.designsystem.component.WaiveraTopBar
@@ -115,7 +115,7 @@ fun ChatListContent(
                     painter = accountPainter,
                 ),
             )
-            PullToRefreshBox(
+            WaiveraPullToRefreshBox(
                 isRefreshing = state.isRefreshing,
                 onRefresh = actions.onRefresh,
                 modifier = Modifier.weight(1f),

@@ -20,7 +20,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -48,6 +47,7 @@ import com.waivera.waivera.core.designsystem.component.WaiveraIconTile
 import com.waivera.waivera.core.designsystem.component.WaiveraIllustration
 import com.waivera.waivera.core.designsystem.component.WaiveraListRow
 import com.waivera.waivera.core.designsystem.component.WaiveraLoadSwap
+import com.waivera.waivera.core.designsystem.component.WaiveraPullToRefreshBox
 import com.waivera.waivera.core.designsystem.component.WaiveraTileTone
 import com.waivera.waivera.core.designsystem.component.WaiveraTopBar
 import com.waivera.waivera.core.designsystem.component.rememberLatestNonNull
@@ -130,7 +130,7 @@ internal fun ProfileContent(
                     modifier = Modifier.padding(top = WaiveraSpacing.Large),
                 )
             }
-            else -> PullToRefreshBox(
+            else -> WaiveraPullToRefreshBox(
                 // Skeletons already show the first load; the pull indicator is for a pull, and
                 // over the skeletons it covered the header text (UI5-12).
                 isRefreshing = ready.isRefreshing && details !is Section.Loading,
