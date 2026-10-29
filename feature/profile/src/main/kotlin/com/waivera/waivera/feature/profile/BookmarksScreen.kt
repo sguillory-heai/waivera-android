@@ -66,6 +66,7 @@ import com.waivera.waivera.core.designsystem.component.WaiveraSnackbarHost
 import com.waivera.waivera.core.designsystem.component.WaiveraStatusBadge
 import com.waivera.waivera.core.designsystem.component.WaiveraSwap
 import com.waivera.waivera.core.designsystem.component.WaiveraTopBar
+import com.waivera.waivera.core.designsystem.component.rememberLeadingTileAlignment
 import com.waivera.waivera.core.designsystem.component.showUndo
 import com.waivera.waivera.core.designsystem.icon.WaiveraIcons
 import com.waivera.waivera.core.designsystem.preview.WaiveraPreviews
@@ -448,7 +449,12 @@ private fun BookmarkCard(row: BookmarkRow, onOpen: () -> Unit, onRemove: () -> U
             verticalAlignment = Alignment.Top,
         ) {
             // Every row here is saved, so the row leads with who wrote it, like other message lists.
-            WaiveraAvatar(name = author, imageModel = AvatarModel.of(row.authorId), contentDescription = null)
+            WaiveraAvatar(
+                name = author,
+                imageModel = AvatarModel.of(row.authorId),
+                contentDescription = null,
+                modifier = Modifier.align(rememberLeadingTileAlignment()),
+            )
             Column(
                 modifier = Modifier.weight(1f),
                 verticalArrangement = Arrangement.spacedBy(WaiveraSpacing.ExtraSmall),

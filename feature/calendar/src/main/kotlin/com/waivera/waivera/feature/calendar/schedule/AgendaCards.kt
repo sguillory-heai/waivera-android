@@ -47,6 +47,7 @@ import com.waivera.waivera.core.designsystem.component.WaiveraIconTile
 import com.waivera.waivera.core.designsystem.component.WaiveraNameText
 import com.waivera.waivera.core.designsystem.component.WaiveraPressable
 import com.waivera.waivera.core.designsystem.component.WaiveraTileTone
+import com.waivera.waivera.core.designsystem.component.rememberLeadingTileAlignment
 import com.waivera.waivera.core.designsystem.icon.WaiveraIcons
 import com.waivera.waivera.core.designsystem.text.CelebrationCopy
 import com.waivera.waivera.core.designsystem.text.resolve
@@ -280,6 +281,9 @@ private fun InfoCard(
             tone = if (ended) WaiveraTileTone.Neutral else tone,
             size = WaiveraSizes.CardTile,
             iconSize = WaiveraSizes.CardTileGlyph,
+            modifier = Modifier
+                .align(rememberLeadingTileAlignment())
+                .testTag(AGENDA_CARD_TILE_TAG),
         )
         Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(WaiveraSpacing.XxSmall)) {
             Text(
@@ -346,7 +350,12 @@ private fun EventCard(
                 horizontalArrangement = Arrangement.spacedBy(WaiveraSpacing.MediumSmall),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
+                // Level with the title's first line when a long title or organizer makes the
+                // card tall, not floating in its middle (v7, item 1).
                 WaiveraIconTile(
+                    modifier = Modifier
+                        .align(rememberLeadingTileAlignment())
+                        .testTag(AGENDA_CARD_TILE_TAG),
                     size = WaiveraSizes.CardTile,
                     iconSize = WaiveraSizes.CardTileGlyph,
                     tone = if (ended) WaiveraTileTone.Neutral else WaiveraTileTone.Teal,
@@ -418,6 +427,9 @@ private const val TIME_BONE_FRACTION = 0.5f
 
 /** The most lines a name takes in a celebration sentence. */
 private const val CELEBRATION_NAME_MAX_LINES = 2
+
+/** Test tag for an event, holiday or time off card's leading tile. */
+internal const val AGENDA_CARD_TILE_TAG = "calendar_agenda_card_tile"
 
 /** Test tag for a milestone card's sentence. */
 internal const val MILESTONE_SENTENCE_TAG = "calendar_milestone_sentence"

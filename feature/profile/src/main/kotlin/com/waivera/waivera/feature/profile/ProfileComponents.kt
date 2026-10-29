@@ -38,6 +38,7 @@ import com.waivera.waivera.core.designsystem.component.WaiveraIconTile
 import com.waivera.waivera.core.designsystem.component.WaiveraInsetDivider
 import com.waivera.waivera.core.designsystem.component.WaiveraSectionHeader
 import com.waivera.waivera.core.designsystem.component.WaiveraTileTone
+import com.waivera.waivera.core.designsystem.component.rememberLeadingTileAlignment
 import com.waivera.waivera.core.designsystem.component.rememberSkeletonPulse
 import com.waivera.waivera.core.designsystem.component.rememberSkeletonVisible
 import com.waivera.waivera.core.designsystem.icon.WaiveraIcons
@@ -125,6 +126,7 @@ internal fun InfoRow(field: InfoField, modifier: Modifier = Modifier) {
             tone = WaiveraTileTone.Brand,
             size = WaiveraSizes.FieldTile,
             iconSize = WaiveraSizes.FieldTileGlyph,
+            modifier = Modifier.align(rememberLeadingTileAlignment()),
         )
         Column(
             modifier = Modifier.weight(1f),

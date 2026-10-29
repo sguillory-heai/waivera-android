@@ -80,7 +80,13 @@ fun WaiveraListRow(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             if (leading != null) {
-                Box(Modifier.alpha(if (enabled) 1f else DISABLED_ALPHA)) { leading() }
+                // Level with the headline's first line when the row grows tall (v7, item 1).
+                Box(
+                    Modifier
+                        .align(rememberLeadingTileAlignment())
+                        .alpha(if (enabled) 1f else DISABLED_ALPHA)
+                        .testTag(LIST_ROW_LEADING_TAG),
+                ) { leading() }
             }
             RowText(
                 title = headline,
@@ -150,7 +156,7 @@ fun WaiveraSwitchRow(
         horizontalArrangement = Arrangement.spacedBy(WaiveraSpacing.MediumSmall),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        leading?.invoke()
+        if (leading != null) Box(Modifier.align(rememberLeadingTileAlignment())) { leading() }
         RowText(title = title, subtitle = subtitle, enabled = enabled, modifier = Modifier.weight(1f))
         // The row owns the toggle semantics, so the switch itself is not separately focusable.
         Switch(
@@ -223,6 +229,9 @@ private fun RowText(
 }
 
 private const val NAME_LINES_LARGE_FONT = 2
+
+/** Test tag for a row's leading slot ([WaiveraListRow]'s leading). */
+const val LIST_ROW_LEADING_TAG: String = "list_row_leading"
 
 /** Test tag for a row's name headline ([WaiveraListRow]'s nameHeadline). */
 const val LIST_ROW_NAME_TAG: String = "list_row_name"

@@ -35,6 +35,7 @@ import com.waivera.waivera.core.designsystem.component.WaiveraIconTile
 import com.waivera.waivera.core.designsystem.component.WaiveraPopVisibility
 import com.waivera.waivera.core.designsystem.component.WaiveraPressable
 import com.waivera.waivera.core.designsystem.component.WaiveraTileTone
+import com.waivera.waivera.core.designsystem.component.rememberLeadingTileAlignment
 import com.waivera.waivera.core.designsystem.icon.WaiveraIcons
 import com.waivera.waivera.core.designsystem.preview.WaiveraPreviews
 import com.waivera.waivera.core.designsystem.text.withBreaksAfterHyphens
@@ -105,7 +106,8 @@ internal fun TodayRow(
                 horizontalArrangement = Arrangement.spacedBy(CardGap),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                leading()
+                // Level with the headline's first line when the card grows tall (v7, item 1).
+                Box(Modifier.align(rememberLeadingTileAlignment())) { leading() }
                 Column(modifier = Modifier.weight(1f)) {
                     if (eyebrow != null) {
                         Text(

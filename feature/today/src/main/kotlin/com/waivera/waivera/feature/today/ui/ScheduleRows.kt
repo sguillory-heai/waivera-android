@@ -22,6 +22,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import com.waivera.waivera.core.designsystem.component.WaiveraPressable
 import com.waivera.waivera.core.designsystem.component.WaiveraTileTone
+import com.waivera.waivera.core.designsystem.component.rememberLeadingTileAlignment
 import com.waivera.waivera.core.designsystem.component.tint
 import com.waivera.waivera.core.designsystem.icon.WaiveraIcons
 import com.waivera.waivera.core.designsystem.preview.WaiveraPreviews
@@ -130,6 +131,7 @@ internal fun UpNextCard(item: NextUpItem, onClick: () -> Unit, modifier: Modifie
                     TodayTile(
                         icon = if (item.location != null) WaiveraIcons.Location else WaiveraIcons.Schedule,
                         tone = WaiveraTileTone.Teal,
+                        modifier = Modifier.align(rememberLeadingTileAlignment()),
                     )
                     Column(modifier = Modifier.weight(1f)) {
                         Text(

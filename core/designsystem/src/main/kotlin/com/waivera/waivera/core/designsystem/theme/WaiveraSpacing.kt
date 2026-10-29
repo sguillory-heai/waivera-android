@@ -26,6 +26,13 @@ object WaiveraSpacing {
     /** Horizontal screen gutter. */
     val Gutter: Dp = 16.dp
 
+    /**
+     * How far a leading icon tile or avatar sits below the top of its row's content once the row
+     * is taller than the tile: level with the title's first line instead of floating in the
+     * middle of a tall card (v7, item 1).
+     */
+    val LeadingTileTop: Dp = XxSmall
+
     /** Minimum touch target on Android. Every control is at least this big in both axes. */
     val MinTouchTarget: Dp = 48.dp
 }
