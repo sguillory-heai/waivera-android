@@ -208,9 +208,8 @@ private fun TopBarTrailing(actions: List<TopBarAction>, account: TopBarAccount?)
                     onClick = action.onClick,
                     tint = hero.onHeader,
                 )
-                if (action.badgeCount > 0) {
-                    WaiveraCountBadge(count = action.badgeCount, modifier = Modifier.align(Alignment.TopEnd))
-                }
+                // Always composed: the badge pops in and out with the count (hidden at 0).
+                WaiveraCountBadge(count = action.badgeCount, modifier = Modifier.align(Alignment.TopEnd))
             }
         }
         if (account != null) {

@@ -1,6 +1,8 @@
 package com.waivera.waivera.core.designsystem.component
 
 import androidx.annotation.DrawableRes
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
@@ -23,7 +25,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
@@ -94,8 +95,8 @@ enum class WaiveraButtonSize { Regular, Large, Compact }
  * Disabled buttons keep a readable label (`textSecondary` on `surfaceMuted` with a hairline
  * border, the Material on-surface pattern) instead of fading the accent, so the person can
  * still read what the button does. A non-null [loadingText] ("Signing out…") is the loading
- * state: the button keeps its size, shows a small spinner next to the text, ignores taps and
- * announces it (never a blocking overlay). Loading has no other switch, so a busy button
+ * state: the button keeps its size, the label fades out as a small spinner and the text pop in
+ * its place, it ignores taps and announces it (never a blocking overlay). Loading has no other switch, so a busy button
  * always says what it is doing (UI2-21).
  *
  * An enabled [Primary][WaiveraButtonVariant.Primary] button is the brand violet with white text
@@ -127,16 +128,33 @@ fun WaiveraButton(
     val compact = size == WaiveraButtonSize.Compact
     val shape = if (large) WaiveraShapes.Cta else WaiveraShapes.Button
     val interactionSource = remember { MutableInteractionSource() }
-    val scale by animatePressScale(interactionSource)
+    val press = rememberPressFeedback(interactionSource)
     val loading = loadingText != null
     val finish = if (enabled) variant.finish else ButtonFinish.Flat
+    val motion = WaiveraTheme.motion
+    // A choice that flips (Going / Not going) or a button that becomes enabled changes its fill on
+    // the state token instead of snapping; at rest the colours are exactly the variant's.
+    val container by animateColorAsState(
+        targetValue = if (enabled) style.container else style.disabledContainer,
+        animationSpec = motion.state(),
+        label = "buttonContainer",
+    )
+    val content by animateColorAsState(
+        targetValue = if (enabled) style.content else colors.textSecondary,
+        animationSpec = motion.state(),
+        label = "buttonContent",
+    )
+    // The label fades out as the progress pops in, in the same space, so the size never changes.
+    val labelAlpha by animateFloatAsState(
+        targetValue = if (loading) 0f else 1f,
+        animationSpec = motion.state(),
+        label = "buttonLabelAlpha",
+    )
+    val progressLabel = rememberLatestNonNull(loadingText)
     Button(
         onClick = { if (!loading) onClick() },
         modifier = modifier
-            .graphicsLayer {
-                scaleX = scale
-                scaleY = scale
-            }
+            .pressFeedback(press, enabled = enabled)
             .buttonLift(finish, shape, colors)
             .heightIn(min = if (large) WaiveraSizes.CtaHeight else WaiveraSizes.ButtonMinHeight)
             .then(if (fullWidth || large) Modifier.fillMaxWidth() else Modifier)
@@ -145,10 +163,10 @@ fun WaiveraButton(
         enabled = enabled,
         shape = shape,
         colors = ButtonDefaults.buttonColors(
-            containerColor = style.container,
-            contentColor = style.content,
-            disabledContainerColor = style.disabledContainer,
-            disabledContentColor = colors.textSecondary,
+            containerColor = container,
+            contentColor = content,
+            disabledContainerColor = container,
+            disabledContentColor = content,
         ),
         border = buttonBorder(variant, enabled, colors),
         contentPadding = PaddingValues(
@@ -164,10 +182,13 @@ fun WaiveraButton(
                 leadingIcon = leadingIcon,
                 regularWeight = variant == WaiveraButtonVariant.Unselected,
                 compact = compact,
-                modifier = Modifier.alpha(if (loading) 0f else 1f),
+                modifier = Modifier.graphicsLayer { alpha = labelAlpha },
             )
-            if (loadingText != null) {
-                ButtonProgress(label = loadingText, color = if (enabled) style.content else colors.textSecondary)
+            WaiveraPopVisibility(visible = loading) {
+                ButtonProgress(
+                    label = progressLabel.orEmpty(),
+                    color = if (enabled) style.content else colors.textSecondary,
+                )
             }
         }
     }
@@ -187,12 +208,16 @@ private fun ButtonLabel(
         horizontalArrangement = Arrangement.spacedBy(if (compact) WaiveraSpacing.ExtraSmall else WaiveraSpacing.Small),
         verticalAlignment = Alignment.CenterVertically,
     ) {
+        // A glyph that arrives (the check on a chosen answer) pops in rather than appearing.
+        val iconPop = rememberPopScale(key = leadingIcon, enabled = leadingIcon != null)
         if (leadingIcon != null) {
             Icon(
                 painter = painterResource(leadingIcon),
                 contentDescription = null,
                 tint = LocalContentColor.current,
-                modifier = Modifier.size(if (compact) WaiveraSizes.IconSmall else WaiveraSizes.Icon),
+                modifier = Modifier
+                    .size(if (compact) WaiveraSizes.IconSmall else WaiveraSizes.Icon)
+                    .popScale(iconPop),
             )
         }
         Text(

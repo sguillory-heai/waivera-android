@@ -1,5 +1,6 @@
 package com.waivera.waivera.core.designsystem.component
 
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Snackbar
@@ -10,6 +11,7 @@ import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import com.waivera.waivera.core.designsystem.preview.WaiveraPreviews
 import com.waivera.waivera.core.designsystem.theme.WaiveraShapes
@@ -48,7 +50,13 @@ fun WaiveraSnackbar(
         contentColor = colors.onSnackbar,
         action = if (actionLabel != null) {
             {
-                TextButton(onClick = onAction) {
+                val interactionSource = remember { MutableInteractionSource() }
+                val press = rememberPressFeedback(interactionSource)
+                TextButton(
+                    onClick = onAction,
+                    modifier = Modifier.pressFeedback(press),
+                    interactionSource = interactionSource,
+                ) {
                     Text(text = actionLabel, color = colors.snackbarAction, style = MaterialTheme.typography.labelLarge)
                 }
             }

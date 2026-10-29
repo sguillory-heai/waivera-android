@@ -8,6 +8,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -22,6 +23,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.getValue
@@ -243,10 +245,20 @@ private fun CompactBannerText(
         stringResource(R.string.core_designsystem_banner_show_details)
     }
     val motion = WaiveraTheme.motion
+    val interactionSource = remember { MutableInteractionSource() }
+    val press = rememberPressFeedback(interactionSource)
+    val chevronPop = rememberPopScale(key = expanded)
     Column(
         modifier = modifier
+            .pressFeedback(press)
             .heightIn(min = WaiveraSpacing.MinTouchTarget)
-            .clickable(onClickLabel = toggleLabel, role = Role.Button, onClick = onToggle)
+            .clickable(
+                interactionSource = interactionSource,
+                indication = ripple(),
+                onClickLabel = toggleLabel,
+                role = Role.Button,
+                onClick = onToggle,
+            )
             .semantics { contentDescription = listOfNotNull(title, detail, message).joinToString(separator = ". ") }
             .padding(vertical = WaiveraSpacing.Small),
         verticalArrangement = Arrangement.spacedBy(WaiveraSpacing.XxSmall, Alignment.CenterVertically),
@@ -270,6 +282,7 @@ private fun CompactBannerText(
                 tint = color,
                 modifier = Modifier
                     .size(WaiveraSizes.Icon)
+                    .popScale(chevronPop)
                     .semantics { testTag = BANNER_CHEVRON_TAG },
             )
         }
@@ -362,7 +375,15 @@ private fun BannerDetail(detail: String, color: Color, modifier: Modifier = Modi
 
 @Composable
 private fun BannerAction(action: BannerActionModel, color: Color, modifier: Modifier = Modifier) {
-    TextButton(onClick = action.onClick, modifier = modifier.heightIn(min = WaiveraSpacing.MinTouchTarget)) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val press = rememberPressFeedback(interactionSource)
+    TextButton(
+        onClick = action.onClick,
+        modifier = modifier
+            .pressFeedback(press)
+            .heightIn(min = WaiveraSpacing.MinTouchTarget),
+        interactionSource = interactionSource,
+    ) {
         Text(text = action.label, style = MaterialTheme.typography.labelLarge, color = color)
     }
 }

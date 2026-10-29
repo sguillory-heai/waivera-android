@@ -4,6 +4,7 @@ import androidx.annotation.DrawableRes
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.add
@@ -20,6 +21,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
@@ -62,6 +64,9 @@ data class NavigationBarItemModel(
  * white glyph in both themes, and the selected label in the heavier weight, never a gradient. An unread count sits on
  * the glyph's top-end corner in the attention rose, ringed in the bar's colour so it reads as cut
  * out of it. The pill is decoration; the label, the selected state and the count carry the meaning.
+ *
+ * Feedback: a tab's glyph and pill shrink from touch-down, the tab just picked pops them, and its
+ * pill fades in on the state token. A tab switch has no haptic (the feedback map keeps taps silent).
  */
 @Composable
 fun WaiveraNavigationBar(
@@ -103,15 +108,23 @@ fun WaiveraNavigationBar(
         items.forEach { item ->
             val selected = item.key == selectedKey
             val washAlpha = rememberTabWashAlpha(selected)
+            val interactionSource = remember { MutableInteractionSource() }
+            val press = rememberPressFeedback(interactionSource)
+            // The tab just picked pops its glyph and pill; the press shrinks them from touch-down.
+            val pop = rememberPopScale(key = selected, enabled = selected)
             NavigationBarItem(
                 selected = selected,
                 onClick = { onSelect(item.key) },
+                modifier = Modifier.pressTracking(press),
+                interactionSource = interactionSource,
                 icon = {
                     NavIconWithBadge(
                         badge = formatBadgeCount(item.badgeCount),
                         besideGlyph = extraLarge,
                         modifier = Modifier
                             .testTag(NAV_ICON_TEST_TAG)
+                            .pressScale(press)
+                            .popScale(pop)
                             .selectedTabPill(fill = colors.selectedFill, alpha = { washAlpha }),
                     ) {
                         Icon(
@@ -189,11 +202,13 @@ private fun NavIconWithBadge(
     modifier: Modifier = Modifier,
     icon: @Composable () -> Unit,
 ) {
+    val shownBadge = rememberLatestNonNull(badge)
     Layout(
         modifier = modifier,
         content = {
             icon()
-            if (badge != null) NavUnreadBadge(badge)
+            // The count pops in, pops on each change and shrinks away when it is read.
+            WaiveraPopVisibility(visible = badge != null) { shownBadge?.let { NavUnreadBadge(it) } }
         },
     ) { measurables, constraints ->
         val iconPlaceable = measurables[0].measure(constraints)
@@ -221,9 +236,11 @@ private fun NavUnreadBadge(text: String) {
     val fontScale = LocalDensity.current.fontScale
     val style = WaiveraTextStyles.Badge
     val scale = navBadgeTextScale(fontScale) / fontScale
+    val pop = rememberPopScale(key = text)
     Box(
         modifier = Modifier
             .testTag(NAV_BADGE_TEST_TAG)
+            .popScale(pop)
             .border(WaiveraSizes.NavBadgeRing, colors.navBar, WaiveraShapes.Pill)
             .padding(WaiveraSizes.NavBadgeRing)
             .defaultMinSize(minWidth = WaiveraSizes.NavBadgeMin, minHeight = WaiveraSizes.NavBadgeMin)

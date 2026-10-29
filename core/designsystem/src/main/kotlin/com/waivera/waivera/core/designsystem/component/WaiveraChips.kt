@@ -1,6 +1,7 @@
 package com.waivera.waivera.core.designsystem.component
 
 import androidx.annotation.DrawableRes
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -30,7 +31,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
-import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.Role
@@ -66,36 +67,50 @@ fun WaiveraFilterChip(
 ) {
     val haptics = rememberHaptics()
     val colors = WaiveraTheme.colors
+    val motion = WaiveraTheme.motion
     val shape = WaiveraShapes.FilterChip
     val interactionSource = remember { MutableInteractionSource() }
-    val scale by animatePressScale(interactionSource)
+    val press = rememberPressFeedback(interactionSource)
     val filled = selected && enabled
-    val content = when {
-        !enabled -> colors.textSecondary
-        filled -> colors.onSelectedFill
-        else -> colors.text
-    }
+    // Picking or clearing a chip moves its fill, outline and ink on the state token, and the check
+    // pops in; at rest each state draws exactly as before.
+    val content by animateColorAsState(
+        targetValue = when {
+            !enabled -> colors.textSecondary
+            filled -> colors.onSelectedFill
+            else -> colors.text
+        },
+        animationSpec = motion.state(),
+        label = "chipContent",
+    )
+    val fillColor by animateColorAsState(
+        targetValue = when {
+            filled -> colors.selectedFill
+            selected -> colors.surfaceMuted
+            else -> colors.surface
+        },
+        animationSpec = motion.state(),
+        label = "chipFill",
+    )
+    val outlineColor by animateColorAsState(
+        targetValue = when {
+            filled -> Color.Transparent
+            selected -> colors.borderStrong
+            else -> colors.border
+        },
+        animationSpec = motion.state(),
+        label = "chipOutline",
+    )
+    val outlineWidth = if (selected && !filled) WaiveraSizes.SelectedOutline else WaiveraSpacing.Hairline
     val icon = if (filled) WaiveraIcons.Check else leadingIcon
-    val fill = when {
-        filled -> Modifier.background(color = colors.selectedFill, shape = shape)
-        selected ->
-            Modifier
-                .background(color = colors.surfaceMuted, shape = shape)
-                .border(width = WaiveraSizes.SelectedOutline, color = colors.borderStrong, shape = shape)
-        else ->
-            Modifier
-                .background(color = colors.surface, shape = shape)
-                .border(width = WaiveraSpacing.Hairline, color = colors.border, shape = shape)
-    }
+    val iconPop = rememberPopScale(key = icon, enabled = filled)
     Row(
         modifier = modifier
             .minimumInteractiveComponentSize()
-            .graphicsLayer {
-                scaleX = scale
-                scaleY = scale
-            }
+            .pressFeedback(press, enabled = enabled)
             .heightIn(min = WaiveraSizes.FilterChipHeight)
-            .then(fill)
+            .background(color = fillColor, shape = shape)
+            .border(width = outlineWidth, color = outlineColor, shape = shape)
             .clip(shape)
             .selectable(
                 selected = selected,
@@ -117,7 +132,9 @@ fun WaiveraFilterChip(
                 painter = painterResource(icon),
                 contentDescription = null,
                 tint = content,
-                modifier = Modifier.size(WaiveraSizes.FilterChipIcon),
+                modifier = Modifier
+                    .size(WaiveraSizes.FilterChipIcon)
+                    .popScale(iconPop),
             )
         }
         Text(
@@ -186,8 +203,11 @@ private fun Segment(label: String, selected: Boolean, onSelect: () -> Unit, modi
         label = "segmentPill",
     )
     val fill = colors.selectedFill
+    val interactionSource = remember { MutableInteractionSource() }
+    val press = rememberPressFeedback(interactionSource)
     Box(
         modifier = modifier
+            .pressFeedback(press)
             .heightIn(min = WaiveraSizes.SegmentMinHeight)
             .clip(WaiveraShapes.Segment)
             // The chosen segment is the solid violet with white ink in the heavier weight. In dark the
@@ -196,6 +216,8 @@ private fun Segment(label: String, selected: Boolean, onSelect: () -> Unit, modi
             .drawBehind { if (pill > 0f) drawRect(color = fill, alpha = pill) }
             .selectable(
                 selected = selected,
+                interactionSource = interactionSource,
+                indication = ripple(),
                 role = Role.Tab,
                 onClick = {
                     if (!selected) {

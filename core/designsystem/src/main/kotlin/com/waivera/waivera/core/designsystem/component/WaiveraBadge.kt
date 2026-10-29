@@ -42,23 +42,29 @@ enum class WaiveraCountTone { Attention, Info }
 
 /**
  * Unread count pill in the attention rose (`unread`, spec 10 §1), so red keeps its "failed or
- * urgent" meaning. Hidden at 0. Announces "N unread" rather than a bare number.
+ * urgent" meaning. Hidden at 0. Announces "N unread" rather than a bare number. Call it whatever
+ * the count: it pops in when a count arrives, pops on each change, and shrinks away when the
+ * count reaches 0 (marked read), instead of vanishing.
  */
 @Composable
 fun WaiveraCountBadge(count: Int, modifier: Modifier = Modifier) {
-    val text = formatBadgeCount(count) ?: return
-    val description = if (count > BADGE_MAX) {
-        stringResource(R.string.core_designsystem_badge_count_overflow)
-    } else {
-        pluralStringResource(R.plurals.core_designsystem_badge_count, count, count)
+    val latest = rememberLatestNonNull(count.takeIf { it > 0 })
+    WaiveraPopVisibility(visible = count > 0, modifier = modifier) {
+        val shown = latest ?: return@WaiveraPopVisibility
+        val text = formatBadgeCount(shown).orEmpty()
+        val description = if (shown > BADGE_MAX) {
+            stringResource(R.string.core_designsystem_badge_count_overflow)
+        } else {
+            pluralStringResource(R.plurals.core_designsystem_badge_count, shown, shown)
+        }
+        WaiveraCountBadge(text = text, contentDescription = description)
     }
-    WaiveraCountBadge(text = text, contentDescription = description, modifier = modifier)
 }
 
 /**
  * The count badge with caller-made copy, for counts that aren't exact (for example "30+" when
  * only part of a feed is loaded). Looks the same as the numeric badge; [tone] [WaiveraCountTone.Info]
- * draws a plain total as the neutral chip.
+ * draws a plain total as the neutral chip. A new [text] pops, so a count that moves is seen to.
  */
 @Composable
 fun WaiveraCountBadge(
@@ -69,8 +75,10 @@ fun WaiveraCountBadge(
 ) {
     val colors = WaiveraTheme.colors
     val (container, content) = tone.colorsFrom(colors)
+    val pop = rememberPopScale(key = text)
     Box(
         modifier = modifier
+            .popScale(pop)
             .defaultMinSize(minWidth = WaiveraSizes.BadgeMin, minHeight = WaiveraSizes.BadgeMin)
             .background(container, WaiveraShapes.Pill)
             .padding(horizontal = WaiveraSpacing.ExtraSmall + WaiveraSpacing.XxSmall)

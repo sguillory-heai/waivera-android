@@ -1,6 +1,7 @@
 package com.waivera.waivera.core.designsystem.component
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -19,7 +20,9 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
+import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -107,7 +110,8 @@ fun WaiveraListRow(
 }
 
 /**
- * A switch row for settings. The whole row toggles, and toggling fires the toggle haptic.
+ * A switch row for settings. The whole row toggles: it presses in like any row, the thumb slides
+ * on Material's own spring, and toggling fires the toggle haptic.
  * [leading] is the row's icon tile, so switch rows share the icon language of every other row.
  */
 @Composable
@@ -122,12 +126,17 @@ fun WaiveraSwitchRow(
 ) {
     val haptics = rememberHaptics()
     val colors = WaiveraTheme.colors
+    val interactionSource = remember { MutableInteractionSource() }
+    val press = rememberPressFeedback(interactionSource)
     Row(
         modifier = modifier
             .fillMaxWidth()
+            .pressFeedback(press, enabled = enabled)
             .heightIn(min = WaiveraSizes.ListRowMinHeight)
             .toggleable(
                 value = checked,
+                interactionSource = interactionSource,
+                indication = ripple(),
                 enabled = enabled,
                 role = Role.Switch,
                 onValueChange = { value ->
