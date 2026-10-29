@@ -223,6 +223,22 @@ class ConversationViewModelTest {
     }
 
     @Test
+    fun aQuickRunOfSendsNeverBuzzes() = runTest {
+        val s = subject()
+        s.viewModel.effects.test {
+            listOf("On my way", "Five minutes out", "Parking now").forEach { text ->
+                s.viewModel.send(text)
+                runCurrent()
+            }
+            // HAPTIC-SENT: each send is confirmed by its bubble and its "Sent" line, never a vibration.
+            val events = cancelAndConsumeRemainingEvents()
+            assertTrue(events.none { it is Event.Item && it.value is ChatEffect.Haptic }, "no sent cue")
+        }
+        val mine = s.viewModel.state.value.rows.filter { it.isMine }.map { it.message.text }
+        assertTrue(mine.containsAll(listOf("On my way", "Five minutes out", "Parking now")))
+    }
+
+    @Test
     fun aNewlyFailedSendRaisesTheBannerAndRetryRecovers() = runTest {
         val s = subject()
         assertNull(s.viewModel.state.value.sendError, "a failure already there on open shows inline only")

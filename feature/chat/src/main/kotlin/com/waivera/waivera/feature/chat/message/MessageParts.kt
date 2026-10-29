@@ -33,8 +33,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
@@ -67,6 +67,8 @@ import com.waivera.waivera.core.designsystem.component.WaiveraIconTile
 import com.waivera.waivera.core.designsystem.component.WaiveraPressable
 import com.waivera.waivera.core.designsystem.component.WaiveraStatusBadge
 import com.waivera.waivera.core.designsystem.component.WaiveraTileTone
+import com.waivera.waivera.core.designsystem.component.popScale
+import com.waivera.waivera.core.designsystem.component.rememberPopScale
 import com.waivera.waivera.core.designsystem.icon.WaiveraIcons
 import com.waivera.waivera.core.designsystem.text.fileNameHeadAndTail
 import com.waivera.waivera.core.designsystem.text.withBreaksAfterHyphens
@@ -118,9 +120,12 @@ private fun ReactionPill(reaction: ReactionSummary, onToggle: ((String) -> Unit)
     } else {
         stringResource(R.string.feature_chat_reaction_label, reaction.emoji, reaction.count)
     }
+    // Adding or taking back a reaction, or someone else's landing, pops the pill.
+    val pop = rememberPopScale(key = reaction.count to reaction.mine)
     val content = @Composable {
         Row(
             modifier = Modifier
+                .popScale(pop)
                 .heightIn(min = ChatDimens.ReactionPillHeight)
                 .background(if (reaction.mine) colors.accentSoft else colors.background, WaiveraShapes.Pill)
                 .border(
@@ -705,7 +710,8 @@ fun CallLogCard(item: TimelineItem.CallLog, time: RowTime, highlighted: Boolean,
                     tint = colors.textSecondary,
                     modifier = Modifier
                         .size(WaiveraSizes.Icon)
-                        .rotate(rotation),
+                        // Read in the layer, so the turn never recomposes the conversation's rows.
+                        .graphicsLayer { rotationZ = rotation },
                 )
             }
         }

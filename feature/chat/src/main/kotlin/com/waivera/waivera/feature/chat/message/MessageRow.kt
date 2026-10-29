@@ -1,6 +1,5 @@
 package com.waivera.waivera.feature.chat.message
 
-import androidx.compose.animation.core.Animatable
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -22,7 +21,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.Immutable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -30,7 +28,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.painter.BitmapPainter
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
@@ -48,8 +45,10 @@ import com.waivera.waivera.core.designsystem.component.WaiveraAvatar
 import com.waivera.waivera.core.designsystem.component.WaiveraButton
 import com.waivera.waivera.core.designsystem.component.WaiveraIconButton
 import com.waivera.waivera.core.designsystem.component.WaiveraLogoTile
+import com.waivera.waivera.core.designsystem.component.WaiveraPopVisibility
 import com.waivera.waivera.core.designsystem.component.WaiveraPressable
 import com.waivera.waivera.core.designsystem.component.WaiveraStatusBadge
+import com.waivera.waivera.core.designsystem.component.WaiveraSwap
 import com.waivera.waivera.core.designsystem.component.bubbleArrival
 import com.waivera.waivera.core.designsystem.component.rememberBubbleArrival
 import com.waivera.waivera.core.designsystem.icon.WaiveraIcons
@@ -368,10 +367,35 @@ private fun Footer(
     callbacks: MessageRowCallbacks,
 ) {
     val message = row.message
-    if (message.isPending) {
-        PendingMeta(message, callbacks)
+    // A row first seen while sending is a live send: its line swaps "Sending…" for "Sent · 9:41"
+    // (or for the failed actions) on the shared swap motion, which is how a send confirms, with no
+    // vibration. History never pays for the swap.
+    val live = remember(row.key) { message.isPending }
+    if (!live && !message.isPending) {
+        SettledFooter(row, time, timestampVisible)
         return
     }
+    WaiveraSwap(targetState = message.footerPhase(), contentAlignment = Alignment.TopEnd) { phase ->
+        if (phase == FooterPhase.Settled) {
+            SettledFooter(row, time, timestampVisible)
+        } else {
+            PendingMeta(message, callbacks)
+        }
+    }
+}
+
+/** Where my own message's line is: still going out, failed, or sent. */
+private enum class FooterPhase { Sending, Failed, Settled }
+
+private fun Message.footerPhase(): FooterPhase = when {
+    !isPending -> FooterPhase.Settled
+    sendState == SendState.FAILED -> FooterPhase.Failed
+    else -> FooterPhase.Sending
+}
+
+@Composable
+private fun SettledFooter(row: TimelineItem.MessageRow, time: RowTime, timestampVisible: Boolean) {
+    val message = row.message
     val createdAt = message.createdAt
     val endOfRun = !row.groupedWithNext && !message.isDeleted
     val label = when {
@@ -396,7 +420,8 @@ private fun Footer(
                 color = WaiveraTheme.colors.textSecondary,
             )
         }
-        if (message.isBookmarked) SavedPill()
+        // Bookmarking pops the pill in; it is simply there on rows that were saved before.
+        WaiveraPopVisibility(visible = message.isBookmarked) { SavedPill() }
     }
 }
 
@@ -465,15 +490,8 @@ private fun untimedRunEndLabel(mine: Boolean, edited: Boolean): String? = when {
 
 @Composable
 private fun SavedPill() {
-    val motion = WaiveraTheme.motion
-    val scale = remember { Animatable(if (motion.reduced) 1f else SAVED_POP_START) }
-    LaunchedEffect(Unit) { if (scale.value != 1f) scale.animateTo(1f, motion.celebrate()) }
     Row(
         modifier = Modifier
-            .graphicsLayer {
-                scaleX = scale.value
-                scaleY = scale.value
-            }
             .background(WaiveraTheme.colors.accentSoft, WaiveraShapes.Chip)
             .border(WaiveraSpacing.Hairline, WaiveraTheme.colors.accentBorder, WaiveraShapes.Chip)
             .padding(horizontal = WaiveraSpacing.Small, vertical = WaiveraSpacing.XxSmall),
@@ -493,8 +511,6 @@ private fun SavedPill() {
         )
     }
 }
-
-private const val SAVED_POP_START = 0.75f
 
 /**
  * Discard, Edit and Retry, end-aligned on one line, as on the v5 board ([FailedActionsRow]).

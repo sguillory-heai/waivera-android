@@ -59,6 +59,8 @@ import com.waivera.waivera.core.designsystem.component.WaiveraIconTile
 import com.waivera.waivera.core.designsystem.component.WaiveraListRow
 import com.waivera.waivera.core.designsystem.component.WaiveraPressable
 import com.waivera.waivera.core.designsystem.component.WaiveraTileTone
+import com.waivera.waivera.core.designsystem.component.popScale
+import com.waivera.waivera.core.designsystem.component.rememberPopScale
 import com.waivera.waivera.core.designsystem.icon.WaiveraIcons
 import com.waivera.waivera.core.designsystem.preview.WaiveraPreviews
 import com.waivera.waivera.core.designsystem.theme.WaiveraShapes
@@ -185,7 +187,8 @@ fun MessageActionsContent(
         Column {
             if (model.canCopy) {
                 ActionRow(
-                    icon = ChatIcons.Copy,
+                    // Copied: the glyph turns into a check and pops, beside the "Copied" label.
+                    icon = if (model.copied) WaiveraIcons.Check else ChatIcons.Copy,
                     label = stringResource(
                         if (model.copied) R.string.feature_chat_action_copied else R.string.feature_chat_action_copy,
                     ),
@@ -249,7 +252,11 @@ private fun ActionRow(
             horizontalArrangement = Arrangement.spacedBy(WaiveraSpacing.MediumSmall),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            WaiveraIconTile(icon = icon, tone = if (danger) WaiveraTileTone.Danger else tone)
+            WaiveraIconTile(
+                icon = icon,
+                tone = if (danger) WaiveraTileTone.Danger else tone,
+                modifier = Modifier.popScale(rememberPopScale(key = icon)),
+            )
             Text(text = label, style = MaterialTheme.typography.titleSmall, color = textColor)
         }
     }

@@ -17,6 +17,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -33,6 +34,8 @@ import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.unit.LayoutDirection
+import com.waivera.waivera.core.designsystem.component.popScale
+import com.waivera.waivera.core.designsystem.component.rememberPopScale
 import com.waivera.waivera.core.designsystem.feedback.rememberHaptics
 import com.waivera.waivera.core.designsystem.theme.WaiveraSizes
 import com.waivera.waivera.core.designsystem.theme.WaiveraSpacing
@@ -51,9 +54,10 @@ data class SwipeAction(
 )
 
 /**
- * Horizontal swipe with one action per side. Dragging past the threshold ticks a haptic once;
- * releasing past it runs the action and the row springs back with the layout motion token
- * (a snap when animations are off). [start] is revealed by dragging toward the end edge.
+ * Horizontal swipe with one action per side. Dragging past the threshold ticks a haptic once and
+ * pops the revealed action's glyph, so the row says "let go now"; releasing past it runs the
+ * action and the row springs back with the layout motion token (a snap when animations are
+ * off). [start] is revealed by dragging toward the end edge.
  */
 @Composable
 fun SwipeActionsBox(
@@ -82,10 +86,14 @@ fun SwipeActionsBox(
         armed = beyond
     }
 
+    // Which side shows changes only when the drag crosses zero; reading the offset itself here
+    // would recompose the row on every frame of a swipe. The offset is read in the layer below.
+    val side by remember { derivedStateOf { offset.compareTo(0f) } }
+    val armedPop = rememberPopScale(key = armed, enabled = armed)
     Box(modifier = modifier.fillMaxWidth()) {
         val revealed = when {
-            offset > 0f -> currentStart
-            offset < 0f -> currentEnd
+            side > 0 -> currentStart
+            side < 0 -> currentEnd
             else -> null
         }
         if (revealed != null) {
@@ -96,14 +104,16 @@ fun SwipeActionsBox(
                     .padding(horizontal = WaiveraSpacing.Large)
                     // The same action is announced by the row's custom actions instead.
                     .clearAndSetSemantics { },
-                horizontalArrangement = if (offset > 0f) Arrangement.Start else Arrangement.End,
+                horizontalArrangement = if (side > 0) Arrangement.Start else Arrangement.End,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Icon(
                     painter = painterResource(revealed.icon),
                     contentDescription = null,
                     tint = revealed.content,
-                    modifier = Modifier.size(WaiveraSizes.Icon),
+                    modifier = Modifier
+                        .size(WaiveraSizes.Icon)
+                        .popScale(armedPop),
                 )
                 Text(
                     text = revealed.label,

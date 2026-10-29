@@ -3,6 +3,7 @@ package com.waivera.waivera.feature.chat.list
 import androidx.compose.animation.core.Animatable
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -15,6 +16,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.minimumInteractiveComponentSize
+import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -48,6 +50,8 @@ import com.waivera.waivera.core.designsystem.component.WaiveraIconTile
 import com.waivera.waivera.core.designsystem.component.WaiveraLogoTile
 import com.waivera.waivera.core.designsystem.component.WaiveraPressable
 import com.waivera.waivera.core.designsystem.component.WaiveraTileTone
+import com.waivera.waivera.core.designsystem.component.pressFeedback
+import com.waivera.waivera.core.designsystem.component.rememberPressFeedback
 import com.waivera.waivera.core.designsystem.icon.WaiveraIcons
 import com.waivera.waivera.core.designsystem.preview.WaiveraPreviews
 import com.waivera.waivera.core.designsystem.text.withBreaksAfterHyphens
@@ -191,7 +195,7 @@ private fun RowBody(row: ChatRowUi, avatar: ImageBitmap?, onJoinCall: () -> Unit
                         maxLines = 1,
                     )
                 }
-                if (callOwnLine && row.isUnread) WaiveraCountBadge(count = row.unreadCount)
+                if (callOwnLine) WaiveraCountBadge(count = row.unreadCount)
             }
             Row(
                 horizontalArrangement = Arrangement.spacedBy(WaiveraSpacing.Small),
@@ -213,7 +217,8 @@ private fun RowBody(row: ChatRowUi, avatar: ImageBitmap?, onJoinCall: () -> Unit
                         else -> PreviewLine(row)
                     }
                 }
-                if (row.isUnread && !callOwnLine) WaiveraCountBadge(count = row.unreadCount)
+                // Always composed, so marking the row read shrinks the count away (hidden at 0).
+                if (!callOwnLine) WaiveraCountBadge(count = row.unreadCount)
             }
         }
     }
@@ -297,12 +302,17 @@ private fun CallJoin(opening: Boolean, onJoin: () -> Unit) {
     var cut by remember(label) { mutableStateOf(false) }
     val short = cut || isLargeFontScale()
     val openingLabel = stringResource(R.string.feature_chat_list_call_opening)
+    val interactionSource = remember { MutableInteractionSource() }
+    val press = rememberPressFeedback(interactionSource)
     Row(
         modifier = Modifier
             .minimumInteractiveComponentSize()
+            .pressFeedback(press, enabled = !opening)
             .clip(WaiveraShapes.Pill)
             .background(colors.accentSoft)
             .clickable(
+                interactionSource = interactionSource,
+                indication = ripple(),
                 enabled = !opening,
                 onClickLabel = stringResource(R.string.feature_chat_list_call_join_action),
                 onClick = onJoin,

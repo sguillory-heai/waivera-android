@@ -1,7 +1,9 @@
 package com.waivera.waivera.feature.chat.message
 
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -20,6 +22,10 @@ import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
@@ -40,8 +46,14 @@ import com.waivera.waivera.core.designsystem.component.WaiveraBusyIndicator
 import com.waivera.waivera.core.designsystem.component.WaiveraButton
 import com.waivera.waivera.core.designsystem.component.WaiveraButtonVariant
 import com.waivera.waivera.core.designsystem.component.WaiveraDivider
+import com.waivera.waivera.core.designsystem.component.WaiveraExpandVisibility
 import com.waivera.waivera.core.designsystem.component.WaiveraIconButton
 import com.waivera.waivera.core.designsystem.component.WaiveraPressable
+import com.waivera.waivera.core.designsystem.component.popScale
+import com.waivera.waivera.core.designsystem.component.pressFeedback
+import com.waivera.waivera.core.designsystem.component.rememberLatestNonNull
+import com.waivera.waivera.core.designsystem.component.rememberPopScale
+import com.waivera.waivera.core.designsystem.component.rememberPressFeedback
 import com.waivera.waivera.core.designsystem.component.rememberSkeletonVisible
 import com.waivera.waivera.core.designsystem.icon.WaiveraIcons
 import com.waivera.waivera.core.designsystem.preview.WaiveraPreviews
@@ -77,9 +89,13 @@ fun Composer(
 ) {
     val colors = WaiveraTheme.colors
     val canSend = config.enabled && (draft.isNotBlank() || config.stagedImage != null)
+    val stagedImage = rememberLatestNonNull(config.stagedImage)
     Column(modifier = modifier.fillMaxWidth()) {
-        if (config.isEditing) EditingBar(onCancelEdit)
-        config.stagedImage?.let { StagedImageCard(it, onRemoveImage) }
+        // The editing bar and a picked image slide open above the field and fold away again.
+        WaiveraExpandVisibility(visible = config.isEditing) { EditingBar(onCancelEdit) }
+        WaiveraExpandVisibility(visible = config.stagedImage != null) {
+            stagedImage?.let { StagedImageCard(it, onRemoveImage) }
+        }
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -136,46 +152,78 @@ fun Composer(
                     unfocusedTextColor = colors.text,
                 ),
             )
-            // Send is the composer's CTA: white on the solid brand violet, at the CTA radius. Disabled
-            // reads as "nothing to send yet": a muted fill with a visible outline, not a faded
-            // violet that looks like a broken enabled button.
-            FilledIconButton(
-                onClick = onSend,
-                enabled = canSend,
-                shape = WaiveraShapes.Cta,
-                modifier = Modifier
-                    .size(WaiveraSizes.IconButton)
-                    .then(
-                        if (canSend) {
-                            Modifier
-                        } else {
-                            Modifier.border(
-                                WaiveraSpacing.Hairline,
-                                colors.border,
-                                WaiveraShapes.Cta,
-                            )
-                        },
-                    ),
-                colors = IconButtonDefaults.filledIconButtonColors(
-                    containerColor = colors.accentFill,
-                    contentColor = colors.onAccent,
-                    disabledContainerColor = colors.surfaceMuted,
-                    disabledContentColor = colors.textSecondary,
+            SendButton(
+                canSend = canSend,
+                description = stringResource(
+                    when {
+                        config.isEditing -> R.string.feature_chat_save_edit
+                        config.isReply -> R.string.feature_chat_send_reply
+                        else -> R.string.feature_chat_send
+                    },
                 ),
-            ) {
-                Icon(
-                    painterResource(ChatIcons.Send),
-                    contentDescription = stringResource(
-                        when {
-                            config.isEditing -> R.string.feature_chat_save_edit
-                            config.isReply -> R.string.feature_chat_send_reply
-                            else -> R.string.feature_chat_send
-                        },
-                    ),
-                    modifier = Modifier.size(WaiveraSizes.Icon),
-                )
-            }
+                onSend = onSend,
+            )
         }
+    }
+}
+
+/**
+ * Send is the composer's CTA: white on the solid brand violet, at the CTA radius. Disabled reads
+ * as "nothing to send yet": a muted fill with a visible outline, not a faded violet that looks
+ * like a broken enabled button. The fill moves between the two on the state token as text is
+ * typed or cleared, the button presses in from touch-down, and each send pops the glyph. A send
+ * never vibrates: the bubble's own pop and its "Sent" line confirm it.
+ */
+@Composable
+private fun SendButton(canSend: Boolean, description: String, onSend: () -> Unit) {
+    val colors = WaiveraTheme.colors
+    val motion = WaiveraTheme.motion
+    val interactionSource = remember { MutableInteractionSource() }
+    val press = rememberPressFeedback(interactionSource)
+    var sends by remember { mutableIntStateOf(0) }
+    val sendPop = rememberPopScale(key = sends)
+    val container by animateColorAsState(
+        targetValue = if (canSend) colors.accentFill else colors.surfaceMuted,
+        animationSpec = motion.state(),
+        label = "sendContainer",
+    )
+    val content by animateColorAsState(
+        targetValue = if (canSend) colors.onAccent else colors.textSecondary,
+        animationSpec = motion.state(),
+        label = "sendContent",
+    )
+    FilledIconButton(
+        onClick = {
+            sends += 1
+            onSend()
+        },
+        enabled = canSend,
+        shape = WaiveraShapes.Cta,
+        modifier = Modifier
+            .size(WaiveraSizes.IconButton)
+            .pressFeedback(press, enabled = canSend)
+            .then(
+                if (canSend) {
+                    Modifier
+                } else {
+                    Modifier.border(WaiveraSpacing.Hairline, colors.border, WaiveraShapes.Cta)
+                },
+            ),
+        colors = IconButtonDefaults.filledIconButtonColors(
+            containerColor = container,
+            contentColor = content,
+            disabledContainerColor = container,
+            disabledContentColor = content,
+        ),
+        interactionSource = interactionSource,
+    ) {
+        Icon(
+            painterResource(ChatIcons.Send),
+            contentDescription = description,
+            modifier = Modifier
+                .size(WaiveraSizes.Icon)
+                .popScale(sendPop),
+        )
     }
 }
 

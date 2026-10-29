@@ -3,6 +3,7 @@ package com.waivera.waivera.feature.chat.newchat
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -21,6 +22,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -51,7 +53,10 @@ import com.waivera.waivera.core.designsystem.component.WaiveraButtonSize
 import com.waivera.waivera.core.designsystem.component.WaiveraEmptyState
 import com.waivera.waivera.core.designsystem.component.WaiveraErrorState
 import com.waivera.waivera.core.designsystem.component.WaiveraIllustration
+import com.waivera.waivera.core.designsystem.component.WaiveraPopVisibility
 import com.waivera.waivera.core.designsystem.component.WaiveraTextField
+import com.waivera.waivera.core.designsystem.component.pressFeedback
+import com.waivera.waivera.core.designsystem.component.rememberPressFeedback
 import com.waivera.waivera.core.designsystem.component.rememberSkeletonPulse
 import com.waivera.waivera.core.designsystem.component.rememberSkeletonVisible
 import com.waivera.waivera.core.designsystem.icon.WaiveraIcons
@@ -262,13 +267,33 @@ private fun PersonOption(person: PersonOptionUi, avatar: ImageBitmap?, onToggle:
         animationSpec = WaiveraTheme.motion.state(),
         label = "personRowFill",
     )
+    val interactionSource = remember { MutableInteractionSource() }
+    val press = rememberPressFeedback(interactionSource)
+    // The box fills on the state token and its check pops in, as a picked chip's does.
+    val boxFill by animateColorAsState(
+        targetValue = if (person.selected) colors.accentFill else colors.surface,
+        animationSpec = WaiveraTheme.motion.state(),
+        label = "personBoxFill",
+    )
+    val boxOutline by animateColorAsState(
+        targetValue = if (person.selected) Color.Transparent else colors.borderStrong,
+        animationSpec = WaiveraTheme.motion.state(),
+        label = "personBoxOutline",
+    )
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .pressFeedback(press)
             .heightIn(min = WaiveraSizes.ListRowMinHeight)
             .clip(WaiveraShapes.Card)
             .background(rowFill)
-            .toggleable(value = person.selected, role = Role.Checkbox, onValueChange = { onToggle() })
+            .toggleable(
+                value = person.selected,
+                interactionSource = interactionSource,
+                indication = ripple(),
+                role = Role.Checkbox,
+                onValueChange = { onToggle() },
+            )
             .semantics { stateDescription = stateLabel }
             .padding(horizontal = WaiveraSpacing.Small, vertical = WaiveraSpacing.Small),
         horizontalArrangement = Arrangement.spacedBy(WaiveraSpacing.MediumSmall),
@@ -292,22 +317,11 @@ private fun PersonOption(person: PersonOptionUi, avatar: ImageBitmap?, onToggle:
         Box(
             modifier = Modifier
                 .size(WaiveraSizes.Icon)
-                .then(
-                    if (person.selected) {
-                        Modifier.background(colors.accentFill, WaiveraShapes.Chip)
-                    } else {
-                        Modifier
-                            .background(colors.surface, WaiveraShapes.Chip)
-                            .border(
-                                width = WaiveraSpacing.Hairline * 2,
-                                color = colors.borderStrong,
-                                shape = WaiveraShapes.Chip,
-                            )
-                    },
-                ),
+                .background(boxFill, WaiveraShapes.Chip)
+                .border(width = WaiveraSpacing.Hairline * 2, color = boxOutline, shape = WaiveraShapes.Chip),
             contentAlignment = Alignment.Center,
         ) {
-            if (person.selected) {
+            WaiveraPopVisibility(visible = person.selected) {
                 Icon(
                     painter = painterResource(WaiveraIcons.Check),
                     contentDescription = null,
