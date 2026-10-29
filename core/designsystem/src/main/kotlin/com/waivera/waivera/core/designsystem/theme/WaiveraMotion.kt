@@ -26,7 +26,6 @@ import androidx.compose.animation.scaleIn
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
-import androidx.compose.animation.using
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.Immutable
@@ -343,7 +342,7 @@ fun WaiveraMotionScheme.swapTransition(direction: Int = 0): ContentTransform {
                 slideOutHorizontally(layout<IntOffset>()) { -sign * it / SWAP_DIVISOR } + fadeOut(exit())
         }
     }
-    return transform using swapSizeTransform()
+    return transform.withSize(swapSizeTransform())
 }
 
 /** The swap's size change: unclipped, on the layout token (a snap with animations off). */
@@ -355,7 +354,14 @@ fun WaiveraMotionScheme.swapSizeTransform(): SizeTransform = SizeTransform(clip 
  * content settles in place instead of cutting. Reduced motion cross-fades.
  */
 fun WaiveraMotionScheme.loadTransition(): ContentTransform =
-    fadeIn(state()) togetherWith fadeOut(exit()) using swapSizeTransform()
+    (fadeIn(state()) togetherWith fadeOut(exit())).withSize(swapSizeTransform())
+
+/**
+ * `using` is only declared inside AnimatedContentTransitionScope, and these transitions are built
+ * outside one, so the size transform goes in through the constructor.
+ */
+private fun ContentTransform.withSize(sizeTransform: SizeTransform): ContentTransform =
+    ContentTransform(targetContentEnter, initialContentExit, targetContentZIndex, sizeTransform)
 
 private const val SWAP_START_SCALE = 0.92f
 private const val SWAP_DIVISOR = 3
