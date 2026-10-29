@@ -236,7 +236,9 @@ fun ScheduleContent(state: ScheduleUiState, actions: ScheduleActions, modifier: 
                         // The grid moves with its title: a step slides both a third of the way
                         // in the same direction on the layout token, and a view change fades,
                         // so the step never reads half done (M1-06). Picking a day keeps the
-                        // same period, so the grid recomposes in place.
+                        // same period, so the grid recomposes in place. The slide is masked by
+                        // the card (calendarCard clips to its corners, and a sliding swap clips
+                        // to its slot), so neither month draws past it (M2-04).
                         WaiveraSwap(
                             targetState = GridFrame(state.title, state.view, state.cells),
                             modifier = Modifier.calendarCard(CalendarCardBottom, WaiveraTheme.colors.surface),
@@ -567,9 +569,22 @@ private fun AgendaHeader(state: ScheduleUiState) {
             .background(colors.surface)
             .padding(horizontal = WaiveraSpacing.MediumSmall, vertical = WaiveraSpacing.Small),
     ) {
-        AgendaDayHeading(date = state.selectedDate, isToday = state.isTodaySelected)
+        // The day moves with the grid: a period step slides it the same way on the layout token,
+        // and picking a day in the same period swaps it in place, so it never cuts ahead of the
+        // grid and the title (M2-11).
+        WaiveraSwap(
+            targetState = AgendaDay(state.title, state.selectedDate, state.isTodaySelected),
+            contentKey = { it.date },
+            direction = { from, to -> periodStepDirection(from.title, to.title) },
+        ) { day ->
+            AgendaDayHeading(date = day.date, isToday = day.isToday)
+        }
     }
 }
+
+/** What the agenda heading shows; the period's [title] says which way a step went. */
+@Immutable
+private data class AgendaDay(val title: PeriodTitle, val date: LocalDate, val isToday: Boolean)
 
 /**
  * The Week and Month agenda's day heading. From 150% it reads "Sun, Nov 1", as the Day title
