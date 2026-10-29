@@ -5,6 +5,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.snapshots.Snapshot
+import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithText
@@ -149,6 +150,23 @@ class ConversationListMotionTest {
     }
 
     @Test
+    fun aSendLandsInViewWhenTheConversationFillsTheScreen() {
+        compose.mainClock.autoAdvance = false
+        // More history than the screen holds, so the list is scrolled to its newest row, as in
+        // any real conversation: a row that starts at no height must not fall out of view.
+        val history = (1L..FULL_HISTORY_ROWS).map { id ->
+            message(id = id, text = "Yesterday $id", minutesAgo = DAY_MINUTES + FULL_HISTORY_ROWS - id)
+        }
+        val update = show(state(history))
+        val send = message(id = SEND_ID, text = SENT_TEXT, minutesAgo = 0, author = DemoData.ME)
+            .copy(clientMessageId = "client-landing", sendState = SendState.SENDING)
+        update(state(history + send, liveArrivals = setOf(SEND_ID)))
+        compose.mainClock.advanceTimeBy(SETTLE_MILLIS)
+        // Below the fold, behind "Jump to latest", the send would not be displayed.
+        compose.onNodeWithText(SENT_TEXT, useUnmergedTree = true).assertIsDisplayed()
+    }
+
+    @Test
     fun anOpeningTimeLineNeverDrawsOverTheNewerBubble() {
         compose.mainClock.autoAdvance = false
         // One run from Priya: the middle bubble shows its time on tap, inside the run.
@@ -239,5 +257,7 @@ class ConversationListMotionTest {
         const val MAX_FIRST_FRAME_SHARE = 0.25f
         const val LANDED_TOLERANCE_PX = 2f
         const val OVERLAP_TOLERANCE_PX = 0.5f
+        const val FULL_HISTORY_ROWS = 30L
+        const val SENT_TEXT = "On my way over now"
     }
 }

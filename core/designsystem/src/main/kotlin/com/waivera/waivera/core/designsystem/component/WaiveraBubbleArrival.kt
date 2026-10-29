@@ -127,6 +127,9 @@ fun Modifier.landingGrow(height: State<Float>): Modifier = this
     .graphicsLayer { clip = height.value < 1f }
     .layout { measurable, constraints ->
         val placeable = measurable.measure(constraints)
+        // A row of no height at the list's edge counts as scrolled past, so the list would drop
+        // the landing send below the fold and never grow it; a pixel keeps it in view.
         val shown = (placeable.height * height.value.coerceIn(0f, 1f)).roundToInt()
+            .coerceAtLeast(minOf(1, placeable.height))
         layout(placeable.width, shown) { placeable.place(0, 0) }
     }
