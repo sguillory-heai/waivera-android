@@ -15,12 +15,14 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.sp
 import com.waivera.waivera.core.demo.DemoData
 import com.waivera.waivera.core.designsystem.component.TOP_BAR_TITLE_TAG
 import com.waivera.waivera.core.designsystem.theme.WaiveraMotionScheme
 import com.waivera.waivera.core.designsystem.theme.WaiveraNameFit
 import com.waivera.waivera.core.designsystem.theme.WaiveraTheme
 import com.waivera.waivera.core.screenshottesting.ScreenshotSdk
+import com.waivera.waivera.core.screenshottesting.renderedFontSize
 import com.waivera.waivera.core.testing.LongFixtures
 import com.waivera.waivera.feature.chat.conversation.ConversationContent
 import com.waivera.waivera.feature.chat.conversation.ConversationUiState
@@ -78,7 +80,10 @@ class ChatNamesOneLineLayoutTest {
 
     private fun assertOneLine(name: String, layout: TextLayoutResult, where: String, baseSize: Float) {
         assertEquals("\"$name\" wraps in $where", 1, layout.lineCount)
-        val size = layout.layoutInput.style.fontSize.value
+        // The layout keeps the declared style; the size auto-size drew at is found by matching.
+        val size = requireNotNull(
+            layout.renderedFontSize(floor = (baseSize * WaiveraNameFit.MIN_FONT_SCALE).sp, step = WaiveraNameFit.Step),
+        ) { "\"$name\" in $where was drawn at no size between the floor and its style" }.value
         assertTrue("\"$name\" shrank to $size in $where", size >= baseSize * WaiveraNameFit.MIN_FONT_SCALE - EPSILON)
         if (name == SHORT) {
             assertFalse("\"$name\" is cut in $where", layout.isLineEllipsized(0))

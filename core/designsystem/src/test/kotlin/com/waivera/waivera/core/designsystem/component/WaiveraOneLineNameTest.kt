@@ -4,6 +4,9 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
@@ -17,10 +20,12 @@ import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.waivera.waivera.core.designsystem.theme.WaiveraMotionScheme
 import com.waivera.waivera.core.designsystem.theme.WaiveraNameFit
 import com.waivera.waivera.core.designsystem.theme.WaiveraTheme
 import com.waivera.waivera.core.screenshottesting.ScreenshotSdk
+import com.waivera.waivera.core.screenshottesting.renderedFontSize
 import com.waivera.waivera.core.testing.LongFixtures
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -46,20 +51,29 @@ class WaiveraOneLineNameTest {
     val compose = createComposeRule()
 
     private var baseSize = 0f
+    private var shown by mutableStateOf<Shown?>(null)
 
+    private data class Shown(val name: String, val fontScale: Float, val width: Dp)
+
+    /** One composition per test, as the rule allows; later calls change what it shows. */
     private fun layout(name: String, fontScale: Float, width: Dp = ROW_WIDTH): TextLayoutResult {
-        compose.setContent {
-            val density = LocalDensity.current
-            CompositionLocalProvider(LocalDensity provides Density(density.density, fontScale)) {
-                WaiveraTheme(darkTheme = false, motion = WaiveraMotionScheme.Reduced, hapticsEnabled = false) {
-                    val style = MaterialTheme.typography.titleSmall
-                    baseSize = style.fontSize.value
-                    Column {
-                        WaiveraOneLineName(
-                            text = name,
-                            style = style,
-                            modifier = Modifier.width(width).testTag(NAME),
-                        )
+        val first = shown == null
+        shown = Shown(name, fontScale, width)
+        if (first) {
+            compose.setContent {
+                val current = shown ?: return@setContent
+                val density = LocalDensity.current
+                CompositionLocalProvider(LocalDensity provides Density(density.density, current.fontScale)) {
+                    WaiveraTheme(darkTheme = false, motion = WaiveraMotionScheme.Reduced, hapticsEnabled = false) {
+                        val style = MaterialTheme.typography.titleSmall
+                        baseSize = style.fontSize.value
+                        Column {
+                            WaiveraOneLineName(
+                                text = current.name,
+                                style = style,
+                                modifier = Modifier.width(current.width).testTag(NAME),
+                            )
+                        }
                     }
                 }
             }
@@ -70,10 +84,15 @@ class WaiveraOneLineNameTest {
         return results.first()
     }
 
+    /** The size auto-size drew at: the layout keeps the declared style, so it is found by matching. */
+    private fun drawnSize(layout: TextLayoutResult): Float = requireNotNull(
+        layout.renderedFontSize(floor = (baseSize * WaiveraNameFit.MIN_FONT_SCALE).sp, step = WaiveraNameFit.Step),
+    ) { "\"${layout.layoutInput.text}\" was drawn at no size between the floor and its style" }.value
+
     private fun assertOneLineWithinTheFloor(name: String, fontScale: Float) {
         val layout = layout(name, fontScale)
         assertEquals("\"$name\" wraps at ${fontScale}x", 1, layout.lineCount)
-        val size = layout.layoutInput.style.fontSize.value
+        val size = drawnSize(layout)
         assertTrue("\"$name\" grew past its style at ${fontScale}x: $size", size <= baseSize + EPSILON)
         assertTrue(
             "\"$name\" shrank to $size at ${fontScale}x, under the floor",
@@ -100,7 +119,7 @@ class WaiveraOneLineNameTest {
         assertEquals(
             "the name is ellipsized before it reaches the floor",
             baseSize * WaiveraNameFit.MIN_FONT_SCALE,
-            layout.layoutInput.style.fontSize.value,
+            drawnSize(layout),
             WaiveraNameFit.Step.value + EPSILON,
         )
     }
@@ -114,7 +133,7 @@ class WaiveraOneLineNameTest {
         val snug = layout(MEDIUM, fontScale = 1f, width = snugWidth)
         assertFalse("the name is cut instead of shrunk", snug.isLineEllipsized(0))
         assertEquals(1, snug.lineCount)
-        assertTrue("the name did not shrink", snug.layoutInput.style.fontSize.value < baseSize)
+        assertTrue("the name did not shrink", drawnSize(snug) < baseSize)
     }
 
     @Test
@@ -123,7 +142,7 @@ class WaiveraOneLineNameTest {
             val layout = layout(SHORT, fontScale = scale)
             assertEquals(1, layout.lineCount)
             assertFalse("\"$SHORT\" is ellipsized at ${scale}x", layout.isLineEllipsized(0))
-            assertEquals(baseSize, layout.layoutInput.style.fontSize.value, EPSILON)
+            assertEquals(baseSize, drawnSize(layout), EPSILON)
         }
     }
 
