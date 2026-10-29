@@ -307,9 +307,22 @@ class ConversationPresentationTest {
 
     @Test
     fun filtersAndSearchCompose() {
-        val unreadDm = ChatRowUi(1, "Priya Raman", RowLeading.Group, "Shift swap", PreviewKind.Text, unreadCount = 2)
-        val readChannel =
-            ChatRowUi(2, "north-team", RowLeading.Channel(false), "roster", PreviewKind.Text, isChannel = true)
+        val unreadDm = ChatRowUi(
+            1,
+            "Priya Raman",
+            leading = RowLeading.Group,
+            preview = "Shift swap",
+            previewKind = PreviewKind.Text,
+            unreadCount = 2,
+        )
+        val readChannel = ChatRowUi(
+            2,
+            "north-team",
+            leading = RowLeading.Channel(false),
+            preview = "roster",
+            previewKind = PreviewKind.Text,
+            isChannel = true,
+        )
         assertTrue(ChatListFilters.matches(unreadDm, ChatListFilter.Unread, ""))
         assertFalse(ChatListFilters.matches(readChannel, ChatListFilter.Unread, ""))
         assertTrue(ChatListFilters.matches(readChannel, ChatListFilter.Channels, "ROSTER"))
