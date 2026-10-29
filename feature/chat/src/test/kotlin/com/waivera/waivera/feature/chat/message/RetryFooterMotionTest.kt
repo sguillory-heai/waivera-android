@@ -40,6 +40,10 @@ import org.robolectric.annotation.GraphicsMode
  * Tapping Retry on a failed send (M3-01). The leaving "Not sent" side keeps its own text and
  * actions while it fades, so the footer never re-renders the old side as a full-strength
  * "Sending…" that then fades and comes back. Measured on drawn pixels, with animations on and off.
+ *
+ * The failed side has settled long before Retry, so it leaves on its own exit fade (M4-01): "Not
+ * sent" and its actions fade over a few frames, Retry's release shows on them, and they never
+ * cut to nothing in one frame or come back.
  */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
@@ -161,6 +165,35 @@ class RetryFooterMotionTest {
     }
 
     @Test
+    fun aRetryFadesNotSentOutInsteadOfCuttingIt() {
+        compose.mainClock.autoAdvance = false
+        showFailed(WaiveraMotionScheme.Standard)
+        val notSentAtRest = inks.notSent(capture(), requireNotNull(boundsOf(NOT_SENT)))
+        compose.onNodeWithText(RETRY).performSemanticsAction(SemanticsActions.OnClick)
+        val notSent = mutableListOf<Float>()
+        repeat(WATCHED_FRAMES) {
+            compose.mainClock.advanceTimeBy(FRAME_MILLIS)
+            val pixels = capture()
+            notSent += boundsOf(NOT_SENT)?.let { inks.notSent(pixels, it) / notSentAtRest } ?: 0f
+        }
+        val trace = notSent.joinToString()
+        // The exit starts a frame or two after the tap composes; its first faded frame is 16 ms
+        // in, about 0.4 on the exit's own fade and about 0.16 when the guard squared it.
+        val firstFaded = notSent.firstOrNull { it < STILL_FULL }
+        assertTrue("\"Not sent\" never started to leave: $trace", firstFaded != null)
+        assertTrue(
+            "\"Not sent\" cut instead of fading: $firstFaded on its first faded frame ($trace)",
+            requireNotNull(firstFaded) >= FIRST_FADED_MIN,
+        )
+        notSent.zipWithNext().forEachIndexed { frame, (before, after) ->
+            assertTrue(
+                "\"Not sent\" came back at frame ${frame + 1}: $after after $before ($trace)",
+                after <= before + NOT_SENT_TOLERANCE,
+            )
+        }
+    }
+
+    @Test
     fun aRetryNeverShowsAStaleOrFullStrengthSendingFrame() =
         aRetryNeverShowsAStaleOrFullStrengthSendingFrame(WaiveraMotionScheme.Standard)
 
@@ -184,6 +217,13 @@ class RetryFooterMotionTest {
         const val FADE_TOLERANCE = 0.15f
         const val SENDING_SHOWING = 0.1f
         const val RETRY_FULL = 0.9f
+
+        /** Above this "Not sent" has not started its fade yet. */
+        const val STILL_FULL = 0.98f
+        const val FIRST_FADED_MIN = 0.3f
+
+        /** A fading label never gets brighter; this only absorbs 8-bit rounding in the ink split. */
+        const val NOT_SENT_TOLERANCE = 0.03f
     }
 }
 
@@ -208,6 +248,23 @@ private class Inks(colors: WaiveraColors) {
             val dropRed = background.red - color.red
             val dropBlue = background.blue - color.blue
             (dropRed * dangerBlue - dropBlue * dangerRed) / determinant
+        }
+    }
+
+    /**
+     * How strongly the red "Not sent" is drawn in [bounds]: the strongest pixel's share of the
+     * danger ink, separated from the grey "Sending…" fading in over it, as [sending] does.
+     */
+    fun notSent(pixels: PixelMap, bounds: Rect): Float {
+        val greyRed = background.red - secondary.red
+        val greyBlue = background.blue - secondary.blue
+        val dangerRed = background.red - danger.red
+        val dangerBlue = background.blue - danger.blue
+        val determinant = greyRed * dangerBlue - dangerRed * greyBlue
+        return maxOver(pixels, bounds) { color ->
+            val dropRed = background.red - color.red
+            val dropBlue = background.blue - color.blue
+            (greyRed * dropBlue - greyBlue * dropRed) / determinant
         }
     }
 

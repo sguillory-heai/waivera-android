@@ -33,6 +33,9 @@ import org.robolectric.annotation.GraphicsMode
  * two quick calendar steps, two quick bookmark removals. The side that was arriving leaves on the
  * quick exit, not on Compose's default spring, so two sides never show together. Each side is a
  * solid square of its own colour in its own place, so the drawn pixels give each side's opacity.
+ *
+ * A side that fully arrived is not at risk and must keep its own exit fade (M4-01): the guard
+ * against interruptions used to square every exit, so a settled swap blanked for a frame.
  */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
@@ -104,6 +107,42 @@ class SwapInterruptionTest {
     }
 
     @Test
+    fun aSettledSideFadesOutOnItsOwnExit() {
+        compose.mainClock.autoAdvance = false
+        val setSide = show(WaiveraMotionScheme.Standard)
+        setSide(1)
+        compose.mainClock.advanceTimeBy(SETTLED_AFTER_MILLIS)
+        setSide(2)
+        val leaving = mutableListOf<Float>()
+        repeat(SETTLED_WATCHED_FRAMES) { frame ->
+            compose.mainClock.advanceTimeBy(FRAME_MILLIS)
+            val shown = opacities()
+            val label = "settled swap, frame ${frame + 1}: $shown"
+            assertTrue("two sides show together: $label", shown.sum() <= MAX_COMBINED_ALPHA)
+            leaving += shown[1]
+        }
+        val trace = leaving.joinToString()
+        // The exit starts a frame or two after the change composes; its first faded frame is
+        // 16 ms in, about 0.4 on the exit's own fade and about 0.16 on the squared one.
+        val firstFaded = leaving.firstOrNull { it < STILL_FULL }
+        assertTrue("the settled side never started to leave: $trace", firstFaded != null)
+        assertTrue(
+            "the settled side cut instead of fading: $firstFaded on its first faded frame ($trace)",
+            requireNotNull(firstFaded) >= SETTLED_FIRST_FRAME_MIN,
+        )
+        leaving.zipWithNext().forEachIndexed { frame, (before, after) ->
+            assertTrue(
+                "the settled side came back at frame ${frame + 2}: $after after $before ($trace)",
+                after <= before + FADE_TOLERANCE,
+            )
+        }
+        compose.mainClock.advanceTimeBy(SETTLE_MILLIS)
+        val settled = opacities()
+        assertTrue("the last side never arrived: $settled", settled[2] > ARRIVED)
+        assertTrue("an old side stayed: $settled", settled[0] < MOSTLY_GONE && settled[1] < MOSTLY_GONE)
+    }
+
+    @Test
     fun aSwapReTargetedMidArrivalNeverShowsTwoSides() =
         aReTargetedSwapNeverShowsTwoSides(WaiveraMotionScheme.Standard, afterMillis = MID_ARRIVAL_MILLIS)
 
@@ -127,5 +166,18 @@ class SwapInterruptionTest {
         const val MAX_COMBINED_ALPHA = 1.05f
         const val MOSTLY_GONE = 0.1f
         const val ARRIVED = 0.95f
+
+        /** Well past the arrival's pop and fade, so the side has settled. */
+        const val SETTLED_AFTER_MILLIS = 600L
+        const val SETTLED_WATCHED_FRAMES = 8
+
+        /** Above this the leaving side has not started its fade yet. */
+        const val STILL_FULL = 0.98f
+
+        /** The exit's own 60 ms fade leaves about 0.4 after one frame; the squared fade left about 0.16. */
+        const val SETTLED_FIRST_FRAME_MIN = 0.3f
+
+        /** A fading side never gets brighter; this only absorbs 8-bit rounding. */
+        const val FADE_TOLERANCE = 0.02f
     }
 }

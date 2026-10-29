@@ -21,6 +21,7 @@ import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.layout.Box
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.State
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -247,18 +248,31 @@ fun <T> WaiveraSwap(
  * Compose fades a side that is interrupted mid-entrance on its default spring instead of the
  * transition's exit, so a swap changed again within about 300 ms drew the old line under the new
  * one ("Synced" over "Sending…"). This layer runs beside the built-in fade: it stays at 1 while
- * the side arrives and shows, and drops on the quick exit as the side leaves, however far its
- * arrival got. A settled side's own exit is the same tween, so its fade-out only ends a little
- * sooner. The value is read in the layer, so a swap never recomposes for it.
+ * the side arrives and shows, and drops on the quick exit if the side leaves before its arrival
+ * finished.
+ *
+ * A side whose arrival finished is latched as settled and keeps this layer at 1 when it leaves
+ * (M4-01): it already exits on the transition's own fade, and a second copy of the same 60 ms
+ * fade squared it to about one frame, so every settled swap blanked for a frame and lost its
+ * slide-out. The latch is read in composition, set after it, and never cleared, so a side that
+ * settles once always leaves on its own fade. The value is read in the layer, so a swap never
+ * recomposes for it.
  */
 @Composable
 private fun AnimatedVisibilityScope.SwapSide(motion: WaiveraMotionScheme, content: @Composable () -> Unit) {
+    val settled = remember { SettledLatch() }
+    val arrived = transition.currentState == EnterExitState.Visible &&
+        transition.targetState == EnterExitState.Visible
+    SideEffect { if (arrived) settled.value = true }
     val leaving = transition.animateFloat(
         transitionSpec = { if (targetState == EnterExitState.PostExit) motion.swapExitFade() else snap() },
         label = "swapSide",
-    ) { state -> if (state == EnterExitState.PostExit) 0f else 1f }
+    ) { state -> if (state == EnterExitState.PostExit && !settled.value) 0f else 1f }
     Box(Modifier.graphicsLayer { alpha = leaving.value }, propagateMinConstraints = true) { content() }
 }
+
+/** Whether a [SwapSide] has fully arrived at least once; a plain holder, so setting it never recomposes. */
+private class SettledLatch(var value: Boolean = false)
 
 /**
  * Swaps a loading skeleton for the content it stands in for, and back (M1-16): the skeleton drops
