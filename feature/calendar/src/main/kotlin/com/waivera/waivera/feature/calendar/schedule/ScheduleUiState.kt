@@ -32,6 +32,8 @@ data class ScheduleUiState(
     val isOffline: Boolean = false,
     /** The signed-in person, so their own milestone card offers no "Send wishes" to themselves. */
     val myUserId: String? = null,
+    /** The person whose "Send wishes" chat is opening; their card's button shows progress. */
+    val openingWishesFor: String? = null,
 ) {
     val isTodaySelected: Boolean get() = selectedDate == today
 

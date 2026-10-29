@@ -78,6 +78,7 @@ internal fun AgendaCard(
     ended: Boolean = false,
     myUserId: String? = null,
     onSendWishes: (userId: String) -> Unit = {},
+    openingWishesFor: String? = null,
 ) {
     val endedLabel = stringResource(R.string.feature_calendar_item_ended)
     val endedModifier = if (ended) modifier.semantics { stateDescription = endedLabel } else modifier
@@ -86,6 +87,7 @@ internal fun AgendaCard(
             item = item,
             showWishes = item.occurrence.milestone.userId != myUserId,
             onSendWishes = onSendWishes,
+            openingWishes = openingWishesFor != null && openingWishesFor == item.occurrence.milestone.userId,
             modifier = modifier,
         )
         is AgendaItem.HolidayCard -> InfoCard(
@@ -160,6 +162,7 @@ private fun MilestoneCard(
     showWishes: Boolean,
     onSendWishes: (userId: String) -> Unit,
     modifier: Modifier = Modifier,
+    openingWishes: Boolean = false,
 ) {
     val fallbackName = stringResource(R.string.feature_calendar_celebration_name_fallback)
     val milestone = item.occurrence.milestone
@@ -211,6 +214,8 @@ private fun MilestoneCard(
                     onClick = { onSendWishes(milestone.userId) },
                     variant = WaiveraButtonVariant.TonalOnWash,
                     leadingIcon = WaiveraIcons.Chat,
+                    // The chat opens over the network: the button says so from the tap, at its size.
+                    loadingText = stringResource(R.string.feature_calendar_opening_chat).takeIf { openingWishes },
                     maxLines = 1,
                     modifier = Modifier.semantics { contentDescription = wishesLabel },
                 )

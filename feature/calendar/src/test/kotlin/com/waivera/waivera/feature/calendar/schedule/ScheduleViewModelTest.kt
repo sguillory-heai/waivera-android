@@ -289,6 +289,22 @@ class ScheduleViewModelTest {
     }
 
     @Test
+    fun sendWishesShowsItsButtonBusyUntilTheChatOpens() = runTest {
+        val gate = CompletableDeferred<Unit>()
+        conversations.openGate = gate
+        val vm = viewModel()
+        vm.sendWishes("usr_priya")
+        runCurrent()
+        assertEquals("usr_priya", vm.uiState.value.openingWishesFor, "busy from the tap")
+        vm.sendWishes("usr_priya")
+        runCurrent()
+        assertEquals(1, conversations.opened.size, "a second tap while opening is ignored")
+        gate.complete(Unit)
+        runCurrent()
+        assertNull(vm.uiState.value.openingWishesFor)
+    }
+
+    @Test
     fun sendWishesThatFailsOffersRetry() = runTest {
         conversations.openResult = Result.failure(WaiveraError.Network())
         val vm = viewModel()

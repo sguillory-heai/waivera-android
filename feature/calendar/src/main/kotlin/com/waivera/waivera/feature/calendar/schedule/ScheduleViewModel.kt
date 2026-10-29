@@ -71,6 +71,7 @@ class ScheduleViewModel @Inject constructor(
     private val selection = MutableStateFlow<LocalDate?>(null)
     private val now = MutableStateFlow(clock.instant())
     private val pullRefreshing = MutableStateFlow(false)
+    private val openingWishes = MutableStateFlow<String?>(null)
 
     private val initialZone: ZoneId = session.state.value.currentUser?.zone ?: WaiveraTime.FallbackZone
     private val zone: StateFlow<ZoneId> =
@@ -94,8 +95,13 @@ class ScheduleViewModel @Inject constructor(
         .distinctUntilChangedBy { it.data to it.error }
         .map { MilestoneState(MilestoneIndex(it.data), it) }
 
-    private val chrome = combine(realtime.status, pullRefreshing, session.state) { status, refreshing, state ->
-        Chrome(status, refreshing, state.currentUser?.timeZoneId, state.currentUserId)
+    private val chrome = combine(
+        realtime.status,
+        pullRefreshing,
+        session.state,
+        openingWishes,
+    ) { status, refreshing, state, wishes ->
+        Chrome(status, refreshing, state.currentUser?.timeZoneId, state.currentUserId, wishes)
     }
 
     val uiState: StateFlow<ScheduleUiState> = combine(period, feed, milestones, chrome) { p, f, m, c ->
@@ -168,10 +174,16 @@ class ScheduleViewModel @Inject constructor(
      */
     fun sendWishes(userId: String) {
         if (wishesJob?.isActive == true) return
+        // The card's button shows "Opening chat…" from the tap until the chat opens or fails.
+        openingWishes.value = userId
         wishesJob = viewModelScope.launch {
-            conversations.openConversation(listOf(userId))
-                .onSuccess { effectChannel.send(ScheduleEffect.OpenConversation(it)) }
-                .onFailure { effectChannel.send(ScheduleEffect.WishesFailed(userId)) }
+            try {
+                conversations.openConversation(listOf(userId))
+                    .onSuccess { effectChannel.send(ScheduleEffect.OpenConversation(it)) }
+                    .onFailure { effectChannel.send(ScheduleEffect.WishesFailed(userId)) }
+            } finally {
+                openingWishes.value = null
+            }
         }
     }
 
@@ -206,6 +218,7 @@ class ScheduleViewModel @Inject constructor(
         val pullRefreshing: Boolean,
         val savedZoneId: String?,
         val myUserId: String?,
+        val openingWishesFor: String?,
     )
 
     private companion object {
@@ -236,7 +249,7 @@ class ScheduleViewModel @Inject constructor(
                 deviceZone = c?.let { deviceZone.current() },
                 isOffline = c?.status?.isOnline == false,
                 isRefreshing = c?.pullRefreshing == true,
-            ).copy(myUserId = c?.myUserId)
+            ).copy(myUserId = c?.myUserId, openingWishesFor = c?.openingWishesFor)
     }
 }
 

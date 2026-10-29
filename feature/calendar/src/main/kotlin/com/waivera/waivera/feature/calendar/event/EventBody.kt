@@ -4,6 +4,7 @@ import androidx.annotation.DrawableRes
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -23,8 +24,10 @@ import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -53,6 +56,8 @@ import com.waivera.waivera.core.designsystem.component.WaiveraListRow
 import com.waivera.waivera.core.designsystem.component.WaiveraSectionHeader
 import com.waivera.waivera.core.designsystem.component.WaiveraSurfaceCard
 import com.waivera.waivera.core.designsystem.component.WaiveraTileTone
+import com.waivera.waivera.core.designsystem.component.pressFeedback
+import com.waivera.waivera.core.designsystem.component.rememberPressFeedback
 import com.waivera.waivera.core.designsystem.component.rememberSkeletonPulse
 import com.waivera.waivera.core.designsystem.component.rememberSkeletonVisible
 import com.waivera.waivera.core.designsystem.component.waiveraCardGroupItem
@@ -235,8 +240,13 @@ private fun EventHero(details: EventDetails, actions: EventActions, modifier: Mo
         locationText(details)?.let { location ->
             val online = event.online || event.isSprout
             // An address opens in maps; the row is the whole 48dp target.
+            val interactions = remember { MutableInteractionSource() }
+            val press = rememberPressFeedback(interactions)
             val openMaps = Modifier
+                .pressFeedback(press, enabled = !online)
                 .clickable(
+                    interactionSource = interactions,
+                    indication = ripple(),
                     onClickLabel = stringResource(R.string.feature_calendar_location_open),
                     role = Role.Button,
                 ) { actions.onOpenLocation(location) }

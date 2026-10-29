@@ -57,6 +57,7 @@ import com.waivera.waivera.core.designsystem.component.WaiveraIllustration
 import com.waivera.waivera.core.designsystem.component.WaiveraSegmentedControl
 import com.waivera.waivera.core.designsystem.component.WaiveraSnackbarHost
 import com.waivera.waivera.core.designsystem.component.WaiveraStatusBadge
+import com.waivera.waivera.core.designsystem.component.WaiveraSwap
 import com.waivera.waivera.core.designsystem.component.WaiveraTileTone
 import com.waivera.waivera.core.designsystem.component.WaiveraTopBar
 import com.waivera.waivera.core.designsystem.component.rememberSkeletonPulse
@@ -70,6 +71,7 @@ import com.waivera.waivera.core.designsystem.theme.WaiveraTheme
 import com.waivera.waivera.core.designsystem.theme.isExtraLargeFontScale
 import com.waivera.waivera.core.designsystem.theme.isLargeFontScale
 import com.waivera.waivera.feature.calendar.model.AgendaNow
+import com.waivera.waivera.feature.calendar.model.PeriodTitle
 import com.waivera.waivera.feature.calendar.model.ScheduleText
 import com.waivera.waivera.feature.calendar.model.ScheduleView
 import com.waivera.waivera.feature.calendar.schedule.AgendaCard
@@ -283,6 +285,7 @@ private fun LazyListScope.agendaItems(state: ScheduleUiState, actions: ScheduleA
                             ended = ended,
                             myUserId = state.myUserId,
                             onSendWishes = actions.onSendWishes,
+                            openingWishesFor = state.openingWishesFor,
                             modifier = cardModifier,
                         )
                     }
@@ -306,11 +309,16 @@ private fun LazyListScope.agendaItems(state: ScheduleUiState, actions: ScheduleA
 
 private fun LazyListScope.nowItem(now: AgendaNow) {
     item(key = NOW_KEY) {
+        val motion = WaiveraTheme.motion
         NowDivider(
             time = now.time,
             modifier = Modifier
                 .padding(horizontal = WaiveraSpacing.Gutter, vertical = WaiveraSpacing.ExtraSmall)
-                .animateItem(),
+                .animateItem(
+                    fadeInSpec = motion.state(),
+                    placementSpec = motion.layout(),
+                    fadeOutSpec = motion.state(),
+                ),
         )
     }
 }
@@ -435,18 +443,24 @@ private fun PeriodRow(state: ScheduleUiState, actions: ScheduleActions, modifier
                 horizontalArrangement = Arrangement.spacedBy(WaiveraSpacing.Small, Alignment.CenterHorizontally),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Text(
-                    text = periodTitleText(state.title, short = isExtraLargeFontScale()),
-                    style = MaterialTheme.typography.titleMedium,
-                    color = WaiveraTheme.colors.text,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier
-                        .weight(1f, fill = false)
-                        .semantics {
+                // The title slides the way the period moved, so a step reads as forward or back.
+                WaiveraSwap(
+                    targetState = state.title,
+                    modifier = Modifier.weight(1f, fill = false),
+                    contentAlignment = Alignment.Center,
+                    direction = ::periodStepDirection,
+                ) { title ->
+                    Text(
+                        text = periodTitleText(title, short = isExtraLargeFontScale()),
+                        style = MaterialTheme.typography.titleMedium,
+                        color = WaiveraTheme.colors.text,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.semantics {
                             heading()
                             liveRegion = LiveRegionMode.Polite
                         },
-                )
+                    )
+                }
                 if (showToday && !todayUnderTitle) {
                     WaiveraStatusBadge(text = stringResource(R.string.feature_calendar_today), tone = BadgeTone.Accent)
                 }
@@ -600,4 +614,15 @@ private fun ScheduleContentDayPreview() {
     WaiveraTheme {
         ScheduleContent(state = SchedulePreviewData.state(ScheduleView.DAY), actions = ScheduleActions())
     }
+}
+
+/** Which way the period moved: forward, back, or 0 when only the view changed. */
+private fun periodStepDirection(from: PeriodTitle, to: PeriodTitle): Int =
+    if (from::class != to::class) 0 else to.startDate().compareTo(from.startDate()).coerceIn(-1, 1)
+
+private fun PeriodTitle.startDate(): LocalDate = when (this) {
+    is PeriodTitle.Month -> month.atDay(1)
+    is PeriodTitle.Day -> date
+    is PeriodTitle.WeekInMonth -> start
+    is PeriodTitle.WeekAcrossMonths -> start
 }

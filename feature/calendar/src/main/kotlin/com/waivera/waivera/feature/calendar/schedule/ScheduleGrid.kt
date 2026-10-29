@@ -2,6 +2,7 @@ package com.waivera.waivera.feature.calendar.schedule
 
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -15,6 +16,7 @@ import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -35,6 +37,10 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
+import com.waivera.waivera.core.designsystem.component.popScale
+import com.waivera.waivera.core.designsystem.component.pressFeedback
+import com.waivera.waivera.core.designsystem.component.rememberPopScale
+import com.waivera.waivera.core.designsystem.component.rememberPressFeedback
 import com.waivera.waivera.core.designsystem.theme.WaiveraShapes
 import com.waivera.waivera.core.designsystem.theme.WaiveraSpacing
 import com.waivera.waivera.core.designsystem.theme.WaiveraTextStyles
@@ -131,12 +137,23 @@ private fun DayCell(cell: GridCell, showWeekday: Boolean, onClick: () -> Unit, m
     }
     val label = cellLabel(cell)
     val narrow = usesCompactCalendar(LocalDensity.current.fontScale)
+    val interactions = remember { MutableInteractionSource() }
+    val press = rememberPressFeedback(interactions)
+    // The picked day's square answers with a pop; the day it leaves just fades.
+    val pop = rememberPopScale(key = cell.isSelected, enabled = cell.isSelected)
     Box(
         modifier = modifier
             .padding(WaiveraSpacing.XxSmall)
             .heightIn(min = if (showWeekday) CalendarSizes.WeekCellMinHeight else WaiveraSpacing.MinTouchTarget)
             .clip(WaiveraShapes.Tile)
-            .selectable(selected = cell.isSelected, role = Role.Button, onClick = onClick)
+            .pressFeedback(press)
+            .selectable(
+                selected = cell.isSelected,
+                interactionSource = interactions,
+                indication = ripple(),
+                role = Role.Button,
+                onClick = onClick,
+            )
             .semantics { contentDescription = label }
             .padding(vertical = WaiveraSpacing.ExtraSmall),
         contentAlignment = Alignment.Center,
@@ -170,6 +187,7 @@ private fun DayCell(cell: GridCell, showWeekday: Boolean, onClick: () -> Unit, m
             Box(
                 modifier = Modifier
                     .defaultMinSize(minWidth = square, minHeight = square)
+                    .popScale(pop)
                     // The selected day's tint fades in on the state token and snaps under reduced
                     // motion; at large font a wide number stretches the square rather than clipping.
                     .drawBehind {

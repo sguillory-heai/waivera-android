@@ -160,6 +160,9 @@ class FakeConversationRepository : ConversationRepository {
     val eventChats = mutableListOf<String>()
     var openResult: Result<Long> = Result.success(OPENED_CONVERSATION_ID)
 
+    /** When set, opening a direct conversation waits for it, so a test can see the busy state. */
+    var openGate: CompletableDeferred<Unit>? = null
+
     override fun observeConversations(): Flow<Synced<List<Conversation>>> = flowOf(Synced(emptyList()))
 
     override fun observeConversation(conversationId: Long): Flow<Conversation?> = flowOf(null)
@@ -173,6 +176,7 @@ class FakeConversationRepository : ConversationRepository {
 
     override suspend fun openConversation(participantIds: List<String>): Result<Long> {
         opened += participantIds
+        openGate?.await()
         return openResult
     }
 
