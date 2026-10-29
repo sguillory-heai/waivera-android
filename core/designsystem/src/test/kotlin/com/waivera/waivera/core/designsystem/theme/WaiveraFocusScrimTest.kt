@@ -21,7 +21,10 @@ class WaiveraFocusScrimTest {
     fun theTokenIsStrongerThanTheSheetScrimAndStrongerStillInPlumDark() {
         assertEquals(WaiveraPalette.FOCUS_SCRIM_ALPHA_LIGHT, light.focusScrim.alpha, TOLERANCE)
         assertEquals(WaiveraPalette.FOCUS_SCRIM_ALPHA_DARK, dark.focusScrim.alpha, TOLERANCE)
-        assertTrue(light.focusScrim.alpha in LIGHT_RANGE, "light focus scrim ${light.focusScrim.alpha}")
+        assertTrue(
+            WaiveraPalette.FOCUS_SCRIM_ALPHA_LIGHT in LIGHT_RANGE,
+            "light focus scrim ${WaiveraPalette.FOCUS_SCRIM_ALPHA_LIGHT}",
+        )
         assertTrue(dark.focusScrim.alpha > light.focusScrim.alpha, "plum dark is not a little stronger")
         assertTrue(dark.focusScrim.alpha - light.focusScrim.alpha <= MAX_DARK_LEAD, "plum dark is much stronger")
         listOf(light, dark).forEach { colors ->
@@ -50,7 +53,8 @@ class WaiveraFocusScrimTest {
     }
 
     private companion object {
-        const val TOLERANCE = 0.001f
+        /** A colour keeps its alpha in 8 bits, so 0.70 is stored as 179/255: one step of slack. */
+        const val TOLERANCE = 1f / 255f
         val LIGHT_RANGE = 0.6f..0.7f
         const val MAX_DARK_LEAD = 0.1f
 

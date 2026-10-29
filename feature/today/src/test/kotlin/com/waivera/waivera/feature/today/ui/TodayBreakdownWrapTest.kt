@@ -42,32 +42,34 @@ class TodayBreakdownWrapTest {
             context.resources.getQuantityString(kind.pluralRes, n, n)
         }
 
-    private fun layouts(text: String, fontScale: Float): List<TextLayoutResult> {
-        var results = emptyList<TextLayoutResult>()
+    /** Every line at every width, measured in one composition: a test rule takes one setContent. */
+    private fun layouts(texts: List<String>, fontScale: Float): Map<String, List<TextLayoutResult>> {
+        var results = emptyMap<String, List<TextLayoutResult>>()
         compose.setContent {
             val density = LocalDensity.current
             CompositionLocalProvider(LocalDensity provides Density(density.density, fontScale)) {
                 val measurer = rememberTextMeasurer()
-                // Narrower than its widest unbreakable piece, any text has to break inside a word.
-                val widest = text.split(' ').maxOf { measurer.measure(it, WaiveraTextStyles.HeroBody).size.width }
-                results = (MIN_WIDTH_DP..MAX_WIDTH_DP)
-                    .map { widthDp -> (widthDp * density.density).toInt() }
-                    .filter { it >= widest }
-                    .map { width ->
-                        measurer.measure(
-                            text = text,
-                            style = WaiveraTextStyles.HeroBody,
-                            constraints = Constraints(maxWidth = width),
-                        )
-                    }
+                results = texts.associateWith { text ->
+                    // Narrower than its widest unbreakable piece, any text has to break inside a word.
+                    val widest = text.split(' ').maxOf { measurer.measure(it, WaiveraTextStyles.HeroBody).size.width }
+                    (MIN_WIDTH_DP..MAX_WIDTH_DP)
+                        .map { widthDp -> (widthDp * density.density).toInt() }
+                        .filter { it >= widest }
+                        .map { width ->
+                            measurer.measure(
+                                text = text,
+                                style = WaiveraTextStyles.HeroBody,
+                                constraints = Constraints(maxWidth = width),
+                            )
+                        }
+                }
             }
         }
         compose.waitForIdle()
         return results
     }
 
-    private fun assertWrapsBetweenKinds(text: String, fontScale: Float) {
-        val all = layouts(text, fontScale)
+    private fun assertWrapsBetweenKinds(fontScale: Float) = layouts(waiting, fontScale).forEach { (text, all) ->
         assertTrue(all.any { it.lineCount > 1 }, "no width wrapped \"$text\", so this checks nothing")
         all.forEach { layout ->
             for (line in 0 until layout.lineCount - 1) {
@@ -97,10 +99,10 @@ class TodayBreakdownWrapTest {
     )
 
     @Test
-    fun wrapsOnlyBetweenKindsAtDefaultSize() = waiting.forEach { assertWrapsBetweenKinds(it, 1f) }
+    fun wrapsOnlyBetweenKindsAtDefaultSize() = assertWrapsBetweenKinds(1f)
 
     @Test
-    fun wrapsOnlyBetweenKindsAtLargeFont() = waiting.forEach { assertWrapsBetweenKinds(it, 2f) }
+    fun wrapsOnlyBetweenKindsAtLargeFont() = assertWrapsBetweenKinds(2f)
 
     private companion object {
         const val MIN_WIDTH_DP = 60
