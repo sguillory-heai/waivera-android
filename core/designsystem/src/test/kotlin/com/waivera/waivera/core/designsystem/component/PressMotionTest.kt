@@ -134,6 +134,32 @@ class PressMotionTest {
         assertEquals(0f, press.tintAlpha, 0f)
     }
 
+    /** M3-08: inside a list the ripple waits for the tap timeout, so a row or a card tints on touch-down. */
+    @Test
+    fun withAnimationsOnARowOrCardTintsLightlyOnTouchDownAndClearsOnRelease() {
+        compose.mainClock.autoAdvance = false
+        val presses = showPresses(WaiveraMotionScheme.Standard, PressDepth.entries)
+        compose.runOnUiThread { presses.forEach { it.onPointer(down = true) } }
+        PressDepth.entries.zip(presses).forEach { (depth, press) ->
+            val expected = when (depth) {
+                PressDepth.Row, PressDepth.Card -> WaiveraMotionScheme.STANDARD_PRESSED_TINT_ALPHA
+                PressDepth.Button, PressDepth.Compact -> 0f
+            }
+            assertEquals("$depth on touch-down", expected, press.tintAlpha, 0f)
+        }
+        compose.runOnUiThread { presses.forEach { it.onPointer(down = false) } }
+        compose.mainClock.advanceTimeBy(PressTiming.MIN_VISIBLE_PRESS_MILLIS / 2)
+        val row = presses[PressDepth.entries.indexOf(PressDepth.Row)]
+        assertEquals(
+            "a quick tap's tint left early",
+            WaiveraMotionScheme.STANDARD_PRESSED_TINT_ALPHA,
+            row.tintAlpha,
+            0f,
+        )
+        compose.mainClock.advanceTimeBy(SETTLE_MILLIS)
+        presses.forEach { assertEquals(0f, it.tintAlpha, 0f) }
+    }
+
     @Test
     fun reducedMotionAnswersAPressAtOnceWithATintAndNoScale() {
         compose.mainClock.autoAdvance = false

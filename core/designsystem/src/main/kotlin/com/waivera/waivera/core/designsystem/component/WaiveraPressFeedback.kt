@@ -57,7 +57,8 @@ import kotlinx.coroutines.launch
  *
  * Under reduced motion nothing scales. The press answers at once with a state-layer tint instead
  * ([tintAlpha], drawn by [pressFeedback]), because the ripple inside a list waits for the tap
- * timeout (M1-12); a long press that arms deepens the tint.
+ * timeout (M1-12); a long press that arms deepens the tint. With animations on, a row or a card
+ * also takes a light tint on touch-down, under the ripple that follows (M3-08).
  *
  * Use [pressFeedback] on the control, or [pressTracking] on the touch target and [pressScale]
  * on the part that should shrink (a tab's icon rather than the whole tab).
@@ -83,7 +84,7 @@ class PressFeedbackState internal constructor(
     /** The current scale; read it in a graphics layer, never in composition. */
     val value: Float get() = scale.value
 
-    /** The reduced-motion state layer's alpha, 0 when not pressed; read it in a draw block only. */
+    /** The touch-down state layer's alpha, 0 when not pressed; read it in a draw block only. */
     val tintAlpha: Float get() = tint.floatValue
 
     /**
@@ -119,11 +120,23 @@ class PressFeedbackState internal constructor(
         pressedAtMillis = clock()
         longPressFired = false
         job?.cancel()
-        if (motion.reduced) tint.floatValue = WaiveraMotionScheme.PRESSED_TINT_ALPHA
+        tint.floatValue = touchDownTint()
         job = scope.launch {
             scale.animateTo(motion.pressScaleFor(depth), motion.pressIn(SCALE_VISIBILITY_THRESHOLD))
             if (armsLongPress) armLongPress()
         }
+    }
+
+    /**
+     * The state layer a press shows on the frame the finger lands. With animations off every
+     * control tints (M1-12). With them on, a row or a card also tints lightly (M3-08): inside a
+     * list the ripple waits out the tap timeout, and a 1.5% dip alone was the only answer for
+     * about 100 ms. Buttons and small targets dip far enough to need nothing more.
+     */
+    private fun touchDownTint(): Float = when {
+        motion.reduced -> WaiveraMotionScheme.PRESSED_TINT_ALPHA
+        depth == PressDepth.Row || depth == PressDepth.Card -> WaiveraMotionScheme.STANDARD_PRESSED_TINT_ALPHA
+        else -> 0f
     }
 
     /** Waits out the arm delay, then sinks (or, with animations off, deepens the tint). */
@@ -221,8 +234,9 @@ fun Modifier.pressScale(state: PressFeedbackState): Modifier = graphicsLayer {
 }
 
 /**
- * Draws [state]'s reduced-motion state layer over the control, in [shape]. With animations on
- * the alpha stays 0 and nothing is drawn. Read in the draw block, so it never recomposes.
+ * Draws [state]'s touch-down state layer over the control, in [shape]: every press with
+ * animations off, and rows and cards with them on. At rest the alpha is 0 and nothing is drawn.
+ * Read in the draw block, so it never recomposes.
  */
 fun Modifier.pressTint(state: PressFeedbackState, shape: Shape = RectangleShape): Modifier = drawWithContent {
     drawContent()

@@ -256,6 +256,12 @@ class WaiveraMotionScheme internal constructor(val reduced: Boolean) {
         const val PRESSED_TINT_ALPHA = 0.10f
         const val LONG_PRESS_TINT_ALPHA = 0.16f
 
+        /**
+         * With animations on, a row or card's light tint on touch-down (M3-08), the answer on the
+         * frame the finger lands while the ripple waits out the tap timeout.
+         */
+        const val STANDARD_PRESSED_TINT_ALPHA = 0.06f
+
         /** [exit]: the leaving side of a swap, gone before the arriving side is halfway (M1-01, M2-02). */
         const val EXIT_MILLIS = 60
 
