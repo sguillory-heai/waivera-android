@@ -53,6 +53,11 @@
     <string name="feature_chat_list_time_now">Now</string>
     <string name="feature_chat_list_time_minutes">%1$dm</string>
     <string name="feature_chat_list_time_yesterday">Yesterday</string>
+    <!-- A group title's "& 4 others" in short, when the row is too narrow: "Mar… +4". -->
+    <plurals name="feature_chat_list_title_count_compact">
+        <item quantity="one">+%d</item>
+        <item quantity="other">+%d</item>
+    </plurals>
 
     <string name="feature_chat_list_bot_icon">Automated Waivera notifications</string>
     <string name="feature_chat_list_channel_icon">Channel</string>

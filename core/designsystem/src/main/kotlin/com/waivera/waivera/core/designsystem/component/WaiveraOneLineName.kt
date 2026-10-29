@@ -34,7 +34,8 @@ import com.waivera.waivera.core.designsystem.theme.WaiveraTheme
  *
  * [shortenable] is the only part of [text] that may be cut, for a title composed around a name
  * ("Maria-Fernanda R. & 4 others"): past the floor size, that part ends in "…" and the rest (the
- * "& 4 others" count) always shows whole ([WaiveraShortenedName], v7 follow-up item 4).
+ * "& 4 others" count) always shows whole ([WaiveraShortenedName], v7 follow-up item 4). When even
+ * "…" and the count do not fit, [compactSuffix] (a group's "+4") takes the count's place.
  */
 @Composable
 fun WaiveraOneLineName(
@@ -45,6 +46,7 @@ fun WaiveraOneLineName(
     fontWeight: FontWeight? = null,
     textAlign: TextAlign? = null,
     shortenable: IntRange? = null,
+    compactSuffix: String? = null,
 ) {
     val ink = color.takeOrElse { style.color.takeOrElse { LocalContentColor.current } }
     val merged = style.copy(
@@ -53,7 +55,13 @@ fun WaiveraOneLineName(
         textAlign = textAlign ?: style.textAlign,
     )
     if (shortenable != null && style.fontSize.isSp && shortenable.isWithin(text)) {
-        WaiveraShortenedName(text = text, shortenable = shortenable, style = merged, modifier = modifier)
+        WaiveraShortenedName(
+            text = text,
+            shortenable = shortenable,
+            compactSuffix = compactSuffix,
+            style = merged,
+            modifier = modifier,
+        )
         return
     }
     val autoSize = remember(style.fontSize) { nameAutoSize(style.fontSize) }

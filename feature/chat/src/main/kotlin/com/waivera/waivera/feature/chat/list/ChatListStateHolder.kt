@@ -353,6 +353,7 @@ class ChatListStateHolder(
             id = c.id,
             title = ConversationPresentation.title(c, me, text),
             titleNameRange = ConversationTitles.groupNameRange(c, me, text),
+            titleCompactCount = ConversationTitles.groupOthersCount(c, me)?.let(text::compactGroupCount),
             leading = ConversationPresentation.leading(c, me),
             preview = preview.text,
             previewKind = preview.kind,

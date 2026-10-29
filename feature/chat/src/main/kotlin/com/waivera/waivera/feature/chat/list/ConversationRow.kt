@@ -179,6 +179,8 @@ private fun RowBody(row: ChatRowUi, avatar: ImageBitmap?, onJoinCall: () -> Unit
                     text = row.title,
                     // A group's "& 2 others" always shows; only the name before it is cut.
                     shortenable = row.titleNameRange,
+                    // Next to the time at large font, even "… & 4 others" can be too wide: "Mar… +4".
+                    compactSuffix = row.titleCompactCount,
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = if (row.isUnread) FontWeight.ExtraBold else FontWeight.SemiBold,
                     color = colors.text,

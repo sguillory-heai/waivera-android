@@ -48,7 +48,8 @@ import org.robolectric.annotation.GraphicsMode
  * 60-character name and 4 others, the chat list row, the conversation header, the row actions
  * header and the thread header each show "& 4 others" whole, on one line, no smaller than the
  * 0.85 floor, at 100% and 200% on the small phone. Only the name is cut, and TalkBack reads the
- * whole title.
+ * whole title. When not even "… & 4 others" fits beside the time (the compact name, 200%, small
+ * phone, "Yesterday"), the chat list row shows the name and "+4" instead, never losing the count.
  */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
@@ -176,6 +177,40 @@ class GroupTitleCountLayoutTest {
 
     @Test
     fun theChatListKeepsTheCount() = chatList(1f)
+
+    @Test
+    fun theChatListShortensTheCountBesideTheTimeAtLargeFont() {
+        val title = "M. Rui" + SUFFIX
+        show(fontScale = 2f) {
+            ConversationRow(
+                row = row.copy(
+                    title = title,
+                    titleNameRange = 0 until "M. Rui".length,
+                    titleCompactCount = "+4",
+                    timeLabel = "Yesterday",
+                    isCallLive = true,
+                ),
+                avatar = null,
+                onClick = {},
+                onShowActions = {},
+                onJoinCall = {},
+                onMarkRead = {},
+                onOpenProfile = {},
+            )
+        }
+        val name = compose.onNodeWithTag(CHAT_ROW_NAME_TAG, useUnmergedTree = true)
+        name.assert(hasText(title))
+        val layout = name.layout()
+        val shown = layout.layoutInput.text.text
+        assertTrue("\"$shown\" lost its count beside the time", shown.endsWith("\u00A0+4"))
+        assertTrue("\"$shown\" lost the start of the name", shown.startsWith("M"))
+        assertEquals("\"$shown\" wraps", 1, layout.lineCount)
+        assertFalse("\"$shown\" is ellipsized at its end", layout.isLineEllipsized(0))
+        assertEquals("\"$shown\" is cut", shown.length, layout.getLineEnd(0, visibleEnd = true))
+        assertTrue("\"$shown\" is wider than its line", layout.getLineRight(0) <= layout.size.width)
+        val size = layout.layoutInput.style.fontSize.value
+        assertTrue("\"$shown\" shrank to $size", size >= TITLE_SMALL * WaiveraNameFit.MIN_FONT_SCALE - EPSILON)
+    }
 
     @Test
     fun theChatListKeepsTheCountAtLargeFont() = chatList(2f)

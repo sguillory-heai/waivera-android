@@ -28,7 +28,9 @@ import com.waivera.waivera.core.designsystem.theme.WaiveraNameFit
  * (v7 follow-up, item 4). It follows [WaiveraOneLineName]'s rule: full size when it fits, then
  * the size steps down to [WaiveraNameFit.MIN_FONT_SCALE]; past that floor only [shortenable] (the
  * name) ends in "…", so the count around it ("& 4 others", "+4") always shows whole and the title
- * still never wraps. TalkBack and text lookups read the whole title; tests get the drawn layout.
+ * still never wraps. When not even "…" and the count fit, the name and [compactSuffix] (a short
+ * form of the count, "+4") are tried the same way before the whole title ends in "…". TalkBack and
+ * text lookups read the whole title; tests get the drawn layout.
  *
  * The fit is measured as [WaiveraAddressText] measures its breaks: once per text, style and width.
  * [style] carries its ink and weight already, and its size is in sp.
@@ -39,6 +41,7 @@ internal fun WaiveraShortenedName(
     shortenable: IntRange,
     style: TextStyle,
     modifier: Modifier = Modifier,
+    compactSuffix: String? = null,
 ) {
     val measurer = rememberTextMeasurer()
     var layout by remember { mutableStateOf<TextLayoutResult?>(null) }
@@ -53,8 +56,8 @@ internal fun WaiveraShortenedName(
         },
     ) {
         val maxWidth = constraints.maxWidth
-        val fit = remember(text, shortenable, style, maxWidth, measurer) {
-            fitShortenedName(measurer, text, shortenable, style, maxWidth)
+        val fit = remember(text, shortenable, compactSuffix, style, maxWidth, measurer) {
+            fitShortenedName(measurer, text, shortenable, style, maxWidth, compactSuffix)
         }
         BasicText(
             text = fit.shown,
@@ -75,14 +78,17 @@ internal data class ShortenedName(val shown: String, val fontSize: TextUnit)
  * The largest size, from the full size down the auto-size steps to the floor, at which the whole
  * [text] fits [maxWidth] on one line; else, at the floor, the longest start of the [shortenable]
  * part, ended in "…", that keeps everything around it on the line. When not even "…" fits, the
- * whole title at the floor size, for the text's own ellipsis.
+ * name (whole, or its longest start ended in "…") and [compactSuffix] in place of the rest; and
+ * when that does not fit either, the whole title at the floor size, for the text's own ellipsis.
  */
+@Suppress("LongParameterList")
 internal fun fitShortenedName(
     measurer: TextMeasurer,
     text: String,
     shortenable: IntRange,
     style: TextStyle,
     maxWidth: Int,
+    compactSuffix: String? = null,
 ): ShortenedName {
     val full = style.fontSize
     val floor = full * WaiveraNameFit.MIN_FONT_SCALE
@@ -94,16 +100,22 @@ internal fun fitShortenedName(
             maxLines = 1,
         ).size.width <= maxWidth
     val whole = nameSizes(full, floor).firstOrNull { fits(text, it) }
-    return if (whole != null) ShortenedName(text, whole) else shortenAtFloor(text, shortenable, floor, ::fits)
+    if (whole != null) return ShortenedName(text, whole)
+    return shortenAtFloor(text, shortenable, floor, ::fits)
+        ?: compactSuffix?.let { suffix -> compactAtFloor(text, shortenable, suffix, floor, ::fits) }
+        ?: ShortenedName(text, floor)
 }
 
-/** At the [floor] size, the longest start of the [shortenable] part, ended in "…", that [fits]. */
+/**
+ * At the [floor] size, the longest start of the [shortenable] part, ended in "…", that [fits]
+ * with the rest of [text]; null when not even "…" does.
+ */
 private fun shortenAtFloor(
     text: String,
     shortenable: IntRange,
     floor: TextUnit,
     fits: (String, TextUnit) -> Boolean,
-): ShortenedName {
+): ShortenedName? {
     val before = text.substring(0, shortenable.first)
     val name = text.substring(shortenable.first, shortenable.last + 1)
     val after = text.substring(shortenable.last + 1)
@@ -112,15 +124,45 @@ private fun shortenAtFloor(
         val end = if (keep > 0 && name[keep - 1].isHighSurrogate()) keep - 1 else keep
         return before + name.substring(0, end).trimEnd() + ELLIPSIS + after
     }
-    if (!fits(shortened(0), floor)) return ShortenedName(text, floor)
-    // The most of the name that fits: widths grow with what is kept, so search the count.
+    if (!fits(shortened(0), floor)) return null
+    return ShortenedName(shortened(longestFit(name.length - 1) { fits(shortened(it), floor) }), floor)
+}
+
+/**
+ * At the [floor] size, the text before the [shortenable] part, the name and [suffix] in place of
+ * everything after it ("M. Rui +4"), the name ending in "…" when it must ("Mar… +4"); null when
+ * not even "… +4" [fits].
+ */
+private fun compactAtFloor(
+    text: String,
+    shortenable: IntRange,
+    suffix: String,
+    floor: TextUnit,
+    fits: (String, TextUnit) -> Boolean,
+): ShortenedName? {
+    val before = text.substring(0, shortenable.first)
+    val name = text.substring(shortenable.first, shortenable.last + 1)
+    val whole = before + name + COMPACT_GAP + suffix
+    fun compact(keep: Int): String {
+        val end = if (keep > 0 && name[keep - 1].isHighSurrogate()) keep - 1 else keep
+        return before + name.substring(0, end).trimEnd() + ELLIPSIS + COMPACT_GAP + suffix
+    }
+    return when {
+        fits(whole, floor) -> ShortenedName(whole, floor)
+        !fits(compact(0), floor) -> null
+        else -> ShortenedName(compact(longestFit(name.length - 1) { fits(compact(it), floor) }), floor)
+    }
+}
+
+/** The largest count in 0..[most] that [fits]; [fits] holds for 0 and widths grow with the count. */
+private inline fun longestFit(most: Int, fits: (Int) -> Boolean): Int {
     var low = 0
-    var high = name.length - 1
+    var high = most
     while (low < high) {
         val mid = (low + high + 1) / 2
-        if (fits(shortened(mid), floor)) low = mid else high = mid - 1
+        if (fits(mid)) low = mid else high = mid - 1
     }
-    return ShortenedName(shortened(low), floor)
+    return low
 }
 
 /**
@@ -134,4 +176,7 @@ private fun nameSizes(full: TextUnit, floor: TextUnit): List<TextUnit> {
 }
 
 private const val ELLIPSIS = "…"
+
+/** A no-break space, so "+4" never parts from the name before it. */
+private const val COMPACT_GAP = "\u00A0"
 private const val SIZE_SLACK = 0.001f

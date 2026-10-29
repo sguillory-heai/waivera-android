@@ -102,6 +102,19 @@ class ConversationPresentationTest {
     }
 
     @Test
+    fun aGroupTitlesCountHasAShortForm() {
+        val sam = Person("usr_sam", "Sam", "Okafor")
+        val c = Conversation(11, ConversationKind.GROUP, listOf(me, priya, jordan, sam))
+        assertEquals(2, ConversationTitles.groupOthersCount(c, ME))
+        assertEquals("+2", ConversationTitles.groupOthersCount(c, ME)?.let(text::compactGroupCount))
+        // Only titles with a count ("& 2 others") have one: a pair, a direct chat and a channel do not.
+        val pair = Conversation(11, ConversationKind.GROUP, listOf(me, priya, jordan))
+        assertNull(ConversationTitles.groupOthersCount(pair, ME))
+        assertNull(ConversationTitles.groupOthersCount(dm(7), ME))
+        assertNull(ConversationTitles.groupOthersCount(channel(41), ME))
+    }
+
+    @Test
     fun groupOfThreeNamesBothOthersInFull() {
         val c = Conversation(11, ConversationKind.GROUP, listOf(me, priya, jordan))
         assertEquals("Priya Raman, Jordan Lee", p.title(c, ME, text))

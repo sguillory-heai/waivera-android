@@ -59,6 +59,8 @@ object EnglishText : ChatListText, ConversationTitleText by EnglishConversationT
     override fun typing(name: String) = "$name is typing…"
 
     override fun minutesAgo(minutes: Int) = "${minutes}m"
+
+    override fun compactGroupCount(others: Int) = "+$others"
 }
 
 fun preview(

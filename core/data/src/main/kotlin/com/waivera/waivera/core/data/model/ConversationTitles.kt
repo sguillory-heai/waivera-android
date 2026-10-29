@@ -58,6 +58,16 @@ object ConversationTitles {
         return if (start < 0 || name.isEmpty()) null else start until start + name.length
     }
 
+    /**
+     * How many people the count in a group's [format]ted title stands for (4 in "Priya Raman & 4
+     * others"); null when the title has no count. Pairs with [groupNameRange].
+     */
+    fun groupOthersCount(c: Conversation, myUserId: String?): Int? {
+        if (isChannel(c) || isBot(c, myUserId)) return null
+        val others = others(c, myUserId).size
+        return if (others <= PAIR) null else others - 1
+    }
+
     private fun otherNames(c: Conversation, myUserId: String?, text: ConversationTitleText): List<String> =
         others(c, myUserId).map { displayName(it).ifEmpty { text.unknownPerson } }
 

@@ -27,6 +27,9 @@ interface ChatListText : ConversationTitleText {
     fun typing(name: String): String
 
     fun minutesAgo(minutes: Int): String
+
+    /** A group title's count in short ("+4"), for a row too narrow for "& 4 others". */
+    fun compactGroupCount(others: Int): String
 }
 
 class ResourceChatListText @Inject constructor(
@@ -50,4 +53,7 @@ class ResourceChatListText @Inject constructor(
     override fun typing(name: String): String = context.getString(R.string.feature_chat_list_typing_one, name)
 
     override fun minutesAgo(minutes: Int): String = context.getString(R.string.feature_chat_list_time_minutes, minutes)
+
+    override fun compactGroupCount(others: Int): String =
+        context.resources.getQuantityString(R.plurals.feature_chat_list_title_count_compact, others, others)
 }

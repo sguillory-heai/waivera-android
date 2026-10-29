@@ -33,6 +33,8 @@ data class ChatRowUi(
      * the only part a one-line title may cut, so the count always shows. Null for other titles.
      */
     val titleNameRange: IntRange? = null,
+    /** The count in short ("+4"), shown in place of "& 4 others" when even that does not fit. */
+    val titleCompactCount: String? = null,
     val leading: RowLeading,
     val preview: String,
     val previewKind: PreviewKind,
