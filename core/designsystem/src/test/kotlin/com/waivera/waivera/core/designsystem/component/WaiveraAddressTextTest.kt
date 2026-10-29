@@ -16,6 +16,7 @@ import androidx.compose.ui.unit.dp
 import com.waivera.waivera.core.designsystem.theme.WaiveraMotionScheme
 import com.waivera.waivera.core.designsystem.theme.WaiveraTheme
 import com.waivera.waivera.core.screenshottesting.ScreenshotSdk
+import com.waivera.waivera.core.testing.LongFixtures
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -85,6 +86,29 @@ class WaiveraAddressTextTest {
                 assertTrue("line $line ends mid-part: \"$text\"", text.last() in ".-@")
             }
         }
+    }
+
+    /** An emoji local part is laid out whole: no lone surrogate halves around its joiners (N7). */
+    @Test
+    fun anEmojiAddressKeepsItsCodePoints() = assertEmojiAddressWhole(fontScale = 1f)
+
+    @Test
+    fun anEmojiAddressKeepsItsCodePointsAtLargeFont() = assertEmojiAddressWhole(fontScale = LARGE_FONT)
+
+    private fun assertEmojiAddressWhole(fontScale: Float) {
+        val address = "${LongFixtures.NAME_EMOJI}@example.com"
+        val layout = layoutOf(address = address, fontScale = fontScale)
+        assertWhole(layout)
+        val shown = layout.layoutInput.text.text
+        assertTrue("the emoji is split at ${fontScale}x", shown.startsWith(LongFixtures.NAME_EMOJI))
+        val paired = shown.indices.all { i ->
+            when {
+                shown[i].isHighSurrogate() -> i + 1 < shown.length && shown[i + 1].isLowSurrogate()
+                shown[i].isLowSurrogate() -> i > 0 && shown[i - 1].isHighSurrogate()
+                else -> true
+            }
+        }
+        assertTrue("a lone surrogate at ${fontScale}x", paired)
     }
 
     /** Every character is laid out, nothing is ellipsized, and no line runs past the width. */

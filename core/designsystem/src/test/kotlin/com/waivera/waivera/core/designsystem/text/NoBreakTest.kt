@@ -1,5 +1,6 @@
 package com.waivera.waivera.core.designsystem.text
 
+import com.waivera.waivera.core.testing.LongFixtures
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertSame
@@ -116,5 +117,61 @@ class NoBreakTest {
         )
         assertEquals("alex.rivera@" to "example.org", "alex.rivera@example.org".addressParts())
         assertEquals("ops-team" to "", "ops-team".addressParts())
+    }
+
+    @Test
+    fun anEmojiInAnAddressStaysOneCharacter() {
+        val shown = "${LongFixtures.NAME_EMOJI}@example.com".asAddressDisplay()
+        assertEquals("${LongFixtures.NAME_EMOJI}\u2060@\u200Bexample\u2060.\u2060com", shown)
+        assertCodePointsIntact(shown)
+    }
+
+    @Test
+    fun charactersOutsideTheBasicPlaneAreNeverSplit() {
+        val family = "\uD83D\uDC69\u200D\uD83D\uDC67"
+        val flag = "\uD83C\uDDFA\uD83C\uDDF8"
+        val thumbs = "\uD83D\uDC4D\uD83C\uDFFD"
+        val heart = "\u2764\uFE0F"
+        val cjk = "\uD842\uDFB7"
+        val address = "$family.$flag-${thumbs}${heart}_$cjk@$cjk.example"
+        listOf(
+            AddressBreaks(),
+            AddressBreaks(domainDots = true),
+            AddressBreaks(localPart = true),
+            AddressBreaks(domainDots = true, localPart = true),
+        ).forEach { breaks ->
+            val shown = address.asAddressDisplay(breaks)
+            assertCodePointsIntact(shown)
+            assertEquals(address, shown.filterNot { it == '\u2060' || it == '\u200B' })
+            listOf(family, flag, thumbs, heart, cjk).forEach { cluster ->
+                assertTrue(cluster in shown, "$breaks split ${cluster.codePoints().toArray().toList()}")
+            }
+        }
+    }
+
+    @Test
+    fun everyNameFixtureKeepsItsCodePoints() {
+        LongFixtures.NAMES.values.forEach { name ->
+            val shown = "$name@example.com".asAddressDisplay(AddressBreaks(domainDots = true, localPart = true))
+            assertCodePointsIntact(shown)
+            assertEquals("$name@example.com", shown.filterNot { it == '\u2060' || it == '\u200B' })
+        }
+    }
+
+    private fun assertCodePointsIntact(shown: String) {
+        var index = 0
+        while (index < shown.length) {
+            val char = shown[index]
+            if (char.isHighSurrogate()) {
+                assertTrue(
+                    index + 1 < shown.length && shown[index + 1].isLowSurrogate(),
+                    "lone high surrogate at $index",
+                )
+                index += 2
+            } else {
+                assertTrue(!char.isLowSurrogate(), "lone low surrogate at $index")
+                index++
+            }
+        }
     }
 }

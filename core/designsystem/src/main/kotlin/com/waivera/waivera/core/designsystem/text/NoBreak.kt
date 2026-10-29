@@ -75,28 +75,65 @@ data class AddressBreaks(
  * the platform breaker would otherwise split at a hyphen or, inside a long token, before a dot
  * ("alexandria.rivera" / "-montgomery@example" / ".com"). Visible text only: spoken text keeps
  * the plain address. With the default [breaks] it wraps after the "@" only.
+ *
+ * It walks the text a character as the reader sees it at a time ([clusterEnd]), not a UTF-16
+ * unit at a time, so an emoji or a character outside the basic plane is never split into two
+ * lone surrogate halves by a joiner, which drew as two replacement boxes (wave 29 N7).
  */
 fun String.asAddressDisplay(breaks: AddressBreaks = AddressBreaks()): String {
     val at = lastIndexOf(AT)
     val out = StringBuilder(length * 2)
-    forEachIndexed { index, char ->
-        val last = index == length - 1
+    var afterWord = false
+    var index = 0
+    while (index < length) {
+        val end = clusterEnd(index)
+        val char = this[index]
+        val word = Character.isLetterOrDigit(codePointAt(index))
+        val last = end == length
         val breakAt = when {
             index == at -> true
             at in 0 until index -> char == DOT && breaks.domainDots
             else -> char in LOCAL_PART_BREAKS && breaks.localPart
         }
-        val breakAfter = !last && breakAt
-        val guarded = !char.isLetterOrDigit()
-        if (guarded && out.isNotEmpty() && out.last().isLetterOrDigit()) out.append(WORD_JOINER)
-        out.append(char)
+        if (!word && afterWord) out.append(WORD_JOINER)
+        out.append(this, index, end)
         when {
-            breakAfter -> out.append(ZERO_WIDTH_SPACE)
-            guarded && !last -> out.append(WORD_JOINER)
+            !last && breakAt -> out.append(ZERO_WIDTH_SPACE)
+            !word && !last -> out.append(WORD_JOINER)
         }
+        afterWord = word
+        index = end
     }
     return out.toString()
 }
+
+/**
+ * Where the character the reader sees that starts at [start] ends: one code point plus what
+ * extends it (combining marks, variation selectors, skin tones, emoji tags, and whatever a
+ * zero-width joiner joins), or a pair of regional indicators (a flag). Close enough to Unicode's
+ * extended grapheme clusters for names and addresses, and the same on every Android version and
+ * on the JVM, where `BreakIterator` differs.
+ */
+internal fun String.clusterEnd(start: Int): Int {
+    val first = codePointAt(start)
+    var end = start + Character.charCount(first)
+    if (first.isRegionalIndicator() && end < length && codePointAt(end).isRegionalIndicator()) {
+        end += Character.charCount(codePointAt(end))
+    }
+    var afterJoiner = false
+    while (end < length) {
+        val next = codePointAt(end)
+        if (!afterJoiner && !next.extendsCluster()) break
+        afterJoiner = next == ZERO_WIDTH_JOINER
+        end += Character.charCount(next)
+    }
+    return end
+}
+
+private fun Int.isRegionalIndicator(): Boolean = this in REGIONAL_INDICATORS
+
+private fun Int.extendsCluster(): Boolean =
+    this == ZERO_WIDTH_JOINER || CLUSTER_EXTENDERS.any { this in it } || Character.getType(this) in COMBINING_TYPES
 
 /**
  * The fewest break points that let an address fit [maxWidth], from the one-line widths of its
@@ -121,3 +158,13 @@ private const val HYPHEN = '-'
 private const val NON_BREAKING_HYPHEN = '‑'
 private const val ZERO_WIDTH_SPACE = '\u200B'
 private const val BREAKS_HEADROOM = 8
+private const val ZERO_WIDTH_JOINER = 0x200D
+
+/** Variation selectors, their supplement, skin tones and emoji tags. */
+private val CLUSTER_EXTENDERS = listOf(0xFE00..0xFE0F, 0xE0100..0xE01EF, 0x1F3FB..0x1F3FF, 0xE0020..0xE007F)
+private val COMBINING_TYPES = setOf(
+    Character.NON_SPACING_MARK.toInt(),
+    Character.ENCLOSING_MARK.toInt(),
+    Character.COMBINING_SPACING_MARK.toInt(),
+)
+private val REGIONAL_INDICATORS = 0x1F1E6..0x1F1FF
