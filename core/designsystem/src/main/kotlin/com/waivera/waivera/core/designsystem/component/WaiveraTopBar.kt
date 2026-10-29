@@ -119,8 +119,9 @@ fun rememberTopBarAccount(onClick: () -> Unit, fallbackName: String = "", painte
  * item 3); TalkBack still reads it whole.
  *
  * [onSubtitleClick] makes the subtitle a button (the group's "N members" opens its members):
- * it presses like other controls, takes at least a 48dp target, and TalkBack announces it as a
- * button with [subtitleClickLabel] as its action.
+ * it presses like other controls, takes at least a 48dp target that overhangs the line without
+ * making the header taller, and TalkBack announces it as a button with [subtitleClickLabel] as
+ * its action.
  *
  * [heroContent] goes on the plum under the bar row, for a screen that has a hero of its own (a
  * person's avatar and name). It uses the hero inks ([WaiveraHero.colors]).
@@ -175,14 +176,7 @@ fun WaiveraTopBar(
                     Column(
                         modifier = Modifier
                             .weight(1f)
-                            // A subtitle button brings its own 48dp target, which is its spacing.
-                            .padding(
-                                vertical = if (subtitle != null && onSubtitleClick != null) {
-                                    WaiveraSpacing.None
-                                } else {
-                                    WaiveraSpacing.Small
-                                },
-                            ),
+                            .padding(vertical = WaiveraSpacing.Small),
                     ) {
                         if (titleIsName) {
                             WaiveraOneLineName(
@@ -236,7 +230,9 @@ fun WaiveraTopBar(
 /**
  * The line under the title. TalkBack reads the whole subtitle even when its line limit cuts it.
  * A clickable subtitle is a button: the shared press feedback, a 48dp-tall target and an action
- * label, so "3 members" announces as "3 members, button, double-tap to show members".
+ * label, so "3 members" announces as "3 members, button, double-tap to show members". The target
+ * overhangs the line ([overhangingTouchTarget]), so the header keeps the height it has with a
+ * plain subtitle and no gap opens under the title.
  */
 @Composable
 private fun TopBarSubtitle(
@@ -276,12 +272,12 @@ private fun TopBarSubtitle(
             role = Role.Button,
             shape = WaiveraShapes.Chip,
             modifier = Modifier
-                .heightIn(min = WaiveraSpacing.MinTouchTarget)
+                .overhangingTouchTarget(WaiveraSpacing.MinTouchTarget)
                 .testTag(TOP_BAR_SUBTITLE_BUTTON_TAG),
         ) {
             // The chevron says the line opens something, as a row's chevron does.
             Row(
-                modifier = Modifier.heightIn(min = WaiveraSpacing.MinTouchTarget),
+                modifier = Modifier.align(Alignment.CenterStart),
                 horizontalArrangement = Arrangement.spacedBy(WaiveraSpacing.XxSmall),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
