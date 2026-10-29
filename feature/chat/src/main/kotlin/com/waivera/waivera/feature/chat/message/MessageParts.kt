@@ -479,12 +479,17 @@ internal const val FILE_NAME_TAIL_TAG = "chat_file_name_tail"
 
 // Ticket card -------------------------------------------------------------------------------
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun TicketCard(ticket: TicketNotification, onOpen: (String) -> Unit, modifier: Modifier = Modifier) {
     val colors = WaiveraTheme.colors
     Column(modifier = modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(WaiveraSpacing.Small)) {
-        Row(horizontalArrangement = Arrangement.spacedBy(WaiveraSpacing.ExtraSmall)) {
-            WaiveraStatusBadge(text = ticket.type, tone = BadgeTone.Accent)
+        // The badges wrap, so a long type at large font never pushes the priority off the card.
+        FlowRow(
+            horizontalArrangement = Arrangement.spacedBy(WaiveraSpacing.ExtraSmall),
+            verticalArrangement = Arrangement.spacedBy(WaiveraSpacing.ExtraSmall),
+        ) {
+            WaiveraStatusBadge(text = ticket.type, tone = BadgeTone.Accent, overflow = TextOverflow.Ellipsis)
             WaiveraStatusBadge(
                 text = ticket.priority,
                 tone = when (ticket.priorityTone) {
@@ -542,51 +547,90 @@ fun TicketCard(ticket: TicketNotification, onOpen: (String) -> Unit, modifier: M
 }
 
 /**
- * Label and value side by side; at large font the value goes under the label, because an
- * unweighted value measured first would squeeze the label into mid-word breaks.
+ * Label and value side by side, the label always at its full one-line width and a long value
+ * wrapping beside it. When the label would leave the value less than
+ * [TICKET_META_VALUE_MIN_FRACTION] of the row, and at large font, the value goes under the label
+ * instead: an unweighted value measured first used to squeeze the label into one letter per line.
  */
 @Composable
 private fun TicketMeta(icon: Int, label: String, value: String, muted: Boolean) {
     val colors = WaiveraTheme.colors
-    val stacked = LocalDensity.current.fontScale > TICKET_META_STACK_FONT_SCALE
+    val style = MaterialTheme.typography.labelMedium
+    val density = LocalDensity.current
+    val largeFont = density.fontScale > TICKET_META_STACK_FONT_SCALE
     val valueColor = if (muted) colors.textSecondary else colors.text
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = WaiveraSpacing.MediumSmall, vertical = WaiveraSpacing.Small)
-            .semantics(mergeDescendants = true) {},
-        horizontalArrangement = Arrangement.spacedBy(WaiveraSpacing.Small),
-        verticalAlignment = if (stacked) Alignment.Top else Alignment.CenterVertically,
-    ) {
-        Icon(
-            painterResource(icon),
-            contentDescription = null,
-            tint = colors.textSecondary,
-            modifier = Modifier.size(WaiveraSizes.IconSmall),
-        )
-        if (stacked) {
-            Column(Modifier.weight(1f)) {
-                Text(text = label, style = MaterialTheme.typography.labelMedium, color = colors.textSecondary)
-                Text(text = value, style = MaterialTheme.typography.labelMedium, color = valueColor)
+    val measurer = rememberTextMeasurer()
+    BoxWithConstraints {
+        val maxWidth = constraints.maxWidth
+        val valueMaxWidth = remember(label, value, style, maxWidth, largeFont, density, measurer) {
+            if (largeFont) {
+                null
+            } else {
+                with(density) {
+                    ticketMetaValueMaxWidth(
+                        pairWidth = maxWidth - 2 * WaiveraSpacing.MediumSmall.roundToPx() -
+                            WaiveraSizes.IconSmall.roundToPx() - 2 * WaiveraSpacing.Small.roundToPx(),
+                        gap = WaiveraSpacing.Small.roundToPx(),
+                        labelWidth = measurer.measure(text = label, style = style).size.width,
+                        valueWidth = measurer.measure(text = value, style = style).size.width,
+                    )
+                }
             }
-        } else {
-            Text(
-                text = label,
-                style = MaterialTheme.typography.labelMedium,
-                color = colors.textSecondary,
-                modifier = Modifier.weight(1f),
+        }
+        val stacked = valueMaxWidth == null
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = WaiveraSpacing.MediumSmall, vertical = WaiveraSpacing.Small)
+                .semantics(mergeDescendants = true) {},
+            horizontalArrangement = Arrangement.spacedBy(WaiveraSpacing.Small),
+            verticalAlignment = if (stacked) Alignment.Top else Alignment.CenterVertically,
+        ) {
+            Icon(
+                painterResource(icon),
+                contentDescription = null,
+                tint = colors.textSecondary,
+                modifier = Modifier.size(WaiveraSizes.IconSmall),
             )
-            Text(
-                text = value,
-                style = MaterialTheme.typography.labelMedium,
-                color = valueColor,
-                textAlign = TextAlign.End,
-            )
+            if (valueMaxWidth == null) {
+                Column(Modifier.weight(1f)) {
+                    Text(text = label, style = style, color = colors.textSecondary)
+                    Text(text = value, style = style, color = valueColor)
+                }
+            } else {
+                Text(
+                    text = label,
+                    style = style,
+                    color = colors.textSecondary,
+                    modifier = Modifier.weight(1f),
+                )
+                // Capped so the label keeps its width; a value that fits is narrower than the cap.
+                Text(
+                    text = value,
+                    style = style,
+                    color = valueColor,
+                    textAlign = TextAlign.End,
+                    modifier = Modifier.widthIn(max = with(density) { valueMaxWidth.toDp() }),
+                )
+            }
         }
     }
 }
 
+/**
+ * The widest a ticket meta value may be beside a label, in pixels, for a label and value of
+ * these one-line widths in [pairWidth] with [gap] between them; null when the row should stack.
+ * Side by side, the value either fits whole beside the label or wraps in the room the label
+ * leaves, as long as that room is at least [TICKET_META_VALUE_MIN_FRACTION] of the row.
+ */
+internal fun ticketMetaValueMaxWidth(pairWidth: Int, gap: Int, labelWidth: Int, valueWidth: Int): Int? {
+    val room = pairWidth - gap - labelWidth
+    val fits = valueWidth <= room
+    return if (fits || room >= pairWidth * TICKET_META_VALUE_MIN_FRACTION) room else null
+}
+
 private const val TICKET_META_STACK_FONT_SCALE = 1.3f
+internal const val TICKET_META_VALUE_MIN_FRACTION = 0.5f
 
 // System rows, call logs and day separators ---------------------------------------------------
 

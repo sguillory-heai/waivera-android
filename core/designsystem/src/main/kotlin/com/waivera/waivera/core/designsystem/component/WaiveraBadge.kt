@@ -16,6 +16,7 @@ import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.text.style.TextOverflow
 import com.waivera.waivera.core.designsystem.R
 import com.waivera.waivera.core.designsystem.preview.WaiveraPreviews
 import com.waivera.waivera.core.designsystem.theme.WaiveraColors
@@ -100,10 +101,16 @@ enum class BadgeTone { Neutral, Accent, Success, Warning, Danger }
 /**
  * A short text status label such as "Thread reply" or "Pending". Always one line: it never
  * breaks inside a word at large font scales. Put several side by side in a `FlowRow` so whole
- * chips wrap instead.
+ * chips wrap instead. A label that can be wider than its row (free text such as a ticket type)
+ * passes [TextOverflow.Ellipsis] for [overflow] so it ends in "…" instead of a cut letter.
  */
 @Composable
-fun WaiveraStatusBadge(text: String, modifier: Modifier = Modifier, tone: BadgeTone = BadgeTone.Neutral) {
+fun WaiveraStatusBadge(
+    text: String,
+    modifier: Modifier = Modifier,
+    tone: BadgeTone = BadgeTone.Neutral,
+    overflow: TextOverflow = TextOverflow.Clip,
+) {
     val (container, content) = tone.colorsFrom(WaiveraTheme.colors)
     Text(
         text = text,
@@ -111,6 +118,7 @@ fun WaiveraStatusBadge(text: String, modifier: Modifier = Modifier, tone: BadgeT
         color = content,
         maxLines = 1,
         softWrap = false,
+        overflow = overflow,
         modifier = modifier
             .background(container, WaiveraShapes.Chip)
             .padding(horizontal = WaiveraSpacing.Small, vertical = WaiveraSpacing.XxSmall),
