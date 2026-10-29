@@ -148,6 +148,7 @@ fun ReactionDetailsContent(
             val me = account?.takeIf { userId == myUserId && it.name.isNotBlank() }
             WaiveraListRow(
                 headline = name,
+                nameHeadline = true,
                 leading = {
                     WaiveraAvatar(
                         name = me?.name ?: name,

@@ -198,6 +198,7 @@ private fun PersonListRow(row: PersonRow, onClick: () -> Unit) {
     // splits at a dot next to "5-year anniversary" (UI3-14).
     WaiveraListRow(
         headline = row.name,
+        nameHeadline = true,
         supporting = row.celebration?.compactLabel(),
         detail = row.detail,
         onClick = onClick,

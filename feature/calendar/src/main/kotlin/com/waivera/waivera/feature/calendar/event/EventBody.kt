@@ -550,6 +550,7 @@ private fun OrganizerBlock(organizer: PersonRow, isMine: Boolean, actions: Event
         WaiveraCardGroup {
             WaiveraListRow(
                 headline = name,
+                nameHeadline = true,
                 onClick = userId?.let { { actions.onOpenPerson(it) } },
                 onClickLabel = userId?.let { stringResource(R.string.feature_calendar_open_profile) },
                 showChevron = userId != null,
@@ -617,6 +618,8 @@ private fun AttendeeItem(attendee: AttendeeRow, actions: EventActions) {
     val userId = attendee.userId
     WaiveraListRow(
         headline = name,
+        // A guest known only by email shows the whole address instead, never ellipsized.
+        nameHeadline = attendee.name != null,
         supporting = inviteStatusText(attendee.status),
         onClick = userId?.let { { actions.onOpenPerson(it) } },
         onClickLabel = userId?.let { stringResource(R.string.feature_calendar_open_profile) },

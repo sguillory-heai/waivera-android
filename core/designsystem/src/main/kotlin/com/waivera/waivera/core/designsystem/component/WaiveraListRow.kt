@@ -30,6 +30,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.heading
@@ -44,13 +45,15 @@ import com.waivera.waivera.core.designsystem.theme.WaiveraShapes
 import com.waivera.waivera.core.designsystem.theme.WaiveraSizes
 import com.waivera.waivera.core.designsystem.theme.WaiveraSpacing
 import com.waivera.waivera.core.designsystem.theme.WaiveraTheme
+import com.waivera.waivera.core.designsystem.theme.isLargeFontScale
 
 /**
  * A list row: optional leading slot, a headline and supporting text that wrap at large font
  * scales, an optional trailing slot and an optional chevron. Clickable rows get the shared
  * press scale and read as one element to TalkBack. [detail] is one more line for an email
  * address or handle, shown whole as a [WaiveraAddressText]: it can't break at a dot mid-address
- * (UI3-14), and it isn't cut either (UI6-02).
+ * (UI3-14), and it isn't cut either (UI6-02). A [nameHeadline] is a person's name: one line, two
+ * at large font, ending in "…" and never broken mid-word ([WaiveraNameText], wave 29 N5).
  */
 @Composable
 fun WaiveraListRow(
@@ -65,6 +68,7 @@ fun WaiveraListRow(
     leading: (@Composable () -> Unit)? = null,
     trailing: (@Composable RowScope.() -> Unit)? = null,
     detail: String? = null,
+    nameHeadline: Boolean = false,
 ) {
     val body: @Composable () -> Unit = {
         Row(
@@ -84,6 +88,7 @@ fun WaiveraListRow(
                 enabled = enabled,
                 modifier = Modifier.weight(1f),
                 detail = detail,
+                nameTitle = nameHeadline,
             )
             if (trailing != null) trailing()
             if (showChevron) {
@@ -181,6 +186,7 @@ private fun RowText(
     enabled: Boolean,
     modifier: Modifier = Modifier,
     detail: String? = null,
+    nameTitle: Boolean = false,
 ) {
     val colors = WaiveraTheme.colors
     val subtitleColor = if (enabled) {
@@ -192,11 +198,21 @@ private fun RowText(
     }
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(WaiveraSpacing.XxSmall)) {
         // Hyphenated names wrap after a hyphen, never mid-word, in every row (UI5-05).
-        Text(
-            text = title.withBreaksAfterHyphens(),
-            style = MaterialTheme.typography.titleSmall,
-            color = if (enabled) colors.text else colors.textSecondary,
-        )
+        if (nameTitle) {
+            WaiveraNameText(
+                text = title,
+                maxLines = if (isLargeFontScale()) NAME_LINES_LARGE_FONT else 1,
+                style = MaterialTheme.typography.titleSmall,
+                color = if (enabled) colors.text else colors.textSecondary,
+                modifier = Modifier.testTag(LIST_ROW_NAME_TAG),
+            )
+        } else {
+            Text(
+                text = title.withBreaksAfterHyphens(),
+                style = MaterialTheme.typography.titleSmall,
+                color = if (enabled) colors.text else colors.textSecondary,
+            )
+        }
         if (subtitle != null) {
             Text(text = subtitle, style = MaterialTheme.typography.bodySmall, color = subtitleColor)
         }
@@ -205,6 +221,11 @@ private fun RowText(
         }
     }
 }
+
+private const val NAME_LINES_LARGE_FONT = 2
+
+/** Test tag for a row's name headline ([WaiveraListRow]'s nameHeadline). */
+const val LIST_ROW_NAME_TAG: String = "list_row_name"
 
 /**
  * Section title above a group of rows: B's mixed-case 17 / 600, the same title as the sections
