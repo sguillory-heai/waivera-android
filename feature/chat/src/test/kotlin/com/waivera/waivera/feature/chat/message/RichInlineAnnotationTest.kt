@@ -69,6 +69,12 @@ class RichInlineAnnotationTest {
     }
 
     @Test
+    fun mentionKeepsItsHyphenatedNameOnOneLine() {
+        val text = annotateInlines(listOf(RichInline.Mention("Jean-Baptiste Moreau")), colors) {}
+        assertEquals("@Jean\u2011Baptiste Moreau", text.text, "a mention wraps at its own hyphen")
+    }
+
+    @Test
     fun mentionInMyTintedBubbleIsUnderlinedWithoutABlock() {
         val inBubble = RichInlineColors(accent = Color.Magenta, mentionBackground = null)
         val style = annotateInlines(listOf(RichInline.Mention("Priya Raman")), inBubble) {}.spanStyles.single().item

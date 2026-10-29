@@ -40,6 +40,7 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.withLink
 import androidx.compose.ui.text.withStyle
 import com.waivera.waivera.core.designsystem.preview.WaiveraPreviews
+import com.waivera.waivera.core.designsystem.text.withNonBreakingHyphens
 import com.waivera.waivera.core.designsystem.theme.WaiveraShapes
 import com.waivera.waivera.core.designsystem.theme.WaiveraSpacing
 import com.waivera.waivera.core.designsystem.theme.WaiveraTheme
@@ -85,7 +86,10 @@ fun annotateInlines(inlines: List<RichInline>, colors: RichInlineColors, onLink:
                         withStyle(style) { append(inline.text) }
                     }
                 }
-                is RichInline.Mention -> withStyle(mentionSpan(colors)) { append("@${inline.label}") }
+                // A mention is one name: it never wraps at its own hyphens ("@Maria" / "-Fernanda").
+                is RichInline.Mention -> withStyle(mentionSpan(colors)) {
+                    append("@${inline.label.withNonBreakingHyphens()}")
+                }
                 RichInline.HardBreak -> append('\n')
             }
         }
