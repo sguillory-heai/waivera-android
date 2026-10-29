@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.State
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
@@ -142,7 +143,7 @@ internal fun SectionSkeleton(modifier: Modifier = Modifier) {
  * a two-line headline and the supporting line, each at its text style's height.
  */
 @Composable
-private fun SkeletonCard(pulse: Float) {
+private fun SkeletonCard(pulse: State<Float>) {
     val inset = if (isShortWindow()) WaiveraSpacing.ExtraSmall else WaiveraSpacing.ExtraSmall + WaiveraSpacing.Hairline
     Row(
         modifier = Modifier

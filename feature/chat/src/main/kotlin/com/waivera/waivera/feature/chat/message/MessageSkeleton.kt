@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.State
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clipToBounds
@@ -72,7 +73,7 @@ fun MessageListSkeleton(
 }
 
 @Composable
-private fun IncomingBone(fraction: Float, pulse: Float) {
+private fun IncomingBone(fraction: Float, pulse: State<Float>) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -103,7 +104,7 @@ private fun IncomingBone(fraction: Float, pulse: Float) {
 }
 
 @Composable
-private fun MineBone(fraction: Float, pulse: Float) {
+private fun MineBone(fraction: Float, pulse: State<Float>) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -127,7 +128,7 @@ private fun MineBone(fraction: Float, pulse: Float) {
 
 /** A one-line bubble: the body's line height plus the bubble's own vertical padding. */
 @Composable
-private fun BubbleBone(fraction: Float, mine: Boolean, pulse: Float) {
+private fun BubbleBone(fraction: Float, mine: Boolean, pulse: State<Float>) {
     val height = skeletonLineHeight(MaterialTheme.typography.bodyMedium) + WaiveraSpacing.Small * 2
     SkeletonBlock(
         modifier = Modifier

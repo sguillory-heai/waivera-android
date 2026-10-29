@@ -22,8 +22,10 @@ import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -57,12 +59,15 @@ import com.waivera.waivera.core.designsystem.component.rememberPressFeedback
 import com.waivera.waivera.core.designsystem.component.rememberSkeletonVisible
 import com.waivera.waivera.core.designsystem.icon.WaiveraIcons
 import com.waivera.waivera.core.designsystem.preview.WaiveraPreviews
+import com.waivera.waivera.core.designsystem.theme.PressDepth
 import com.waivera.waivera.core.designsystem.theme.WaiveraElevation
+import com.waivera.waivera.core.designsystem.theme.WaiveraMotionScheme
 import com.waivera.waivera.core.designsystem.theme.WaiveraShapes
 import com.waivera.waivera.core.designsystem.theme.WaiveraSizes
 import com.waivera.waivera.core.designsystem.theme.WaiveraSpacing
 import com.waivera.waivera.core.designsystem.theme.WaiveraTheme
 import com.waivera.waivera.feature.chat.R
+import kotlinx.coroutines.delay
 
 /** Composer configuration; the draft text itself is hoisted to the screen. */
 @Immutable
@@ -171,29 +176,40 @@ fun Composer(
  * Send is the composer's CTA: white on the solid brand violet, at the CTA radius. Disabled reads
  * as "nothing to send yet": a muted fill with a visible outline, not a faded violet that looks
  * like a broken enabled button. The fill moves between the two on the state token as text is
- * typed or cleared, the button presses in from touch-down, and each send pops the glyph. A send
- * never vibrates: the bubble's own pop and its "Sent" line confirm it.
+ * typed or cleared, the button presses in from touch-down, and each send pops the glyph. The
+ * button keeps its enabled fill for [WaiveraMotionScheme.SEND_PAYOFF_HOLD_MILLIS] after a send,
+ * so the pop plays on the violet rather than on a control already fading to disabled (M1-08).
+ * A send never vibrates: the bubble's own pop and its "Sent" line confirm it.
  */
 @Composable
 private fun SendButton(canSend: Boolean, description: String, onSend: () -> Unit) {
     val colors = WaiveraTheme.colors
     val motion = WaiveraTheme.motion
     val interactionSource = remember { MutableInteractionSource() }
-    val press = rememberPressFeedback(interactionSource)
+    val press = rememberPressFeedback(interactionSource, depth = PressDepth.Compact)
     var sends by remember { mutableIntStateOf(0) }
+    // Set in the same frame as the send, so the fill never starts toward disabled first.
+    var justSent by remember { mutableStateOf(false) }
+    LaunchedEffect(sends) {
+        if (!justSent) return@LaunchedEffect
+        delay(WaiveraMotionScheme.SEND_PAYOFF_HOLD_MILLIS)
+        justSent = false
+    }
+    val looksEnabled = canSend || justSent
     val sendPop = rememberPopScale(key = sends)
     val container by animateColorAsState(
-        targetValue = if (canSend) colors.accentFill else colors.surfaceMuted,
+        targetValue = if (looksEnabled) colors.accentFill else colors.surfaceMuted,
         animationSpec = motion.state(),
         label = "sendContainer",
     )
     val content by animateColorAsState(
-        targetValue = if (canSend) colors.onAccent else colors.textSecondary,
+        targetValue = if (looksEnabled) colors.onAccent else colors.textSecondary,
         animationSpec = motion.state(),
         label = "sendContent",
     )
     FilledIconButton(
         onClick = {
+            justSent = true
             sends += 1
             onSend()
         },
@@ -201,9 +217,9 @@ private fun SendButton(canSend: Boolean, description: String, onSend: () -> Unit
         shape = WaiveraShapes.Cta,
         modifier = Modifier
             .size(WaiveraSizes.IconButton)
-            .pressFeedback(press, enabled = canSend)
+            .pressFeedback(press, enabled = canSend, shape = WaiveraShapes.Cta)
             .then(
-                if (canSend) {
+                if (looksEnabled) {
                     Modifier
                 } else {
                     Modifier.border(WaiveraSpacing.Hairline, colors.border, WaiveraShapes.Cta)

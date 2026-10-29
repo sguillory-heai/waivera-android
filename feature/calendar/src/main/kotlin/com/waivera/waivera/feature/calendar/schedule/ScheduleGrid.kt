@@ -41,6 +41,7 @@ import com.waivera.waivera.core.designsystem.component.popScale
 import com.waivera.waivera.core.designsystem.component.pressFeedback
 import com.waivera.waivera.core.designsystem.component.rememberPopScale
 import com.waivera.waivera.core.designsystem.component.rememberPressFeedback
+import com.waivera.waivera.core.designsystem.theme.PressDepth
 import com.waivera.waivera.core.designsystem.theme.WaiveraShapes
 import com.waivera.waivera.core.designsystem.theme.WaiveraSpacing
 import com.waivera.waivera.core.designsystem.theme.WaiveraTextStyles
@@ -138,7 +139,7 @@ private fun DayCell(cell: GridCell, showWeekday: Boolean, onClick: () -> Unit, m
     val label = cellLabel(cell)
     val narrow = usesCompactCalendar(LocalDensity.current.fontScale)
     val interactions = remember { MutableInteractionSource() }
-    val press = rememberPressFeedback(interactions)
+    val press = rememberPressFeedback(interactions, depth = PressDepth.Compact)
     // The picked day's square answers with a pop; the day it leaves just fades.
     val pop = rememberPopScale(key = cell.isSelected, enabled = cell.isSelected)
     Box(
@@ -146,7 +147,7 @@ private fun DayCell(cell: GridCell, showWeekday: Boolean, onClick: () -> Unit, m
             .padding(WaiveraSpacing.XxSmall)
             .heightIn(min = if (showWeekday) CalendarSizes.WeekCellMinHeight else WaiveraSpacing.MinTouchTarget)
             .clip(WaiveraShapes.Tile)
-            .pressFeedback(press)
+            .pressFeedback(press, shape = WaiveraShapes.Tile)
             .selectable(
                 selected = cell.isSelected,
                 interactionSource = interactions,

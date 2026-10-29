@@ -38,6 +38,7 @@ import com.waivera.waivera.core.designsystem.component.WaiveraTileTone
 import com.waivera.waivera.core.designsystem.icon.WaiveraIcons
 import com.waivera.waivera.core.designsystem.preview.WaiveraPreviews
 import com.waivera.waivera.core.designsystem.text.withBreaksAfterHyphens
+import com.waivera.waivera.core.designsystem.theme.PressDepth
 import com.waivera.waivera.core.designsystem.theme.WaiveraElevation
 import com.waivera.waivera.core.designsystem.theme.WaiveraShapes
 import com.waivera.waivera.core.designsystem.theme.WaiveraSizes
@@ -88,6 +89,7 @@ internal fun TodayRow(
             .background(colors.surface),
     ) {
         WaiveraPressable(
+            depth = PressDepth.Card,
             onClick = onClick,
             onClickLabel = onClickLabel,
             modifier = Modifier

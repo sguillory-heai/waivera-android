@@ -55,6 +55,7 @@ import com.waivera.waivera.core.designsystem.component.rememberPressFeedback
 import com.waivera.waivera.core.designsystem.icon.WaiveraIcons
 import com.waivera.waivera.core.designsystem.preview.WaiveraPreviews
 import com.waivera.waivera.core.designsystem.text.withBreaksAfterHyphens
+import com.waivera.waivera.core.designsystem.theme.PressDepth
 import com.waivera.waivera.core.designsystem.theme.WaiveraShapes
 import com.waivera.waivera.core.designsystem.theme.WaiveraSizes
 import com.waivera.waivera.core.designsystem.theme.WaiveraSpacing
@@ -109,6 +110,7 @@ fun ConversationRow(
             onClickLabel = stringResource(R.string.feature_chat_list_open_action),
             onLongClick = onShowActions,
             onLongClickLabel = actionsLabel,
+            depth = PressDepth.Row,
             modifier = Modifier
                 .fillMaxWidth()
                 // The row sits on the inbox's card (concept A), so it takes the card's surface.
@@ -307,7 +309,7 @@ private fun CallJoin(opening: Boolean, onJoin: () -> Unit) {
     Row(
         modifier = Modifier
             .minimumInteractiveComponentSize()
-            .pressFeedback(press, enabled = !opening)
+            .pressFeedback(press, enabled = !opening, shape = WaiveraShapes.Pill)
             .clip(WaiveraShapes.Pill)
             .background(colors.accentSoft)
             .clickable(

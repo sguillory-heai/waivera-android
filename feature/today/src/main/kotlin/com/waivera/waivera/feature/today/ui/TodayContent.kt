@@ -42,6 +42,7 @@ import com.waivera.waivera.core.designsystem.theme.WaiveraMotionScheme
 import com.waivera.waivera.core.designsystem.theme.WaiveraSizes
 import com.waivera.waivera.core.designsystem.theme.WaiveraSpacing
 import com.waivera.waivera.core.designsystem.theme.WaiveraTheme
+import com.waivera.waivera.core.designsystem.theme.exit
 import com.waivera.waivera.feature.today.R
 import com.waivera.waivera.feature.today.TodayAction
 import com.waivera.waivera.feature.today.model.ActivityRow
@@ -147,7 +148,17 @@ private fun TodayList(state: TodayUiState, callbacks: TodayCallbacks, listState:
                 )
             }
             state.isInitialLoad -> if (showSkeleton) {
-                item(key = "skeleton", contentType = "skeleton") { TodaySkeleton() }
+                item(key = "skeleton", contentType = "skeleton") {
+                    // The skeleton leaves faster than the day fades in over it, so loaded rows
+                    // settle in place instead of cutting (M1-16).
+                    Box(
+                        Modifier.animateItem(
+                            fadeInSpec = null,
+                            placementSpec = null,
+                            fadeOutSpec = WaiveraTheme.motion.exit(),
+                        ),
+                    ) { TodaySkeleton() }
+                }
             }
             else -> {
                 if (staleLine != null) item(key = "stale", contentType = "quiet") { QuietLine(staleLine) }
@@ -407,12 +418,16 @@ private fun openMention(mention: NeedsYouItem.Mention, callbacks: TodayCallbacks
     callbacks.onOpenMessage(mention.conversationId, mention.messageId, mention.threadRootMessageId)
 }
 
-/** Inserts, removals and moves use the layout and state motion tokens (snap/fade when reduced). */
+/**
+ * Inserts, removals and moves use the layout and state motion tokens (snap/fade when reduced).
+ * A leaving row fades on the quicker exit, so it is gone before the rows below slide through its
+ * place (M1-14).
+ */
 private fun Modifier.animateTodayItem(scope: LazyItemScope, motion: WaiveraMotionScheme): Modifier = with(scope) {
     this@animateTodayItem.animateItem(
         fadeInSpec = motion.state(),
         placementSpec = motion.layout(),
-        fadeOutSpec = motion.state(),
+        fadeOutSpec = motion.exit(),
     )
 }
 

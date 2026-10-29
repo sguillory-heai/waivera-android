@@ -33,6 +33,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -64,6 +65,7 @@ import com.waivera.waivera.core.designsystem.component.WaiveraDivider
 import com.waivera.waivera.core.designsystem.component.WaiveraEmptyState
 import com.waivera.waivera.core.designsystem.component.WaiveraErrorState
 import com.waivera.waivera.core.designsystem.component.WaiveraIllustration
+import com.waivera.waivera.core.designsystem.component.WaiveraLoadSwap
 import com.waivera.waivera.core.designsystem.component.WaiveraSnackbarHost
 import com.waivera.waivera.core.designsystem.component.WaiveraTopBar
 import com.waivera.waivera.core.designsystem.icon.WaiveraIcons
@@ -93,6 +95,7 @@ import com.waivera.waivera.feature.chat.message.RowTime
 import com.waivera.waivera.feature.chat.message.SendErrorSignal
 import com.waivera.waivera.feature.chat.message.SendErrorUi
 import com.waivera.waivera.feature.chat.message.TimelineContext
+import com.waivera.waivera.feature.chat.message.TimelineItem
 import com.waivera.waivera.feature.chat.message.TimelineItemView
 import com.waivera.waivera.feature.chat.message.TypingSlot
 import com.waivera.waivera.feature.chat.message.rememberChatImageEnvironment
@@ -391,40 +394,51 @@ private fun MessageArea(
     onJumpToLatest: (() -> Unit)?,
     skeletonDelayMillis: Long?,
 ) {
-    when (val content = state.content) {
-        ConversationContent.Invalid -> WaiveraEmptyState(
-            title = stringResource(R.string.feature_chat_conversation_unavailable_title),
-            message = stringResource(R.string.feature_chat_conversation_invalid),
-            illustration = WaiveraIllustration.Search,
-            actionLabel = stringResource(DesignR.string.core_designsystem_go_back),
-            onAction = actions.onBack,
-        )
-        ConversationContent.Loading -> DelayedListSkeleton(
-            label = stringResource(R.string.feature_chat_messages_loading),
-            delayMillis = skeletonDelayMillis,
-        )
-        // Retrying a removed conversation can't succeed, so a missing one offers Go back (UI2-12).
-        is ConversationContent.Error -> if (isMissingConversation(content.message)) {
-            WaiveraEmptyState(
-                title = stringResource(R.string.feature_chat_conversation_unavailable_title),
-                message = stringResource(R.string.feature_chat_conversation_not_found),
-                illustration = WaiveraIllustration.Search,
-                actionLabel = stringResource(DesignR.string.core_designsystem_go_back),
-                onAction = actions.onBack,
+    // Messages settle in over the skeleton instead of cutting (M1-16).
+    WaiveraLoadSwap(
+        loading = state.content == ConversationContent.Loading,
+        modifier = Modifier.fillMaxSize(),
+    ) { loading ->
+        if (loading) {
+            DelayedListSkeleton(
+                label = stringResource(R.string.feature_chat_messages_loading),
+                delayMillis = skeletonDelayMillis,
             )
         } else {
-            WaiveraErrorState(
-                message = stringResource(conversationErrorMessage(content.message)),
-                onRetry = actions.onRetryLoad,
-                title = stringResource(R.string.feature_chat_messages_error_title),
-            )
+            when (val content = state.content) {
+                ConversationContent.Invalid -> WaiveraEmptyState(
+                    title = stringResource(R.string.feature_chat_conversation_unavailable_title),
+                    message = stringResource(R.string.feature_chat_conversation_invalid),
+                    illustration = WaiveraIllustration.Search,
+                    actionLabel = stringResource(DesignR.string.core_designsystem_go_back),
+                    onAction = actions.onBack,
+                )
+                // Shown by the swap's loading side.
+                ConversationContent.Loading -> Unit
+                // Retrying a removed conversation can't succeed, so a missing one offers Go back (UI2-12).
+                is ConversationContent.Error -> if (isMissingConversation(content.message)) {
+                    WaiveraEmptyState(
+                        title = stringResource(R.string.feature_chat_conversation_unavailable_title),
+                        message = stringResource(R.string.feature_chat_conversation_not_found),
+                        illustration = WaiveraIllustration.Search,
+                        actionLabel = stringResource(DesignR.string.core_designsystem_go_back),
+                        onAction = actions.onBack,
+                    )
+                } else {
+                    WaiveraErrorState(
+                        message = stringResource(conversationErrorMessage(content.message)),
+                        onRetry = actions.onRetryLoad,
+                        title = stringResource(R.string.feature_chat_messages_error_title),
+                    )
+                }
+                ConversationContent.Empty -> WaiveraEmptyState(
+                    title = stringResource(R.string.feature_chat_messages_empty_title),
+                    message = stringResource(R.string.feature_chat_messages_empty),
+                    illustration = WaiveraIllustration.Chats,
+                )
+                ConversationContent.Messages -> MessageList(state, time, actions, listState, onJumpToLatest)
+            }
         }
-        ConversationContent.Empty -> WaiveraEmptyState(
-            title = stringResource(R.string.feature_chat_messages_empty_title),
-            message = stringResource(R.string.feature_chat_messages_empty),
-            illustration = WaiveraIllustration.Chats,
-        )
-        ConversationContent.Messages -> MessageList(state, time, actions, listState, onJumpToLatest)
     }
 }
 
@@ -465,7 +479,22 @@ private fun MessageList(
 
     HideKeyboardOnDrag(listState)
     // A new newest row keeps the list pinned when the person was already at (or next to) it.
-    val newestKey = newestFirst.firstOrNull()?.key
+    val newest = newestFirst.firstOrNull()
+    val newestKey = newest?.key
+    // My own send is pinned in the very frame it lands, before the list lays out, so its pop
+    // plays in view at the composer instead of below the fold while a scroll catches up (M1-08).
+    val pinnedKey = remember { PinnedKey(newestKey) }
+    SideEffect {
+        if (newestKey == pinnedKey.value) return@SideEffect
+        pinnedKey.value = newestKey
+        val mySend = newest is TimelineItem.MessageRow && newest.isMine && newest.isLiveArrival
+        if (mySend &&
+            listState.firstVisibleItemIndex <= 1 &&
+            listState.firstVisibleItemScrollOffset <= stickThresholdPx
+        ) {
+            listState.requestScrollToItem(0)
+        }
+    }
     LaunchedEffect(newestKey) {
         if (newestKey != null &&
             listState.firstVisibleItemIndex <= 1 &&
@@ -536,6 +565,9 @@ private fun MessageList(
 }
 
 private const val OLDER_KEY = "older"
+
+/** The newest row the list last saw, so a send is pinned once, when it first lands. */
+private class PinnedKey(var value: String?)
 
 /** The conversation's message list, for tests that check what is drawn inside it. */
 internal const val MESSAGE_LIST_TAG = "conversation_message_list"

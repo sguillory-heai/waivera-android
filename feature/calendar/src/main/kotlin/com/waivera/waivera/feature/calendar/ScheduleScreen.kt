@@ -68,6 +68,8 @@ import com.waivera.waivera.core.designsystem.preview.WaiveraPreviews
 import com.waivera.waivera.core.designsystem.theme.WaiveraShapes
 import com.waivera.waivera.core.designsystem.theme.WaiveraSpacing
 import com.waivera.waivera.core.designsystem.theme.WaiveraTheme
+import com.waivera.waivera.core.designsystem.theme.enterAfterExit
+import com.waivera.waivera.core.designsystem.theme.exit
 import com.waivera.waivera.core.designsystem.theme.isExtraLargeFontScale
 import com.waivera.waivera.core.designsystem.theme.isLargeFontScale
 import com.waivera.waivera.feature.calendar.model.AgendaNow
@@ -78,6 +80,7 @@ import com.waivera.waivera.feature.calendar.schedule.AgendaCard
 import com.waivera.waivera.feature.calendar.schedule.AgendaCardSkeleton
 import com.waivera.waivera.feature.calendar.schedule.AgendaRailEntry
 import com.waivera.waivera.feature.calendar.schedule.AgendaState
+import com.waivera.waivera.feature.calendar.schedule.GridCell
 import com.waivera.waivera.feature.calendar.schedule.NowDivider
 import com.waivera.waivera.feature.calendar.schedule.ScheduleEffect
 import com.waivera.waivera.feature.calendar.schedule.ScheduleGrid
@@ -230,14 +233,23 @@ fun ScheduleContent(state: ScheduleUiState, actions: ScheduleActions, modifier: 
                 }
                 if (gridShown) {
                     item(key = "grid") {
-                        ScheduleGrid(
-                            view = state.view,
-                            cells = state.cells,
-                            onSelectDate = actions.onSelectDate,
-                            modifier = Modifier
-                                .calendarCard(CalendarCardBottom, WaiveraTheme.colors.surface)
-                                .padding(bottom = WaiveraSpacing.Small),
-                        )
+                        // The grid moves with its title: a step slides both a third of the way
+                        // in the same direction on the layout token, and a view change fades,
+                        // so the step never reads half done (M1-06). Picking a day keeps the
+                        // same period, so the grid recomposes in place.
+                        WaiveraSwap(
+                            targetState = GridFrame(state.title, state.view, state.cells),
+                            modifier = Modifier.calendarCard(CalendarCardBottom, WaiveraTheme.colors.surface),
+                            contentKey = { it.title },
+                            direction = { from, to -> periodStepDirection(from.title, to.title) },
+                        ) { frame ->
+                            ScheduleGrid(
+                                view = frame.view,
+                                cells = frame.cells,
+                                onSelectDate = actions.onSelectDate,
+                                modifier = Modifier.padding(bottom = WaiveraSpacing.Small),
+                            )
+                        }
                     }
                 }
                 // The Day view's period row already names the day (UI2-27); a second heading repeated it.
@@ -253,17 +265,10 @@ fun ScheduleContent(state: ScheduleUiState, actions: ScheduleActions, modifier: 
 private fun LazyListScope.agendaItems(state: ScheduleUiState, actions: ScheduleActions) {
     val itemModifier = Modifier.padding(horizontal = WaiveraSpacing.Gutter, vertical = WaiveraSpacing.ExtraSmall)
     when (val agenda = state.agenda) {
-        AgendaState.Loading -> item(key = "loading") { AgendaSkeleton() }
+        AgendaState.Loading -> agendaSkeletonItem()
         // The failure is the banner above the grid, where it is seen without scrolling.
         is AgendaState.Error -> Unit
-        AgendaState.Empty -> item(key = "empty") {
-            WaiveraEmptyState(
-                title = stringResource(R.string.feature_calendar_empty_title),
-                message = stringResource(R.string.feature_calendar_empty_message),
-                illustration = WaiveraIllustration.Schedule,
-                modifier = Modifier.padding(WaiveraSpacing.Gutter),
-            )
-        }
+        AgendaState.Empty -> agendaEmptyItem()
         is AgendaState.Content -> {
             val now = state.agendaNow
             val timeline = state.view == ScheduleView.DAY
@@ -272,10 +277,11 @@ private fun LazyListScope.agendaItems(state: ScheduleUiState, actions: ScheduleA
                 item(key = card.key) {
                     val motion = WaiveraTheme.motion
                     val ended = now != null && card.key in now.endedKeys
+                    // A leaving card is gone before its neighbours slide through its place (M1-06).
                     val placed = itemModifier.animateItem(
                         fadeInSpec = motion.state(),
                         placementSpec = motion.layout(),
-                        fadeOutSpec = motion.state(),
+                        fadeOutSpec = motion.exit(),
                     )
                     val agendaCard: @Composable (Modifier) -> Unit = { cardModifier ->
                         AgendaCard(
@@ -307,6 +313,37 @@ private fun LazyListScope.agendaItems(state: ScheduleUiState, actions: ScheduleA
     }
 }
 
+private fun LazyListScope.agendaSkeletonItem() {
+    item(key = "loading") {
+        // The skeleton leaves faster than the cards fade in over it (M1-16).
+        Box(
+            Modifier.animateItem(fadeInSpec = null, placementSpec = null, fadeOutSpec = WaiveraTheme.motion.exit()),
+        ) {
+            AgendaSkeleton()
+        }
+    }
+}
+
+private fun LazyListScope.agendaEmptyItem() {
+    item(key = "empty") {
+        val motion = WaiveraTheme.motion
+        // The empty state waits for the leaving cards to clear, so it never sits on top of them
+        // (M1-06).
+        WaiveraEmptyState(
+            title = stringResource(R.string.feature_calendar_empty_title),
+            message = stringResource(R.string.feature_calendar_empty_message),
+            illustration = WaiveraIllustration.Schedule,
+            modifier = Modifier
+                .animateItem(
+                    fadeInSpec = motion.enterAfterExit(),
+                    placementSpec = motion.layout(),
+                    fadeOutSpec = motion.exit(),
+                )
+                .padding(WaiveraSpacing.Gutter),
+        )
+    }
+}
+
 private fun LazyListScope.nowItem(now: AgendaNow) {
     item(key = NOW_KEY) {
         val motion = WaiveraTheme.motion
@@ -317,13 +354,17 @@ private fun LazyListScope.nowItem(now: AgendaNow) {
                 .animateItem(
                     fadeInSpec = motion.state(),
                     placementSpec = motion.layout(),
-                    fadeOutSpec = motion.state(),
+                    fadeOutSpec = motion.exit(),
                 ),
         )
     }
 }
 
 private const val NOW_KEY = "now"
+
+/** What the grid shows for one period; the period's title keys the slide. */
+@Immutable
+private data class GridFrame(val title: PeriodTitle, val view: ScheduleView, val cells: List<GridCell>)
 
 /** Insets a piece of the calendar card by the gutter and gives it the card's surface and corners. */
 private fun Modifier.calendarCard(shape: Shape, surface: Color): Modifier = this

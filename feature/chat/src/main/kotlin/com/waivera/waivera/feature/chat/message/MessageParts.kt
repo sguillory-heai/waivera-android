@@ -74,6 +74,7 @@ import com.waivera.waivera.core.designsystem.text.fileNameHeadAndTail
 import com.waivera.waivera.core.designsystem.text.withBreaksAfterHyphens
 import com.waivera.waivera.core.designsystem.text.withNonBreakingHyphens
 import com.waivera.waivera.core.designsystem.text.withUnbreakableExtension
+import com.waivera.waivera.core.designsystem.theme.PressDepth
 import com.waivera.waivera.core.designsystem.theme.WaiveraShapes
 import com.waivera.waivera.core.designsystem.theme.WaiveraSizes
 import com.waivera.waivera.core.designsystem.theme.WaiveraSpacing
@@ -264,6 +265,7 @@ private fun ImageAttachment(message: Message, onOpen: () -> Unit, modifier: Modi
             modifier,
         )
         is ChatImageState.Ready -> WaiveraPressable(
+            depth = PressDepth.Card,
             onClick = onOpen,
             onClickLabel = stringResource(R.string.feature_chat_open_image),
             shape = ChatDimens.ImageShape,
@@ -329,6 +331,7 @@ private fun FileAttachment(message: Message, attachment: Attachment, onOpen: () 
         FileKind.Other -> ChatIcons.File
     }
     WaiveraPressable(
+        depth = PressDepth.Card,
         onClick = onOpen,
         enabled = !message.isPending,
         onClickLabel = stringResource(R.string.feature_chat_file_caption),
@@ -672,6 +675,7 @@ fun CallLogCard(item: TimelineItem.CallLog, time: RowTime, highlighted: Boolean,
             ),
     ) {
         WaiveraPressable(
+            depth = PressDepth.Card,
             onClick = { expanded = !expanded },
             onClickLabel = stringResource(
                 if (expanded) R.string.feature_chat_call_collapse else R.string.feature_chat_call_expand,

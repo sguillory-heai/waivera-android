@@ -49,6 +49,7 @@ import com.waivera.waivera.core.designsystem.preview.WaiveraPreviews
 import com.waivera.waivera.core.designsystem.theme.WaiveraShapes
 import com.waivera.waivera.core.designsystem.theme.WaiveraSpacing
 import com.waivera.waivera.core.designsystem.theme.WaiveraTheme
+import com.waivera.waivera.core.designsystem.theme.exit
 import com.waivera.waivera.core.designsystem.theme.isLargeFontScale
 import com.waivera.waivera.feature.chat.R
 import kotlinx.coroutines.delay
@@ -125,8 +126,12 @@ fun ChatListContent(
                     }
                     when {
                         showSkeleton -> item(key = SKELETON_KEY, contentType = SKELETON_KEY) {
+                            // The skeleton leaves faster than the rows fade in over it, so loaded
+                            // rows settle in place instead of cutting (M1-16).
                             ChatListSkeleton(
-                                modifier = Modifier.inboxCard(InboxCardPosition.Single, WaiveraTheme.colors.surface),
+                                modifier = Modifier
+                                    .animateItem(fadeInSpec = null, placementSpec = null, fadeOutSpec = motion.exit())
+                                    .inboxCard(InboxCardPosition.Single, WaiveraTheme.colors.surface),
                             )
                         }
                         state.content is ChatListContent.Error -> item(key = STATE_KEY, contentType = STATE_KEY) {

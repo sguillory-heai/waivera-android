@@ -63,6 +63,7 @@ import com.waivera.waivera.core.designsystem.component.popScale
 import com.waivera.waivera.core.designsystem.component.rememberPopScale
 import com.waivera.waivera.core.designsystem.icon.WaiveraIcons
 import com.waivera.waivera.core.designsystem.preview.WaiveraPreviews
+import com.waivera.waivera.core.designsystem.theme.PressDepth
 import com.waivera.waivera.core.designsystem.theme.WaiveraShapes
 import com.waivera.waivera.core.designsystem.theme.WaiveraSizes
 import com.waivera.waivera.core.designsystem.theme.WaiveraSpacing
@@ -243,7 +244,7 @@ private fun ActionRow(
         accent -> colors.accent
         else -> colors.text
     }
-    WaiveraPressable(onClick = onClick, modifier = Modifier.fillMaxWidth()) {
+    WaiveraPressable(onClick = onClick, modifier = Modifier.fillMaxWidth(), depth = PressDepth.Row) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()

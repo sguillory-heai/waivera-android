@@ -31,6 +31,7 @@ import com.waivera.waivera.core.designsystem.component.WaiveraErrorState
 import com.waivera.waivera.core.designsystem.component.WaiveraIllustration
 import com.waivera.waivera.core.designsystem.component.WaiveraInsetDivider
 import com.waivera.waivera.core.designsystem.component.WaiveraListRow
+import com.waivera.waivera.core.designsystem.component.WaiveraLoadSwap
 import com.waivera.waivera.core.designsystem.component.WaiveraTopBar
 import com.waivera.waivera.core.designsystem.component.waiveraCardGroupItem
 import com.waivera.waivera.core.designsystem.icon.WaiveraIcons
@@ -99,16 +100,22 @@ internal fun PeopleContent(
                 .weight(1f)
                 .refreshAction(refreshLabel, onRefresh),
         ) {
-            when (state.phase) {
-                ListPhase.Loading -> if (rememberDelayedSkeleton(loading = true)) PeopleSkeleton()
-                ListPhase.Error -> WaiveraErrorState(
-                    title = stringResource(R.string.feature_profile_people_error_title),
-                    message = stringResource(requireNotNull(state.error).messageRes),
-                    onRetry = onRefresh,
-                    modifier = Modifier.padding(top = WaiveraSpacing.Large),
-                )
-                ListPhase.Empty -> PeopleEmpty(searching = state.totalCount > 0, onClear = { onQueryChange("") })
-                ListPhase.Content -> PeopleList(state, onOpenPerson)
+            // What loads settles in over the skeleton instead of cutting (M1-16).
+            WaiveraLoadSwap(loading = state.phase == ListPhase.Loading, modifier = Modifier.fillMaxSize()) { loading ->
+                when {
+                    loading -> if (rememberDelayedSkeleton(loading = true)) PeopleSkeleton()
+                    state.phase == ListPhase.Error -> WaiveraErrorState(
+                        title = stringResource(R.string.feature_profile_people_error_title),
+                        message = stringResource(requireNotNull(state.error).messageRes),
+                        onRetry = onRefresh,
+                        modifier = Modifier.padding(top = WaiveraSpacing.Large),
+                    )
+                    state.phase == ListPhase.Empty -> PeopleEmpty(
+                        searching = state.totalCount > 0,
+                        onClear = { onQueryChange("") },
+                    )
+                    else -> PeopleList(state, onOpenPerson)
+                }
             }
         }
     }

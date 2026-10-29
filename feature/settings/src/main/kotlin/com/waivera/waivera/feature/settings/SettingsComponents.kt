@@ -24,6 +24,7 @@ import com.waivera.waivera.core.designsystem.component.WaiveraInsetDivider
 import com.waivera.waivera.core.designsystem.component.pressFeedback
 import com.waivera.waivera.core.designsystem.component.rememberPressFeedback
 import com.waivera.waivera.core.designsystem.preview.WaiveraPreviews
+import com.waivera.waivera.core.designsystem.theme.PressDepth
 import com.waivera.waivera.core.designsystem.theme.WaiveraSizes
 import com.waivera.waivera.core.designsystem.theme.WaiveraSpacing
 import com.waivera.waivera.core.designsystem.theme.WaiveraTheme
@@ -50,7 +51,7 @@ internal fun SettingsRadioRow(
 ) {
     val colors = WaiveraTheme.colors
     val interactions = remember { MutableInteractionSource() }
-    val press = rememberPressFeedback(interactions)
+    val press = rememberPressFeedback(interactions, depth = PressDepth.Row)
     Row(
         modifier = modifier
             .fillMaxWidth()

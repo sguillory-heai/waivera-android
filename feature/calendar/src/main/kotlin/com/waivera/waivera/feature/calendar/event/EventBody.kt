@@ -63,6 +63,7 @@ import com.waivera.waivera.core.designsystem.component.rememberSkeletonVisible
 import com.waivera.waivera.core.designsystem.component.waiveraCardGroupItem
 import com.waivera.waivera.core.designsystem.icon.WaiveraIcons
 import com.waivera.waivera.core.designsystem.text.asAddressDisplay
+import com.waivera.waivera.core.designsystem.theme.PressDepth
 import com.waivera.waivera.core.designsystem.theme.WaiveraElevation
 import com.waivera.waivera.core.designsystem.theme.WaiveraShapes
 import com.waivera.waivera.core.designsystem.theme.WaiveraSizes
@@ -241,7 +242,7 @@ private fun EventHero(details: EventDetails, actions: EventActions, modifier: Mo
             val online = event.online || event.isSprout
             // An address opens in maps; the row is the whole 48dp target.
             val interactions = remember { MutableInteractionSource() }
-            val press = rememberPressFeedback(interactions)
+            val press = rememberPressFeedback(interactions, depth = PressDepth.Row)
             val openMaps = Modifier
                 .pressFeedback(press, enabled = !online)
                 .clickable(

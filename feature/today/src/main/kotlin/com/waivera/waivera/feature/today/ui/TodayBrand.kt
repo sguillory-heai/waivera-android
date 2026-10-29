@@ -35,6 +35,7 @@ import com.waivera.waivera.core.designsystem.component.WaiveraEmojiTile
 import com.waivera.waivera.core.designsystem.component.WaiveraPressable
 import com.waivera.waivera.core.designsystem.icon.WaiveraIcons
 import com.waivera.waivera.core.designsystem.preview.WaiveraPreviews
+import com.waivera.waivera.core.designsystem.theme.PressDepth
 import com.waivera.waivera.core.designsystem.theme.WaiveraBrand
 import com.waivera.waivera.core.designsystem.theme.WaiveraShapes
 import com.waivera.waivera.core.designsystem.theme.WaiveraSizes
@@ -103,6 +104,7 @@ internal fun CelebrationCard(
                 .background(WaiveraBrand.wash()),
         ) {
             WaiveraPressable(
+                depth = PressDepth.Card,
                 onClick = onOpen,
                 onClickLabel = stringResource(R.string.feature_today_open_schedule),
                 modifier = Modifier

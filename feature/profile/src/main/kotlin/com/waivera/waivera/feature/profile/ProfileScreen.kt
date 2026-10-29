@@ -47,8 +47,10 @@ import com.waivera.waivera.core.designsystem.component.WaiveraHeroCelebration
 import com.waivera.waivera.core.designsystem.component.WaiveraIconTile
 import com.waivera.waivera.core.designsystem.component.WaiveraIllustration
 import com.waivera.waivera.core.designsystem.component.WaiveraListRow
+import com.waivera.waivera.core.designsystem.component.WaiveraLoadSwap
 import com.waivera.waivera.core.designsystem.component.WaiveraTileTone
 import com.waivera.waivera.core.designsystem.component.WaiveraTopBar
+import com.waivera.waivera.core.designsystem.component.rememberLatestNonNull
 import com.waivera.waivera.core.designsystem.icon.WaiveraIcons
 import com.waivera.waivera.core.designsystem.preview.WaiveraPreviews
 import com.waivera.waivera.core.designsystem.text.withBreaksAfterHyphens
@@ -299,113 +301,136 @@ internal fun IdentityCard(
 @Composable
 private fun DetailsSections(profile: EmployeeProfile?, state: ProfileUiState.Ready, onOpenPerson: (String) -> Unit) {
     val skeleton = rememberDelayedSkeleton(loading = profile == null)
+    val shownProfile = rememberLatestNonNull(profile)
     // The first group sits right under the sheet's curve, as Today's first section does (UI10-01).
     ProfileCard(title = stringResource(R.string.feature_profile_personal_title), first = true) {
-        if (profile == null) {
-            if (skeleton) SectionSkeleton(rows = 4)
-        } else {
-            InfoFields(
-                listOf(
-                    InfoField(
-                        label = stringResource(R.string.feature_profile_email),
-                        value = profile.email ?: state.user.email,
-                        icon = WaiveraIcons.Mail,
-                        address = true,
-                    ),
-                    InfoField(
-                        label = stringResource(R.string.feature_profile_phone),
-                        value = profile.phoneNumber ?: state.user.phoneNumber,
-                        icon = WaiveraIcons.Phone,
-                    ),
-                    InfoField(
-                        label = stringResource(R.string.feature_profile_address),
-                        value = profile.address,
-                        icon = WaiveraIcons.Location,
-                    ),
-                    InfoField(
-                        label = stringResource(R.string.feature_profile_time_zone),
-                        value = stringResource(
-                            R.string.feature_profile_time_zone_value,
-                            ProfileFormat.zoneName(state.zone),
-                            state.zone.id,
-                        ),
-                        icon = WaiveraIcons.Globe,
-                    ),
-                ),
-            )
+        // Loaded fields settle in over their skeleton instead of cutting (M1-16).
+        WaiveraLoadSwap(loading = profile == null, modifier = Modifier.fillMaxWidth()) { loading ->
+            val loaded = shownProfile
+            if (loading || loaded == null) {
+                if (skeleton) SectionSkeleton(rows = 4)
+            } else {
+                PersonalFields(loaded, state)
+            }
         }
     }
     ProfileCard(title = stringResource(R.string.feature_profile_professional_title)) {
-        if (profile == null) {
-            if (skeleton) SectionSkeleton(rows = 7)
-        } else {
-            InfoFields(
-                listOf(
-                    InfoField(
-                        label = stringResource(R.string.feature_profile_hire_date),
-                        value = profile.hireDate?.let { ProfileFormat.date(it) },
-                        icon = WaiveraIcons.Calendar,
-                    ),
-                    InfoField(
-                        label = stringResource(R.string.feature_profile_positions),
-                        value = profile.positions.joinedOrNull(),
-                        icon = WaiveraIcons.Badge,
-                    ),
-                    InfoField(
-                        label = stringResource(R.string.feature_profile_office_locations),
-                        value = profile.regions.joinedOrNull(),
-                        icon = WaiveraIcons.Location,
-                    ),
-                    InfoField(
-                        label = stringResource(R.string.feature_profile_agencies),
-                        value = profile.agencies.joinedOrNull(),
-                        icon = WaiveraIcons.Building,
-                    ),
-                    InfoField(
-                        label = stringResource(R.string.feature_profile_waiver_families),
-                        value = profile.waiverFamilies.joinedOrNull(),
-                        icon = WaiveraIcons.People,
-                    ),
-                    InfoField(
-                        label = stringResource(R.string.feature_profile_scid),
-                        value = profile.scId?.takeIf(String::isNotBlank),
-                        icon = WaiveraIcons.Badge,
-                    ),
-                    InfoField(
-                        label = stringResource(R.string.feature_profile_birthday),
-                        value = profile.birthday?.let { ProfileFormat.birthday(it) },
-                        icon = WaiveraIcons.Cake,
-                    ),
+        // Loaded fields settle in over their skeleton instead of cutting (M1-16).
+        WaiveraLoadSwap(loading = profile == null, modifier = Modifier.fillMaxWidth()) { loading ->
+            val loaded = shownProfile
+            if (loading || loaded == null) {
+                if (skeleton) SectionSkeleton(rows = 7)
+            } else {
+                ProfessionalFields(loaded, onOpenPerson)
+            }
+        }
+    }
+}
+
+@Composable
+private fun PersonalFields(profile: EmployeeProfile, state: ProfileUiState.Ready) {
+    InfoFields(
+        listOf(
+            InfoField(
+                label = stringResource(R.string.feature_profile_email),
+                value = profile.email ?: state.user.email,
+                icon = WaiveraIcons.Mail,
+                address = true,
+            ),
+            InfoField(
+                label = stringResource(R.string.feature_profile_phone),
+                value = profile.phoneNumber ?: state.user.phoneNumber,
+                icon = WaiveraIcons.Phone,
+            ),
+            InfoField(
+                label = stringResource(R.string.feature_profile_address),
+                value = profile.address,
+                icon = WaiveraIcons.Location,
+            ),
+            InfoField(
+                label = stringResource(R.string.feature_profile_time_zone),
+                value = stringResource(
+                    R.string.feature_profile_time_zone_value,
+                    ProfileFormat.zoneName(state.zone),
+                    state.zone.id,
+                ),
+                icon = WaiveraIcons.Globe,
+            ),
+        ),
+    )
+}
+
+@Composable
+private fun ProfessionalFields(profile: EmployeeProfile, onOpenPerson: (String) -> Unit) {
+    // One column with the card's own spacing: the swap that shows these stacks its content in a
+    // box, so the spacing the card's column gave these children is kept here.
+    Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(WaiveraSpacing.Small)) {
+        InfoFields(
+            listOf(
+                InfoField(
+                    label = stringResource(R.string.feature_profile_hire_date),
+                    value = profile.hireDate?.let { ProfileFormat.date(it) },
+                    icon = WaiveraIcons.Calendar,
+                ),
+                InfoField(
+                    label = stringResource(R.string.feature_profile_positions),
+                    value = profile.positions.joinedOrNull(),
+                    icon = WaiveraIcons.Badge,
+                ),
+                InfoField(
+                    label = stringResource(R.string.feature_profile_office_locations),
+                    value = profile.regions.joinedOrNull(),
+                    icon = WaiveraIcons.Location,
+                ),
+                InfoField(
+                    label = stringResource(R.string.feature_profile_agencies),
+                    value = profile.agencies.joinedOrNull(),
+                    icon = WaiveraIcons.Building,
+                ),
+                InfoField(
+                    label = stringResource(R.string.feature_profile_waiver_families),
+                    value = profile.waiverFamilies.joinedOrNull(),
+                    icon = WaiveraIcons.People,
+                ),
+                InfoField(
+                    label = stringResource(R.string.feature_profile_scid),
+                    value = profile.scId?.takeIf(String::isNotBlank),
+                    icon = WaiveraIcons.Badge,
+                ),
+                InfoField(
+                    label = stringResource(R.string.feature_profile_birthday),
+                    value = profile.birthday?.let { ProfileFormat.birthday(it) },
+                    icon = WaiveraIcons.Cake,
+                ),
+            ),
+        )
+        if (profile.managers.isNotEmpty()) {
+            Text(
+                text = stringResource(R.string.feature_profile_reports_to),
+                style = WaiveraTextStyles.Kicker,
+                color = WaiveraTheme.colors.textSecondary,
+                modifier = Modifier.padding(
+                    horizontal = WaiveraSpacing.Medium,
+                    vertical = WaiveraSpacing.ExtraSmall,
                 ),
             )
-            if (profile.managers.isNotEmpty()) {
-                Text(
-                    text = stringResource(R.string.feature_profile_reports_to),
-                    style = WaiveraTextStyles.Kicker,
-                    color = WaiveraTheme.colors.textSecondary,
-                    modifier = Modifier.padding(
-                        horizontal = WaiveraSpacing.Medium,
-                        vertical = WaiveraSpacing.ExtraSmall,
-                    ),
+            profile.managers.forEach { manager ->
+                WaiveraListRow(
+                    headline = manager.name.ifBlank {
+                        stringResource(R.string.feature_profile_celebration_someone)
+                    },
+                    onClick = { onOpenPerson(manager.id) },
+                    onClickLabel = stringResource(R.string.feature_profile_open_person),
+                    showChevron = true,
+                    leading = {
+                        WaiveraAvatar(
+                            name = manager.name,
+                            imageModel = AvatarModel.of(manager.id),
+                            size = WaiveraSizes.AvatarSmall,
+                            contentDescription = null,
+                        )
+                    },
                 )
-                profile.managers.forEach { manager ->
-                    WaiveraListRow(
-                        headline = manager.name.ifBlank {
-                            stringResource(R.string.feature_profile_celebration_someone)
-                        },
-                        onClick = { onOpenPerson(manager.id) },
-                        onClickLabel = stringResource(R.string.feature_profile_open_person),
-                        showChevron = true,
-                        leading = {
-                            WaiveraAvatar(
-                                name = manager.name,
-                                imageModel = AvatarModel.of(manager.id),
-                                size = WaiveraSizes.AvatarSmall,
-                                contentDescription = null,
-                            )
-                        },
-                    )
-                }
             }
         }
     }

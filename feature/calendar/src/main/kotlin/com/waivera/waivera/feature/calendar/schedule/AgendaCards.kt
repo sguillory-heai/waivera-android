@@ -21,6 +21,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.State
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -46,6 +47,7 @@ import com.waivera.waivera.core.designsystem.component.WaiveraPressable
 import com.waivera.waivera.core.designsystem.component.WaiveraTileTone
 import com.waivera.waivera.core.designsystem.icon.WaiveraIcons
 import com.waivera.waivera.core.designsystem.text.resolve
+import com.waivera.waivera.core.designsystem.theme.PressDepth
 import com.waivera.waivera.core.designsystem.theme.WaiveraElevation
 import com.waivera.waivera.core.designsystem.theme.WaiveraShapes
 import com.waivera.waivera.core.designsystem.theme.WaiveraSizes
@@ -285,6 +287,7 @@ private fun EventCard(
         ?.let { stringResource(R.string.feature_calendar_with_detail, time, it) }
         ?: time
     WaiveraPressable(
+        depth = PressDepth.Card,
         onClick = { onOpenEvent(event.id) },
         onClickLabel = stringResource(R.string.feature_calendar_open_event),
         shape = WaiveraShapes.SheetCard,
@@ -357,7 +360,7 @@ private fun EventCard(
  * title and time bones at their text styles' heights.
  */
 @Composable
-internal fun AgendaCardSkeleton(pulse: Float, modifier: Modifier = Modifier, titleFraction: Float = 0.7f) {
+internal fun AgendaCardSkeleton(pulse: State<Float>, modifier: Modifier = Modifier, titleFraction: Float = 0.7f) {
     Row(
         modifier = modifier
             .fillMaxWidth()

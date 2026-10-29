@@ -24,9 +24,16 @@ import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Text
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
@@ -46,19 +53,26 @@ import com.waivera.waivera.core.designsystem.component.WaiveraErrorState
 import com.waivera.waivera.core.designsystem.component.WaiveraFilterChip
 import com.waivera.waivera.core.designsystem.component.WaiveraIconButton
 import com.waivera.waivera.core.designsystem.component.WaiveraIllustration
+import com.waivera.waivera.core.designsystem.component.WaiveraLoadSwap
 import com.waivera.waivera.core.designsystem.component.WaiveraPressable
 import com.waivera.waivera.core.designsystem.component.WaiveraSnackbarHost
 import com.waivera.waivera.core.designsystem.component.WaiveraStatusBadge
+import com.waivera.waivera.core.designsystem.component.WaiveraSwap
 import com.waivera.waivera.core.designsystem.component.WaiveraTopBar
 import com.waivera.waivera.core.designsystem.component.showUndo
 import com.waivera.waivera.core.designsystem.icon.WaiveraIcons
 import com.waivera.waivera.core.designsystem.preview.WaiveraPreviews
+import com.waivera.waivera.core.designsystem.theme.PressDepth
 import com.waivera.waivera.core.designsystem.theme.WaiveraElevation
+import com.waivera.waivera.core.designsystem.theme.WaiveraMotionScheme
 import com.waivera.waivera.core.designsystem.theme.WaiveraShapes
 import com.waivera.waivera.core.designsystem.theme.WaiveraSpacing
 import com.waivera.waivera.core.designsystem.theme.WaiveraTheme
+import com.waivera.waivera.core.designsystem.theme.exit
 import com.waivera.waivera.core.network.time.WaiveraTime
 import java.time.Instant
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 /** Entry point for the bookmarks screen. Owned by `:feature:profile`; routed by `:app`. */
 @Composable
@@ -161,22 +175,28 @@ internal fun BookmarksContent(
                 onRefresh = onRefresh,
                 modifier = Modifier.weight(1f),
             ) {
-                when (state.phase) {
-                    ListPhase.Loading -> if (rememberDelayedSkeleton(loading = true)) BookmarksSkeleton()
-                    // The raw error is never shown here (spec 06 §B3); the copy is fixed.
-                    ListPhase.Error -> WaiveraErrorState(
-                        title = stringResource(R.string.feature_profile_bookmarks_error_title),
-                        message = stringResource(R.string.feature_profile_bookmarks_error_message),
-                        onRetry = onRefresh,
-                        modifier = Modifier.padding(top = WaiveraSpacing.Large),
-                    )
-                    ListPhase.Empty -> BookmarksEmpty(
-                        reason = state.emptyReason,
-                        filter = state.filter,
-                        onClearSearch = { onQueryChange("") },
-                        onShowAll = { onFilterChange(BookmarkFilter.All) },
-                    )
-                    ListPhase.Content -> BookmarksList(state, onOpen, onRemove)
+                // What loads settles in over the skeleton instead of cutting (M1-16).
+                WaiveraLoadSwap(
+                    loading = state.phase == ListPhase.Loading,
+                    modifier = Modifier.fillMaxSize(),
+                ) { loading ->
+                    when {
+                        loading -> if (rememberDelayedSkeleton(loading = true)) BookmarksSkeleton()
+                        // The raw error is never shown here (spec 06 §B3); the copy is fixed.
+                        state.phase == ListPhase.Error -> WaiveraErrorState(
+                            title = stringResource(R.string.feature_profile_bookmarks_error_title),
+                            message = stringResource(R.string.feature_profile_bookmarks_error_message),
+                            onRetry = onRefresh,
+                            modifier = Modifier.padding(top = WaiveraSpacing.Large),
+                        )
+                        state.phase == ListPhase.Empty -> BookmarksEmpty(
+                            reason = state.emptyReason,
+                            filter = state.filter,
+                            onClearSearch = { onQueryChange("") },
+                            onShowAll = { onFilterChange(BookmarkFilter.All) },
+                        )
+                        else -> BookmarksList(state, onOpen, onRemove)
+                    }
                 }
             }
         }
@@ -285,24 +305,33 @@ private fun BookmarksList(state: BookmarksUiState, onOpen: (BookmarkRow) -> Unit
         verticalArrangement = Arrangement.spacedBy(WaiveraSpacing.Small),
     ) {
         item(key = "meta") {
-            Text(
-                text = if (!state.isFiltered) {
-                    pluralStringResource(R.plurals.feature_profile_bookmarks_count, state.totalCount, state.totalCount)
-                } else {
-                    pluralStringResource(
-                        R.plurals.feature_profile_bookmarks_count_filtered,
-                        state.totalCount,
-                        state.rows.size,
-                        state.totalCount,
-                    )
-                },
-                style = MaterialTheme.typography.labelMedium,
-                color = WaiveraTheme.colors.textSecondary,
-                modifier = Modifier.padding(vertical = WaiveraSpacing.ExtraSmall),
-            )
+            val text = if (!state.isFiltered) {
+                pluralStringResource(R.plurals.feature_profile_bookmarks_count, state.totalCount, state.totalCount)
+            } else {
+                pluralStringResource(
+                    R.plurals.feature_profile_bookmarks_count_filtered,
+                    state.totalCount,
+                    state.rows.size,
+                    state.totalCount,
+                )
+            }
+            // The count rolls back as a bookmark goes, the way the list moved (M1-14).
+            WaiveraSwap(
+                targetState = CountLine(count = state.rows.size, text = text),
+                contentKey = { it.text },
+                direction = { from, to -> to.count.compareTo(from.count) },
+            ) { line ->
+                Text(
+                    text = line.text,
+                    style = MaterialTheme.typography.labelMedium,
+                    color = WaiveraTheme.colors.textSecondary,
+                    modifier = Modifier.padding(vertical = WaiveraSpacing.ExtraSmall),
+                )
+            }
         }
         items(state.rows, key = { it.messageId }) { row ->
-            // A removed bookmark fades and the rest close up on the shared springs.
+            // A removed bookmark is gone before the rest close up through its place on the
+            // shared springs, so no card ever slides over a fading one (M1-14).
             BookmarkCard(
                 row = row,
                 onOpen = { onOpen(row) },
@@ -310,18 +339,24 @@ private fun BookmarksList(state: BookmarksUiState, onOpen: (BookmarkRow) -> Unit
                 modifier = Modifier.animateItem(
                     fadeInSpec = motion.state(),
                     placementSpec = motion.layout(),
-                    fadeOutSpec = motion.state(),
+                    fadeOutSpec = motion.exit(),
                 ),
             )
         }
     }
 }
 
+/** The list's count line: [count] says which way it moved, [text] is what it reads. */
+@Immutable
+private data class CountLine(val count: Int, val text: String)
+
 @Composable
 private fun BookmarkCard(row: BookmarkRow, onOpen: () -> Unit, onRemove: () -> Unit, modifier: Modifier = Modifier) {
     val colors = WaiveraTheme.colors
     val author = row.author.ifBlank { stringResource(R.string.feature_profile_bookmarks_unknown_author) }
+    val removing = rememberRemovalBeat(key = row.messageId, onRemove = onRemove)
     WaiveraPressable(
+        depth = PressDepth.Card,
         onClick = onOpen,
         // Concept A's sheet card: soft lift instead of a hairline, as on Today and Schedule.
         modifier = modifier
@@ -364,14 +399,64 @@ private fun BookmarkCard(row: BookmarkRow, onOpen: () -> Unit, onRemove: () -> U
                         WaiveraStatusBadge(text = stringResource(R.string.feature_profile_bookmarks_thread_root))
                 }
             }
+            // The glyph answers on its own control first: it pops to the plain, unsaved bookmark,
+            // and the card leaves a beat later (M1-14).
             WaiveraIconButton(
-                icon = R.drawable.feature_profile_ic_bookmark_remove,
+                icon = if (removing.started) WaiveraIcons.Bookmark else R.drawable.feature_profile_ic_bookmark_remove,
                 contentDescription = stringResource(R.string.feature_profile_bookmarks_remove, author),
-                onClick = onRemove,
-                tint = colors.accent,
+                onClick = removing::start,
+                tint = if (removing.started) colors.textSecondary else colors.accent,
             )
         }
     }
+}
+
+/** A removal that shows on its control first, then asks for the removal. */
+@Stable
+private class RemovalBeat {
+    var started by mutableStateOf(false)
+        private set
+
+    fun start() {
+        started = true
+    }
+
+    fun reset() {
+        started = false
+    }
+}
+
+/**
+ * The bookmark removal's beat, kept in UI state so the view model's optimistic removal is
+ * unchanged: [RemovalBeat.start] changes the glyph at once and calls [onRemove] after
+ * [WaiveraMotionScheme.REMOVAL_BEAT_MILLIS] (at once with animations off). If the card leaves
+ * first (the screen closes), the removal is still asked for, so a tap is never lost. If the card
+ * is still here [WaiveraMotionScheme.REMOVAL_HELD_MILLIS] after that, the removal did not hold
+ * (it failed, or was undone at once) and the glyph goes back, so it can be tapped again.
+ */
+@Composable
+private fun rememberRemovalBeat(key: Any, onRemove: () -> Unit): RemovalBeat {
+    val beat = remember(key) { RemovalBeat() }
+    val remove by rememberUpdatedState(onRemove)
+    val reduced = WaiveraTheme.motion.reduced
+    if (beat.started) {
+        val scope = rememberCoroutineScope()
+        DisposableEffect(beat) {
+            var asked = false
+            val job = scope.launch {
+                if (!reduced) delay(WaiveraMotionScheme.REMOVAL_BEAT_MILLIS)
+                asked = true
+                remove()
+                delay(WaiveraMotionScheme.REMOVAL_HELD_MILLIS)
+                beat.reset()
+            }
+            onDispose {
+                job.cancel()
+                if (!asked) remove()
+            }
+        }
+    }
+    return beat
 }
 
 @Composable

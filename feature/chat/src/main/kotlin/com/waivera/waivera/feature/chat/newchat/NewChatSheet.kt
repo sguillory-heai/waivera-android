@@ -53,6 +53,7 @@ import com.waivera.waivera.core.designsystem.component.WaiveraButtonSize
 import com.waivera.waivera.core.designsystem.component.WaiveraEmptyState
 import com.waivera.waivera.core.designsystem.component.WaiveraErrorState
 import com.waivera.waivera.core.designsystem.component.WaiveraIllustration
+import com.waivera.waivera.core.designsystem.component.WaiveraLoadSwap
 import com.waivera.waivera.core.designsystem.component.WaiveraPopVisibility
 import com.waivera.waivera.core.designsystem.component.WaiveraTextField
 import com.waivera.waivera.core.designsystem.component.pressFeedback
@@ -62,6 +63,7 @@ import com.waivera.waivera.core.designsystem.component.rememberSkeletonVisible
 import com.waivera.waivera.core.designsystem.icon.WaiveraIcons
 import com.waivera.waivera.core.designsystem.preview.WaiveraPreviews
 import com.waivera.waivera.core.designsystem.text.withBreaksAfterHyphens
+import com.waivera.waivera.core.designsystem.theme.PressDepth
 import com.waivera.waivera.core.designsystem.theme.WaiveraShapes
 import com.waivera.waivera.core.designsystem.theme.WaiveraSizes
 import com.waivera.waivera.core.designsystem.theme.WaiveraSpacing
@@ -164,35 +166,38 @@ fun ColumnScope.NewChatSheetContent(
             )
         }
         Box(modifier = Modifier.weight(1f, fill = false)) {
-            when {
-                showSkeleton -> {
-                    val pulse = rememberSkeletonPulse()
-                    Column { repeat(SKELETON_ROWS) { SkeletonListRow(pulse = pulse) } }
-                }
-                // If the space under the header is still too short, the empty and error states
-                // scroll instead of clipping their message and "Try again" (UI5-07).
-                state.loadErrorRes != null -> Box(Modifier.verticalScroll(rememberScrollState())) {
-                    WaiveraErrorState(
-                        title = stringResource(R.string.feature_chat_newchat_load_error_title),
-                        message = stringResource(state.loadErrorRes),
-                        onRetry = onRetryLoad,
-                        dense = true,
-                    )
-                }
-                !state.isLoading && state.people.isEmpty() -> Box(Modifier.verticalScroll(rememberScrollState())) {
-                    WaiveraEmptyState(
-                        title = stringResource(R.string.feature_chat_newchat_empty_title),
-                        message = stringResource(R.string.feature_chat_newchat_empty),
-                        illustration = WaiveraIllustration.Search,
-                    )
-                }
-                else -> LazyColumn(state = listState) {
-                    items(state.people, key = { it.userId }) { person ->
-                        PersonOption(
-                            person = person,
-                            avatar = avatars[person.userId],
-                            onToggle = { onToggle(person.userId) },
+            // The people settle in over the skeleton instead of cutting (M1-16).
+            WaiveraLoadSwap(loading = showSkeleton) { skeleton ->
+                when {
+                    skeleton -> {
+                        val pulse = rememberSkeletonPulse()
+                        Column { repeat(SKELETON_ROWS) { SkeletonListRow(pulse = pulse) } }
+                    }
+                    // If the space under the header is still too short, the empty and error states
+                    // scroll instead of clipping their message and "Try again" (UI5-07).
+                    state.loadErrorRes != null -> Box(Modifier.verticalScroll(rememberScrollState())) {
+                        WaiveraErrorState(
+                            title = stringResource(R.string.feature_chat_newchat_load_error_title),
+                            message = stringResource(state.loadErrorRes),
+                            onRetry = onRetryLoad,
+                            dense = true,
                         )
+                    }
+                    !state.isLoading && state.people.isEmpty() -> Box(Modifier.verticalScroll(rememberScrollState())) {
+                        WaiveraEmptyState(
+                            title = stringResource(R.string.feature_chat_newchat_empty_title),
+                            message = stringResource(R.string.feature_chat_newchat_empty),
+                            illustration = WaiveraIllustration.Search,
+                        )
+                    }
+                    else -> LazyColumn(state = listState) {
+                        items(state.people, key = { it.userId }) { person ->
+                            PersonOption(
+                                person = person,
+                                avatar = avatars[person.userId],
+                                onToggle = { onToggle(person.userId) },
+                            )
+                        }
                     }
                 }
             }
@@ -268,7 +273,7 @@ private fun PersonOption(person: PersonOptionUi, avatar: ImageBitmap?, onToggle:
         label = "personRowFill",
     )
     val interactionSource = remember { MutableInteractionSource() }
-    val press = rememberPressFeedback(interactionSource)
+    val press = rememberPressFeedback(interactionSource, depth = PressDepth.Row)
     // The box fills on the state token and its check pops in, as a picked chip's does.
     val boxFill by animateColorAsState(
         targetValue = if (person.selected) colors.accentFill else colors.surface,

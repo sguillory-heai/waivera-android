@@ -21,17 +21,22 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.Immutable
+import androidx.compose.runtime.State
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.painter.BitmapPainter
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontStyle
@@ -43,6 +48,7 @@ import com.waivera.waivera.core.data.model.SendState
 import com.waivera.waivera.core.designsystem.component.BadgeTone
 import com.waivera.waivera.core.designsystem.component.WaiveraAvatar
 import com.waivera.waivera.core.designsystem.component.WaiveraButton
+import com.waivera.waivera.core.designsystem.component.WaiveraExpandVisibility
 import com.waivera.waivera.core.designsystem.component.WaiveraIconButton
 import com.waivera.waivera.core.designsystem.component.WaiveraLogoTile
 import com.waivera.waivera.core.designsystem.component.WaiveraPopVisibility
@@ -51,8 +57,10 @@ import com.waivera.waivera.core.designsystem.component.WaiveraStatusBadge
 import com.waivera.waivera.core.designsystem.component.WaiveraSwap
 import com.waivera.waivera.core.designsystem.component.bubbleArrival
 import com.waivera.waivera.core.designsystem.component.rememberBubbleArrival
+import com.waivera.waivera.core.designsystem.component.rememberLatestNonNull
 import com.waivera.waivera.core.designsystem.icon.WaiveraIcons
 import com.waivera.waivera.core.designsystem.theme.LocalWaiveraColors
+import com.waivera.waivera.core.designsystem.theme.WaiveraMotionScheme
 import com.waivera.waivera.core.designsystem.theme.WaiveraShapes
 import com.waivera.waivera.core.designsystem.theme.WaiveraSizes
 import com.waivera.waivera.core.designsystem.theme.WaiveraSpacing
@@ -63,6 +71,7 @@ import com.waivera.waivera.core.designsystem.theme.onMyBubble
 import com.waivera.waivera.feature.chat.R
 import java.time.Instant
 import java.time.ZoneId
+import kotlinx.coroutines.delay
 
 /** Everything a row can ask for. A null callback turns that affordance off (read-only, threads). */
 @Immutable
@@ -145,7 +154,7 @@ fun MessageRowView(
                 horizontalAlignment = if (row.isMine) Alignment.End else Alignment.Start,
             ) {
                 if (row.startsIncomingRun() && (showAuthorLine || row.isBot)) AuthorLine(authorName, row.isBot)
-                Bubble(row, authorName, time, callbacks, arrival.coerceAtMost(1f))
+                Bubble(row, authorName, time, callbacks, arrival)
                 Footer(row, time, timestampVisible, callbacks)
             }
         }
@@ -216,7 +225,7 @@ private fun Bubble(
     authorName: String,
     time: RowTime,
     callbacks: MessageRowCallbacks,
-    arrival: Float,
+    arrival: State<Float>,
 ) {
     val colors = WaiveraTheme.colors
     val message = row.message
@@ -233,7 +242,6 @@ private fun Bubble(
         row.isMine -> colors.surface to colors.accentBorder
         else -> colors.surface to colors.border
     }
-    val wash = colors.accentWash.copy(alpha = colors.accentWash.alpha * (1f - arrival))
     val description = rowDescription(row, authorName, time)
     WaiveraPressable(
         onClick = { callbacks.onToggleTimestamp(row.key) },
@@ -246,20 +254,30 @@ private fun Bubble(
         shape = shape,
         modifier = Modifier.semantics { contentDescription = description },
     ) {
-        Column(
-            modifier = Modifier
-                .background(color = fill, shape = shape)
-                .background(wash, shape)
-                .then(if (hasBody && !tinted) Modifier.border(WaiveraSpacing.Hairline, border, shape) else Modifier)
-                .defaultMinSize(minWidth = if (hasBody) ChatDimens.BubbleMinWidth else 0.dp)
-                .padding(
-                    horizontal = if (hasBody) WaiveraSpacing.MediumSmall - WaiveraSpacing.Hairline else 0.dp,
-                    vertical = if (hasBody) WaiveraSpacing.Small else 0.dp,
-                ),
-            horizontalAlignment = if (row.isMine) Alignment.End else Alignment.Start,
-            verticalArrangement = Arrangement.spacedBy(WaiveraSpacing.ExtraSmall + WaiveraSpacing.XxSmall),
-        ) {
-            InMyBubbleColors(inMyBubble = tinted) { BubbleContent(row, callbacks) }
+        Box(Modifier.background(color = fill, shape = shape)) {
+            // A live arrival's wash fades in a layer of its own, read in the layer, so the fade
+            // never recomposes or redraws the bubble (M1-08). At rest it is fully transparent.
+            if (row.isLiveArrival) {
+                Box(
+                    Modifier
+                        .matchParentSize()
+                        .graphicsLayer { alpha = 1f - arrival.value.coerceIn(0f, 1f) }
+                        .background(colors.accentWash, shape),
+                )
+            }
+            Column(
+                modifier = Modifier
+                    .then(if (hasBody && !tinted) Modifier.border(WaiveraSpacing.Hairline, border, shape) else Modifier)
+                    .defaultMinSize(minWidth = if (hasBody) ChatDimens.BubbleMinWidth else 0.dp)
+                    .padding(
+                        horizontal = if (hasBody) WaiveraSpacing.MediumSmall - WaiveraSpacing.Hairline else 0.dp,
+                        vertical = if (hasBody) WaiveraSpacing.Small else 0.dp,
+                    ),
+                horizontalAlignment = if (row.isMine) Alignment.End else Alignment.Start,
+                verticalArrangement = Arrangement.spacedBy(WaiveraSpacing.ExtraSmall + WaiveraSpacing.XxSmall),
+            ) {
+                InMyBubbleColors(inMyBubble = tinted) { BubbleContent(row, callbacks) }
+            }
         }
     }
 }
@@ -375,21 +393,39 @@ private fun Footer(
         SettledFooter(row, time, timestampVisible)
         return
     }
-    WaiveraSwap(targetState = message.footerPhase(), contentAlignment = Alignment.TopEnd) { phase ->
-        if (phase == FooterPhase.Settled) {
-            SettledFooter(row, time, timestampVisible)
-        } else {
-            PendingMeta(message, callbacks)
+    // "Sending…" waits a beat: a good connection acks inside it, so the line goes straight to
+    // "Sent · 9:41" in one swap instead of flashing twice (M1-09).
+    val sendingLabelDue by produceState(initialValue = false, row.key) {
+        delay(WaiveraMotionScheme.SENDING_LABEL_DELAY_MILLIS)
+        value = true
+    }
+    WaiveraSwap(targetState = footerPhase(message, sendingLabelDue), contentAlignment = Alignment.TopEnd) { phase ->
+        when (phase) {
+            FooterPhase.Settled -> SettledFooter(row, time, timestampVisible)
+            // The slot keeps the line's height, so nothing jumps when the line arrives.
+            FooterPhase.Quiet -> PendingMeta(
+                message,
+                callbacks,
+                Modifier
+                    .alpha(0f)
+                    .clearAndSetSemantics {},
+            )
+            FooterPhase.Sending, FooterPhase.Failed -> PendingMeta(message, callbacks)
         }
     }
 }
 
-/** Where my own message's line is: still going out, failed, or sent. */
-private enum class FooterPhase { Sending, Failed, Settled }
+/** Where my own message's line is: going out but not saying so yet, going out, failed, or sent. */
+internal enum class FooterPhase { Quiet, Sending, Failed, Settled }
 
-private fun Message.footerPhase(): FooterPhase = when {
-    !isPending -> FooterPhase.Settled
-    sendState == SendState.FAILED -> FooterPhase.Failed
+/**
+ * The footer for [message]. A send stays [FooterPhase.Quiet] until [sendingLabelDue]; a failure
+ * shows at once, and so does a send queued while offline, which no quick ack will follow.
+ */
+internal fun footerPhase(message: Message, sendingLabelDue: Boolean): FooterPhase = when {
+    !message.isPending -> FooterPhase.Settled
+    message.sendState == SendState.FAILED -> FooterPhase.Failed
+    message.sendState == SendState.SENDING && !sendingLabelDue -> FooterPhase.Quiet
     else -> FooterPhase.Sending
 }
 
@@ -407,7 +443,21 @@ private fun SettledFooter(row: TimelineItem.MessageRow, time: RowTime, timestamp
             .withEdited(message.isEdited)
         else -> null
     }
-    if (label == null && !message.isBookmarked) return
+    if (endOfRun || createdAt == null) {
+        if (label == null && !message.isBookmarked) return
+        FooterLine(label, message.isBookmarked)
+        return
+    }
+    // Inside a run the time shows on tap. The line grows and folds on the layout token, and keeps
+    // its text while it folds, so the list moves instead of jumping (M1-13).
+    val shownLabel = rememberLatestNonNull(label)
+    WaiveraExpandVisibility(visible = label != null || message.isBookmarked) {
+        FooterLine(label = if (message.isBookmarked) label else shownLabel, bookmarked = message.isBookmarked)
+    }
+}
+
+@Composable
+private fun FooterLine(label: String?, bookmarked: Boolean) {
     Row(
         modifier = Modifier.padding(top = WaiveraSpacing.ExtraSmall),
         horizontalArrangement = Arrangement.spacedBy(WaiveraSpacing.Small),
@@ -421,7 +471,7 @@ private fun SettledFooter(row: TimelineItem.MessageRow, time: RowTime, timestamp
             )
         }
         // Bookmarking pops the pill in; it is simply there on rows that were saved before.
-        WaiveraPopVisibility(visible = message.isBookmarked) { SavedPill() }
+        WaiveraPopVisibility(visible = bookmarked) { SavedPill() }
     }
 }
 
@@ -518,12 +568,12 @@ private fun SavedPill() {
  * primary and Edit and Discard move into a "More" menu (UI3-11).
  */
 @Composable
-private fun PendingMeta(message: Message, callbacks: MessageRowCallbacks) {
+private fun PendingMeta(message: Message, callbacks: MessageRowCallbacks, modifier: Modifier = Modifier) {
     val colors = WaiveraTheme.colors
     val clientId = message.clientMessageId
     Column(
         horizontalAlignment = Alignment.End,
-        modifier = Modifier.padding(top = WaiveraSpacing.XxSmall),
+        modifier = modifier.padding(top = WaiveraSpacing.XxSmall),
     ) {
         Text(
             text = stringResource(

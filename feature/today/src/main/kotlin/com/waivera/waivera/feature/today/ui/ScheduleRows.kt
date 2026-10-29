@@ -26,6 +26,7 @@ import com.waivera.waivera.core.designsystem.component.tint
 import com.waivera.waivera.core.designsystem.icon.WaiveraIcons
 import com.waivera.waivera.core.designsystem.preview.WaiveraPreviews
 import com.waivera.waivera.core.designsystem.text.withBreaksAfterHyphens
+import com.waivera.waivera.core.designsystem.theme.PressDepth
 import com.waivera.waivera.core.designsystem.theme.WaiveraElevation
 import com.waivera.waivera.core.designsystem.theme.WaiveraShapes
 import com.waivera.waivera.core.designsystem.theme.WaiveraSpacing
@@ -108,6 +109,7 @@ internal fun UpNextCard(item: NextUpItem, onClick: () -> Unit, modifier: Modifie
             .background(colors.surface),
     ) {
         WaiveraPressable(
+            depth = PressDepth.Card,
             onClick = onClick,
             onClickLabel = stringResource(R.string.feature_today_open_event),
             modifier = Modifier
