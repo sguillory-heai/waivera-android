@@ -102,7 +102,10 @@ class AndroidNotifier @Inject constructor(@ApplicationContext private val contex
         val style = existing?.let(NotificationCompat.MessagingStyle::extractMessagingStyleFromNotification)
             ?: messagingStyle(context, conversation)
         val senderName = message.title ?: context.getString(R.string.core_notifications_someone)
-        val sender = Person.Builder().setName(senderName).setKey("sender:$senderName").build()
+        // In a group the collapsed line is "<sender>: <text>", so a long sender is shortened to
+        // leave the text room; the key keeps the full name, which identifies the sender.
+        val shownName = if (style.isGroupConversation) SenderName.short(context, senderName) else senderName
+        val sender = Person.Builder().setName(shownName).setKey("sender:$senderName").build()
         val text = message.body ?: context.getString(R.string.core_notifications_new_message)
         style.addMessage(NotificationCompat.MessagingStyle.Message(text, System.currentTimeMillis(), sender))
         while (style.messages.size > MAX_MESSAGES) style.messages.removeAt(0)

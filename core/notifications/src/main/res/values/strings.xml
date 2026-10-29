@@ -19,6 +19,10 @@
     <string name="core_notifications_mark_read">Mark read</string>
     <string name="core_notifications_you">You</string>
     <string name="core_notifications_someone">Someone</string>
+    <!-- A long sender in a group notification: first name and last initial ("Maria-Fernanda R."). -->
+    <string name="core_notifications_sender_short">%1$s %2$s.</string>
+    <!-- A sender name cut to fit the collapsed notification line. -->
+    <string name="core_notifications_sender_cut">%1$s…</string>
     <string name="core_notifications_new_message">New message</string>
     <string name="core_notifications_reply_failed">Couldn’t send your reply. Open the chat to try again.</string>
     <string name="core_notifications_summary_title">Waivera</string>
