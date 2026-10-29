@@ -9,6 +9,27 @@ object LongFixtures {
     /** Exactly 60 characters. */
     const val NAME_60: String = "Maria-Fernanda Alejandra Castellanos-Whitaker de la Vega Rui"
 
+    /** One 40-character word with no break opportunity (wave 29). */
+    const val NAME_UNBROKEN_40: String = "Wolfeschlegelsteinhausenbergerdorffvoral"
+
+    /** Two long words (wave 29). */
+    const val NAME_TWO_LONG_WORDS: String = "Maximilianus Wolfeschlegelsteinhausenberg"
+
+    /** A one-character name (wave 29). */
+    const val NAME_ONE_CHAR: String = "Q"
+
+    /** An emoji-only name, outside the basic plane (wave 29). */
+    const val NAME_EMOJI: String = "\uD83C\uDF3B"
+
+    /** Every wave 29 name fixture, keyed for test names. */
+    val NAMES: Map<String, String> = linkedMapOf(
+        "n60" to NAME_60,
+        "n40" to NAME_UNBROKEN_40,
+        "two" to NAME_TWO_LONG_WORDS,
+        "n1" to NAME_ONE_CHAR,
+        "emoji" to NAME_EMOJI,
+    )
+
     const val CHANNEL_LONG: String = "north-region-overnight-care-coordination-and-weekend-scheduling-team"
 
     private val SENTENCES = listOf(

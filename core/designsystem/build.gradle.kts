@@ -18,4 +18,6 @@ dependencies {
     implementation(libs.kotlinx.coroutines.core)
 
     testImplementation(libs.kotlinx.coroutines.test)
+    // The shared long-name fixtures (LongFixtures), so layout tests use the same names as features.
+    testImplementation(projects.core.testing)
 }
