@@ -43,7 +43,6 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.waivera.waivera.core.data.model.Message
 import com.waivera.waivera.core.data.model.SendState
@@ -53,6 +52,7 @@ import com.waivera.waivera.core.designsystem.component.WaiveraButton
 import com.waivera.waivera.core.designsystem.component.WaiveraExpandVisibility
 import com.waivera.waivera.core.designsystem.component.WaiveraIconButton
 import com.waivera.waivera.core.designsystem.component.WaiveraLogoTile
+import com.waivera.waivera.core.designsystem.component.WaiveraOneLineName
 import com.waivera.waivera.core.designsystem.component.WaiveraPopVisibility
 import com.waivera.waivera.core.designsystem.component.WaiveraPressable
 import com.waivera.waivera.core.designsystem.component.WaiveraStatusBadge
@@ -225,12 +225,10 @@ private fun AuthorLine(name: String, isBot: Boolean) {
         horizontalArrangement = Arrangement.spacedBy(WaiveraSpacing.ExtraSmall),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text(
+        WaiveraOneLineName(
             text = name,
             style = MaterialTheme.typography.labelSmall,
             color = if (isBot) colors.accent else colors.text,
-            maxLines = 2,
-            overflow = TextOverflow.Ellipsis,
             modifier = Modifier.weight(1f, fill = false),
         )
         if (isBot) WaiveraStatusBadge(text = stringResource(R.string.feature_chat_automated), tone = BadgeTone.Accent)

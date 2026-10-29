@@ -29,6 +29,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.painter.BitmapPainter
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.CustomAccessibilityAction
@@ -48,13 +49,13 @@ import com.waivera.waivera.core.designsystem.component.WaiveraBusyIndicator
 import com.waivera.waivera.core.designsystem.component.WaiveraCountBadge
 import com.waivera.waivera.core.designsystem.component.WaiveraIconTile
 import com.waivera.waivera.core.designsystem.component.WaiveraLogoTile
+import com.waivera.waivera.core.designsystem.component.WaiveraOneLineName
 import com.waivera.waivera.core.designsystem.component.WaiveraPressable
 import com.waivera.waivera.core.designsystem.component.WaiveraTileTone
 import com.waivera.waivera.core.designsystem.component.pressFeedback
 import com.waivera.waivera.core.designsystem.component.rememberPressFeedback
 import com.waivera.waivera.core.designsystem.icon.WaiveraIcons
 import com.waivera.waivera.core.designsystem.preview.WaiveraPreviews
-import com.waivera.waivera.core.designsystem.text.withBreaksAfterHyphens
 import com.waivera.waivera.core.designsystem.theme.PressDepth
 import com.waivera.waivera.core.designsystem.theme.WaiveraShapes
 import com.waivera.waivera.core.designsystem.theme.WaiveraSizes
@@ -171,15 +172,15 @@ private fun RowBody(row: ChatRowUi, avatar: ImageBitmap?, onJoinCall: () -> Unit
                 horizontalArrangement = Arrangement.spacedBy(WaiveraSpacing.ExtraSmall),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                // Long hyphenated channel names wrap after a hyphen, never mid-word (UI4-02).
-                Text(
-                    text = row.title.withBreaksAfterHyphens(),
+                // A chat's name is one line: it shrinks a little, then ends in "…" (v7, item 3).
+                WaiveraOneLineName(
+                    text = row.title,
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = if (row.isUnread) FontWeight.ExtraBold else FontWeight.SemiBold,
                     color = colors.text,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.weight(1f),
+                    modifier = Modifier
+                        .weight(1f)
+                        .testTag(CHAT_ROW_NAME_TAG),
                 )
                 if (row.isReadOnly) {
                     Icon(
@@ -444,3 +445,6 @@ private fun ConversationRowPreview() {
         }
     }
 }
+
+/** Test tag for a chat list row's name. */
+internal const val CHAT_ROW_NAME_TAG = "chat_row_name"

@@ -306,6 +306,7 @@ fun ConversationScreenContent(
         Column(Modifier.fillMaxSize()) {
             WaiveraTopBar(
                 title = title,
+                titleIsName = true,
                 // The connection banner is the one connection signal; the header names the group.
                 subtitle = state.memberCount?.let { pluralStringResource(R.plurals.feature_chat_members, it, it) },
                 onBack = actions.onBack,

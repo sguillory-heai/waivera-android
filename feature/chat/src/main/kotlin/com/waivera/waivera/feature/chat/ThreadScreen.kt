@@ -314,6 +314,7 @@ fun ThreadScreenContent(
                 // One line under the one-word title keeps the header at two lines at 200%; a long
                 // channel name ends in "…" and is still read whole.
                 subtitleMaxLines = THREAD_SUBTITLE_LINES,
+                subtitleIsName = true,
                 onBack = actions.onBack,
             )
             Column(

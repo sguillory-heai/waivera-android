@@ -5,6 +5,7 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.Hyphens
 import androidx.compose.ui.text.style.LineBreak
+import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
 
@@ -145,6 +146,16 @@ internal val WaiveraMaterialTypography = Typography(
         hyphens = WaiveraHyphens,
     ),
 )
+
+/**
+ * How a one-line name fits (v7, item 3): it may shrink to [MIN_FONT_SCALE] of its style's size, in
+ * [Step] steps, before it ends in "…". About 15% smaller is the most the owner accepts before a
+ * name stops reading as the same title as its neighbours.
+ */
+object WaiveraNameFit {
+    const val MIN_FONT_SCALE: Float = 0.85f
+    val Step: TextUnit = 0.25.sp
+}
 
 /**
  * Styles with no Material 3 slot: the hero's numbers and headings, kickers, chips and badges.

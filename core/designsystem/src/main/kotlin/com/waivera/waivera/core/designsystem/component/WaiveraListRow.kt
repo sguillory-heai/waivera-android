@@ -53,7 +53,9 @@ import com.waivera.waivera.core.designsystem.theme.isLargeFontScale
  * press scale and read as one element to TalkBack. [detail] is one more line for an email
  * address or handle, shown whole as a [WaiveraAddressText]: it can't break at a dot mid-address
  * (UI3-14), and it isn't cut either (UI6-02). A [nameHeadline] is a person's name: one line, two
- * at large font, ending in "…" and never broken mid-word ([WaiveraNameText], wave 29 N5).
+ * at large font, ending in "…" and never broken mid-word ([WaiveraNameText], wave 29 N5). A
+ * [oneLineName] is a name in chat: one line at every font scale, shrinking a little before its
+ * "…" ([WaiveraOneLineName], v7 item 3).
  */
 @Composable
 fun WaiveraListRow(
@@ -69,6 +71,7 @@ fun WaiveraListRow(
     trailing: (@Composable RowScope.() -> Unit)? = null,
     detail: String? = null,
     nameHeadline: Boolean = false,
+    oneLineName: Boolean = false,
 ) {
     val body: @Composable () -> Unit = {
         Row(
@@ -95,6 +98,7 @@ fun WaiveraListRow(
                 modifier = Modifier.weight(1f),
                 detail = detail,
                 nameTitle = nameHeadline,
+                oneLineName = oneLineName,
             )
             if (trailing != null) trailing()
             if (showChevron) {
@@ -193,6 +197,7 @@ private fun RowText(
     modifier: Modifier = Modifier,
     detail: String? = null,
     nameTitle: Boolean = false,
+    oneLineName: Boolean = false,
 ) {
     val colors = WaiveraTheme.colors
     val subtitleColor = if (enabled) {
@@ -204,7 +209,14 @@ private fun RowText(
     }
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(WaiveraSpacing.XxSmall)) {
         // Hyphenated names wrap after a hyphen, never mid-word, in every row (UI5-05).
-        if (nameTitle) {
+        if (oneLineName) {
+            WaiveraOneLineName(
+                text = title,
+                style = MaterialTheme.typography.titleSmall,
+                color = if (enabled) colors.text else colors.textSecondary,
+                modifier = Modifier.testTag(LIST_ROW_NAME_TAG),
+            )
+        } else if (nameTitle) {
             WaiveraNameText(
                 text = title,
                 maxLines = if (isLargeFontScale()) NAME_LINES_LARGE_FONT else 1,

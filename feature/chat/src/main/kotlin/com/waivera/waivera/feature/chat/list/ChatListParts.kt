@@ -196,6 +196,7 @@ fun RowActionsContent(
     Column(modifier = modifier.fillMaxWidth()) {
         WaiveraListRow(
             headline = row.title,
+            oneLineName = true,
             leading = { LeadingTile(row.leading, avatar) },
             modifier = Modifier.semantics { heading() },
         )

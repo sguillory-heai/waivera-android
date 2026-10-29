@@ -25,8 +25,9 @@ import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
 /**
- * Who reacted, with the long-name fixtures on the small phone's width (wave 29 N5): each name is
- * one line at 100% and two at 200%, with an ellipsis and no mid-word break.
+ * Who reacted, with the long-name fixtures on the small phone's width: each name is one line at
+ * 100% and at 200%, shrinking a little and then ending in an ellipsis (v7 item 3, replacing the
+ * wave 29 two-line cap at large font for chat names).
  */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
@@ -82,7 +83,7 @@ class ReactionDetailsNameLayoutTest {
     fun oneLineAtDefaultSize() = assertRows(fontScale = 1f, maxLines = 1)
 
     @Test
-    fun twoLinesAtLargeFont() = assertRows(fontScale = 2f, maxLines = 2)
+    fun oneLineAtLargeFont() = assertRows(fontScale = 2f, maxLines = 1)
 
     private companion object {
         const val THUMBS_UP = "👍"

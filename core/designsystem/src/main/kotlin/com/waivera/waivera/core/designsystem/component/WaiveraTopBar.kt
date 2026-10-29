@@ -21,6 +21,7 @@ import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.union
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -31,6 +32,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.painter.Painter
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
@@ -111,6 +114,14 @@ fun rememberTopBarAccount(onClick: () -> Unit, fallbackName: String = "", painte
  * [subtitleMaxLines] caps the subtitle, for a screen whose subtitle is a long name under a
  * one-word title (a thread "In" its channel), so the header stays at two lines.
  *
+ * [titleIsName] and [subtitleIsName] say the line is a person's or a chat's name: it stays on one
+ * line at any font scale, shrinking a little and then ending in "…" ([WaiveraOneLineName], v7
+ * item 3); TalkBack still reads it whole.
+ *
+ * [onSubtitleClick] makes the subtitle a button (the group's "N members" opens its members):
+ * it presses like other controls, takes at least a 48dp target, and TalkBack announces it as a
+ * button with [subtitleClickLabel] as its action.
+ *
  * [heroContent] goes on the plum under the bar row, for a screen that has a hero of its own (a
  * person's avatar and name). It uses the hero inks ([WaiveraHero.colors]).
  */
@@ -127,6 +138,10 @@ fun WaiveraTopBar(
     account: TopBarAccount? = null,
     sheetColor: Color = WaiveraTheme.colors.background,
     heroContent: (@Composable ColumnScope.() -> Unit)? = null,
+    titleIsName: Boolean = false,
+    subtitleIsName: Boolean = false,
+    onSubtitleClick: (() -> Unit)? = null,
+    subtitleClickLabel: String? = null,
 ) {
     val hero = WaiveraHero.colors
     val lip = if (isLargeFontScale()) WaiveraHero.BarSheetLipCompact else tabSheetLip()
@@ -160,26 +175,44 @@ fun WaiveraTopBar(
                     Column(
                         modifier = Modifier
                             .weight(1f)
-                            .padding(vertical = WaiveraSpacing.Small),
+                            // A subtitle button brings its own 48dp target, which is its spacing.
+                            .padding(
+                                vertical = if (subtitle != null && onSubtitleClick != null) {
+                                    WaiveraSpacing.None
+                                } else {
+                                    WaiveraSpacing.Small
+                                },
+                            ),
                     ) {
-                        // Hyphenated names wrap after a hyphen, never mid-word (UI5-05).
-                        Text(
-                            text = title.withBreaksAfterHyphens(),
-                            style = MaterialTheme.typography.headlineSmall,
-                            color = hero.onHeader,
-                            maxLines = 2,
-                            overflow = TextOverflow.Ellipsis,
-                            modifier = Modifier.semantics { heading() },
-                        )
-                        if (subtitle != null) {
-                            // TalkBack reads the whole subtitle even when its line limit cuts it.
+                        if (titleIsName) {
+                            WaiveraOneLineName(
+                                text = title,
+                                style = MaterialTheme.typography.headlineSmall,
+                                color = hero.onHeader,
+                                modifier = Modifier
+                                    .testTag(TOP_BAR_TITLE_TAG)
+                                    .semantics { heading() },
+                            )
+                        } else {
+                            // Hyphenated names wrap after a hyphen, never mid-word (UI5-05).
                             Text(
-                                text = subtitle,
-                                style = MaterialTheme.typography.labelMedium,
-                                color = hero.onHeaderSecondary,
-                                maxLines = subtitleMaxLines,
+                                text = title.withBreaksAfterHyphens(),
+                                style = MaterialTheme.typography.headlineSmall,
+                                color = hero.onHeader,
+                                maxLines = 2,
                                 overflow = TextOverflow.Ellipsis,
-                                modifier = Modifier.semantics { contentDescription = subtitle },
+                                modifier = Modifier
+                                    .testTag(TOP_BAR_TITLE_TAG)
+                                    .semantics { heading() },
+                            )
+                        }
+                        if (subtitle != null) {
+                            TopBarSubtitle(
+                                subtitle = subtitle,
+                                maxLines = subtitleMaxLines,
+                                isName = subtitleIsName,
+                                onClick = onSubtitleClick,
+                                clickLabel = subtitleClickLabel,
                             )
                         }
                     }
@@ -199,6 +232,75 @@ fun WaiveraTopBar(
         )
     }
 }
+
+/**
+ * The line under the title. TalkBack reads the whole subtitle even when its line limit cuts it.
+ * A clickable subtitle is a button: the shared press feedback, a 48dp-tall target and an action
+ * label, so "3 members" announces as "3 members, button, double-tap to show members".
+ */
+@Composable
+private fun TopBarSubtitle(
+    subtitle: String,
+    maxLines: Int,
+    isName: Boolean,
+    onClick: (() -> Unit)?,
+    clickLabel: String?,
+) {
+    val hero = WaiveraHero.colors
+    val text: @Composable () -> Unit = {
+        if (isName) {
+            WaiveraOneLineName(
+                text = subtitle,
+                style = MaterialTheme.typography.labelMedium,
+                color = hero.onHeaderSecondary,
+                modifier = Modifier.testTag(TOP_BAR_SUBTITLE_TAG).semantics { contentDescription = subtitle },
+            )
+        } else {
+            Text(
+                text = subtitle,
+                style = MaterialTheme.typography.labelMedium,
+                color = hero.onHeaderSecondary,
+                maxLines = maxLines,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.testTag(TOP_BAR_SUBTITLE_TAG).semantics { contentDescription = subtitle },
+            )
+        }
+    }
+    if (onClick == null) {
+        text()
+    } else {
+        WaiveraPressable(
+            depth = PressDepth.Compact,
+            onClick = onClick,
+            onClickLabel = clickLabel,
+            role = Role.Button,
+            shape = WaiveraShapes.Chip,
+            modifier = Modifier
+                .heightIn(min = WaiveraSpacing.MinTouchTarget)
+                .testTag(TOP_BAR_SUBTITLE_BUTTON_TAG),
+        ) {
+            // The chevron says the line opens something, as a row's chevron does.
+            Row(
+                modifier = Modifier.heightIn(min = WaiveraSpacing.MinTouchTarget),
+                horizontalArrangement = Arrangement.spacedBy(WaiveraSpacing.XxSmall),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Box(Modifier.weight(1f, fill = false)) { text() }
+                Icon(
+                    painter = painterResource(WaiveraIcons.ChevronRight),
+                    contentDescription = null,
+                    tint = hero.onHeaderSecondary,
+                    modifier = Modifier.size(WaiveraSizes.IconSmall),
+                )
+            }
+        }
+    }
+}
+
+/** Test tags for the top bar's title, its subtitle and the subtitle's button when it has one. */
+const val TOP_BAR_TITLE_TAG: String = "top_bar_title"
+const val TOP_BAR_SUBTITLE_TAG: String = "top_bar_subtitle"
+const val TOP_BAR_SUBTITLE_BUTTON_TAG: String = "top_bar_subtitle_button"
 
 /** The bar's icon actions (white on the plum, each with its count) and the account avatar. */
 @Composable

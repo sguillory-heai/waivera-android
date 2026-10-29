@@ -35,6 +35,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.painter.BitmapPainter
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
@@ -43,7 +44,6 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.waivera.waivera.core.designsystem.component.SkeletonListRow
 import com.waivera.waivera.core.designsystem.component.WaiveraAvatar
@@ -55,6 +55,7 @@ import com.waivera.waivera.core.designsystem.component.WaiveraErrorState
 import com.waivera.waivera.core.designsystem.component.WaiveraExpandVisibility
 import com.waivera.waivera.core.designsystem.component.WaiveraIllustration
 import com.waivera.waivera.core.designsystem.component.WaiveraLoadSwap
+import com.waivera.waivera.core.designsystem.component.WaiveraOneLineName
 import com.waivera.waivera.core.designsystem.component.WaiveraPopVisibility
 import com.waivera.waivera.core.designsystem.component.WaiveraSwap
 import com.waivera.waivera.core.designsystem.component.WaiveraTextField
@@ -65,7 +66,6 @@ import com.waivera.waivera.core.designsystem.component.rememberSkeletonPulse
 import com.waivera.waivera.core.designsystem.component.rememberSkeletonVisible
 import com.waivera.waivera.core.designsystem.icon.WaiveraIcons
 import com.waivera.waivera.core.designsystem.preview.WaiveraPreviews
-import com.waivera.waivera.core.designsystem.text.withBreaksAfterHyphens
 import com.waivera.waivera.core.designsystem.theme.PressDepth
 import com.waivera.waivera.core.designsystem.theme.SwapAxis
 import com.waivera.waivera.core.designsystem.theme.WaiveraShapes
@@ -343,13 +343,13 @@ private fun PersonOption(person: PersonOptionUi, avatar: ImageBitmap?, onToggle:
             size = WaiveraSizes.AvatarMedium,
             contentDescription = null,
         )
-        Text(
-            text = person.name.withBreaksAfterHyphens(),
+        WaiveraOneLineName(
+            text = person.name,
             style = MaterialTheme.typography.titleSmall,
             color = colors.text,
-            maxLines = 2,
-            overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.weight(1f),
+            modifier = Modifier
+                .weight(1f)
+                .testTag(NEW_CHAT_PERSON_NAME_TAG),
         )
         // A picked box is the solid brand violet with a white check, as a checkbox is.
         Box(
@@ -372,6 +372,9 @@ private fun PersonOption(person: PersonOptionUi, avatar: ImageBitmap?, onToggle:
 }
 
 private const val SKELETON_ROWS = 5
+
+/** Test tag for a person's name in the new chat list. */
+internal const val NEW_CHAT_PERSON_NAME_TAG = "new_chat_person_name"
 
 internal object NewChatPreviewData {
     val state = NewChatUiState(
