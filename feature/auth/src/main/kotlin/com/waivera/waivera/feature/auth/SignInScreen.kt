@@ -44,6 +44,7 @@ import com.waivera.waivera.core.designsystem.component.WaiveraButtonSize
 import com.waivera.waivera.core.designsystem.component.WaiveraButtonVariant
 import com.waivera.waivera.core.designsystem.component.WaiveraTextField
 import com.waivera.waivera.core.designsystem.component.rejectShake
+import com.waivera.waivera.core.designsystem.component.rememberLatestNonNull
 import com.waivera.waivera.core.designsystem.component.rememberRejectShake
 import com.waivera.waivera.core.designsystem.feedback.rememberHaptics
 import com.waivera.waivera.core.designsystem.icon.WaiveraIcons
@@ -171,14 +172,15 @@ internal fun SignInContent(
                 .semantics { heading() },
         )
         // The error banner shakes with the fields it explains, so a rejection is one "no" rather
-        // than a shake on top of the banner pushing the form down (M2-09). The column keeps the
-        // sheet's spacing, so nothing moves at rest.
+        // than a shake on top of the banner pushing the form down (M2-09). Each banner carries
+        // the sheet's gap below it and opens with it, so the form moves down in one even push
+        // instead of dropping by the gap on the rejection's frame (M3-05). At rest the spacing
+        // is the same.
         val shake = rememberRejectShake(key = rejections)
         Column(
             modifier = Modifier
                 .rejectShake(shake)
                 .fillMaxWidth(),
-            verticalArrangement = Arrangement.spacedBy(WaiveraSpacing.Medium),
         ) {
             SignInBanners(
                 state = state,
@@ -217,13 +219,19 @@ private const val CONFIGURATION_BANNER = "configuration"
 private const val SIGNED_OUT_BANNER = "signedOut"
 private const val LINK_BANNER = "link"
 
+/** The sheet's gap between a banner and what follows it. */
+private val BANNER_GAP = WaiveraSpacing.Medium
+
 @Composable
 private fun SignInBanners(state: SignInUiState, onDismiss: () -> Unit, showConfigurationKeys: Boolean) {
-    AuthAnimatedVisibility(visible = state.missingConfiguration != null) {
+    // A dismissed banner keeps its text while it folds, so it shrinks instead of emptying at once.
+    val errorMessage = rememberLatestNonNull(state.errorMessage)
+    val resetSentTo = rememberLatestNonNull(state.resetSentTo)
+    AuthAnimatedVisibility(visible = state.missingConfiguration != null, gapBelow = BANNER_GAP) {
         ConfigurationBanner(missingKeys = state.missingConfiguration.orEmpty(), showKeys = showConfigurationKeys)
     }
-    AuthAnimatedVisibility(visible = state.errorMessage != null) {
-        state.errorMessage?.let { message ->
+    AuthAnimatedVisibility(visible = state.errorMessage != null, gapBelow = BANNER_GAP) {
+        errorMessage?.let { message ->
             WaiveraBanner(
                 title = stringResource(R.string.feature_auth_sign_in_failed_title),
                 message = stringResource(message),
@@ -232,7 +240,7 @@ private fun SignInBanners(state: SignInUiState, onDismiss: () -> Unit, showConfi
             )
         }
     }
-    AuthAnimatedVisibility(visible = state.signedOutNotice && state.errorMessage == null) {
+    AuthAnimatedVisibility(visible = state.signedOutNotice && state.errorMessage == null, gapBelow = BANNER_GAP) {
         WaiveraBanner(
             title = stringResource(R.string.feature_auth_signed_out_title),
             message = stringResource(R.string.feature_auth_signed_out_message),
@@ -240,8 +248,8 @@ private fun SignInBanners(state: SignInUiState, onDismiss: () -> Unit, showConfi
             onDismiss = onDismiss,
         )
     }
-    AuthAnimatedVisibility(visible = state.resetSentTo != null) {
-        state.resetSentTo?.let { email ->
+    AuthAnimatedVisibility(visible = state.resetSentTo != null, gapBelow = BANNER_GAP) {
+        resetSentTo?.let { email ->
             WaiveraBanner(
                 title = stringResource(R.string.feature_auth_reset_sent_title),
                 message = stringResource(R.string.feature_auth_reset_sent_message),
@@ -252,7 +260,7 @@ private fun SignInBanners(state: SignInUiState, onDismiss: () -> Unit, showConfi
             )
         }
     }
-    AuthAnimatedVisibility(visible = state.linkUnavailable) {
+    AuthAnimatedVisibility(visible = state.linkUnavailable, gapBelow = BANNER_GAP) {
         WaiveraBanner(
             title = stringResource(R.string.feature_auth_link_failed_title),
             message = stringResource(R.string.feature_auth_link_failed_message),

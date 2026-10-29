@@ -50,6 +50,8 @@ import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
 import com.waivera.waivera.core.designsystem.component.WaiveraBottomActionLayout
 import com.waivera.waivera.core.designsystem.component.WaiveraHeroLogo
 import com.waivera.waivera.core.designsystem.component.WaiveraHeroSection
@@ -65,7 +67,6 @@ import com.waivera.waivera.core.designsystem.theme.WaiveraSizes
 import com.waivera.waivera.core.designsystem.theme.WaiveraSpacing
 import com.waivera.waivera.core.designsystem.theme.WaiveraTheme
 import com.waivera.waivera.core.designsystem.theme.isLargeFontScale
-import com.waivera.waivera.core.designsystem.theme.swapEnterFade
 
 /**
  * Full-screen frame for the gate screens. It is the single insets owner: the default [insets]
@@ -236,17 +237,21 @@ internal fun AuthHeader(
 /**
  * Expands and fades banners in and out with the shared motion tokens (a fade when reduced). A
  * banner opens downward from its top, an even push of what is below, and its text fades in as
- * the space opens (M2-09).
+ * the space opens (M2-09). Nothing leaves where it arrives, so its fade starts at once, with no
+ * fade-through wait over an empty, growing slot (M3-05).
+ *
+ * [gapBelow] is the space to whatever follows, for a column that does not space its children:
+ * it opens and folds with the banner, so the form below never drops by the gap in one frame.
  */
 @Composable
-internal fun AuthAnimatedVisibility(visible: Boolean, content: @Composable () -> Unit) {
+internal fun AuthAnimatedVisibility(visible: Boolean, gapBelow: Dp = 0.dp, content: @Composable () -> Unit) {
     val motion = WaiveraTheme.motion
     AnimatedVisibility(
         visible = visible,
-        enter = expandVertically(motion.layout(), expandFrom = Alignment.Top) + fadeIn(motion.swapEnterFade()),
+        enter = expandVertically(motion.layout(), expandFrom = Alignment.Top) + fadeIn(motion.state()),
         exit = shrinkVertically(motion.layout()) + fadeOut(motion.state()),
     ) {
-        content()
+        Box(Modifier.padding(bottom = gapBelow)) { content() }
     }
 }
 

@@ -52,11 +52,14 @@ import com.waivera.waivera.core.designsystem.component.WaiveraButton
 import com.waivera.waivera.core.designsystem.component.WaiveraButtonSize
 import com.waivera.waivera.core.designsystem.component.WaiveraEmptyState
 import com.waivera.waivera.core.designsystem.component.WaiveraErrorState
+import com.waivera.waivera.core.designsystem.component.WaiveraExpandVisibility
 import com.waivera.waivera.core.designsystem.component.WaiveraIllustration
 import com.waivera.waivera.core.designsystem.component.WaiveraLoadSwap
 import com.waivera.waivera.core.designsystem.component.WaiveraPopVisibility
+import com.waivera.waivera.core.designsystem.component.WaiveraSwap
 import com.waivera.waivera.core.designsystem.component.WaiveraTextField
 import com.waivera.waivera.core.designsystem.component.pressFeedback
+import com.waivera.waivera.core.designsystem.component.rememberLatestNonNull
 import com.waivera.waivera.core.designsystem.component.rememberPressFeedback
 import com.waivera.waivera.core.designsystem.component.rememberSkeletonPulse
 import com.waivera.waivera.core.designsystem.component.rememberSkeletonVisible
@@ -64,6 +67,7 @@ import com.waivera.waivera.core.designsystem.icon.WaiveraIcons
 import com.waivera.waivera.core.designsystem.preview.WaiveraPreviews
 import com.waivera.waivera.core.designsystem.text.withBreaksAfterHyphens
 import com.waivera.waivera.core.designsystem.theme.PressDepth
+import com.waivera.waivera.core.designsystem.theme.SwapAxis
 import com.waivera.waivera.core.designsystem.theme.WaiveraShapes
 import com.waivera.waivera.core.designsystem.theme.WaiveraSizes
 import com.waivera.waivera.core.designsystem.theme.WaiveraSpacing
@@ -152,18 +156,19 @@ fun ColumnScope.NewChatSheetContent(
                 color = colors.textSecondary,
             )
         }
-        if (!loadFailed) SearchField(query = state.query, onQueryChange = onQueryChange)
-        if (state.selectedCount > 0) {
-            Text(
-                text = pluralStringResource(
-                    R.plurals.feature_chat_newchat_selected,
-                    state.selectedCount,
-                    state.selectedCount,
-                ),
-                style = MaterialTheme.typography.labelMedium,
-                color = colors.accent,
-                modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
-            )
+        if (!loadFailed) {
+            // The "N selected" line opens under the search field with its gap, so picking the
+            // first person moves the list down smoothly instead of jumping it under the finger
+            // (M3-05). It sits outside the column's spacing; at rest the gap is the same.
+            Column {
+                SearchField(query = state.query, onQueryChange = onQueryChange)
+                SelectedCountLine(
+                    count = state.selectedCount,
+                    modifier = Modifier.padding(top = WaiveraSpacing.MediumSmall),
+                )
+            }
+        } else if (state.selectedCount > 0) {
+            SelectedCount(count = state.selectedCount)
         }
         Box(modifier = Modifier.weight(1f, fill = false)) {
             // The people settle in over the skeleton instead of cutting (M1-16).
@@ -234,6 +239,34 @@ fun ColumnScope.NewChatSheetContent(
             )
         }
     }
+}
+
+/**
+ * "2 selected", grown in with its gap when the first person is picked and folded away when the
+ * last is cleared. The count swaps in place, rolling the way it moved, and the line keeps its
+ * last count while it folds.
+ */
+@Composable
+private fun SelectedCountLine(count: Int, modifier: Modifier = Modifier) {
+    val shown = rememberLatestNonNull(count.takeIf { it > 0 }) ?: count
+    WaiveraExpandVisibility(visible = count > 0) {
+        WaiveraSwap(
+            targetState = shown,
+            modifier = modifier,
+            direction = { from, to -> to.compareTo(from) },
+            axis = SwapAxis.Vertical,
+        ) { value -> SelectedCount(count = value) }
+    }
+}
+
+@Composable
+private fun SelectedCount(count: Int) {
+    Text(
+        text = pluralStringResource(R.plurals.feature_chat_newchat_selected, count, count),
+        style = MaterialTheme.typography.labelMedium,
+        color = WaiveraTheme.colors.accent,
+        modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
+    )
 }
 
 @Composable
