@@ -161,7 +161,12 @@ class SwapInterruptionTest {
         const val WATCHED_FRAMES = 20
         const val SETTLE_MILLIS = 1_000L
         const val MID_ARRIVAL_MILLIS = 120L
-        const val LATE_ARRIVAL_MILLIS = 250L
+
+        // Late in the arrival but before it finishes (drawn at about 0.98). From about 210 ms the
+        // side is latched as settled and leaves on its own exit, which aSettledSideFadesOutOnItsOwnExit
+        // covers, so 250 ms no longer re-targeted an arriving side.
+        const val LATE_ARRIVAL_MILLIS = 176L
+
         const val GONE_BY_MILLIS = 48L
         const val MAX_COMBINED_ALPHA = 1.05f
         const val MOSTLY_GONE = 0.1f
