@@ -103,7 +103,7 @@ import com.waivera.waivera.feature.chat.message.TimelineItemView
 import com.waivera.waivera.feature.chat.message.TypingSlot
 import com.waivera.waivera.feature.chat.message.rememberChatImageEnvironment
 import com.waivera.waivera.feature.chat.message.rememberSendErrorUi
-import com.waivera.waivera.feature.chat.message.typingLabel
+import com.waivera.waivera.feature.chat.message.typingLine
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filter
@@ -623,7 +623,7 @@ private fun ComposerArea(
             .background(WaiveraTheme.colors.background)
             .windowInsetsPadding(WindowInsets.ime.union(WindowInsets.navigationBars).only(WindowInsetsSides.Bottom)),
     ) {
-        TypingSlot(label = typingLabel(typingNames))
+        TypingSlot(line = typingLine(typingNames))
         val reason = state.readOnlyReason
         when {
             reason != null -> ReadOnlyNotice(reason = reason, isThread = false)

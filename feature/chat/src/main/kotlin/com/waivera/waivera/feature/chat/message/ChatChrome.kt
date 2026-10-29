@@ -36,9 +36,7 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.style.TextOverflow
@@ -329,31 +327,6 @@ private fun StagedImageCard(image: StagedImage, onRemove: () -> Unit) {
 
 private const val THUMBNAIL_PX = 200
 
-/** Always reserves its height so the composer never jumps when someone starts typing (03 §11). */
-@Composable
-fun TypingSlot(label: String?, modifier: Modifier = Modifier) {
-    Box(
-        modifier = modifier
-            .fillMaxWidth()
-            .heightIn(min = ChatDimens.TypingSlot)
-            .padding(horizontal = WaiveraSpacing.Gutter)
-            .semantics { liveRegion = LiveRegionMode.Polite },
-        contentAlignment = Alignment.CenterStart,
-    ) {
-        if (label != null) {
-            Text(text = label, style = MaterialTheme.typography.labelMedium, color = WaiveraTheme.colors.textSecondary)
-        }
-    }
-}
-
-@Composable
-fun typingLabel(names: List<String>): String? = when (names.size) {
-    0 -> null
-    1 -> stringResource(R.string.feature_chat_typing_one, names[0])
-    2 -> stringResource(R.string.feature_chat_typing_two, names[0], names[1])
-    else -> stringResource(R.string.feature_chat_typing_many)
-}
-
 /** "Not sent" with the mapped copy; [isReply] switches the noun as the thread screen does. */
 @Composable
 fun SendErrorBanner(kind: SendErrorKind, isReply: Boolean, onDismiss: () -> Unit, modifier: Modifier = Modifier) {
@@ -585,7 +558,7 @@ internal fun InlineSpinner(modifier: Modifier = Modifier) {
 private fun ComposerPreview() {
     WaiveraTheme {
         Column {
-            TypingSlot(label = "Priya is typing…")
+            TypingSlot(line = TypingLine(shown = "Priya is typing…", namesEnd = 5, spoken = "Priya Raman is typing…"))
             SendErrorBanner(kind = SendErrorKind.Offline, isReply = false, onDismiss = {})
             Composer(
                 draft = "On my way",

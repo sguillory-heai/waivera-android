@@ -131,8 +131,12 @@
 
     <!-- Typing -->
     <string name="feature_chat_typing_one">%1$s is typing…</string>
-    <string name="feature_chat_typing_two">%1$s and %2$s are typing…</string>
-    <string name="feature_chat_typing_many">Several people are typing…</string>
+    <string name="feature_chat_typing_several">%1$s are typing…</string>
+    <string name="feature_chat_typing_two_names">%1$s and %2$s</string>
+    <plurals name="feature_chat_typing_others">
+        <item quantity="one">%1$s and %2$d other</item>
+        <item quantity="other">%1$s and %2$d others</item>
+    </plurals>
 
     <!-- Send error banner, noun "message" -->
     <plurals name="feature_chat_members">
