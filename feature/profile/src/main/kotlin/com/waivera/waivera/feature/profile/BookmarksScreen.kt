@@ -164,48 +164,56 @@ internal fun BookmarksContent(
                 placeholder = stringResource(R.string.feature_profile_bookmarks_search),
                 clearDescription = stringResource(R.string.feature_profile_bookmarks_search_clear),
             )
-            // Nothing to narrow until something is saved; a chip still on stays visible to turn off.
-            // The row arrives with the first load, outside the load swap: it opens on the layout
-            // token, so the list below is pushed down as the skeleton fades instead of being shoved
-            // about 40dp in one frame (M2-08). Already showing on first composition, it is simply there.
-            WaiveraExpandVisibility(visible = state.totalCount > 0 || state.filter != BookmarkFilter.All) {
-                BookmarkFilterChips(selected = state.filter, onSelect = onFilterChange)
-            }
-            if (showsRefreshFailed(state.connection, state.error != null && state.phase == ListPhase.Content)) {
-                WaiveraBanner(
-                    message = stringResource(R.string.feature_profile_bookmarks_refresh_failed),
-                    tone = BannerTone.Warning,
-                    actionLabel = stringResource(R.string.feature_profile_try_again),
-                    onAction = onRefresh,
-                    actionIcon = WaiveraIcons.Refresh,
-                )
-            }
             WaiveraPullToRefreshBox(
                 isRefreshing = state.isRefreshing && state.phase != ListPhase.Loading,
                 onRefresh = onRefresh,
                 modifier = Modifier.weight(1f),
             ) {
-                // What loads settles in over the skeleton instead of cutting (M1-16).
+                // What loads settles in over the skeleton instead of cutting (M1-16). The filter
+                // row and the refresh banner belong to the loaded side, so loaded content fades
+                // in where it stays instead of landing and then drifting down 28dp as the row
+                // opens above it (M3-07, M2-08). Each side reads its own phase, so the leaving
+                // skeleton never opens a row of its own.
                 WaiveraLoadSwap(
                     loading = state.phase == ListPhase.Loading,
                     modifier = Modifier.fillMaxSize(),
                 ) { loading ->
-                    when {
-                        loading -> if (rememberDelayedSkeleton(loading = true)) BookmarksSkeleton()
-                        // The raw error is never shown here (spec 06 §B3); the copy is fixed.
-                        state.phase == ListPhase.Error -> WaiveraErrorState(
-                            title = stringResource(R.string.feature_profile_bookmarks_error_title),
-                            message = stringResource(R.string.feature_profile_bookmarks_error_message),
-                            onRetry = onRefresh,
-                            modifier = Modifier.padding(top = WaiveraSpacing.Large),
-                        )
-                        state.phase == ListPhase.Empty -> BookmarksEmpty(
-                            reason = state.emptyReason,
-                            filter = state.filter,
-                            onClearSearch = { onQueryChange("") },
-                            onShowAll = { onFilterChange(BookmarkFilter.All) },
-                        )
-                        else -> BookmarksList(state, onOpen, onRemove)
+                    Column(Modifier.fillMaxSize()) {
+                        // Nothing to narrow until something is saved; a chip still on stays visible
+                        // to turn off. Later changes (a first save, a filter down to zero) open
+                        // and fold it on the layout token.
+                        WaiveraExpandVisibility(visible = showsFilterChips(state, loading)) {
+                            BookmarkFilterChips(selected = state.filter, onSelect = onFilterChange)
+                        }
+                        val refreshFailed = state.error != null && state.phase == ListPhase.Content
+                        if (!loading && showsRefreshFailed(state.connection, refreshFailed)) {
+                            WaiveraBanner(
+                                message = stringResource(R.string.feature_profile_bookmarks_refresh_failed),
+                                tone = BannerTone.Warning,
+                                actionLabel = stringResource(R.string.feature_profile_try_again),
+                                onAction = onRefresh,
+                                actionIcon = WaiveraIcons.Refresh,
+                            )
+                        }
+                        Box(Modifier.weight(1f)) {
+                            when {
+                                loading -> if (rememberDelayedSkeleton(loading = true)) BookmarksSkeleton()
+                                // The raw error is never shown here (spec 06 §B3); the copy is fixed.
+                                state.phase == ListPhase.Error -> WaiveraErrorState(
+                                    title = stringResource(R.string.feature_profile_bookmarks_error_title),
+                                    message = stringResource(R.string.feature_profile_bookmarks_error_message),
+                                    onRetry = onRefresh,
+                                    modifier = Modifier.padding(top = WaiveraSpacing.Large),
+                                )
+                                state.phase == ListPhase.Empty -> BookmarksEmpty(
+                                    reason = state.emptyReason,
+                                    filter = state.filter,
+                                    onClearSearch = { onQueryChange("") },
+                                    onShowAll = { onFilterChange(BookmarkFilter.All) },
+                                )
+                                else -> BookmarksList(state, onOpen, onRemove)
+                            }
+                        }
                     }
                 }
             }
@@ -218,6 +226,13 @@ internal fun BookmarksContent(
         )
     }
 }
+
+/**
+ * Whether the filter row shows on the [loading] or loaded side. While loading nothing is saved
+ * yet, so only a chip still on shows, as before; the loaded side shows it once anything is saved.
+ */
+private fun showsFilterChips(state: BookmarksUiState, loading: Boolean): Boolean =
+    state.filter != BookmarkFilter.All || (!loading && state.totalCount > 0)
 
 /** Single choice: All, Messages or Threads. Scrolls sideways at 200% instead of wrapping a label. */
 @Composable
