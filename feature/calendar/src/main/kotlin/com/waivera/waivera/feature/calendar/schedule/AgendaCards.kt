@@ -56,6 +56,7 @@ import com.waivera.waivera.core.designsystem.theme.WaiveraShapes
 import com.waivera.waivera.core.designsystem.theme.WaiveraSizes
 import com.waivera.waivera.core.designsystem.theme.WaiveraSpacing
 import com.waivera.waivera.core.designsystem.theme.WaiveraTheme
+import com.waivera.waivera.core.designsystem.theme.isLargeFontScale
 import com.waivera.waivera.feature.calendar.R
 import com.waivera.waivera.feature.calendar.model.AgendaItem
 import com.waivera.waivera.feature.calendar.model.ScheduleClock
@@ -189,32 +190,53 @@ private fun MilestoneCard(
             contentPadding = PaddingValues(WaiveraSpacing.Medium),
             verticalArrangement = Arrangement.spacedBy(WaiveraSpacing.MediumSmall),
         ) {
-            Row(
-                // The sentence alone: the card can sit on any day, so no "today" wording here.
-                modifier = Modifier.clearAndSetSemantics { contentDescription = sentence },
-                horizontalArrangement = Arrangement.spacedBy(WaiveraSpacing.MediumSmall),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
+            val avatar: @Composable () -> Unit = {
                 WaiveraAvatar(
                     name = name,
                     imageModel = AvatarModel.of(milestone.userId),
                     size = WaiveraSizes.AvatarMedium,
                     contentDescription = null,
                 )
-                // The name keeps to two lines, wrapping only at a space or hyphen (wave 29 N3).
+            }
+            // The name keeps to two lines, wrapping only at a space or hyphen (wave 29 N3).
+            val text: @Composable (Modifier) -> Unit = { textModifier ->
                 WaiveraNameText(
                     text = sentence,
                     name = CelebrationCopy.nameIn(sentence, name),
                     maxLines = CELEBRATION_NAME_MAX_LINES,
                     style = MaterialTheme.typography.titleSmall,
                     color = WaiveraTheme.colors.text,
-                    modifier = Modifier
-                        .weight(1f)
-                        .testTag(MILESTONE_SENTENCE_TAG)
-                        // Clear of the corner tile, which reaches 20dp past the card's padding.
-                        .padding(end = if (narrow) WaiveraSpacing.MediumLarge else WaiveraSpacing.None),
+                    modifier = textModifier.testTag(MILESTONE_SENTENCE_TAG),
                 )
-                if (!narrow) WaiveraEmojiTile(emoji = emoji)
+            }
+            // The sentence alone: the card can sit on any day, so no "today" wording here.
+            val sentenceOnly = Modifier.clearAndSetSemantics { contentDescription = sentence }
+            if (narrow && isLargeFontScale()) {
+                // Beside the avatar, a narrow card leaves large text too little width to keep
+                // "anniversary" whole, so the avatar goes above and the sentence takes the full
+                // width. The sentence starts below the avatar, clear of the corner tile.
+                Column(
+                    modifier = sentenceOnly,
+                    verticalArrangement = Arrangement.spacedBy(WaiveraSpacing.MediumSmall),
+                ) {
+                    avatar()
+                    text(Modifier.fillMaxWidth())
+                }
+            } else {
+                Row(
+                    modifier = sentenceOnly,
+                    horizontalArrangement = Arrangement.spacedBy(WaiveraSpacing.MediumSmall),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    avatar()
+                    text(
+                        Modifier
+                            .weight(1f)
+                            // Clear of the corner tile, which reaches 20dp past the card's padding.
+                            .padding(end = if (narrow) WaiveraSpacing.MediumLarge else WaiveraSpacing.None),
+                    )
+                    if (!narrow) WaiveraEmojiTile(emoji = emoji)
+                }
             }
             if (showWishes) {
                 val wishesLabel = stringResource(R.string.feature_calendar_send_wishes_a11y, name)
