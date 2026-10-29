@@ -94,6 +94,8 @@ data class WaiveraColors(
     val multipleContainer: Color,
     val onMultipleContainer: Color,
     val scrim: Color,
+    /** Behind the long-press focus overlay: stronger than [scrim], so the chat behind stops reading. */
+    val focusScrim: Color,
     /** Resting skeleton bone; the static frame when motion is reduced. At least 1.3:1 on background. */
     val skeletonBase: Color,
     /** The other end of the skeleton pulse. */
@@ -215,6 +217,7 @@ internal val LightWaiveraColors = WaiveraColors(
     multipleContainer = WaiveraPalette.AccentSoftLight,
     onMultipleContainer = WaiveraPalette.TonalInkLight,
     scrim = WaiveraPalette.Black.copy(alpha = WaiveraPalette.SCRIM_ALPHA),
+    focusScrim = WaiveraPalette.Black.copy(alpha = WaiveraPalette.FOCUS_SCRIM_ALPHA_LIGHT),
     skeletonBase = WaiveraPalette.SkeletonBaseLight,
     skeletonHighlight = WaiveraPalette.SkeletonHighlightLight,
     avatarFill = WaiveraPalette.AvatarFillLight,
@@ -296,6 +299,7 @@ internal val DarkWaiveraColors = WaiveraColors(
     multipleContainer = WaiveraPalette.AccentSoftDark,
     onMultipleContainer = WaiveraPalette.OnAccentSoftDark,
     scrim = WaiveraPalette.Black.copy(alpha = WaiveraPalette.SCRIM_ALPHA),
+    focusScrim = WaiveraPalette.Black.copy(alpha = WaiveraPalette.FOCUS_SCRIM_ALPHA_DARK),
     skeletonBase = WaiveraPalette.SkeletonBaseDark,
     skeletonHighlight = WaiveraPalette.SkeletonHighlightDark,
     avatarFill = WaiveraPalette.AvatarFillDark,

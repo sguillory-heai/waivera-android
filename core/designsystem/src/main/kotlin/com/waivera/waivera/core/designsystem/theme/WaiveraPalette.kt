@@ -251,6 +251,15 @@ internal object WaiveraPalette {
     val ButtonRaiseShadow = Color(0xFF140828)
 
     const val SCRIM_ALPHA = 0.36f
+
+    /**
+     * The long-press focus overlay's scrim (wave 30 O3). The sheets' [SCRIM_ALPHA] left the chat's
+     * text readable in the gaps beside the lifted bubble; at these the text behind drops to about
+     * 2.4:1 or less, so it no longer reads, while the page still shows through as dimmed rather
+     * than blacked out. Plum dark takes a little more, its light ink being the brighter of the two.
+     */
+    const val FOCUS_SCRIM_ALPHA_LIGHT = 0.70f
+    const val FOCUS_SCRIM_ALPHA_DARK = 0.76f
     const val WASH_ALPHA = 0.08f
     const val BORDER_ALPHA = 0.16f
     const val BORDER_STRONG_ALPHA = 0.21f

@@ -211,7 +211,7 @@ fun MessageFocusLayer(
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .drawBehind { drawRect(colors.scrim, alpha = appear.value * (1f - backProgress())) }
+                .drawBehind { drawRect(colors.focusScrim, alpha = appear.value * (1f - backProgress())) }
                 .pointerInput(Unit) { detectTapGestures { latest.onDismiss() } }
                 .semantics {
                     contentDescription = closeLabel
