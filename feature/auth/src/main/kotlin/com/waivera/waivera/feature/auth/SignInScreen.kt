@@ -49,6 +49,7 @@ import com.waivera.waivera.core.designsystem.component.rememberRejectShake
 import com.waivera.waivera.core.designsystem.feedback.rememberHaptics
 import com.waivera.waivera.core.designsystem.icon.WaiveraIcons
 import com.waivera.waivera.core.designsystem.preview.WaiveraPreviews
+import com.waivera.waivera.core.designsystem.theme.WaiveraMotionScheme
 import com.waivera.waivera.core.designsystem.theme.WaiveraSpacing
 import com.waivera.waivera.core.designsystem.theme.WaiveraTheme
 import com.waivera.waivera.core.designsystem.theme.isLargeFontScale
@@ -176,7 +177,11 @@ internal fun SignInContent(
         // the sheet's gap below it and opens with it, so the form moves down in one even push
         // instead of dropping by the gap on the rejection's frame (M3-05). At rest the spacing
         // is the same.
-        val shake = rememberRejectShake(key = rejections)
+        // The shake waits for the banner's push to be mostly done (M2-09); the vibration does not.
+        val shake = rememberRejectShake(
+            key = rejections,
+            startDelayMillis = WaiveraMotionScheme.REJECT_SHAKE_AFTER_PUSH_MILLIS,
+        )
         Column(
             modifier = Modifier
                 .rejectShake(shake)

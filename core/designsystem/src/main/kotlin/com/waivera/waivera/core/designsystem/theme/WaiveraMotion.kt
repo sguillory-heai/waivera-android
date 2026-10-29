@@ -307,6 +307,12 @@ class WaiveraMotionScheme internal constructor(val reduced: Boolean) {
 
         /** The whole [rejectShake], from the first move to rest. */
         const val REJECT_SHAKE_MILLIS = 300
+
+        /**
+         * How long a rejection's shake waits while the error banner opens above the form (M2-09):
+         * about half the layout spring's push, so the push and the shake read one after the other.
+         */
+        const val REJECT_SHAKE_AFTER_PUSH_MILLIS = 100L
         private const val SHAKE_FIRST_MILLIS = 40
         private const val SHAKE_SECOND_MILLIS = 110
         private const val SHAKE_THIRD_MILLIS = 180

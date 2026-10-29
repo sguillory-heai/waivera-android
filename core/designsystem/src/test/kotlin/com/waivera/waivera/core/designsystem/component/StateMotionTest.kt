@@ -161,14 +161,17 @@ class StateMotionTest {
         assertEquals(1f, scale.value, 0f)
     }
 
-    private fun showShake(motion: WaiveraMotionScheme): Pair<State<Float>, (Int) -> Unit> {
+    private fun showShake(
+        motion: WaiveraMotionScheme,
+        startDelayMillis: Long = 0L,
+    ): Pair<State<Float>, (Int) -> Unit> {
         var offset: State<Float>? = null
         var setKey: ((Int) -> Unit)? = null
         compose.setContent {
             WaiveraTheme(darkTheme = false, motion = motion, hapticsEnabled = false) {
                 var key by remember { mutableIntStateOf(0) }
                 setKey = { key = it }
-                offset = rememberRejectShake(key = key)
+                offset = rememberRejectShake(key = key, startDelayMillis = startDelayMillis)
             }
         }
         compose.waitForIdle()
@@ -193,6 +196,27 @@ class StateMotionTest {
         assertEquals("the shake comes to rest", 0f, offset.value, 0.001f)
         compose.mainClock.advanceTimeBy(SETTLE_MILLIS)
         assertEquals("it runs once, not on a loop", 0f, offset.value, 0f)
+    }
+
+    /** M2-09: on sign-in the shake waits for the error banner's push, then runs whole. */
+    @Test
+    fun aDelayedShakeHoldsStillUntilItsDelayThenRuns() {
+        compose.mainClock.autoAdvance = false
+        val delayMillis = WaiveraMotionScheme.REJECT_SHAKE_AFTER_PUSH_MILLIS
+        val (offset, setKey) = showShake(WaiveraMotionScheme.Standard, startDelayMillis = delayMillis)
+        compose.runOnUiThread { changeKey(setKey) }
+        repeat((delayMillis / FRAME_MILLIS).toInt() - 1) {
+            compose.mainClock.advanceTimeBy(FRAME_MILLIS)
+            assertEquals("the shake started before its delay", 0f, offset.value, 0f)
+        }
+        var widest = 0f
+        repeat((WaiveraMotionScheme.REJECT_SHAKE_MILLIS / FRAME_MILLIS).toInt() + 2) {
+            compose.mainClock.advanceTimeBy(FRAME_MILLIS)
+            widest = maxOf(widest, abs(offset.value))
+        }
+        assertTrue("the delayed shake never ran: $widest", widest > 0.5f)
+        compose.mainClock.advanceTimeBy(SETTLE_MILLIS)
+        assertEquals("the delayed shake comes to rest", 0f, offset.value, 0f)
     }
 
     @Test

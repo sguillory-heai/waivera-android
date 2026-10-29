@@ -36,6 +36,7 @@ import com.waivera.waivera.core.designsystem.theme.loadTransition
 import com.waivera.waivera.core.designsystem.theme.swapEnterFade
 import com.waivera.waivera.core.designsystem.theme.swapExitFade
 import com.waivera.waivera.core.designsystem.theme.swapTransition
+import kotlinx.coroutines.delay
 
 /**
  * A pop each time [key] changes after the first composition: the scale jumps to [from] and
@@ -75,17 +76,24 @@ private class LastKey(var value: Any?)
  * the shared [rejectShake][WaiveraMotionScheme.rejectShake] keyframes once, about 300 ms, and
  * comes to rest at 0. Bump [key] once per rejection. Under reduced motion ("Remove animations")
  * nothing moves and the error state alone answers. Draw it with [rejectShake].
+ *
+ * [startDelayMillis] holds the shake back, for a form that is pushed down by an opening banner
+ * at the same moment (M2-09): the push is mostly done before the side-to-side starts, so the two
+ * never add up to a diagonal. Only the shake waits; the vibration and the banner do not.
  */
 @Composable
-fun rememberRejectShake(key: Int): State<Float> {
+fun rememberRejectShake(key: Int, startDelayMillis: Long = 0L): State<Float> {
     val motion = WaiveraTheme.motion
     val offset = remember { Animatable(0f) }
     val last = remember { LastKey(key) }
+    val wait by rememberUpdatedState(startDelayMillis)
     LaunchedEffect(key) {
         if (last.value == key) return@LaunchedEffect
         last.value = key
         offset.snapTo(0f)
-        if (!motion.reduced) offset.animateTo(0f, motion.rejectShake)
+        if (motion.reduced) return@LaunchedEffect
+        if (wait > 0L) delay(wait)
+        offset.animateTo(0f, motion.rejectShake)
     }
     return offset.asState()
 }
