@@ -125,7 +125,7 @@ internal class SignInActions(
  * The sign-in screen: the brand header with the real logo, then the curved sheet with a short
  * welcome, any message, the two fields, Sign in, Forgot password? and the legal links. No
  * tagline or reassurance copy: everything on it helps someone sign in. Each change of
- * [rejections] shakes the two fields once (not when animations are off).
+ * [rejections] shakes the fields and any message above them once (not when animations are off).
  */
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -170,18 +170,28 @@ internal fun SignInContent(
                 .then(GutterPadding)
                 .semantics { heading() },
         )
-        SignInBanners(
-            state = state,
-            onDismiss = actions.onDismissMessage,
-            showConfigurationKeys = showConfigurationKeys,
-        )
-        SignInForm(
-            state = state,
-            actions = actions,
-            onSubmit = submit,
-            onPasswordFocusChange = { passwordFocused = it },
-            rejections = rejections,
-        )
+        // The error banner shakes with the fields it explains, so a rejection is one "no" rather
+        // than a shake on top of the banner pushing the form down (M2-09). The column keeps the
+        // sheet's spacing, so nothing moves at rest.
+        val shake = rememberRejectShake(key = rejections)
+        Column(
+            modifier = Modifier
+                .rejectShake(shake)
+                .fillMaxWidth(),
+            verticalArrangement = Arrangement.spacedBy(WaiveraSpacing.Medium),
+        ) {
+            SignInBanners(
+                state = state,
+                onDismiss = actions.onDismissMessage,
+                showConfigurationKeys = showConfigurationKeys,
+            )
+            SignInForm(
+                state = state,
+                actions = actions,
+                onSubmit = submit,
+                onPasswordFocusChange = { passwordFocused = it },
+            )
+        }
         SignInButtons(
             state = state,
             onSubmit = submit,
@@ -263,13 +273,10 @@ private fun SignInForm(
     actions: SignInActions,
     onSubmit: () -> Unit,
     onPasswordFocusChange: (Boolean) -> Unit,
-    rejections: Int,
 ) {
     val focusManager = LocalFocusManager.current
-    val shake = rememberRejectShake(key = rejections)
     Column(
         modifier = Modifier
-            .rejectShake(shake)
             .fillMaxWidth()
             .then(GutterPadding)
             .padding(top = WaiveraSpacing.Small),

@@ -65,6 +65,7 @@ import com.waivera.waivera.core.designsystem.theme.WaiveraSizes
 import com.waivera.waivera.core.designsystem.theme.WaiveraSpacing
 import com.waivera.waivera.core.designsystem.theme.WaiveraTheme
 import com.waivera.waivera.core.designsystem.theme.isLargeFontScale
+import com.waivera.waivera.core.designsystem.theme.swapEnterFade
 
 /**
  * Full-screen frame for the gate screens. It is the single insets owner: the default [insets]
@@ -232,13 +233,17 @@ internal fun AuthHeader(
     }
 }
 
-/** Expands and fades banners in and out with the shared motion tokens (a fade when reduced). */
+/**
+ * Expands and fades banners in and out with the shared motion tokens (a fade when reduced). A
+ * banner opens downward from its top, an even push of what is below, and its text fades in as
+ * the space opens (M2-09).
+ */
 @Composable
 internal fun AuthAnimatedVisibility(visible: Boolean, content: @Composable () -> Unit) {
     val motion = WaiveraTheme.motion
     AnimatedVisibility(
         visible = visible,
-        enter = expandVertically(motion.layout()) + fadeIn(motion.state()),
+        enter = expandVertically(motion.layout(), expandFrom = Alignment.Top) + fadeIn(motion.swapEnterFade()),
         exit = shrinkVertically(motion.layout()) + fadeOut(motion.state()),
     ) {
         content()
