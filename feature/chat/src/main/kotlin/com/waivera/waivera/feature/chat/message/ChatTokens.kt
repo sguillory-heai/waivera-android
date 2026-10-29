@@ -71,6 +71,9 @@ internal object ChatDimens {
     /** The lifted bubble's tallest, as a share of the safe height (the options board's 42%). */
     const val FOCUS_BUBBLE_MAX_FRACTION = 0.42f
 
+    /** A clamped lifted bubble's fades cover about this many lines of body text (v7, item 2). */
+    const val FOCUS_FADE_LINES = 2
+
     /** How long Copy's popped check and "Copied" show before the overlay closes on its own. */
     const val FOCUS_COPIED_HOLD_MILLIS = WaiveraMotionScheme.SYNCED_BEAT_MILLIS
     val ReactionTabMinWidth: Dp = 62.dp

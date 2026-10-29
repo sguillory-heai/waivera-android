@@ -18,6 +18,7 @@ import androidx.compose.ui.test.click
 import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasScrollAction
+import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.performClick
@@ -156,7 +157,8 @@ class MessageFocusOverlayTest {
                 actions.forEach { a -> assertFalse("a reaction overlaps an action ($label)", r.overlaps(a)) }
             }
             assertPillIsEven(reactions, label)
-            compose.onAllNodes(hasScrollAction()).assertCountEquals(0)
+            // Nothing scrolls to reach a control: the only scroll is a clamped bubble's own (v7 item 2).
+            compose.onAllNodes(hasScrollAction() and !hasTestTag(FOCUS_BUBBLE_SCROLL_TAG)).assertCountEquals(0)
             assertBubbleOpensAtItsStart(text, actions + reactions, label)
             events.clear()
             Reactions.QUICK.forEach { compose.onNode(hasContentDescription(it) and hasClickAction()).performClick() }

@@ -4,12 +4,14 @@ import androidx.activity.compose.PredictiveBackHandler
 import androidx.annotation.DrawableRes
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FiniteAnimationSpec
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.snap
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
@@ -20,6 +22,8 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -37,7 +41,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.GraphicsLayerScope
@@ -342,6 +348,11 @@ private enum class FocusPart { Pill, Bubble, Menu }
 internal const val FOCUS_BUBBLE_TAG = "message_focus_bubble"
 internal const val FOCUS_PILL_TAG = "message_focus_pill"
 
+/** The lifted bubble's scrolling body and its top and bottom fades. */
+internal const val FOCUS_BUBBLE_SCROLL_TAG = "message_focus_bubble_scroll"
+internal const val FOCUS_FADE_TOP_TAG = "message_focus_fade_top"
+internal const val FOCUS_FADE_BOTTOM_TAG = "message_focus_fade_bottom"
+
 /**
  * How the overlay arrives (WaiveraMotion). With motion on, the bubble starts at the long press's
  * sink ([PressDepth.longPressScale]) where it was pressed and lifts to its place on the bouncy
@@ -381,8 +392,8 @@ internal fun focusEntrance(motion: WaiveraMotionScheme): FocusEntrance = if (mot
 
 /**
  * The pressed message, drawn as its bubble with the body only (no reactions, thread chip or
- * time). A long one is clamped to the height it is given with a fade at the bottom; nothing
- * scrolls inside it, and TalkBack still reads it whole.
+ * time). A long one is clamped to the height it is given and scrolls inside itself, with fades
+ * that say there is more ([ScrollingBubbleBody], v7 item 2). TalkBack reads it whole.
  */
 @Composable
 private fun LiftedBubble(model: MessageActionsModel, mine: Boolean, onLink: (String) -> Unit, modifier: Modifier) {
@@ -398,7 +409,7 @@ private fun LiftedBubble(model: MessageActionsModel, mine: Boolean, onLink: (Str
             .then(if (mine) Modifier else Modifier.border(WaiveraSpacing.Hairline, colors.border, shape))
             .clip(shape),
     ) {
-        ClampedWithFade(fade = fill) {
+        ScrollingBubbleBody(fade = fill) {
             Column(
                 modifier = Modifier
                     .defaultMinSize(minWidth = ChatDimens.BubbleMinWidth)
@@ -426,29 +437,103 @@ private fun LiftedBubble(model: MessageActionsModel, mine: Boolean, onLink: (Str
 }
 
 /**
- * [content] at its full height, top first, inside at most the height this is given. When it is
- * taller, the bottom [WaiveraSizes.FadeEdge] fades into [fade] (the bubble's own fill), the same
- * edge the app uses wherever more content runs on below a viewport.
+ * [content] top first, inside at most the height the bubble is given. A message taller than that
+ * is clamped and scrolls vertically inside the bubble (owner's pick, v7 item 2: a, b and c):
+ *
+ * - a fade over about the last two lines, in the bubble's own [fade] fill so it reads on my plum
+ *   bubble in dark as on a white one in light, says the message goes on;
+ * - it goes once the end is scrolled into view, and a matching fade at the top shows once the
+ *   start has scrolled away.
+ *
+ * The scroll is the standard nested-scroll-aware [verticalScroll], on only when the message is
+ * clamped, so a short message neither scrolls nor offers TalkBack a scroll action. A drag on the
+ * bubble is the bubble's: it never reaches the scrim behind, so scrolling never closes the
+ * overlay. The menu and the reactions are siblings, so they stay where they are. With animations
+ * removed the fades switch without fading.
  */
 @Composable
-private fun ClampedWithFade(fade: Color, content: @Composable () -> Unit) {
-    Layout(
-        content = {
-            Box { content() }
-            Box(Modifier.background(Brush.verticalGradient(listOf(fade.copy(alpha = 0f), fade))))
-        },
-    ) { measurables, constraints ->
-        val body = measurables[0].measure(constraints.copy(minHeight = 0, maxHeight = Constraints.Infinity))
-        val height = if (constraints.hasBoundedHeight) min(body.height, constraints.maxHeight) else body.height
-        val clamped = body.height > height
-        val fadeHeight = min(WaiveraSizes.FadeEdge.roundToPx(), height)
-        val edge = if (clamped) measurables[1].measure(Constraints.fixed(body.width, fadeHeight)) else null
-        layout(body.width, height) {
-            body.place(0, 0)
-            edge?.place(0, height - fadeHeight)
+private fun ScrollingBubbleBody(fade: Color, content: @Composable () -> Unit) {
+    val scroll = rememberScrollState()
+    val motion = WaiveraTheme.motion
+    val fadeSpec: FiniteAnimationSpec<Float> = remember(motion) { if (motion.reduced) snap() else motion.state() }
+    val topFade by animateFloatAsState(
+        targetValue = if (scroll.canScrollBackward) 1f else 0f,
+        animationSpec = fadeSpec,
+        label = "focusTopFade",
+    )
+    val bottomFade by animateFloatAsState(
+        targetValue = if (scroll.canScrollForward) 1f else 0f,
+        animationSpec = fadeSpec,
+        label = "focusBottomFade",
+    )
+    val lineHeight = MaterialTheme.typography.bodyMedium.lineHeight
+    val fadeHeight = with(LocalDensity.current) { (lineHeight * ChatDimens.FOCUS_FADE_LINES).toPx() }
+    Box {
+        Box(
+            modifier = Modifier
+                .testTag(FOCUS_BUBBLE_SCROLL_TAG)
+                .verticalScroll(scroll, enabled = scroll.maxValue > 0),
+        ) {
+            content()
+        }
+        if (topFade > 0f) {
+            BubbleFade(fade = fade, height = fadeHeight, alpha = { topFade }, atTop = true, tag = FOCUS_FADE_TOP_TAG)
+        }
+        if (bottomFade > 0f) {
+            BubbleFade(
+                fade = fade,
+                height = fadeHeight,
+                alpha = { bottomFade },
+                atTop = false,
+                tag = FOCUS_FADE_BOTTOM_TAG,
+            )
         }
     }
 }
+
+/**
+ * One fade over the bubble's top or bottom [height] pixels: the bubble's fill, solid at the edge
+ * and clear toward the text. It only draws (no pointer input), so drags pass to the scroll.
+ */
+@Composable
+private fun BoxScope.BubbleFade(fade: Color, height: Float, alpha: () -> Float, atTop: Boolean, tag: String) {
+    Box(
+        modifier = Modifier
+            .matchParentSize()
+            .testTag(tag)
+            .drawBehind {
+                val edge = min(height, size.height)
+                val top = if (atTop) 0f else size.height - edge
+                val clear = fade.copy(alpha = 0f)
+                val brush = if (atTop) {
+                    Brush.verticalGradient(
+                        0f to fade,
+                        FOCUS_FADE_SOLID_STOP to fade,
+                        1f to clear,
+                        startY = top,
+                        endY = edge,
+                    )
+                } else {
+                    Brush.verticalGradient(
+                        0f to clear,
+                        1f - FOCUS_FADE_SOLID_STOP to fade,
+                        1f to fade,
+                        startY = top,
+                        endY = top + edge,
+                    )
+                }
+                drawRect(
+                    brush = brush,
+                    topLeft = Offset(0f, top),
+                    size = Size(size.width, edge),
+                    alpha = alpha(),
+                )
+            },
+    )
+}
+
+/** The share of a fade, from its edge, that is the solid fill: the last line under it is mostly hidden. */
+private const val FOCUS_FADE_SOLID_STOP = 0.2f
 
 /** The six quick reactions in one pill. The emoji keep their size at any font scale (wave 28 B2). */
 @Composable
