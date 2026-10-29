@@ -420,6 +420,9 @@ private fun ThreadList(
     val stickPx = with(LocalDensity.current) { ChatDimens.StickToBottomThreshold.roundToPx() }
 
     HideKeyboardOnDrag(listState)
+    // A reaction from the focus overlay grows its row in one frame; the rows below follow it
+    // exactly instead of chasing it with the placement spring (wave 30 O4).
+    val holdsPlacement = rememberFocusCloseHold(state.sheet, entries)
 
     // Opening lands on the newest reply (04 §8) unless a highlight will scroll elsewhere.
     var openedAtEnd by rememberSaveable { mutableStateOf(false) }
@@ -455,7 +458,7 @@ private fun ThreadList(
         items(items = entries, key = { it.key }, contentType = { it::class }) { entry ->
             val itemModifier = Modifier.animateItem(
                 fadeInSpec = null,
-                placementSpec = motion.layout(),
+                placementSpec = if (holdsPlacement) null else motion.layout(),
                 fadeOutSpec = motion.state(),
             )
             when (entry) {

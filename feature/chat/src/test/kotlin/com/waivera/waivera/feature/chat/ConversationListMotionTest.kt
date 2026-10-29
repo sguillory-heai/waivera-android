@@ -5,12 +5,17 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.snapshots.Snapshot
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.hasAnyAncestor
+import androidx.compose.ui.test.hasTestTag
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import com.waivera.waivera.core.data.model.Message
+import com.waivera.waivera.core.data.model.Reaction
 import com.waivera.waivera.core.data.model.SendState
 import com.waivera.waivera.core.demo.DemoData
 import com.waivera.waivera.core.designsystem.theme.WaiveraMotionScheme
@@ -18,6 +23,8 @@ import com.waivera.waivera.core.designsystem.theme.WaiveraTheme
 import com.waivera.waivera.core.screenshottesting.ScreenshotSdk
 import com.waivera.waivera.feature.chat.conversation.ConversationContent
 import com.waivera.waivera.feature.chat.conversation.ConversationUiState
+import com.waivera.waivera.feature.chat.message.ChatActions
+import com.waivera.waivera.feature.chat.message.ChatSheet
 import com.waivera.waivera.feature.chat.message.ChatSheetCallbacks
 import com.waivera.waivera.feature.chat.message.MessageRowCallbacks
 import com.waivera.waivera.feature.chat.message.RowTime
@@ -238,6 +245,103 @@ class ConversationListMotionTest {
         assertEquals("only the send lands when no line opens", setOf(sameDay.last().key), onlySend)
     }
 
+    /**
+     * Wave 30 O4: a reaction from the focus overlay closes it and grows my bubble by the new chip.
+     * The "Today" line above it never draws over the bubble on any frame of the close, whether the
+     * reaction reaches the list with the close or a few frames after it.
+     */
+    @Test
+    fun aReactionWithTheCloseNeverPutsTheDayLineOverTheBubble() = reactAndWatchTheDayLine(lateFrames = 0)
+
+    @Test
+    fun aReactionJustAfterTheCloseNeverPutsTheDayLineOverTheBubble() = reactAndWatchTheDayLine(lateFrames = 2)
+
+    @Test
+    fun aSlowReactionNeverPutsTheDayLineOverTheBubble() = reactAndWatchTheDayLine(lateFrames = 12)
+
+    /** [text]'s bounds in the list, not in the overlay's lifted copy of the bubble. */
+    private fun inList(text: String): Rect = compose.onNode(
+        hasText(text) and hasAnyAncestor(hasTestTag(MESSAGE_LIST_TAG)),
+        useUnmergedTree = true,
+    ).fetchSemanticsNode().boundsInRoot
+
+    private fun reactAndWatchTheDayLine(lateFrames: Int) {
+        compose.mainClock.autoAdvance = false
+        val older = message(id = 1, text = OLDER, minutesAgo = DAY_MINUTES)
+        val mine = message(id = 2, text = REACTED, minutesAgo = 1, author = DemoData.ME)
+        val reacted = mine.copy(reactions = listOf(Reaction(DemoData.PRIYA, "❤️")))
+        val model = ChatActions.model(mine, DemoData.ME, canWrite = true, allowReply = true)
+        val open = state(listOf(older, mine)).copy(sheet = ChatSheet.Actions(model))
+        assertTrue(
+            "there is no day line above the bubble, so this does not cover O4",
+            open.items.any { it is TimelineItem.DaySeparator },
+        )
+        val update = show(open)
+        val before = inList(REACTED).top
+        if (lateFrames == 0) {
+            update(state(listOf(older, reacted)))
+        } else {
+            update(state(listOf(older, mine)))
+            compose.mainClock.advanceTimeBy(FRAME_MILLIS * lateFrames)
+            update(state(listOf(older, reacted)))
+        }
+        repeat(CLOSE_FRAMES) { frame ->
+            compose.mainClock.advanceTimeBy(FRAME_MILLIS)
+            val lineBottom = inList(TODAY).bottom
+            val bubbleTop = inList(REACTED).top
+            assertTrue(
+                "reaction $lateFrames frames after the close, frame $frame: \"$TODAY\" ($lineBottom) is over " +
+                    "the bubble ($bubbleTop)",
+                lineBottom <= bubbleTop + OVERLAP_TOLERANCE_PX,
+            )
+        }
+        assertTrue("the chip did not grow the bubble's row", before - inList(REACTED).top > MIN_CHIP_PX)
+    }
+
+    /** The overlay holds placement while open and as it closes, until its change has landed. */
+    @Test
+    fun theOverlayHoldsPlacementUntilItsChangeHasSettled() {
+        compose.mainClock.autoAdvance = false
+        val mine = message(id = 2, text = REACTED, minutesAgo = 1, author = DemoData.ME)
+        val model = ChatActions.model(mine, DemoData.ME, canWrite = true, allowReply = true)
+        val sheet = mutableStateOf<ChatSheet?>(null)
+        val items = mutableStateOf(state(listOf(mine)).items)
+        var held: Boolean? = null
+        compose.setContent {
+            WaiveraTheme(darkTheme = false, motion = WaiveraMotionScheme.Standard, hapticsEnabled = false) {
+                val rows = remember { MessageRowCallbacks.None }
+                held = rememberListMotion(items.value, rows, sheet.value).holdsPlacement
+            }
+        }
+        fun step(millis: Long = FRAME_MILLIS) = compose.mainClock.advanceTimeBy(millis)
+        fun set(block: () -> Unit) = compose.runOnUiThread {
+            block()
+            Snapshot.sendApplyNotifications()
+        }
+        step()
+        assertFalse("placement is held with no overlay", requireNotNull(held))
+        set { sheet.value = ChatSheet.Actions(model) }
+        step()
+        assertTrue("placement animates under the open overlay", requireNotNull(held))
+        set { sheet.value = null }
+        step()
+        assertTrue("placement animates in the frame the overlay closes", requireNotNull(held))
+        step(FRAME_MILLIS * 4)
+        set { items.value = state(listOf(mine.copy(reactions = listOf(Reaction(DemoData.ME, "👍"))))).items }
+        step()
+        assertTrue("placement animates as the reaction lands", requireNotNull(held))
+        step(LIST_SETTLE_MILLIS + FRAME_MILLIS)
+        assertFalse("placement stays held after the reaction settled", requireNotNull(held))
+        // A close that changes nothing (a scrim tap) ends its hold on its own.
+        set { sheet.value = ChatSheet.Actions(model) }
+        step()
+        set { sheet.value = null }
+        step()
+        assertTrue("a second close does not hold", requireNotNull(held))
+        step(FOCUS_CLOSE_WAIT_MILLIS + LIST_SETTLE_MILLIS + FRAME_MILLIS * 2)
+        assertFalse("a close with no change holds placement for good", requireNotNull(held))
+    }
+
     private fun lineShown(): Boolean =
         compose.onAllNodesWithText(TIME_LINE, useUnmergedTree = true).fetchSemanticsNodes().isNotEmpty()
 
@@ -259,5 +363,9 @@ class ConversationListMotionTest {
         const val OVERLAP_TOLERANCE_PX = 0.5f
         const val FULL_HISTORY_ROWS = 30L
         const val SENT_TEXT = "On my way over now"
+        const val REACTED = "On my way, 10 minutes out"
+        const val TODAY = "Today"
+        const val CLOSE_FRAMES = 30
+        const val MIN_CHIP_PX = 20f
     }
 }

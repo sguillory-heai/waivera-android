@@ -485,7 +485,7 @@ private fun MessageList(
     val showJump = scrolledAway && onJumpToLatest != null
 
     HideKeyboardOnDrag(listState)
-    val listMotion = rememberListMotion(newestFirst, actions.rows)
+    val listMotion = rememberListMotion(newestFirst, actions.rows, state.sheet)
     // A new newest row keeps the list pinned when the person was already at (or next to) it.
     val newest = newestFirst.firstOrNull()
     val newestKey = newest?.key
