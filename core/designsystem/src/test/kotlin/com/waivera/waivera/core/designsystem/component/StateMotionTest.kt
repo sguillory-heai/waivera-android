@@ -6,6 +6,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshots.Snapshot
 import androidx.compose.ui.test.junit4.createComposeRule
 import com.waivera.waivera.core.designsystem.theme.WaiveraMotionScheme
 import com.waivera.waivera.core.designsystem.theme.WaiveraTheme
@@ -92,7 +93,7 @@ class StateMotionTest {
         val (scale, setKey) = showPop(WaiveraMotionScheme.Standard)
         compose.mainClock.advanceTimeBy(FRAME_MILLIS)
         assertEquals("nothing pops on first show", 1f, scale.value, 0f)
-        compose.runOnUiThread { setKey(1) }
+        compose.runOnUiThread { changeKey(setKey) }
         compose.mainClock.advanceTimeBy(FRAME_MILLIS * 2)
         assertTrue("the change did not pop: ${scale.value}", scale.value < 1f)
         compose.mainClock.advanceTimeBy(SETTLE_MILLIS)
@@ -103,7 +104,7 @@ class StateMotionTest {
     fun reducedMotionNeverPops() {
         compose.mainClock.autoAdvance = false
         val (scale, setKey) = showPop(WaiveraMotionScheme.Reduced)
-        compose.runOnUiThread { setKey(1) }
+        compose.runOnUiThread { changeKey(setKey) }
         compose.mainClock.advanceTimeBy(FRAME_MILLIS * 2)
         assertEquals(1f, scale.value, 0f)
     }
@@ -128,7 +129,7 @@ class StateMotionTest {
         val (offset, setKey) = showShake(WaiveraMotionScheme.Standard)
         compose.mainClock.advanceTimeBy(FRAME_MILLIS)
         assertEquals("nothing shakes on first show", 0f, offset.value, 0f)
-        compose.runOnUiThread { setKey(1) }
+        compose.runOnUiThread { changeKey(setKey) }
         var widest = 0f
         repeat((WaiveraMotionScheme.REJECT_SHAKE_MILLIS / FRAME_MILLIS).toInt()) {
             compose.mainClock.advanceTimeBy(FRAME_MILLIS)
@@ -146,11 +147,21 @@ class StateMotionTest {
     fun reducedMotionNeverShakes() {
         compose.mainClock.autoAdvance = false
         val (offset, setKey) = showShake(WaiveraMotionScheme.Reduced)
-        compose.runOnUiThread { setKey(1) }
+        compose.runOnUiThread { changeKey(setKey) }
         repeat(FRAMES_TO_WATCH) {
             compose.mainClock.advanceTimeBy(FRAME_MILLIS)
             assertEquals(0f, offset.value, 0f)
         }
+    }
+
+    /**
+     * A state write outside composition reaches the recomposer through the global snapshot's
+     * apply notification, which Compose posts to the main looper. With the clock paused nothing
+     * idles that looper, so the key change would never recompose; send the notification here.
+     */
+    private fun changeKey(setKey: (Int) -> Unit) {
+        setKey(1)
+        Snapshot.sendApplyNotifications()
     }
 
     private companion object {
