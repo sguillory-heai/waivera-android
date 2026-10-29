@@ -1,5 +1,6 @@
 package com.waivera.waivera.feature.chat.message
 
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -29,7 +30,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.painter.BitmapPainter
@@ -68,6 +68,7 @@ import com.waivera.waivera.core.designsystem.theme.WaiveraTextStyles
 import com.waivera.waivera.core.designsystem.theme.WaiveraTheme
 import com.waivera.waivera.core.designsystem.theme.isLargeFontScale
 import com.waivera.waivera.core.designsystem.theme.onMyBubble
+import com.waivera.waivera.core.designsystem.theme.swapEnterFade
 import com.waivera.waivera.feature.chat.R
 import java.time.Instant
 import java.time.ZoneId
@@ -414,20 +415,35 @@ private fun Footer(
         delay(WaiveraMotionScheme.SENDING_LABEL_DELAY_MILLIS)
         value = true
     }
-    WaiveraSwap(targetState = footerPhase(message, sendingLabelDue), contentAlignment = Alignment.TopEnd) { phase ->
+    // "Sending…" fades into the quiet slot in place instead of swapping in. A swap side that is
+    // still arriving when the ack lands leaves on Compose's default spring, not the quick exit,
+    // so "Sent" would draw over a fading "Sending…" for about 100 ms.
+    WaiveraSwap(
+        targetState = footerPhase(message, sendingLabelDue),
+        contentAlignment = Alignment.TopEnd,
+        contentKey = { if (it == FooterPhase.Quiet) FooterPhase.Sending else it },
+    ) { phase ->
         when (phase) {
             FooterPhase.Settled -> SettledFooter(row, time, timestampVisible)
             // The slot keeps the line's height, so nothing jumps when the line arrives.
-            FooterPhase.Quiet -> PendingMeta(
-                message,
-                callbacks,
-                Modifier
-                    .alpha(0f)
-                    .clearAndSetSemantics {},
-            )
-            FooterPhase.Sending, FooterPhase.Failed -> PendingMeta(message, callbacks)
+            FooterPhase.Quiet, FooterPhase.Sending ->
+                SendingMeta(message, callbacks, shown = phase == FooterPhase.Sending)
+            FooterPhase.Failed -> PendingMeta(message, callbacks)
         }
     }
+}
+
+/** "Sending…" in the footer slot: invisible and silent until [shown], then faded in. */
+@Composable
+private fun SendingMeta(message: Message, callbacks: MessageRowCallbacks, shown: Boolean) {
+    val alpha = animateFloatAsState(if (shown) 1f else 0f, WaiveraTheme.motion.swapEnterFade(), label = "sending")
+    PendingMeta(
+        message,
+        callbacks,
+        Modifier
+            .graphicsLayer { this.alpha = alpha.value }
+            .then(if (shown) Modifier else Modifier.clearAndSetSemantics {}),
+    )
 }
 
 /** Where my own message's line is: going out but not saying so yet, going out, failed, or sent. */
