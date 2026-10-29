@@ -2,6 +2,9 @@ package com.waivera.waivera.core.designsystem.component
 
 import androidx.annotation.DrawableRes
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.indication
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -24,12 +27,14 @@ import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.platform.testTag
@@ -273,29 +278,50 @@ private fun TopBarSubtitle(
     if (onClick == null) {
         text()
     } else {
-        WaiveraPressable(
-            depth = PressDepth.Compact,
-            onClick = onClick,
-            onClickLabel = clickLabel,
-            role = Role.Button,
-            shape = WaiveraShapes.Chip,
+        val interactionSource = remember { MutableInteractionSource() }
+        val press = rememberPressFeedback(interactionSource, depth = PressDepth.Compact)
+        // The press is caught across the whole 48dp target, but shown only on the drawn line: the
+        // target overhangs the title, and a ripple or tint across it would paint over the title.
+        Box(
             modifier = Modifier
                 .overhangingTouchTarget(WaiveraSpacing.MinTouchTarget)
+                .pressTracking(press)
+                .clickable(
+                    interactionSource = interactionSource,
+                    indication = null,
+                    onClickLabel = clickLabel,
+                    role = Role.Button,
+                    onClick = onClick,
+                )
                 .testTag(TOP_BAR_SUBTITLE_BUTTON_TAG),
         ) {
-            // The chevron says the line opens something, as a row's chevron does.
-            Row(
-                modifier = Modifier.align(Alignment.CenterStart),
-                horizontalArrangement = Arrangement.spacedBy(WaiveraSpacing.XxSmall),
-                verticalAlignment = Alignment.CenterVertically,
+            Box(
+                modifier = Modifier
+                    .align(Alignment.CenterStart)
+                    .pressScale(press)
+                    .pressTint(press, WaiveraShapes.Chip),
             ) {
-                Box(Modifier.weight(1f, fill = false)) { text() }
-                Icon(
-                    painter = painterResource(WaiveraIcons.ChevronRight),
-                    contentDescription = null,
-                    tint = hero.onHeaderSecondary,
-                    modifier = Modifier.size(WaiveraSizes.IconSmall),
+                // The ripple goes under the line, clipped to the chip; the text itself is never
+                // clipped, so the line draws exactly as a plain subtitle does.
+                Box(
+                    Modifier
+                        .matchParentSize()
+                        .clip(WaiveraShapes.Chip)
+                        .indication(interactionSource, ripple()),
                 )
+                // The chevron says the line opens something, as a row's chevron does.
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(WaiveraSpacing.XxSmall),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Box(Modifier.weight(1f, fill = false)) { text() }
+                    Icon(
+                        painter = painterResource(WaiveraIcons.ChevronRight),
+                        contentDescription = null,
+                        tint = hero.onHeaderSecondary,
+                        modifier = Modifier.size(WaiveraSizes.IconSmall),
+                    )
+                }
             }
         }
     }

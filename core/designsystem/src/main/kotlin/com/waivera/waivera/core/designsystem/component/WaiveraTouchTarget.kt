@@ -9,7 +9,8 @@ import kotlin.math.roundToInt
 /**
  * Gives a control drawn smaller than a touch target (a header's "3 members" line) a touch target
  * at least [minHeight] tall without changing the layout around it. The control after this modifier
- * is measured at least [minHeight] tall, so its press, ripple and hit area span the whole target,
+ * is measured at least [minHeight] tall, so its hit area spans the whole target (draw the press on
+ * the content inside, or it paints over whatever the target overhangs),
  * while the parent is given only the content's own height and the target overhangs it evenly
  * above and below, so no gap opens next to it (v7 follow-up, item 3). Unlike
  * `minimumInteractiveComponentSize`, which grows the layout, nothing beside the control moves.

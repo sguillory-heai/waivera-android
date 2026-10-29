@@ -7,12 +7,14 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.asAndroidBitmap
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assert
+import androidx.compose.ui.test.captureToImage
 import androidx.compose.ui.test.click
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
@@ -108,7 +110,32 @@ class TopBarSubtitleTargetTest {
     @Test
     fun theMembersLineHasAFullTouchTargetAtLargeFont() = assertFullTouchTarget(fontScale = 2f)
 
+    /** The 48dp target overhangs the title, so the press shows on the drawn line alone. */
+    @Test
+    fun pressingTheMembersLineLeavesTheTitleUntouched() {
+        clickable = true
+        show(fontScale = 1f)
+        val bar = compose.onNodeWithTag(BAR)
+        val barTop = bar.fetchSemanticsNode().boundsInRoot.top
+        val line = compose.onNodeWithTag(TOP_BAR_SUBTITLE_TAG, useUnmergedTree = true).fetchSemanticsNode().boundsInRoot
+        val above = (line.top - barTop).toInt()
+        val lineRows = above until (line.bottom - barTop).toInt()
+        val rest = bar.captureToImage().asAndroidBitmap()
+
+        compose.onNodeWithTag(TOP_BAR_SUBTITLE_BUTTON_TAG).performTouchInput { down(center) }
+        compose.mainClock.advanceTimeBy(PRESS_MILLIS)
+        val held = bar.captureToImage().asAndroidBitmap()
+        compose.onNodeWithTag(TOP_BAR_SUBTITLE_BUTTON_TAG).performTouchInput { up() }
+
+        fun changed(rows: IntRange) = rows.count { y ->
+            (0 until rest.width).any { x -> rest.getPixel(x, y) != held.getPixel(x, y) }
+        }
+        assertTrue("the press drew nothing on the line", changed(lineRows) > 0)
+        assertEquals("the press painted over the title", 0, changed(0 until above))
+    }
+
     private companion object {
+        const val PRESS_MILLIS = 300L
         const val BAR = "bar"
     }
 }
