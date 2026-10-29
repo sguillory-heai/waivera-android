@@ -14,6 +14,7 @@ import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertHasClickAction
+import androidx.compose.ui.test.click
 import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasScrollAction
@@ -40,6 +41,7 @@ import org.robolectric.RuntimeEnvironment
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 import org.robolectric.shadows.ShadowDialog
+import org.robolectric.shadows.ShadowLooper
 
 /**
  * The long-press focus overlay (owner's pick, option B) in its real dialog window, on a 360x640dp
@@ -280,13 +282,17 @@ class MessageFocusOverlayTest {
     @Test
     fun copyShowsItsCheckThenCloses() {
         show()
-        compose.waitForIdle()
-        compose.mainClock.autoAdvance = false
         val message = FocusOverlayFixtures.mine(FocusOverlayFixtures.SHORT)
-        anchors.record(message.id, nearComposer())
+        // Open first, as a press does: the dialog window is only created while the clock runs.
+        open(message, nearComposer())
+        compose.mainClock.autoAdvance = false
         val model = ChatActions.model(message, DemoData.ME, canWrite = true, allowReply = true)
         sheet = ChatSheet.Actions(model.copy(copied = true))
         compose.mainClock.advanceTimeBy(ChatDimens.FOCUS_COPIED_HOLD_MILLIS / 2)
+        // With the clock paused, the dialog window only picks up the new frame once the main
+        // looper runs its posted work; this does not move the virtual clock past the hold.
+        ShadowLooper.idleMainLooper()
+        compose.mainClock.advanceTimeByFrame()
         compose.onNode(hasText("Copied") and hasClickAction()).assertHasClickAction()
         assertTrue("the overlay closed before \"Copied\" could be seen", events.isEmpty())
         compose.mainClock.advanceTimeBy(ChatDimens.FOCUS_COPIED_HOLD_MILLIS)
