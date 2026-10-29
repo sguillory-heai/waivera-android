@@ -48,6 +48,7 @@ import androidx.compose.ui.semantics.testTag
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.Constraints
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.waivera.waivera.core.designsystem.R
 import com.waivera.waivera.core.designsystem.icon.WaiveraIcons
@@ -453,6 +454,10 @@ sealed interface ConnectionBannerState {
  *
  * It is a status banner, so at large font it goes compact: one row of title, chevron and a
  * refresh icon, with the detail a tap away.
+ *
+ * [gapBelow] is the space between the banner and what follows, for a column that does not space
+ * its children itself: it opens and folds with the banner, so nothing below jumps by the gap
+ * when the banner comes or goes (M3-03).
  */
 @Composable
 fun ConnectionBanner(
@@ -460,20 +465,25 @@ fun ConnectionBanner(
     onRetry: () -> Unit,
     modifier: Modifier = Modifier,
     offlineMessage: String? = null,
+    gapBelow: Dp = 0.dp,
 ) {
     val motion = WaiveraTheme.motion
     val compact = isLargeFontScale()
+    val gap = Modifier.padding(bottom = gapBelow)
+    // While it folds away the banner keeps what it said, so it shrinks instead of emptying at once.
+    val shown = rememberLatestNonNull(state.takeIf { it != ConnectionBannerState.Connected })
     AnimatedVisibility(
         visible = state != ConnectionBannerState.Connected,
         modifier = modifier,
         enter = expandVertically(motion.layout()) + fadeIn(motion.state()),
         exit = shrinkVertically(motion.layout()) + fadeOut(motion.state()),
     ) {
-        when (state) {
-            ConnectionBannerState.Connected -> Unit
+        when (shown) {
+            null, ConnectionBannerState.Connected -> Unit
             ConnectionBannerState.Connecting -> WaiveraBanner(
                 message = stringResource(R.string.core_designsystem_connection_connecting),
                 tone = BannerTone.Info,
+                modifier = gap,
             )
             ConnectionBannerState.Reconnecting -> WaiveraBanner(
                 title = stringResource(R.string.core_designsystem_connection_reconnecting),
@@ -483,6 +493,7 @@ fun ConnectionBanner(
                 onAction = onRetry,
                 actionIcon = WaiveraIcons.Refresh,
                 compact = compact,
+                modifier = gap,
             )
             ConnectionBannerState.Offline -> WaiveraBanner(
                 title = stringResource(R.string.core_designsystem_connection_offline),
@@ -492,6 +503,7 @@ fun ConnectionBanner(
                 onAction = onRetry,
                 actionIcon = WaiveraIcons.Refresh,
                 compact = compact,
+                modifier = gap,
             )
         }
     }

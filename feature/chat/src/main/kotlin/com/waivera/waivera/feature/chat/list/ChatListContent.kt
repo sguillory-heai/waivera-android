@@ -37,11 +37,13 @@ import com.waivera.waivera.core.designsystem.component.TopBarAction
 import com.waivera.waivera.core.designsystem.component.WaiveraBanner
 import com.waivera.waivera.core.designsystem.component.WaiveraEmptyState
 import com.waivera.waivera.core.designsystem.component.WaiveraErrorState
+import com.waivera.waivera.core.designsystem.component.WaiveraExpandVisibility
 import com.waivera.waivera.core.designsystem.component.WaiveraIllustration
 import com.waivera.waivera.core.designsystem.component.WaiveraPullToRefreshBox
 import com.waivera.waivera.core.designsystem.component.WaiveraSegmentedControl
 import com.waivera.waivera.core.designsystem.component.WaiveraSnackbarHost
 import com.waivera.waivera.core.designsystem.component.WaiveraTopBar
+import com.waivera.waivera.core.designsystem.component.rememberLatestNonNull
 import com.waivera.waivera.core.designsystem.component.rememberSkeletonVisible
 import com.waivera.waivera.core.designsystem.component.rememberTopBarAccount
 import com.waivera.waivera.core.designsystem.icon.WaiveraIcons
@@ -242,18 +244,26 @@ private fun Header(state: ChatListUiState, actions: ChatListActions, connectingP
     val filters = ChatListFilter.entries
     val bannerState = connectionBannerState(state)
     // The top bar's sheet band already opens the page; the header adds only the gap to the card.
+    // The pill and the banners carry their own gap below them and grow and fold with it, so the
+    // search field and the list move smoothly when one comes or goes instead of jumping 32dp in
+    // one frame (M3-03). At rest the spacing is the same as a spacedBy column's.
     Column(
         modifier = Modifier
             .fillMaxWidth()
             .padding(bottom = WaiveraSpacing.MediumSmall),
-        verticalArrangement = Arrangement.spacedBy(WaiveraSpacing.MediumSmall),
     ) {
-        if (showsConnectingPill(state, bannerState)) {
-            ConnectionStatus(
-                connection = state.connection,
-                delayMillis = connectingPillDelayMillis,
-                modifier = Modifier.padding(horizontal = WaiveraSpacing.Gutter),
-            )
+        val pillDue = rememberConnectingPillDue(showsConnectingPill(state, bannerState), connectingPillDelayMillis)
+        // The pill keeps saying what it said while it folds away.
+        val pill = rememberLatestNonNull(state.connection.takeIf { pillDue })
+        WaiveraExpandVisibility(visible = pillDue) {
+            pill?.let { connection ->
+                ConnectionPill(
+                    connection = connection,
+                    modifier = Modifier
+                        .padding(horizontal = WaiveraSpacing.Gutter)
+                        .padding(bottom = WaiveraSpacing.MediumSmall),
+                )
+            }
         }
         ConnectionBanner(
             state = bannerState,
@@ -263,8 +273,12 @@ private fun Header(state: ChatListUiState, actions: ChatListActions, connectingP
             } else {
                 null
             },
+            gapBelow = WaiveraSpacing.MediumSmall,
         )
-        if (state.refreshErrorRes != null && bannerState == ConnectionBannerState.Connected) {
+        WaiveraExpandVisibility(
+            visible =
+            state.refreshErrorRes != null && bannerState == ConnectionBannerState.Connected,
+        ) {
             // A "showing saved data" status banner, like Schedule's: a title that says what
             // happened, and compact at large font with the detail a tap away (UI4-05, UI5-08).
             WaiveraBanner(
@@ -276,6 +290,7 @@ private fun Header(state: ChatListUiState, actions: ChatListActions, connectingP
                 onAction = actions.onRetryLoad,
                 actionIcon = WaiveraIcons.Refresh,
                 compact = isLargeFontScale(),
+                modifier = Modifier.padding(bottom = WaiveraSpacing.MediumSmall),
             )
         }
         Column(
@@ -299,17 +314,25 @@ internal fun showsConnectingPill(state: ChatListUiState, bannerState: Connection
         state.refreshErrorRes == null &&
         state.content !is ChatListContent.Error
 
-/** The "Connecting" pill, after it has waited out a normal start-up. */
+/**
+ * True once a start-up that [shows] the "Connecting" pill has taken longer than [delayMillis], and
+ * false again as soon as it no longer does, so the pill's visibility (not a bare `if`) carries
+ * the wait and the pill grows in and folds away (M3-03). A wait of 0 shows it from the first frame.
+ */
 @Composable
-private fun ConnectionStatus(connection: ConnectionUi, delayMillis: Long, modifier: Modifier = Modifier) {
-    val slowStart by produceState(initialValue = delayMillis <= 0, connection, delayMillis) {
+private fun rememberConnectingPillDue(shows: Boolean, delayMillis: Long): Boolean {
+    val due by produceState(initialValue = shows && delayMillis <= 0, shows, delayMillis) {
+        if (!shows) {
+            value = false
+            return@produceState
+        }
         if (delayMillis > 0) {
             value = false
             delay(delayMillis)
         }
         value = true
     }
-    if (slowStart) ConnectionPill(connection, modifier)
+    return due
 }
 
 /** The banner owns offline and reconnecting, except when the full-screen error already says so. */
