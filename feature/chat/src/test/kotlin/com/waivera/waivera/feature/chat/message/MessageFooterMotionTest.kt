@@ -5,7 +5,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshots.Snapshot
-import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import com.waivera.waivera.core.data.model.Message
@@ -79,8 +78,11 @@ class MessageFooterMotionTest {
         }
     }
 
-    private fun count(text: String): Int =
-        compose.onAllNodesWithText(text, substring = true, useUnmergedTree = true).fetchSemanticsNodes().size
+    /**
+     * What a person or TalkBack can find. The unmerged tree still lists the children of a node
+     * that clears its semantics, so the quiet slot's invisible line would count there.
+     */
+    private fun count(text: String): Int = compose.onAllNodesWithText(text, substring = true).fetchSemanticsNodes().size
 
     @Test
     fun aSlowSendSaysSendingOnlyAfterTheDelay() {
@@ -111,7 +113,7 @@ class MessageFooterMotionTest {
         val setState = show(SendState.SENDING)
         setState(SendState.FAILED)
         compose.mainClock.advanceTimeBy(FRAME_MILLIS * 2)
-        compose.onAllNodesWithText(NOT_SENT, useUnmergedTree = true).assertCountEquals(1)
+        assertEquals(1, count(NOT_SENT))
     }
 
     @Test
