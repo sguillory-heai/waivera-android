@@ -41,6 +41,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.platform.LocalResources
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
@@ -68,6 +69,7 @@ import com.waivera.waivera.core.designsystem.component.WaiveraTopBar
 import com.waivera.waivera.core.designsystem.component.showUndo
 import com.waivera.waivera.core.designsystem.icon.WaiveraIcons
 import com.waivera.waivera.core.designsystem.preview.WaiveraPreviews
+import com.waivera.waivera.core.designsystem.text.withBreaksAfterHyphens
 import com.waivera.waivera.core.designsystem.theme.PressDepth
 import com.waivera.waivera.core.designsystem.theme.SwapAxis
 import com.waivera.waivera.core.designsystem.theme.WaiveraElevation
@@ -76,6 +78,7 @@ import com.waivera.waivera.core.designsystem.theme.WaiveraShapes
 import com.waivera.waivera.core.designsystem.theme.WaiveraSpacing
 import com.waivera.waivera.core.designsystem.theme.WaiveraTheme
 import com.waivera.waivera.core.designsystem.theme.exit
+import com.waivera.waivera.core.designsystem.theme.isLargeFontScale
 import com.waivera.waivera.core.network.time.WaiveraTime
 import java.time.Instant
 import kotlinx.coroutines.delay
@@ -450,7 +453,16 @@ private fun BookmarkCard(row: BookmarkRow, onOpen: () -> Unit, onRemove: () -> U
                 modifier = Modifier.weight(1f),
                 verticalArrangement = Arrangement.spacedBy(WaiveraSpacing.ExtraSmall),
             ) {
-                Text(text = author, style = MaterialTheme.typography.titleSmall, color = colors.text)
+                // Capped like other message lists so a long name never takes over the card, and
+                // hyphenated names wrap after a hyphen, never mid-word (UI4-02).
+                Text(
+                    text = author.withBreaksAfterHyphens(),
+                    style = MaterialTheme.typography.titleSmall,
+                    color = colors.text,
+                    maxLines = if (isLargeFontScale()) AUTHOR_LINES_LARGE_FONT else AUTHOR_LINES,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.testTag(BOOKMARK_AUTHOR_TAG),
+                )
                 row.date?.let { date ->
                     Text(
                         text = bookmarkDateText(date),
@@ -550,6 +562,11 @@ private fun bookmarkDateText(date: BookmarkDate): String = when (date) {
 }
 
 private const val PREVIEW_LINES = 2
+internal const val AUTHOR_LINES = 1
+internal const val AUTHOR_LINES_LARGE_FONT = 2
+
+/** Test tag for a bookmark card's author name. */
+internal const val BOOKMARK_AUTHOR_TAG = "profile_bookmark_author"
 
 @WaiveraPreviews
 @Composable
