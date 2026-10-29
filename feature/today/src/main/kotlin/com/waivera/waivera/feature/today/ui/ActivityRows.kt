@@ -26,8 +26,10 @@ import com.waivera.waivera.core.designsystem.component.WaiveraCountBadge
 import com.waivera.waivera.core.designsystem.component.WaiveraFilterChip
 import com.waivera.waivera.core.designsystem.component.WaiveraIconButton
 import com.waivera.waivera.core.designsystem.component.WaiveraIconTile
+import com.waivera.waivera.core.designsystem.component.WaiveraPopVisibility
 import com.waivera.waivera.core.designsystem.component.WaiveraTileTone
 import com.waivera.waivera.core.designsystem.component.formatBadgeCount
+import com.waivera.waivera.core.designsystem.component.rememberLatestNonNull
 import com.waivera.waivera.core.designsystem.icon.WaiveraIcons
 import com.waivera.waivera.core.designsystem.preview.WaiveraPreviews
 import com.waivera.waivera.core.designsystem.theme.WaiveraSizes
@@ -50,7 +52,9 @@ internal fun ActivityHeader(section: ActivitySection, onMarkAllRead: () -> Unit,
         modifier = modifier,
         trailing = {
             UnreadCountBadge(count = section.unreadCount, lowerBound = section.unreadIsLowerBound)
-            if (section.unreadCount > 0 || section.isMarkingAllRead) {
+            // Once all is read the count and the action shrink away together (the success haptic
+            // fires with it), so the header itself shows the job is done.
+            WaiveraPopVisibility(visible = section.unreadCount > 0 || section.isMarkingAllRead) {
                 MarkAllReadAction(busy = section.isMarkingAllRead, onClick = onMarkAllRead)
             }
         },
@@ -93,15 +97,23 @@ private fun MarkAllReadAction(busy: Boolean, onClick: () -> Unit) {
 
 @Composable
 private fun UnreadCountBadge(count: Int, lowerBound: Boolean) {
-    val lowerBoundText = stringResource(R.string.feature_today_unread_lower_bound, count)
-    val text = (if (lowerBound) lowerBoundText else formatBadgeCount(count)) ?: return
-    val description = if (lowerBound) {
-        pluralStringResource(R.plurals.feature_today_unread_lower_bound_a11y, count, count)
-    } else {
-        pluralStringResource(R.plurals.feature_today_unread_a11y, count, count)
+    // Kept while it shrinks away, so the last count is what leaves.
+    val shown = rememberLatestNonNull(count.takeIf { it > 0 })
+    WaiveraPopVisibility(visible = count > 0) {
+        val last = shown ?: return@WaiveraPopVisibility
+        val text = if (lowerBound) {
+            stringResource(R.string.feature_today_unread_lower_bound, last)
+        } else {
+            formatBadgeCount(last).orEmpty()
+        }
+        val description = if (lowerBound) {
+            pluralStringResource(R.plurals.feature_today_unread_lower_bound_a11y, last, last)
+        } else {
+            pluralStringResource(R.plurals.feature_today_unread_a11y, last, last)
+        }
+        // The same solid count badge as every other unread count (UI2-16).
+        WaiveraCountBadge(text = text, contentDescription = description)
     }
-    // The same solid count badge as every other unread count (UI2-16).
-    WaiveraCountBadge(text = text, contentDescription = description)
 }
 
 /** Type chips (All, Mentions, Replies, Reactions) and the Unread toggle; they combine with AND. */
@@ -166,7 +178,7 @@ internal fun ActivityItemRow(row: ActivityRow, onClick: () -> Unit, modifier: Mo
         showChevron = true,
         modifier = modifier,
         leading = { ActivityTile(row) },
-        trailing = { if (!row.read) UnreadDot() },
+        trailing = { UnreadDot(visible = !row.read) },
     )
 }
 

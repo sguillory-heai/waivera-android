@@ -31,6 +31,8 @@ data class TodayLocalState(
     val isLoadingMore: Boolean = false,
     val loadMoreFailed: Boolean = false,
     val isMarkingAllRead: Boolean = false,
+    /** The person whose "Send wishes" chat is opening, so their button shows it is working. */
+    val openingWishesFor: String? = null,
     /** Set when the auto-loader stopped at its page cap while unread items may remain. */
     val autoPagingCapped: Boolean = false,
 )
@@ -93,6 +95,7 @@ object TodayAssembler {
             staleSince = staleLabel(primary.filterNotNull(), context),
             savedAt = primary.mapNotNull { it?.lastSyncedAt }.minOrNull()?.atZone(context.zone)?.toLocalTime(),
             isRefreshing = context.local.isRefreshing,
+            openingWishesFor = context.local.openingWishesFor,
             needsYou = needsYou,
             nextUp = nextUp,
             milestones = ScheduleRules.celebrations(sources.milestones.data, today)

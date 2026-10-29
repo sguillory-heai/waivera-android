@@ -74,6 +74,7 @@ internal fun CelebrationCard(
     onSendWishes: () -> Unit,
     modifier: Modifier = Modifier,
     burstSeed: Int = 0,
+    openingWishes: Boolean = false,
 ) {
     val colors = WaiveraTheme.colors
     val sentence = celebrationText(item)
@@ -140,6 +141,9 @@ internal fun CelebrationCard(
                     onClick = onSendWishes,
                     variant = WaiveraButtonVariant.TonalOnWash,
                     leadingIcon = WaiveraIcons.Chat,
+                    // The chat opens over the network: the button says so from the tap, at its size.
+                    loadingText = stringResource(R.string.feature_today_brand_send_wishes_opening)
+                        .takeIf { openingWishes },
                     maxLines = 1,
                     modifier = Modifier
                         .padding(

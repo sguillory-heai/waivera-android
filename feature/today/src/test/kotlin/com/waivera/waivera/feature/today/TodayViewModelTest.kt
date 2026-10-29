@@ -104,6 +104,32 @@ class TodayViewModelTest {
     }
 
     @Test
+    fun sendWishes_showsTheButtonBusyUntilTheChatOpens() = runTest(main.testDispatcher) {
+        val gate = CompletableDeferred<Unit>()
+        conversations.openGate = gate
+        val (viewModel, effects) = start()
+        viewModel.onAction(TodayAction.SendWishes("usr_jordan_lee"))
+        runCurrent()
+        assertEquals("usr_jordan_lee", viewModel.ui.openingWishesFor, "busy from the tap, before the network answers")
+        viewModel.onAction(TodayAction.SendWishes("usr_jordan_lee"))
+        runCurrent()
+        assertEquals(1, conversations.opened.size, "a second tap while opening is ignored")
+        gate.complete(Unit)
+        runCurrent()
+        assertNull(viewModel.ui.openingWishesFor)
+        assertEquals(TodayEffect.OpenConversation(OPENED_CONVERSATION), effects.last())
+    }
+
+    @Test
+    fun sendWishes_failureClearsTheBusyButton() = runTest(main.testDispatcher) {
+        conversations.openResult = Result.failure(WaiveraError.Network())
+        val (viewModel, _) = start()
+        viewModel.onAction(TodayAction.SendWishes("usr_jordan_lee"))
+        runCurrent()
+        assertNull(viewModel.ui.openingWishesFor)
+    }
+
+    @Test
     fun sendWishes_failureOffersRetry() = runTest(main.testDispatcher) {
         conversations.openResult = Result.failure(WaiveraError.Network())
         val (viewModel, effects) = start()

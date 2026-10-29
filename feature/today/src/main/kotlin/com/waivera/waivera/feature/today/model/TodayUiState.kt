@@ -29,6 +29,8 @@ data class TodayUiState(
     /** When the oldest data on screen was saved, in the employee's zone: the offline banner names it. */
     val savedAt: LocalTime? = null,
     val isRefreshing: Boolean = false,
+    /** The celebrated person whose "Send wishes" chat is opening; their button shows progress. */
+    val openingWishesFor: String? = null,
     val needsYou: NeedsYouSection = NeedsYouSection(),
     val nextUp: NextUpSection = NextUpSection(),
     val milestones: List<CelebrationItem> = emptyList(),

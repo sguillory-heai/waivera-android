@@ -18,6 +18,7 @@
     <string name="feature_today_brand_celebration_label_both">Birthday and work anniversary</string>
     <string name="feature_today_brand_send_wishes">Send wishes</string>
     <string name="feature_today_brand_send_wishes_a11y">Send wishes to %1$s</string>
+    <string name="feature_today_brand_send_wishes_opening">Opening chat…</string>
     <string name="feature_today_brand_wishes_failed">We couldn’t open the chat. Try again in a moment.</string>
     <!-- Hero summary card -->
     <string name="feature_today_brand_ring_caption">handled</string>

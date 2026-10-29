@@ -319,6 +319,7 @@ private fun LazyListScope.celebrationItems(state: TodayUiState, callbacks: Today
             onOpen = callbacks.onOpenSchedule,
             onSendWishes = { callbacks.onAction(TodayAction.SendWishes(item.userId)) },
             burstSeed = index,
+            openingWishes = state.openingWishesFor == item.userId,
             modifier = Modifier.animateTodayItem(this, WaiveraTheme.motion),
         )
     }

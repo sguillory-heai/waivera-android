@@ -32,6 +32,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import com.waivera.waivera.core.designsystem.component.WaiveraIconTile
+import com.waivera.waivera.core.designsystem.component.WaiveraPopVisibility
 import com.waivera.waivera.core.designsystem.component.WaiveraPressable
 import com.waivera.waivera.core.designsystem.component.WaiveraTileTone
 import com.waivera.waivera.core.designsystem.icon.WaiveraIcons
@@ -197,14 +198,19 @@ internal fun TodayTile(@DrawableRes icon: Int, tone: WaiveraTileTone, modifier: 
     )
 }
 
-/** The unread dot. Never the only signal: rows also say "Unread" to TalkBack and bold their text. */
+/**
+ * The unread dot. Never the only signal: rows also say "Unread" to TalkBack and bold their text.
+ * Opening the row (which marks it read) shrinks the dot away instead of dropping it.
+ */
 @Composable
-internal fun UnreadDot(modifier: Modifier = Modifier) {
-    Box(
-        modifier = modifier
-            .size(WaiveraSpacing.Small)
-            .background(WaiveraTheme.colors.unread, WaiveraShapes.Circle),
-    )
+internal fun UnreadDot(visible: Boolean, modifier: Modifier = Modifier) {
+    WaiveraPopVisibility(visible = visible, modifier = modifier) {
+        Box(
+            modifier = Modifier
+                .size(WaiveraSpacing.Small)
+                .background(WaiveraTheme.colors.unread, WaiveraShapes.Circle),
+        )
+    }
 }
 
 /**

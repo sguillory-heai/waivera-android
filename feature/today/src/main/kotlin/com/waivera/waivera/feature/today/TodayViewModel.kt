@@ -176,15 +176,21 @@ class TodayViewModel @Inject constructor(
     }
 
     /**
-     * Opens (or starts) the direct conversation with someone celebrating today. A second tap
-     * while the first is still opening is ignored, so one tap never opens two chats.
+     * Opens (or starts) the direct conversation with someone celebrating today. The button shows
+     * it is opening at once. A second tap while the first is still opening is ignored, so one tap
+     * never opens two chats.
      */
     private fun sendWishes(userId: String) {
         if (wishesJob?.isActive == true) return
+        local.update { it.copy(openingWishesFor = userId) }
         wishesJob = viewModelScope.launch {
-            conversations.openConversation(listOf(userId))
-                .onSuccess { effectChannel.send(TodayEffect.OpenConversation(it)) }
-                .onFailure { effectChannel.send(TodayEffect.WishesFailed(userId)) }
+            try {
+                conversations.openConversation(listOf(userId))
+                    .onSuccess { effectChannel.send(TodayEffect.OpenConversation(it)) }
+                    .onFailure { effectChannel.send(TodayEffect.WishesFailed(userId)) }
+            } finally {
+                local.update { it.copy(openingWishesFor = null) }
+            }
         }
     }
 

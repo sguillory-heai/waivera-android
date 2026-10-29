@@ -53,6 +53,9 @@ class FakeConversationRepository(initial: Synced<List<Conversation>> = Synced(em
     var openResult: Result<Long> = Result.success(OPENED_CONVERSATION)
     val opened = mutableListOf<List<String>>()
 
+    /** When set, opening a conversation waits for it, so a test can see the busy state. */
+    var openGate: CompletableDeferred<Unit>? = null
+
     override fun observeConversations(): Flow<Synced<List<Conversation>>> = state
 
     override fun observeConversation(conversationId: Long): Flow<Conversation?> =
@@ -69,6 +72,7 @@ class FakeConversationRepository(initial: Synced<List<Conversation>> = Synced(em
 
     override suspend fun openConversation(participantIds: List<String>): Result<Long> {
         opened += participantIds
+        openGate?.await()
         return openResult
     }
 
