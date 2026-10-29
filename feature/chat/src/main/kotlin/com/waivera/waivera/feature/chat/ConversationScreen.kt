@@ -124,6 +124,7 @@ fun ConversationScreen(
     onOpenPerson: (userId: String) -> Unit,
     onOpenEvent: (eventId: String) -> Unit,
     modifier: Modifier = Modifier,
+    onOpenMembers: () -> Unit = {},
 ) {
     val viewModel =
         hiltViewModel<ConversationViewModel, ConversationViewModel.Factory>(key = "conversation-$conversationId") {
@@ -202,7 +203,7 @@ fun ConversationScreen(
             onLink = viewModel::openLink,
         )
     }
-    val actions = remember(viewModel, onBack) {
+    val actions = remember(viewModel, onBack, onOpenMembers) {
         ConversationActions(
             onBack = onBack,
             onRetryLoad = viewModel::retryLoad,
@@ -216,6 +217,7 @@ fun ConversationScreen(
             onDismissSendError = viewModel::dismissSendError,
             rows = rowCallbacks,
             sheets = sheetCallbacks,
+            onOpenMembers = onOpenMembers,
         )
     }
 
@@ -256,6 +258,8 @@ class ConversationActions(
     val onDismissSendError: () -> Unit,
     val rows: MessageRowCallbacks,
     val sheets: ChatSheetCallbacks,
+    /** The group's "N members" line opens its members (v7, item 4). */
+    val onOpenMembers: () -> Unit = {},
 ) {
     companion object {
         val None =
@@ -309,6 +313,9 @@ fun ConversationScreenContent(
                 titleIsName = true,
                 // The connection banner is the one connection signal; the header names the group.
                 subtitle = state.memberCount?.let { pluralStringResource(R.plurals.feature_chat_members, it, it) },
+                // The count is a button: it opens the members, announced as "Show members".
+                onSubtitleClick = actions.onOpenMembers.takeIf { state.memberCount != null },
+                subtitleClickLabel = stringResource(R.string.feature_chat_members_show),
                 onBack = actions.onBack,
                 actions = callActions(state.call, actions.onOpenCall),
             )

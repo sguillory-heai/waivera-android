@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Group members (v7, item 4) -->
+    <string name="feature_chat_members_title">Members</string>
+    <string name="feature_chat_members_show">Show members</string>
+    <string name="feature_chat_members_you">You</string>
+    <string name="feature_chat_members_unknown">Unknown person</string>
+    <string name="feature_chat_members_open_person">Open profile</string>
+    <string name="feature_chat_members_message">Message %1$s</string>
+    <string name="feature_chat_members_opening">Opening chat with %1$s</string>
+    <string name="feature_chat_members_search_label">Search members</string>
+    <string name="feature_chat_members_search_placeholder">Name</string>
+    <string name="feature_chat_members_search_clear">Clear search</string>
+    <string name="feature_chat_members_loading">Loading members</string>
+    <string name="feature_chat_members_error_title">Members didn’t load</string>
+    <string name="feature_chat_members_empty_title">No one here yet</string>
+    <string name="feature_chat_members_empty_message">When people join this group, they show here.</string>
+    <string name="feature_chat_members_no_match_title">No one matches</string>
+    <string name="feature_chat_members_no_match_message">Try another name.</string>
+    <string name="feature_chat_members_offline_saved">You’re offline. These are the members saved on this phone.</string>
+</resources>

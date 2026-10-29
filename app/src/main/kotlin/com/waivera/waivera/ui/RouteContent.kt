@@ -7,6 +7,7 @@ import com.waivera.waivera.feature.calendar.ScheduleScreen
 import com.waivera.waivera.feature.chat.ChatListScreen
 import com.waivera.waivera.feature.chat.ConversationScreen
 import com.waivera.waivera.feature.chat.ThreadScreen
+import com.waivera.waivera.feature.chat.members.GroupMembersScreen
 import com.waivera.waivera.feature.profile.BookmarksScreen
 import com.waivera.waivera.feature.profile.PeopleScreen
 import com.waivera.waivera.feature.profile.PersonDetailScreen
@@ -22,6 +23,7 @@ import com.waivera.waivera.navigation.CalendarEventRoute
 import com.waivera.waivera.navigation.ChangePasswordRoute
 import com.waivera.waivera.navigation.ChatListRoute
 import com.waivera.waivera.navigation.ConversationRoute
+import com.waivera.waivera.navigation.GroupMembersRoute
 import com.waivera.waivera.navigation.NotificationSettingsRoute
 import com.waivera.waivera.navigation.PeopleRoute
 import com.waivera.waivera.navigation.PersonRoute
@@ -90,6 +92,14 @@ fun RouteContent(route: AppRoute, actions: RouteActions) {
             onOpenThread = actions.openThread(route.conversationId),
             onOpenPerson = actions.openPerson,
             onOpenEvent = actions.openEvent,
+            onOpenMembers = { actions.push(GroupMembersRoute(route.conversationId)) },
+        )
+        // Person pages and direct chats are other features' screens, so the routes stay here.
+        is GroupMembersRoute -> GroupMembersScreen(
+            conversationId = route.conversationId,
+            onBack = actions.back,
+            onOpenPerson = actions.openPerson,
+            onOpenConversation = actions.openConversation,
         )
         is ThreadRoute -> ThreadScreen(
             conversationId = route.conversationId,

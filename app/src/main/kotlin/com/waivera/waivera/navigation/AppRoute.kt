@@ -34,6 +34,13 @@ data class ConversationRoute(val conversationId: Long, val messageId: Long? = nu
 @Serializable
 data class ThreadRoute(val conversationId: Long, val rootMessageId: Long, val messageId: Long? = null) : AppRoute
 
+/**
+ * A group's members, opened from the "N members" line in its header. Not a deep link: no push or
+ * shared link targets a member list, and the conversation it belongs to is always under it.
+ */
+@Serializable
+data class GroupMembersRoute(val conversationId: Long) : AppRoute
+
 /** Calendar event ids are opaque strings. */
 @Serializable
 data class CalendarEventRoute(val eventId: String) : AppRoute
@@ -92,6 +99,7 @@ val AppRoute.contentKey: String
     get() = when (this) {
         is ConversationRoute -> "conversation:$conversationId"
         is ThreadRoute -> "thread:$conversationId:$rootMessageId"
+        is GroupMembersRoute -> "members:$conversationId"
         is CalendarEventRoute -> "event:$eventId"
         is PersonRoute -> "person:$userId"
         else -> toString()
