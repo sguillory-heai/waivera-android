@@ -97,6 +97,40 @@ class PushRegistrationTest {
     }
 
     @Test
+    fun aNewTokenNeverThrowsWhenTheServerRejectsItOrTheStoreFails() = testScope.runTest {
+        // sprout_api only accepted Expo tokens: an FCM token is a 400 { success: false }.
+        graph.server.json(
+            "POST /api/mobile-push/register",
+            Fixtures.text("rest-mobile-push-register-error.json"),
+            code = 400,
+        )
+        graph.session.mutableState.value =
+            SessionState.SignedIn(com.waivera.waivera.core.data.model.CurrentUser("usr_alex_rivera"))
+        push.onNewToken("fcm-token")
+        assertEquals(1, graph.server.requests.size)
+
+        val brokenStore = object : SecureStore {
+            override suspend fun get(key: String): String? = null
+
+            override suspend fun put(key: String, value: String?) =
+                throw java.security.GeneralSecurityException("keystore unavailable")
+
+            override suspend fun clear(keep: Set<String>) = Unit
+        }
+        val withBrokenStore = LivePushRegistrationRepository(
+            graph.pushApi,
+            brokenStore,
+            graph.session,
+            graph.settings,
+            { "test-token" },
+            {},
+            graph.clock,
+            kotlinx.coroutines.Dispatchers.IO,
+        )
+        withBrokenStore.onNewToken("fcm-token")
+    }
+
+    @Test
     fun newTokenIsStoredAndRegisteredOnlyWhenSignedIn() = testScope.runTest {
         graph.server.fixture("POST /api/mobile-push/register", "rest-mobile-push-register.json")
         graph.session.mutableState.value = SessionState.SignedOut()

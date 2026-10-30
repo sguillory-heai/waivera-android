@@ -16,6 +16,7 @@ import com.waivera.waivera.core.network.dto.MobilePushUnregisterRequest
 import com.waivera.waivera.core.network.error.WaiveraError
 import com.waivera.waivera.core.network.error.apiCall
 import com.waivera.waivera.core.network.error.catchingWaivera
+import com.waivera.waivera.core.network.log.WaiveraLog
 import java.security.MessageDigest
 import java.time.Clock
 import java.time.Duration
@@ -121,9 +122,17 @@ class LivePushRegistrationRepository @Inject constructor(
         retryLater
     }
 
+    /**
+     * Called from the shell's ViewModel and the FCM service. A failure here (keystore, disk, or the
+     * server rejecting the token) leaves push unregistered until the next try; it never throws.
+     */
     override suspend fun onNewToken(token: String) {
-        secureStore.put(SecureStore.FCM_TOKEN, token)
-        if (session.state.value.currentUserId != null) register(token, settings.settings.first().notifications)
+        catchingWaivera { secureStore.put(SecureStore.FCM_TOKEN, token) }
+            .onFailure { WaiveraLog.w(TAG, "Could not store the push token (${(it.cause ?: it).javaClass.name})") }
+        if (session.state.value.currentUserId != null) {
+            register(token, settings.settings.first().notifications)
+                .onFailure { WaiveraLog.w(TAG, "Push registration failed (${it.javaClass.simpleName})") }
+        }
     }
 
     suspend fun storedToken(): String? = secureStore.get(SecureStore.FCM_TOKEN)
@@ -140,6 +149,8 @@ class LivePushRegistrationRepository @Inject constructor(
     }
 
     companion object {
+        private const val TAG = "PushRegistration"
+
         /** Firebase ID tokens last an hour; stop a little before so a retry never sends a dead one. */
         private val TOKEN_LIFETIME: Duration = Duration.ofMinutes(55)
 

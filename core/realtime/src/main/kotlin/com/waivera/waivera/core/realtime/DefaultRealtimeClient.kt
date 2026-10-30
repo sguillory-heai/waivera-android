@@ -140,11 +140,16 @@ class DefaultRealtimeClient @Inject constructor(
                 attempt++
                 waitBeforeAttempt(attempt)
                 _state.value = ConnectionState.Connecting
-                val live = open(url, forceRefresh)
-                val connected = runCatching { live.transport.start() }
+                // Building the transport can throw too (the SignalR builder validates the URL);
+                // that is a failed attempt like a failed handshake, never a crash.
+                val live = runCatching { open(url, forceRefresh) }
                     .onFailure { if (it is CancellationException) throw it }
-                    .isSuccess
-                if (connected) {
+                    .getOrNull()
+                val connected = live != null &&
+                    runCatching { live.transport.start() }
+                        .onFailure { if (it is CancellationException) throw it }
+                        .isSuccess
+                if (live != null && connected) {
                     attempt = 0
                     forceRefresh = false
                     refreshedThisOutage = false
@@ -156,7 +161,7 @@ class DefaultRealtimeClient @Inject constructor(
                 } else {
                     forceRefresh = !refreshedThisOutage
                     refreshedThisOutage = true
-                    lock.withLock { if (current === live) current = null }
+                    lock.withLock { if (live != null && current === live) current = null }
                 }
             }
         } finally {

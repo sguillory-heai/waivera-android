@@ -119,7 +119,11 @@ class LiveSessionRepository @Inject constructor(
         val result = catchingWaivera { fetchUser() }
         result.onSuccess { (login, user) ->
             val cached = CachedSession(uid, user, login.requiresPasswordChange)
-            secureStore.put(SecureStore.CACHED_SESSION, WaiveraJson.encodeToString(CachedSession.serializer(), cached))
+            // The cached copy only serves offline starts; a keystore or disk failure writing it
+            // must not stop the person from getting in.
+            val encoded = WaiveraJson.encodeToString(CachedSession.serializer(), cached)
+            catchingWaivera { secureStore.put(SecureStore.CACHED_SESSION, encoded) }
+                .onFailure { WaiveraLog.w(TAG, "Could not cache the session (${(it.cause ?: it).javaClass.name})") }
             publish(user, login.requiresPasswordChange, offline = false)
         }.onFailure { failure ->
             val error = WaiveraError.from(failure)

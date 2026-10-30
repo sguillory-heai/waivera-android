@@ -74,6 +74,17 @@ class AuthTokenInterceptorTest {
     }
 
     @Test
+    fun anUnexpectedTokenFailureIsAnIoExceptionSoOkHttpCannotCrashTheApp() {
+        // OkHttp rethrows non-IO exceptions on its dispatcher thread, which kills the process.
+        val client = client { throw IllegalStateException("Firebase app was deleted") }
+
+        assertFailsWith<TokenUnavailableException> {
+            client.newCall(Request.Builder().url(server.url("/api/x")).build()).execute()
+        }
+        assertEquals(0, server.requestCount)
+    }
+
+    @Test
     fun failsLocallyWithoutANetworkRequestWhenSignedOut() {
         val client = client { null }
 

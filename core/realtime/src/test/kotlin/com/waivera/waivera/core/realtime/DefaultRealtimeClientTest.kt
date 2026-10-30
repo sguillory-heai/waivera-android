@@ -256,4 +256,29 @@ class DefaultRealtimeClientTest {
         assertEquals(1L, client.connectionEpoch.value)
         assertTrue(factory.latest.calls.none { it.method == Methods.JOIN_CONVERSATION })
     }
+
+    @Test
+    fun aTransportThatCannotBeBuiltIsAFailedAttemptNotACrash() = runTest {
+        var failuresLeft = 1
+        val flaky = HubTransportFactory { url, token, force, listener ->
+            check(failuresLeft-- <= 0) { "Could not build the hub connection" }
+            factory.create(url, token, force, listener)
+        }
+        val client = DefaultRealtimeClient(
+            config,
+            tokens,
+            flaky,
+            backgroundScope,
+            ReconnectPolicy(baseDelayMillis = 1_000, maxDelayMillis = 8_000, random = Random(1)),
+        )
+        client.start("usr_alex_rivera")
+        client.setForeground(true)
+        runCurrent()
+        assertIs<ConnectionState.Reconnecting>(client.state.value)
+
+        advanceTimeBy(8_001)
+        runCurrent()
+        assertEquals(ConnectionState.Connected, client.state.value)
+        assertEquals(1, factory.created.size)
+    }
 }

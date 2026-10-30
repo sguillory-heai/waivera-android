@@ -1,5 +1,6 @@
 package com.waivera.waivera.core.notifications.di
 
+import android.util.Log
 import com.waivera.waivera.core.notifications.PushMessageHandler
 import com.waivera.waivera.core.notifications.action.ChatNotificationActions
 import com.waivera.waivera.core.notifications.presentation.AndroidNotifier
@@ -15,6 +16,7 @@ import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
 import javax.inject.Qualifier
 import javax.inject.Singleton
+import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -37,7 +39,15 @@ internal abstract class NotificationsModule {
         @Provides
         @Singleton
         @NotificationsScope
-        fun scope(): CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+        fun scope(): CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Default + LoggingHandler)
+
+        /**
+         * A failed push or notification action must not kill the process (and whatever screen is
+         * open). Only the class is logged: messages can carry payload text.
+         */
+        private val LoggingHandler = CoroutineExceptionHandler { _, error ->
+            Log.w("NotificationsScope", "Notification job failed: ${error.javaClass.name}")
+        }
     }
 }
 

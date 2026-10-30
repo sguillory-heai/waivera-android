@@ -84,14 +84,14 @@ class SignalRHubTransport(
 
     override suspend fun invoke(method: String, arguments: List<Any?>): JsonElement = try {
         connection.invoke(GsonElement::class.java, method, *arguments.toWire()).await().toKotlinx()
-    } catch (e: RuntimeException) {
+    } catch (e: Exception) {
         throw HubInvocationException(e.message, e)
     }
 
     override suspend fun invokeUnit(method: String, arguments: List<Any?>) {
         try {
             connection.invoke(method, *arguments.toWire()).await()
-        } catch (e: RuntimeException) {
+        } catch (e: Exception) {
             throw HubInvocationException(e.message, e)
         }
     }
@@ -99,7 +99,7 @@ class SignalRHubTransport(
     override suspend fun send(method: String, arguments: List<Any?>) {
         try {
             connection.send(method, *arguments.toWire())
-        } catch (e: RuntimeException) {
+        } catch (e: Exception) {
             throw HubInvocationException(e.message, e)
         }
     }
@@ -113,6 +113,10 @@ class SignalRHubTransport(
         if (this == null || isJsonNull) JsonNull else WaiveraJson.parseToJsonElement(GSON.toJson(this))
 
     class Factory @Inject constructor() : HubTransportFactory {
+        init {
+            RxErrorGuard.install()
+        }
+
         override fun create(
             url: String,
             accessToken: (forceRefresh: Boolean) -> String?,

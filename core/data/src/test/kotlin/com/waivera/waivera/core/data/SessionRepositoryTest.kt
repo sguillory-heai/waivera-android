@@ -54,6 +54,7 @@ class SessionRepositoryTest {
         config: NetworkConfig = graph.server.config,
         dataCleaners: Set<SignOutCleaner> = emptySet(),
         authApi: AuthenticationApi = graph.authApi,
+        secureStore: SecureStore = graph.secureStore,
     ): LiveSessionRepository {
         val push = object : PushRegistrationRepository {
             override suspend fun register(
@@ -81,7 +82,7 @@ class SessionRepositoryTest {
         return LiveSessionRepository(
             gateway,
             authApi,
-            graph.secureStore,
+            secureStore,
             realtime,
             ender,
             config,
@@ -140,6 +141,23 @@ class SessionRepositoryTest {
             graph.server.requestsTo("/api/Authentication/login").single().headers["Authorization"] ==
                 "Bearer test-token",
         )
+    }
+
+    @Test
+    fun aKeystoreFailureCachingTheSessionStillSignsIn() = testScope.runTest {
+        serveLogin()
+        val failingCache = object : SecureStore by graph.secureStore {
+            override suspend fun put(key: String, value: String?) {
+                if (key == SecureStore.CACHED_SESSION) throw java.security.GeneralSecurityException("keystore")
+                graph.secureStore.put(key, value)
+            }
+        }
+        val repo = repository(FakeAuthGateway(), secureStore = failingCache)
+        runCurrent()
+
+        repo.signIn("alex.rivera@example.com", "correct-horse").getOrThrow()
+
+        assertIs<SessionState.SignedIn>(repo.state.value)
     }
 
     @Test

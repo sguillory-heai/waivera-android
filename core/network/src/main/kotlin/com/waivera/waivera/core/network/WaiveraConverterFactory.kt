@@ -23,8 +23,13 @@ class WaiveraConverterFactory(private val json: Json = WaiveraJson) : Converter.
         retrofit: Retrofit,
     ): Converter<ResponseBody, *> {
         val deserializer: KSerializer<Any> = json.serializersModule.serializer(type)
-        return Converter<ResponseBody, Any> { body ->
-            body.use { json.decodeNormalized(deserializer, it.string()) }
+        // A 200 with an empty body (some sprout_api actions return `Ok()`) is "no body" like a
+        // 204, so callers see null instead of a decoding failure.
+        return Converter<ResponseBody, Any?> { body ->
+            body.use {
+                val text = it.string()
+                if (text.isBlank()) null else json.decodeNormalized(deserializer, text)
+            }
         }
     }
 

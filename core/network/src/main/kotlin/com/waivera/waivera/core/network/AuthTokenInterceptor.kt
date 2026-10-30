@@ -1,6 +1,7 @@
 package com.waivera.waivera.core.network
 
 import com.waivera.waivera.core.network.error.NotSignedInException
+import com.waivera.waivera.core.network.error.TokenUnavailableException
 import java.io.IOException
 import okhttp3.HttpUrl
 import okhttp3.Interceptor
@@ -45,12 +46,12 @@ class AuthTokenInterceptor(
         val request = chain.request()
         if (!request.isForApi() || request.header(AUTHORIZATION) != null) return chain.proceed(request)
 
-        val token = tokens.idToken(forceRefresh = false) ?: throw NotSignedInException()
+        val token = token(forceRefresh = false) ?: throw NotSignedInException()
         val response = chain.proceed(request.withBearer(token))
         if (response.code != HTTP_UNAUTHORIZED || request.body?.isOneShot() == true) return response
 
         val refreshed = try {
-            tokens.idToken(forceRefresh = true)
+            token(forceRefresh = true)
         } catch (unavailable: IOException) {
             response.close()
             throw unavailable
@@ -59,6 +60,18 @@ class AuthTokenInterceptor(
         return chain.proceed(request.withBearer(refreshed)).also { retried ->
             if (retried.code == HTTP_UNAUTHORIZED) onRejected()
         }
+    }
+
+    /**
+     * OkHttp rethrows anything but an [IOException] on its dispatcher thread, which kills the
+     * app, so an unexpected failure from the token source (Firebase) becomes a token that is
+     * not available right now and reaches the caller as a typed network error.
+     */
+    @Suppress("TooGenericExceptionCaught")
+    private fun token(forceRefresh: Boolean): String? = try {
+        tokens.idToken(forceRefresh)
+    } catch (e: RuntimeException) {
+        throw TokenUnavailableException(e)
     }
 
     private fun Request.isForApi(): Boolean {
