@@ -40,7 +40,9 @@ fun interface PushUnregisterScheduler {
  * `api/mobile-push` registration (09-push.md, G-08). Native builds register FCM tokens
  * (`provider: "fcm"`), which needs the matching sprout_api change. Re-registering resets the
  * server's `lastRegisteredAt` and can drop an in-flight push, so a fingerprint of everything
- * sent is kept and identical registrations are skipped.
+ * sent is kept and identical registrations are skipped, except for the first one in each process:
+ * the server can deactivate a row on its own (an FCM "unregistered" answer, the same token signed
+ * in elsewhere), and a skip that outlived it would leave the device silent until sign-out.
  *
  * An unregister that fails for a transient reason (offline sign-out) is kept with the ID token
  * captured while signed in and retried in the background until that token expires (AF-05). The
@@ -58,6 +60,7 @@ class LivePushRegistrationRepository @Inject constructor(
     @IoDispatcher private val io: CoroutineDispatcher,
 ) : PushRegistrationRepository {
     private val lock = Mutex()
+    private var registeredThisProcess = false
 
     suspend fun deviceId(): String = lock.withLock { deviceIdLocked() }
 
@@ -71,10 +74,13 @@ class LivePushRegistrationRepository @Inject constructor(
             secureStore.put(SecureStore.PENDING_UNREGISTER, null)
             val request = request(deviceIdLocked(), token, preferences)
             val fingerprint = fingerprint(userId, request)
-            if (secureStore.get(SecureStore.PUSH_FINGERPRINT) == fingerprint) return@withLock
+            if (registeredThisProcess && secureStore.get(SecureStore.PUSH_FINGERPRINT) == fingerprint) {
+                return@withLock
+            }
             val result = apiCall { pushApi.register(request) }
             if (!result.success) throw WaiveraError.Unexpected()
             secureStore.put(SecureStore.PUSH_FINGERPRINT, fingerprint)
+            registeredThisProcess = true
         }
     }
 

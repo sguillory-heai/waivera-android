@@ -30,4 +30,12 @@
         <item quantity="one">%d conversation</item>
         <item quantity="other">%d conversations</item>
     </plurals>
+
+    <!-- Debuggable builds only (PushTrace): where a push ended, for testing on a phone without adb. -->
+    <string name="core_notifications_debug_shown" translatable="false">Debug: push shown</string>
+    <string name="core_notifications_debug_hidden" translatable="false">Debug: push hidden (%1$s)</string>
+    <string name="core_notifications_debug_cannot_post" translatable="false">Debug: push arrived, but notifications are off for Waivera</string>
+    <string name="core_notifications_debug_unusable" translatable="false">Debug: push arrived without a chat to open</string>
+    <string name="core_notifications_debug_failed" translatable="false">Debug: push arrived, but the notification failed (%1$s)</string>
+    <string name="core_notifications_debug_no_token" translatable="false">Debug: no push token from Firebase</string>
 </resources>

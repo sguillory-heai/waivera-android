@@ -103,7 +103,10 @@ class TestGraph(val scope: CoroutineScope, connected: Boolean = true) : AutoClos
     val calendar = LiveCalendarRepository(calendarApi, videoApi, cache, sync, session, server.config, clock, scope)
     val profile = LiveProfileRepository(employeeApi, timeOffApi, authApi, cache, sync, session)
     val settings = LiveSettingsRepository(settingsStore)
-    val push = LivePushRegistrationRepository(
+    val push = newPushRegistration()
+
+    /** A second instance over the same stores stands for the next app process. */
+    fun newPushRegistration() = LivePushRegistrationRepository(
         pushApi,
         secureStore,
         session,

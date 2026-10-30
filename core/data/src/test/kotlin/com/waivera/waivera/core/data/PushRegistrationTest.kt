@@ -52,6 +52,18 @@ class PushRegistrationTest {
     }
 
     @Test
+    fun theFirstRegistrationInANewProcessIsAlwaysSent() = testScope.runTest {
+        graph.server.fixture("POST /api/mobile-push/register", "rest-mobile-push-register.json")
+        push.register("t", NotificationPreferences()).getOrThrow()
+        // The server may have deactivated the row since; only this process's own repeat is skipped.
+        val nextProcess = graph.newPushRegistration()
+        nextProcess.register("t", NotificationPreferences()).getOrThrow()
+        assertEquals(2, graph.server.requests.size)
+        nextProcess.register("t", NotificationPreferences()).getOrThrow()
+        assertEquals(2, graph.server.requests.size)
+    }
+
+    @Test
     fun categoriesMapOntoServerFlags() {
         val prefs = NotificationPreferences(
             categories = NotificationCategory.entries.associateWith {

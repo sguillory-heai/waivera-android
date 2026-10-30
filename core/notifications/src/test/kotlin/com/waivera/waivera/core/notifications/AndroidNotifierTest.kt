@@ -133,6 +133,14 @@ class AndroidNotifierTest {
     }
 
     @Test
+    fun `only the newest message keeps its picture`() {
+        (1L..3L).forEach { notifier.show(chat(it, "message $it"), WaiveraChannel.Messages, null) }
+        val style =
+            assertNotNull(NotificationCompat.MessagingStyle.extractMessagingStyleFromNotification(postedChat(7)))
+        assertEquals(listOf(false, false, true), style.messages.map { it.person?.icon != null })
+    }
+
+    @Test
     fun `one conversation shows without a summary`() {
         notifier.show(chat(1, "hi"), WaiveraChannel.Messages, null)
         assertEquals(listOf(AndroidNotifier.chatTag(7)), manager.activeNotifications.map { it.tag })

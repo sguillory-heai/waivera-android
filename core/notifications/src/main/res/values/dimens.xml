@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!-- Drawn size of the initials picture on chat notifications and conversation shortcuts. -->
-    <dimen name="core_notifications_avatar_size">64dp</dimen>
+    <dimen name="core_notifications_avatar_size">48dp</dimen>
 </resources>

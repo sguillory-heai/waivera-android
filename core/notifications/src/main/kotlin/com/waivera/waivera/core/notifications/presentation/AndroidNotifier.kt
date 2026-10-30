@@ -125,6 +125,7 @@ class AndroidNotifier @Inject constructor(@ApplicationContext private val contex
         val text = message.body ?: context.getString(R.string.core_notifications_new_message)
         style.addMessage(NotificationCompat.MessagingStyle.Message(text, System.currentTimeMillis(), sender))
         while (style.messages.size > MAX_MESSAGES) style.messages.removeAt(0)
+        style.dropOlderPictures()
 
         val extras = ChatNotificationExtras(
             messageIds = (state.messageIds + listOfNotNull(message.messageId)).takeLast(MAX_MESSAGES),
@@ -291,3 +292,23 @@ private fun messagingStyle(
 
 private fun NotificationCompat.Builder.conversationShortcut(shortcutId: String?): NotificationCompat.Builder =
     if (shortcutId == null) this else setShortcutId(shortcutId).setLocusId(LocusIdCompat(shortcutId))
+
+/**
+ * Every message carries its sender, picture included, and the whole notification crosses one
+ * binder call: seven pictures came close to its 1 MB limit, and a post over it fails silently.
+ * Only the newest message keeps its picture; the system shows it for the conversation.
+ */
+private fun NotificationCompat.MessagingStyle.dropOlderPictures() {
+    val all = messages
+    for (index in 0 until all.size - 1) {
+        val message = all[index]
+        val person = message.person
+        if (person?.icon != null) {
+            all[index] = NotificationCompat.MessagingStyle.Message(
+                message.text,
+                message.timestamp,
+                person.toBuilder().setIcon(null).build(),
+            )
+        }
+    }
+}

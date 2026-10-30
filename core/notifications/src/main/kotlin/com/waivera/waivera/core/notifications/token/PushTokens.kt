@@ -3,6 +3,8 @@ package com.waivera.waivera.core.notifications.token
 import android.content.Context
 import com.google.firebase.FirebaseApp
 import com.google.firebase.messaging.FirebaseMessaging
+import com.waivera.waivera.core.notifications.PushStep
+import com.waivera.waivera.core.notifications.PushTrace
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -70,9 +72,17 @@ class FirebasePushTokenProvider @Inject constructor(@ApplicationContext private 
  * `WaiveraMessagingService.onNewToken` without touching the session or the hub.
  */
 @Singleton
-class PushRegistrar @Inject constructor(private val tokens: PushTokenProvider, private val sink: PushTokenSink) {
+class PushRegistrar @Inject constructor(
+    private val tokens: PushTokenProvider,
+    private val sink: PushTokenSink,
+    private val trace: PushTrace,
+) {
     suspend fun registerCurrentToken() {
-        val token = tokens.currentToken() ?: return
+        val token = tokens.currentToken()
+        if (token == null) {
+            trace.note(PushStep.NoToken, null)
+            return
+        }
         sink.onNewToken(token)
     }
 }

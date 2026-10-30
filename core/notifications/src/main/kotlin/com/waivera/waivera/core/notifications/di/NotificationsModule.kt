@@ -2,6 +2,8 @@ package com.waivera.waivera.core.notifications.di
 
 import android.util.Log
 import com.waivera.waivera.core.notifications.PushMessageHandler
+import com.waivera.waivera.core.notifications.PushTrace
+import com.waivera.waivera.core.notifications.ToastPushTrace
 import com.waivera.waivera.core.notifications.action.ChatNotificationActions
 import com.waivera.waivera.core.notifications.presentation.AndroidNotifier
 import com.waivera.waivera.core.notifications.presentation.Notifier
@@ -34,6 +36,9 @@ internal abstract class NotificationsModule {
 
     @Binds
     abstract fun tokenProvider(impl: FirebasePushTokenProvider): PushTokenProvider
+
+    @Binds
+    abstract fun pushTrace(impl: ToastPushTrace): PushTrace
 
     companion object {
         @Provides

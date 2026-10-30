@@ -24,6 +24,7 @@ class PushMessageHandlerTest {
     private var signedIn = true
     private val threadRoots = mutableMapOf<Long, Long>()
     private val tracker = ActiveConversationTracker(notifier)
+    private val notes = mutableListOf<Pair<PushStep, String?>>()
     private val handler = PushMessageHandler(
         notifier = notifier,
         preferences = object : NotificationPreferencesSource {
@@ -36,8 +37,21 @@ class PushMessageHandlerTest {
         tracker = tracker,
         session = { signedIn },
         threads = { messageId -> threadRoots[messageId] },
+        trace = { step, detail -> notes += step to detail },
     )
     private val chatData = PushFixtures.load("chat-message.json").data
+
+    @Test
+    fun `every push leaves a note of where it ended`() = runTest {
+        handler.handle(chatData)
+        signedIn = false
+        handler.handle(chatData)
+        handler.handle(mapOf("type" to "chat"))
+        assertEquals(
+            listOf(PushStep.Shown to null, PushStep.Hidden to "SignedOut", PushStep.Unusable to null),
+            notes,
+        )
+    }
 
     @Test
     fun `a chat push in the background is shown on the messages channel`() = runTest {

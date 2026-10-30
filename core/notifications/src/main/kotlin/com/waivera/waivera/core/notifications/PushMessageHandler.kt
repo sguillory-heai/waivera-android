@@ -1,9 +1,11 @@
 package com.waivera.waivera.core.notifications
 
+import com.waivera.waivera.core.notifications.channel.WaiveraChannel
 import com.waivera.waivera.core.notifications.payload.PushMessage
 import com.waivera.waivera.core.notifications.payload.PushPayloadParser
 import com.waivera.waivera.core.notifications.presentation.ActiveConversationTracker
 import com.waivera.waivera.core.notifications.presentation.ConversationInfoSource
+import com.waivera.waivera.core.notifications.presentation.ConversationNotificationInfo
 import com.waivera.waivera.core.notifications.presentation.LiveConversationMonitor
 import com.waivera.waivera.core.notifications.presentation.NotificationPreferencesSource
 import com.waivera.waivera.core.notifications.presentation.NotificationPresentationPolicy
@@ -28,6 +30,7 @@ class PushMessageHandler @Inject constructor(
     private val tracker: ActiveConversationTracker,
     private val session: PushSessionGate,
     private val threads: ThreadRootLookup,
+    private val trace: PushTrace,
 ) {
     /** @return what was decided, for tests and debug tooling; null when the payload was unusable. */
     suspend fun handle(
@@ -38,8 +41,9 @@ class PushMessageHandler @Inject constructor(
         notificationTitle: String? = null,
         notificationBody: String? = null,
     ): PresentationDecision? {
-        val parsed = PushPayloadParser.parse(data, notificationTitle, notificationBody) ?: return null
+        val parsed = PushPayloadParser.parse(data, notificationTitle, notificationBody) ?: return unusable()
         if (!session.allowsNotifications()) {
+            trace.note(PushStep.Hidden, PresentationDecision.SuppressReason.SignedOut.name)
             return PresentationDecision.Suppress(PresentationDecision.SuppressReason.SignedOut)
         }
         val parsedChat = parsed as? PushMessage.Chat
@@ -55,10 +59,29 @@ class PushMessageHandler @Inject constructor(
             preferences = preferences.current(),
             presence = PresenceSnapshot(hubConnected = liveOnScreen, visibleChat = tracker.visible.value),
         )
-        if (decision is PresentationDecision.Show && notifier.canPost()) {
-            notifier.show(message, decision.channel, conversation)
+        when {
+            decision is PresentationDecision.Suppress -> trace.note(PushStep.Hidden, decision.reason.name)
+            !notifier.canPost() -> trace.note(PushStep.CannotPost, null)
+            decision is PresentationDecision.Show -> show(message, decision.channel, conversation)
         }
         return decision
+    }
+
+    private fun unusable(): PresentationDecision? {
+        trace.note(PushStep.Unusable, null)
+        return null
+    }
+
+    // Noted and rethrown: the scope's handler keeps the process alive but logs only to logcat.
+    @Suppress("TooGenericExceptionCaught")
+    private fun show(message: PushMessage, channel: WaiveraChannel, conversation: ConversationNotificationInfo?) {
+        try {
+            notifier.show(message, channel, conversation)
+        } catch (error: RuntimeException) {
+            trace.note(PushStep.Failed, error.javaClass.simpleName)
+            throw error
+        }
+        trace.note(PushStep.Shown, null)
     }
 
     /**
