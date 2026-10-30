@@ -57,8 +57,11 @@ internal object ChatDimens {
     val LiveDot: Dp = 7.dp
     val CallBannerMinHeight: Dp = 48.dp
 
-    /** The strip under the timeline that holds "Jump to latest": the 48dp pill and a margin on each side. */
-    val JumpPillStrip: Dp = WaiveraSpacing.MinTouchTarget + WaiveraSpacing.Small * 2
+    /**
+     * How far "Jump to latest" floats above the bottom of the timeline it overlays. The pill's
+     * 48dp touch target already reaches past its drawn edge, so the drawn pill sits a little more.
+     */
+    val JumpPillMargin: Dp = WaiveraSpacing.Small
     val ArrivalOffset: Dp = 18.dp
     val EmojiTarget: Dp = 48.dp
 

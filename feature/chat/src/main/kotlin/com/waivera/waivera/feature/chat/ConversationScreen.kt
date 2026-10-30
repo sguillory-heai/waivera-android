@@ -5,10 +5,10 @@ import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.StringRes
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.animation.shrinkVertically
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -17,7 +17,6 @@ import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.displayCutout
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.only
@@ -72,6 +71,7 @@ import com.waivera.waivera.core.designsystem.component.landingGrow
 import com.waivera.waivera.core.designsystem.component.rememberLandingGrow
 import com.waivera.waivera.core.designsystem.icon.WaiveraIcons
 import com.waivera.waivera.core.designsystem.preview.WaiveraPreviews
+import com.waivera.waivera.core.designsystem.theme.WaiveraSpacing
 import com.waivera.waivera.core.designsystem.theme.WaiveraTheme
 import com.waivera.waivera.core.network.R as NetworkR
 import com.waivera.waivera.feature.chat.conversation.CallUi
@@ -536,15 +536,17 @@ private fun MessageList(
     }
 
     val listLabel = stringResource(R.string.feature_chat_messages_list)
-    // The pill gets a strip of its own under the list instead of floating over it: the list's
-    // visible area ends above the pill, so no message text is ever drawn under it (UI4-03).
-    Column(Modifier.fillMaxSize()) {
+    // "Jump to latest" floats over the list as a compact pill, with no band behind it, so the
+    // messages stay visible and scroll underneath it (owner's device review, 2026-10-30). It
+    // replaces the strip under the list (UI4-03), whose empty background read as a block; the
+    // pill's own shadow and border lift it off the bubbles (UI3-03). Being an overlay, it never
+    // changes the list's height, so nothing in the list moves when it comes or goes.
+    Box(Modifier.fillMaxSize()) {
         LazyColumn(
             state = listState,
             reverseLayout = true,
             modifier = Modifier
-                .weight(1f)
-                .fillMaxWidth()
+                .fillMaxSize()
                 .testTag(MESSAGE_LIST_TAG)
                 .semantics { contentDescription = listLabel },
         ) {
@@ -571,17 +573,13 @@ private fun MessageList(
         }
         AnimatedVisibility(
             visible = showJump,
-            enter = expandVertically(motion.layout()) + fadeIn(motion.state()),
-            exit = shrinkVertically(motion.layout()) + fadeOut(motion.state()),
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .padding(horizontal = WaiveraSpacing.Gutter, vertical = ChatDimens.JumpPillMargin),
+            enter = slideInVertically(motion.layout()) { it } + fadeIn(motion.state()),
+            exit = slideOutVertically(motion.layout()) { it } + fadeOut(motion.state()),
         ) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .heightIn(min = ChatDimens.JumpPillStrip),
-                contentAlignment = Alignment.Center,
-            ) {
-                JumpToLatestPill(onClick = { onJumpToLatest?.invoke() })
-            }
+            JumpToLatestPill(onClick = { onJumpToLatest?.invoke() })
         }
     }
 }

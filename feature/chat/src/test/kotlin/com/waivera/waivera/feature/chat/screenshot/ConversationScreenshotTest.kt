@@ -259,6 +259,15 @@ class ConversationScreenshotTest {
         )
     }
 
+    /**
+     * Scrolled up the DM: "Jump to latest" floats over the timeline as a compact pill, with the
+     * messages running on underneath it and no band behind it (owner's device review, 2026-10-30).
+     */
+    @Test
+    fun jumpToLatestFloating() = captureScreenshots("conversation_jump_to_latest") {
+        ConversationView(state(), listState = rememberLazyListState(initialFirstVisibleItemIndex = SCROLLED_UP_INDEX))
+    }
+
     /** Refused before it reached the outbox: no row to point at, so the full banner keeps the draft. */
     @Test
     fun sendRefused() = captureScreenshots("conversation_send_refused") {
