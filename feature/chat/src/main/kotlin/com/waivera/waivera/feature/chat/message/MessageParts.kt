@@ -35,6 +35,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
@@ -222,18 +223,47 @@ private fun RepliesChip(count: Int, onClick: () -> Unit) {
             outline = colors.accentBorder,
             outlineWidth = WaiveraSpacing.Hairline,
         ) {
-            Icon(
-                painterResource(WaiveraIcons.Reply),
-                contentDescription = null,
-                tint = colors.accent,
-                modifier = Modifier.size(WaiveraSizes.IconSmall),
+            IconBesideText(
+                icon = {
+                    Icon(
+                        painterResource(WaiveraIcons.Reply),
+                        contentDescription = null,
+                        tint = colors.accent,
+                    )
+                },
+                text = {
+                    Text(
+                        text = pluralStringResource(R.plurals.feature_chat_thread_replies, count, count),
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        color = colors.accent,
+                    )
+                },
             )
-            Text(
-                text = pluralStringResource(R.plurals.feature_chat_thread_replies, count, count),
-                style = MaterialTheme.typography.labelMedium,
-                fontWeight = FontWeight.SemiBold,
-                color = colors.accent,
-            )
+        }
+    }
+}
+
+/**
+ * An icon of up to [WaiveraSizes.IconSmall] before its text, never taller than the text: at 85%
+ * font the line is shorter than the icon, which would make the chip taller than its text.
+ */
+@Composable
+private fun IconBesideText(icon: @Composable () -> Unit, text: @Composable () -> Unit) {
+    Layout(contents = listOf(icon, text)) { (iconMeasurables, textMeasurables), constraints ->
+        val gap = WaiveraSpacing.ExtraSmall.roundToPx()
+        val maxIcon = WaiveraSizes.IconSmall.roundToPx()
+        val textMaxWidth = if (constraints.hasBoundedWidth) {
+            (constraints.maxWidth - maxIcon - gap).coerceAtLeast(0)
+        } else {
+            Constraints.Infinity
+        }
+        val textPlaceable = textMeasurables.single().measure(Constraints(maxWidth = textMaxWidth))
+        val side = minOf(maxIcon, textPlaceable.height)
+        val iconPlaceable = iconMeasurables.single().measure(Constraints.fixed(side, side))
+        layout(side + gap + textPlaceable.width, textPlaceable.height) {
+            iconPlaceable.place(0, (textPlaceable.height - side) / 2)
+            textPlaceable.place(side + gap, 0)
         }
     }
 }
