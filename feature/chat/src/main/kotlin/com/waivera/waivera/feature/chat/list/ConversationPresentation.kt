@@ -60,7 +60,7 @@ data class Preview(val text: String, val kind: PreviewKind)
 /** Strips the `{[TIMESTAMP- 08/10/2026 02:20:12]}` token from system text (spec 03 §16). */
 internal object SystemText {
     private val TOKEN = Regex(
-        """\s*-?\s*\{\[\s*TIMESTAMP\s*[-·:]\s*\d{1,2}/\d{1,2}/\d{4}\s+\d{1,2}:\d{2}:\d{2}\s*]}\s*""",
+        """\s*-?\s*\{\[\s*TIMESTAMP\s*[-·:]\s*\d{1,2}/\d{1,2}/\d{4}\s+\d{1,2}:\d{2}:\d{2}\s*\]\}\s*""",
         RegexOption.IGNORE_CASE,
     )
     private val TRAILING_DASH = Regex("""\s*-\s*$""")

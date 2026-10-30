@@ -13,7 +13,7 @@ data class ParsedSystemMessage(val text: String, val embeddedTimestamp: Instant?
 
 object SystemMessages {
     private val TIMESTAMP = Regex(
-        """\s*-?\s*\{\[\s*TIMESTAMP\s*[-·:]\s*(\d{1,2})/(\d{1,2})/(\d{4})\s+(\d{1,2}):(\d{2}):(\d{2})\s*]}\s*""",
+        """\s*-?\s*\{\[\s*TIMESTAMP\s*[-·:]\s*(\d{1,2})/(\d{1,2})/(\d{4})\s+(\d{1,2}):(\d{2}):(\d{2})\s*\]\}\s*""",
         RegexOption.IGNORE_CASE,
     )
 
