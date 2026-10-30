@@ -97,7 +97,7 @@ class AndroidNotifier @Inject constructor(@ApplicationContext private val contex
 
     override fun cancelAll() {
         manager.cancelAll()
-        shortcuts.removeAll()
+        runCatching { shortcuts.removeAll() }
     }
 
     private fun showChat(
@@ -115,10 +115,12 @@ class AndroidNotifier @Inject constructor(@ApplicationContext private val contex
         // In a group the collapsed line is "<sender>: <text>", so a long sender is shortened to
         // leave the text room; the key keeps the full name, which identifies the sender.
         val shownName = if (style.isGroupConversation) SenderName.short(context, senderName) else senderName
+        // The picture and the conversation shortcut only dress the notification; if a device
+        // refuses either, the message must still show in the plain layout.
         val sender = Person.Builder()
             .setName(shownName)
             .setKey("sender:$senderName")
-            .setIcon(InitialsAvatar.icon(context, senderName))
+            .setIcon(runCatching { InitialsAvatar.icon(context, senderName) }.getOrNull())
             .build()
         val text = message.body ?: context.getString(R.string.core_notifications_new_message)
         style.addMessage(NotificationCompat.MessagingStyle.Message(text, System.currentTimeMillis(), sender))
@@ -130,11 +132,13 @@ class AndroidNotifier @Inject constructor(@ApplicationContext private val contex
             channel = channel,
         )
         val groupTitle = style.conversationTitle?.toString()?.takeIf { style.isGroupConversation }
-        val shortcutId = shortcuts.publish(
-            conversationId = message.conversationId,
-            label = groupTitle ?: senderName,
-            person = sender.takeIf { groupTitle == null },
-        )
+        val shortcutId = runCatching {
+            shortcuts.publish(
+                conversationId = message.conversationId,
+                label = groupTitle ?: senderName,
+                person = sender.takeIf { groupTitle == null },
+            )
+        }.getOrNull()
         val notification = chatBuilder(
             message.conversationId,
             message.threadRootMessageId,
