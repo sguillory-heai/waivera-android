@@ -1,16 +1,17 @@
 package com.waivera.waivera.ui
 
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
@@ -18,7 +19,12 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDecorator
 import androidx.navigation3.runtime.NavEntry
 import androidx.navigation3.runtime.rememberDecoratedNavEntries
@@ -47,6 +53,10 @@ import com.waivera.waivera.navigation.isTabRoot
  * bar. Insets: the bar owns the navigation bar inset and screen top bars own the status bar, so
  * the shell itself pads nothing. Screens without the bar (conversation, thread, detail screens)
  * handle the navigation bar and IME insets themselves.
+ *
+ * The bar floats over the full-height [NavDisplay] and slides in or out, and each tab root makes
+ * room for it in its own entry. When the bar took a slot in the layout, popping a chat resized
+ * both screens the moment the bar appeared, so the content jumped before the slide began.
  */
 @Composable
 fun MainShell(state: ShellUiState, actions: ShellActions, modifier: Modifier = Modifier) {
@@ -56,6 +66,16 @@ fun MainShell(state: ShellUiState, actions: ShellActions, modifier: Modifier = M
     val openAccountMenu = remember { { accountMenuOpen = true } }
     val routeActions = remember(actions) { RouteActions(actions, openAccountMenu) }
     val snackbar = remember { SnackbarHostState() }
+    // The last measured height, kept while the bar is hidden so a tab root revealed by a pop is
+    // laid out for the bar before it slides back.
+    var barHeightPx by remember { mutableIntStateOf(0) }
+    val barHeight = with(LocalDensity.current) { barHeightPx.toDp() }
+    val barShown = nav.top.isTabRoot
+    val barHidden by animateFloatAsState(
+        targetValue = if (barShown) 0f else 1f,
+        animationSpec = motion.navigate(),
+        label = "navigationBarHidden",
+    )
     val unopenableLinkMessage = stringResource(R.string.shell_link_unopenable)
     // Read inside entries, so an entry that is leaving after a pop sees the new top, not the old.
     val topEntry = rememberUpdatedState(nav.visibleEntries.lastOrNull())
@@ -78,7 +98,9 @@ fun MainShell(state: ShellUiState, actions: ShellActions, modifier: Modifier = M
                     isTop = entry == topEntry.value,
                     modifier = Modifier.fillMaxSize(),
                 ) {
-                    RouteContent(route = entry.route, actions = routeActions)
+                    Box(Modifier.padding(bottom = if (entry.route.isTabRoot) barHeight else 0.dp)) {
+                        RouteContent(route = entry.route, actions = routeActions)
+                    }
                 }
             }
         },
@@ -111,29 +133,37 @@ fun MainShell(state: ShellUiState, actions: ShellActions, modifier: Modifier = M
         }
     }
 
-    Column(
+    Box(
         modifier = modifier
             .fillMaxSize()
             .background(WaiveraTheme.colors.background),
     ) {
-        Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
-            NavDisplay(
-                sceneState = sceneState,
-                navigationEventState = navigationEvents,
-                transitionSpec = { motion.forwardTransition() },
-                popTransitionSpec = { motion.backTransition() },
-                // The swipe's edge reaches the frames through [backGesture].
-                predictivePopTransitionSpec = { motion.predictiveBackTransition() },
-            )
-            WaiveraSnackbarHost(hostState = snackbar, modifier = Modifier.align(Alignment.BottomCenter))
-        }
-        if (nav.top.isTabRoot) {
-            WaiveraNavigationBar(
-                items = tabItems(state.unreadTotal),
-                selectedKey = nav.selected.name,
-                onSelect = { key -> actions.select(TopLevelTab.valueOf(key)) },
-            )
-        }
+        NavDisplay(
+            sceneState = sceneState,
+            navigationEventState = navigationEvents,
+            transitionSpec = { motion.forwardTransition() },
+            popTransitionSpec = { motion.backTransition() },
+            // The swipe's edge reaches the frames through [backGesture].
+            predictivePopTransitionSpec = { motion.predictiveBackTransition() },
+        )
+        WaiveraSnackbarHost(
+            hostState = snackbar,
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .padding(bottom = if (barShown) barHeight else 0.dp),
+        )
+        // Kept composed while hidden so its height stays known; off screen it takes no touches,
+        // and it is left out of the accessibility tree.
+        WaiveraNavigationBar(
+            items = tabItems(state.unreadTotal),
+            selectedKey = nav.selected.name,
+            onSelect = { key -> actions.select(TopLevelTab.valueOf(key)) },
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .onSizeChanged { barHeightPx = it.height }
+                .graphicsLayer { translationY = size.height * barHidden }
+                .then(if (barShown) Modifier else Modifier.clearAndSetSemantics {}),
+        )
     }
 
     if (accountMenuOpen) {
