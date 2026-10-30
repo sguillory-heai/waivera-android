@@ -53,6 +53,6 @@ class RxErrorGuardTest {
 
         RxErrorGuard.install()
 
-        assertSame(appHandler, RxJavaPlugins.getErrorHandler())
+        assertSame<Any?>(appHandler, RxJavaPlugins.getErrorHandler())
     }
 }
