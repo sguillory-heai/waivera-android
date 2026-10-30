@@ -16,7 +16,7 @@ androidxNavigation3 = "1.0.0"
 # Navigation 3 already brings it in; this makes the direct use explicit.
 androidxNavigationEvent = "1.0.0"
 androidxComposeBom = "2026.09.00"
-androidxCoreKtx = "1.19.0"
+androidxCoreKtx = "1.19.1"
 androidxLifecycle = "2.11.0"
 androidxDataStore = "1.1.7"
 androidxRoom = "2.7.2"
