@@ -70,6 +70,8 @@ fun MainShell(state: ShellUiState, actions: ShellActions, modifier: Modifier = M
     // laid out for the bar before it slides back.
     var barHeightPx by remember { mutableIntStateOf(0) }
     val barHeight = with(LocalDensity.current) { barHeightPx.toDp() }
+    // Entries are built once and keep their lambdas, so they read the height through state.
+    val entryBarHeight = rememberUpdatedState(barHeight)
     val barShown = nav.top.isTabRoot
     val barHidden by animateFloatAsState(
         targetValue = if (barShown) 0f else 1f,
@@ -98,7 +100,7 @@ fun MainShell(state: ShellUiState, actions: ShellActions, modifier: Modifier = M
                     isTop = entry == topEntry.value,
                     modifier = Modifier.fillMaxSize(),
                 ) {
-                    Box(Modifier.padding(bottom = if (entry.route.isTabRoot) barHeight else 0.dp)) {
+                    Box(Modifier.padding(bottom = if (entry.route.isTabRoot) entryBarHeight.value else 0.dp)) {
                         RouteContent(route = entry.route, actions = routeActions)
                     }
                 }
@@ -161,7 +163,11 @@ fun MainShell(state: ShellUiState, actions: ShellActions, modifier: Modifier = M
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .onSizeChanged { barHeightPx = it.height }
-                .graphicsLayer { translationY = size.height * barHidden }
+                .graphicsLayer {
+                    translationY = size.height * barHidden
+                    // Its top shadow would still peek over the bottom edge once moved off screen.
+                    alpha = if (barHidden >= 1f) 0f else 1f
+                }
                 .then(if (barShown) Modifier else Modifier.clearAndSetSemantics {}),
         )
     }
