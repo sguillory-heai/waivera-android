@@ -7,6 +7,7 @@ import androidx.core.net.toUri
 import com.waivera.waivera.core.data.live.SignOutCleaner
 import com.waivera.waivera.core.data.model.AttachmentSource
 import com.waivera.waivera.core.data.repository.AttachmentRepository
+import com.waivera.waivera.core.data.repository.SessionRepository
 import com.waivera.waivera.core.network.error.WaiveraError
 import com.waivera.waivera.core.network.error.catchingWaivera
 import dagger.Binds
@@ -18,7 +19,6 @@ import dagger.hilt.components.SingletonComponent
 import dagger.multibindings.IntoSet
 import java.io.File
 import java.time.Clock
-import java.time.ZoneId
 import javax.inject.Inject
 import javax.inject.Qualifier
 import javax.inject.Singleton
@@ -151,9 +151,9 @@ internal abstract class ChatFeatureModule {
     abstract fun attachmentIo(impl: AndroidAttachmentIo): AttachmentIo
 
     companion object {
-        /** Chat clocks follow the device zone (03 §3); read on every use so a zone change applies at once. */
+        /** Chat clocks follow the employee's saved zone, as the inbox does, never the device zone. */
         @Provides
-        fun chatClock(clock: Clock): ChatClock = ChatClock(clock) { ZoneId.systemDefault() }
+        fun chatClock(clock: Clock, session: SessionRepository): ChatClock = ChatClock.employee(clock, session)
 
         @Provides
         @ChatComputeDispatcher

@@ -17,13 +17,20 @@ import com.waivera.waivera.feature.chat.FakeAttachmentIo
 import com.waivera.waivera.feature.chat.R
 import com.waivera.waivera.feature.chat.RecordingConversations
 import com.waivera.waivera.feature.chat.message.AttachmentDownloads
+import com.waivera.waivera.feature.chat.message.ChatClock
 import com.waivera.waivera.feature.chat.message.ChatEffect
 import com.waivera.waivera.feature.chat.message.ChatSheet
+import com.waivera.waivera.feature.chat.message.ChatTime
 import com.waivera.waivera.feature.chat.message.ReadOnlyReason
 import com.waivera.waivera.feature.chat.message.SendErrorKind
 import com.waivera.waivera.feature.chat.message.TimelineItem
 import com.waivera.waivera.feature.chat.message.plainText
 import com.waivera.waivera.feature.chat.testChatClock
+import java.time.Clock
+import java.time.LocalDate
+import java.time.ZoneOffset
+import java.util.Locale
+import java.util.TimeZone
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertIs
@@ -53,6 +60,7 @@ class ConversationViewModelTest {
         conversationId: Long = DemoData.DM_PRIYA,
         lobby: Result<String>? = Result.success("https://app.example.test/lobby/11"),
         prepare: (DemoGraph) -> Unit = {},
+        clock: (DemoGraph) -> ChatClock = { testChatClock() },
     ): Subject {
         val graph = DemoGraph(backgroundScope)
         prepare(graph)
@@ -67,7 +75,7 @@ class ConversationViewModelTest {
             realtime = graph.realtimeStatus,
             io = FakeAttachmentIo(),
             downloads = AttachmentDownloads(graph.attachments),
-            clock = testChatClock(),
+            clock = clock(graph),
             computeDispatcher = main.testDispatcher,
             titles = EnglishConversationTitles,
         )
@@ -619,6 +627,41 @@ class ConversationViewModelTest {
             s.graph.backend.append(s.graph.incoming("From last week", ageSeconds = BACKFILL_AGE_SECONDS))
             runCurrent()
             expectNoEvents()
+        }
+    }
+
+    // endregion
+
+    // region Saved zone
+
+    @Test
+    fun timesFollowTheEmployeesSavedZoneNotTheDeviceZone() = runTest {
+        val device = TimeZone.getDefault()
+        TimeZone.setDefault(TimeZone.getTimeZone("Asia/Tokyo"))
+        try {
+            // The DI wiring: the employee's clock over the session (Chicago in the demo).
+            val s = subject(clock = { ChatClock.employee(Clock.fixed(DemoData.NOW, ZoneOffset.UTC), it.session) })
+            // 1 November 10:29 CST in Chicago, but already 2 November 01:29 in Tokyo.
+            val at = DemoData.NOW.minusSeconds(60)
+            s.graph.backend.append(
+                Message(
+                    id = s.graph.backend.nextMessageId(),
+                    conversationId = DemoData.DM_PRIYA,
+                    authorId = DemoData.PRIYA,
+                    text = "Saved zone",
+                    createdAt = at,
+                ),
+            )
+            runCurrent()
+
+            val time = s.viewModel.rowTime()
+            assertEquals(DemoData.ZONE, time.zone)
+            assertEquals("10:29 AM", ChatTime.clock(at, time.zone, Locale.US))
+            val days = s.viewModel.state.value.items.filterIsInstance<TimelineItem.DaySeparator>().map { it.day }
+            assertTrue(LocalDate.of(2026, 11, 1) in days, "$days")
+            assertFalse(LocalDate.of(2026, 11, 2) in days, "no Tokyo day: $days")
+        } finally {
+            TimeZone.setDefault(device)
         }
     }
 

@@ -1,6 +1,10 @@
 package com.waivera.waivera.feature.chat.message
 
 import androidx.compose.runtime.Immutable
+import com.waivera.waivera.core.data.model.SessionState
+import com.waivera.waivera.core.data.model.currentUser
+import com.waivera.waivera.core.data.repository.SessionRepository
+import com.waivera.waivera.core.network.time.WaiveraTime
 import java.time.Clock
 import java.time.Duration
 import java.time.Instant
@@ -10,14 +14,23 @@ import java.time.format.DateTimeFormatter
 import java.util.Locale
 
 /**
- * Time for chat screens. Instants come from the shared UTC parser in core; chat clocks and day
- * boundaries use the device zone, as in the reference app (03 §3), unlike schedules, which use
- * the employee's saved zone. Both values are injected so tests can pin them.
+ * Time for chat screens. Instants come from the shared UTC parser in core; bubble clocks, spoken
+ * times and day boundaries use the employee's saved zone, as the inbox and schedules do, never
+ * the device zone. Both values are injected so tests can pin them.
  */
 class ChatClock(private val clock: Clock, private val zoneProvider: () -> ZoneId) {
     fun now(): Instant = clock.instant()
 
     val zone: ZoneId get() = zoneProvider()
+
+    companion object {
+        /** Reads the session on every use, so a sign-in or a saved-zone change applies at once. */
+        fun employee(clock: Clock, session: SessionRepository): ChatClock =
+            ChatClock(clock) { employeeZone(session.state.value) }
+
+        /** The inbox's rule: the saved zone, else the organisation default when nobody is signed in. */
+        fun employeeZone(state: SessionState): ZoneId = state.currentUser?.zone ?: WaiveraTime.employeeZone(null)
+    }
 }
 
 /** `formatChatTimestamp` as data, so the copy lives in resources and the rules are testable. */
