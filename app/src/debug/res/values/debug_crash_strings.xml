@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Debug builds only: the screen offered after the app crashed on the previous run. -->
+    <string name="debug_crash_title">Waivera stopped last time</string>
+    <string name="debug_crash_body">This report has no messages, names or tokens. Copy it into the bug ticket, then dismiss it.</string>
+    <string name="debug_crash_copy">Copy crash report</string>
+    <string name="debug_crash_dismiss">Dismiss</string>
+    <string name="debug_crash_clip_label">Waivera crash report</string>
+</resources>

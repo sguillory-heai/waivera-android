@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <application>
+        <!-- Debug only: saves a redacted report of an uncaught crash and offers it on the next launch. -->
+        <provider
+            android:name=".debug.crash.CrashCatcherInstaller"
+            android:authorities="${applicationId}.debug.crashcatcher"
+            android:exported="false"
+            android:initOrder="1000" />
+
+        <activity
+            android:name=".debug.crash.CrashReportActivity"
+            android:exported="false"
+            android:theme="@style/Theme.Waivera" />
+    </application>
+
+</manifest>
