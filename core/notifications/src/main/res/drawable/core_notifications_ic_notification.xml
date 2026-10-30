@@ -1,11 +1,28 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Status bar icon: a white silhouette, tinted by the system. -->
+<!-- Status bar icon: the Waivera mark as a white silhouette, tinted by the system. Paths match core_designsystem_logo_mark_mono. -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="24dp"
     android:height="24dp"
-    android:viewportWidth="24"
-    android:viewportHeight="24">
-    <path
-        android:fillColor="@android:color/white"
-        android:pathData="M20,2H4c-1.1,0 -1.99,0.9 -1.99,2L2,22l4,-4h14c1.1,0 2,-0.9 2,-2V4c0,-1.1 -0.9,-2 -2,-2z" />
+    android:viewportWidth="56"
+    android:viewportHeight="56">
+    <group
+        android:translateX="3.75"
+        android:translateY="2">
+        <path
+            android:pathData="M2.46265 14.0053C2.46265 14.0053 7.6205 35.3062 13.97 34.9595C20.3195 34.6129 32.3129 15.891 30.5492 8.61027C28.7854 1.32954 21.3777 1.32954 19.9667 8.61027C18.5557 15.891 31.6074 35.3062 35.8404 34.9595C40.0734 34.6129 44.5813 25.3258 46.7756 14.0053"
+            android:strokeWidth="4.54492"
+            android:strokeLineCap="round"
+            android:strokeColor="@android:color/white"
+            android:fillColor="#00000000" />
+        <path
+            android:pathData="M1.8645 43.7415H46.5786"
+            android:strokeWidth="3.40869"
+            android:strokeLineCap="round"
+            android:strokeColor="@android:color/white" />
+        <path
+            android:pathData="M9.28003 50H39.5573"
+            android:strokeWidth="3.40869"
+            android:strokeLineCap="round"
+            android:strokeColor="@android:color/white" />
+    </group>
 </vector>
