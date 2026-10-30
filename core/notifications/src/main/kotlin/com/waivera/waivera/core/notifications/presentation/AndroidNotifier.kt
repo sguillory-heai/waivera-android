@@ -10,6 +10,7 @@ import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.app.Person
 import androidx.core.content.ContextCompat
+import androidx.core.content.LocusIdCompat
 import androidx.core.content.getSystemService
 import com.waivera.waivera.core.notifications.R
 import com.waivera.waivera.core.notifications.channel.WaiveraChannel
@@ -24,13 +25,16 @@ import javax.inject.Singleton
  *
  * Chat: one `MessagingStyle` notification per conversation (tag `chat:{id}`), so later messages
  * update it in place instead of stacking; messages are de-duplicated by message id and capped at
- * [MAX_MESSAGES]. Chat notifications share a group with a summary, carry inline Reply and Mark
- * read, and show a public version without sender or text on the lock screen.
+ * [MAX_MESSAGES]. Each names a conversation shortcut, so Android 11+ shows it as a conversation
+ * with the sender's picture, like a text message. Chat notifications share a group, with a summary
+ * only while two or more conversations are showing; they carry inline Reply and Mark read, and
+ * show a public version without sender or text when the lock screen hides sensitive content.
  */
 @Singleton
 class AndroidNotifier @Inject constructor(@ApplicationContext private val context: Context) : Notifier {
     private val manager = NotificationManagerCompat.from(context)
     private val intents = NotificationIntents(context)
+    private val shortcuts = ConversationShortcuts(context)
 
     override fun canPost(): Boolean = manager.areNotificationsEnabled() && hasPostPermission()
 
@@ -55,6 +59,7 @@ class AndroidNotifier @Inject constructor(@ApplicationContext private val contex
             target,
             state.channel,
         )
+            .conversationShortcut(existing?.shortcutId)
             .setStyle(style)
             .setOnlyAlertOnce(true)
             .addExtras(state.copy(target = target).toBundle())
@@ -73,6 +78,7 @@ class AndroidNotifier @Inject constructor(@ApplicationContext private val contex
             target,
             state.channel,
         )
+            .conversationShortcut(existing?.shortcutId)
             .setContentTitle(existing?.extras?.getCharSequence(Notification.EXTRA_TITLE))
             .setContentText(context.getString(R.string.core_notifications_reply_failed))
             .setOnlyAlertOnce(true)
@@ -82,12 +88,16 @@ class AndroidNotifier @Inject constructor(@ApplicationContext private val contex
     }
 
     override fun cancelConversation(conversationId: Long) {
-        manager.cancel(chatTag(conversationId), NOTIFICATION_ID)
-        if (activeChatCount() == 0) manager.cancel(SUMMARY_TAG, NOTIFICATION_ID)
+        val tag = chatTag(conversationId)
+        manager.cancel(tag, NOTIFICATION_ID)
+        // The system list can still hold the notification just cancelled, so it is left out by
+        // tag; counting it once left the summary behind as a bare "Waivera" notification.
+        syncSummary(activeChatTags() - tag)
     }
 
     override fun cancelAll() {
         manager.cancelAll()
+        shortcuts.removeAll()
     }
 
     private fun showChat(
@@ -105,7 +115,11 @@ class AndroidNotifier @Inject constructor(@ApplicationContext private val contex
         // In a group the collapsed line is "<sender>: <text>", so a long sender is shortened to
         // leave the text room; the key keeps the full name, which identifies the sender.
         val shownName = if (style.isGroupConversation) SenderName.short(context, senderName) else senderName
-        val sender = Person.Builder().setName(shownName).setKey("sender:$senderName").build()
+        val sender = Person.Builder()
+            .setName(shownName)
+            .setKey("sender:$senderName")
+            .setIcon(InitialsAvatar.icon(context, senderName))
+            .build()
         val text = message.body ?: context.getString(R.string.core_notifications_new_message)
         style.addMessage(NotificationCompat.MessagingStyle.Message(text, System.currentTimeMillis(), sender))
         while (style.messages.size > MAX_MESSAGES) style.messages.removeAt(0)
@@ -115,6 +129,12 @@ class AndroidNotifier @Inject constructor(@ApplicationContext private val contex
             target = message.target,
             channel = channel,
         )
+        val groupTitle = style.conversationTitle?.toString()?.takeIf { style.isGroupConversation }
+        val shortcutId = shortcuts.publish(
+            conversationId = message.conversationId,
+            label = groupTitle ?: senderName,
+            person = sender.takeIf { groupTitle == null },
+        )
         val notification = chatBuilder(
             message.conversationId,
             message.threadRootMessageId,
@@ -122,22 +142,29 @@ class AndroidNotifier @Inject constructor(@ApplicationContext private val contex
             message.target,
             channel,
         )
+            .conversationShortcut(shortcutId)
             .setStyle(style)
             .addExtras(extras.toBundle())
             .build()
-        post(chatTag(message.conversationId), notification)
-        postSummary()
+        val tag = chatTag(message.conversationId)
+        post(tag, notification)
+        // The system list may not show the post above yet, so its tag is added by hand.
+        syncSummary(activeChatTags() + tag)
     }
 
     private fun showGeneric(message: PushMessage, channel: WaiveraChannel) {
+        // An unknown push with neither title nor text has nothing to say; a bare "Waivera" with
+        // an empty line looks broken.
+        if (message is PushMessage.Unknown && message.title == null && message.body == null) return
+        val body = message.body ?: context.getString(R.string.core_notifications_new_message)
         val category = when (message) {
             is PushMessage.IncomingCall -> NotificationCompat.CATEGORY_CALL
             else -> NotificationCompat.CATEGORY_EVENT
         }
         val notification = baseBuilder(channel)
             .setContentTitle(message.title ?: context.getString(R.string.core_notifications_summary_title))
-            .setContentText(message.body)
-            .setStyle(NotificationCompat.BigTextStyle().bigText(message.body))
+            .setContentText(body)
+            .setStyle(NotificationCompat.BigTextStyle().bigText(body))
             .setAutoCancel(true)
             .setCategory(category)
             .setVisibility(NotificationCompat.VISIBILITY_PRIVATE)
@@ -166,9 +193,16 @@ class AndroidNotifier @Inject constructor(@ApplicationContext private val contex
             .addAction(intents.markRead(conversationId, messageId))
     }
 
-    private fun postSummary() {
-        val count = activeChatCount()
-        if (count == 0) return
+    /**
+     * The system bundles a group of two or more on its own, but a summary is what keeps them
+     * together on every launcher; with one conversation it only risks being left behind alone.
+     */
+    private fun syncSummary(chatTags: Set<String>) {
+        val count = chatTags.size
+        if (count < MIN_FOR_SUMMARY) {
+            manager.cancel(SUMMARY_TAG, NOTIFICATION_ID)
+            return
+        }
         val summary = baseBuilder(WaiveraChannel.Messages)
             .setContentTitle(context.getString(R.string.core_notifications_summary_title))
             .setContentText(
@@ -198,10 +232,11 @@ class AndroidNotifier @Inject constructor(@ApplicationContext private val contex
         ?.firstOrNull { it.tag == chatTag(conversationId) && it.id == NOTIFICATION_ID }
         ?.notification
 
-    private fun activeChatCount(): Int = context.getSystemService<NotificationManager>()
+    private fun activeChatTags(): Set<String> = context.getSystemService<NotificationManager>()
         ?.activeNotifications
-        ?.count { it.tag?.startsWith(CHAT_TAG_PREFIX) == true }
-        ?: 0
+        ?.mapNotNull { it.tag?.takeIf { tag -> tag.startsWith(CHAT_TAG_PREFIX) } }
+        ?.toSet()
+        .orEmpty()
 
     private fun hasPostPermission(): Boolean = Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU ||
         ContextCompat.checkSelfPermission(
@@ -225,6 +260,7 @@ class AndroidNotifier @Inject constructor(@ApplicationContext private val contex
     companion object {
         const val CHAT_GROUP = "com.waivera.waivera.CHAT"
         const val MAX_MESSAGES = 7
+        private const val MIN_FOR_SUMMARY = 2
         internal const val NOTIFICATION_ID = 1
         internal const val CHAT_TAG_PREFIX = "chat:"
         internal const val GENERIC_TAG_PREFIX = "push:"
@@ -248,3 +284,6 @@ private fun messagingStyle(
     }
     return style
 }
+
+private fun NotificationCompat.Builder.conversationShortcut(shortcutId: String?): NotificationCompat.Builder =
+    if (shortcutId == null) this else setShortcutId(shortcutId).setLocusId(LocusIdCompat(shortcutId))

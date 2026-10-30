@@ -5,11 +5,13 @@ import android.app.Application
 import android.app.Notification
 import android.app.NotificationManager
 import androidx.core.app.NotificationCompat
+import androidx.core.content.pm.ShortcutManagerCompat
 import com.waivera.waivera.core.notifications.channel.NotificationChannelInstaller
 import com.waivera.waivera.core.notifications.channel.WaiveraChannel
 import com.waivera.waivera.core.notifications.payload.PushMessage
 import com.waivera.waivera.core.notifications.presentation.AndroidNotifier
 import com.waivera.waivera.core.notifications.presentation.ConversationNotificationInfo
+import com.waivera.waivera.core.notifications.presentation.ConversationShortcuts
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
@@ -131,6 +133,62 @@ class AndroidNotifierTest {
     }
 
     @Test
+    fun `one conversation shows without a summary`() {
+        notifier.show(chat(1, "hi"), WaiveraChannel.Messages, null)
+        assertEquals(listOf(AndroidNotifier.chatTag(7)), manager.activeNotifications.map { it.tag })
+    }
+
+    @Test
+    fun `the summary goes when fewer than two conversations are left`() {
+        notifier.show(chat(1, "hi", conversationId = 7), WaiveraChannel.Messages, null)
+        notifier.show(chat(2, "hey", conversationId = 8), WaiveraChannel.Messages, null)
+        assertNotNull(posted(AndroidNotifier.SUMMARY_TAG))
+        notifier.cancelConversation(7)
+        assertNull(posted(AndroidNotifier.SUMMARY_TAG), "a lone summary showed as a bare \"Waivera\"")
+        assertNotNull(posted(AndroidNotifier.chatTag(8)))
+    }
+
+    @Test
+    fun `a chat notification is a conversation named after the sender`() {
+        notifier.show(chat(1, "can you cover Friday?"), WaiveraChannel.Messages, null)
+        val id = ConversationShortcuts.shortcutId(7)
+        assertEquals(id, postedChat(7).shortcutId)
+        val shortcut = ShortcutManagerCompat.getDynamicShortcuts(context).single { it.id == id }
+        assertEquals("Alex Rivera", shortcut.shortLabel.toString())
+        val style =
+            assertNotNull(NotificationCompat.MessagingStyle.extractMessagingStyleFromNotification(postedChat(7)))
+        assertNotNull(style.messages.single().person?.icon, "the sender has a picture")
+    }
+
+    @Test
+    fun `a group conversation is named after the group`() {
+        notifier.show(chat(1, "hey"), WaiveraChannel.GroupActivity, ConversationNotificationInfo("North team", true))
+        val shortcut = ShortcutManagerCompat.getDynamicShortcuts(context)
+            .single { it.id == ConversationShortcuts.shortcutId(7) }
+        assertEquals("North team", shortcut.shortLabel.toString())
+    }
+
+    @Test
+    fun `an inline reply keeps the conversation layout`() {
+        notifier.show(chat(1, "can you cover Friday?"), WaiveraChannel.Messages, null)
+        notifier.showReplySent(conversationId = 7, threadRootMessageId = null, text = "Yes")
+        assertEquals(ConversationShortcuts.shortcutId(7), postedChat(7).shortcutId)
+    }
+
+    @Test
+    fun `an unknown push with nothing to say is not shown`() {
+        notifier.show(PushMessage.Unknown("ping", null, null), WaiveraChannel.Digest, null)
+        assertTrue(manager.activeNotifications.isEmpty())
+    }
+
+    @Test
+    fun `a generic push without text still has a line under the title`() {
+        notifier.show(PushMessage.Unknown("announcement", "Office closed", null), WaiveraChannel.Digest, null)
+        val notification = manager.activeNotifications.single().notification
+        assertEquals("New message", notification.extras.getCharSequence(Notification.EXTRA_TEXT)?.toString())
+    }
+
+    @Test
     fun `opening the conversation clears its notification and the summary when it was the last`() {
         notifier.show(chat(1, "hi"), WaiveraChannel.Messages, null)
         notifier.cancelConversation(7)
@@ -155,6 +213,7 @@ class AndroidNotifierTest {
         notifier.show(PushMessage.Unknown("announcement", "Office closed", null), WaiveraChannel.Digest, null)
         notifier.cancelAll()
         assertTrue(manager.activeNotifications.isEmpty())
+        assertTrue(ShortcutManagerCompat.getDynamicShortcuts(context).isEmpty(), "no names left for the next account")
     }
 
     @Test
