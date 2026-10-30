@@ -59,8 +59,8 @@ class ConversationViewModelTest {
     private fun TestScope.subject(
         conversationId: Long = DemoData.DM_PRIYA,
         lobby: Result<String>? = Result.success("https://app.example.test/lobby/11"),
-        prepare: (DemoGraph) -> Unit = {},
         clock: (DemoGraph) -> ChatClock = { testChatClock() },
+        prepare: (DemoGraph) -> Unit = {},
     ): Subject {
         val graph = DemoGraph(backgroundScope)
         prepare(graph)
