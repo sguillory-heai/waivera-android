@@ -23,7 +23,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -39,6 +38,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
@@ -55,6 +55,7 @@ import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Constraints
+import androidx.compose.ui.unit.Dp
 import com.waivera.waivera.core.data.model.Attachment
 import com.waivera.waivera.core.data.model.Message
 import com.waivera.waivera.core.data.model.SendState
@@ -85,64 +86,89 @@ import java.time.Instant
 import java.time.ZoneId
 import kotlin.math.roundToInt
 
-// Reactions ---------------------------------------------------------------------------------
+// Reactions and replies ----------------------------------------------------------------------
 
 /**
- * Reaction pills inside the bubble (03 §13). Tap toggles mine, long press opens the details.
- * When [onToggle] is null (read-only) the pills are inert. Each pill announces emoji, count and
- * whether I reacted, never colour alone (10 §7.4).
+ * The engagement row under a bubble, as on the web: reaction chips first, then "N replies", side
+ * by side, wrapping to another line when they do not fit, and lined up with the bubble's side
+ * ([alignEnd] for mine). Every chip is a soft rounded square ([WaiveraShapes.Chip]) sized from its
+ * text, so it grows evenly with the font instead of clipping or ballooning.
+ *
+ * A reaction chip toggles mine on tap and opens the details on long press (03 §13); when
+ * [onToggle] is null (read-only) the chips are inert. Each one announces emoji, count and whether
+ * I reacted, never colour alone (10 §7.4). The replies chip shows only with [onOpenThread] and a
+ * [replyCount] above 0.
+ *
+ * The chips are drawn at their own size and take their 48dp touch target from Compose's minimum
+ * touch target expansion (ViewConfiguration.minimumTouchTargetSize), so the target never pushes
+ * the row away from the bubble.
  */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-fun ReactionPills(
+fun MessageEngagementRow(
     reactions: List<ReactionSummary>,
     alignEnd: Boolean,
     onToggle: ((String) -> Unit)?,
     onDetails: ((String) -> Unit)?,
     modifier: Modifier = Modifier,
+    replyCount: Int = 0,
+    onOpenThread: (() -> Unit)? = null,
 ) {
     FlowRow(
         modifier = modifier,
         horizontalArrangement = Arrangement.spacedBy(
-            WaiveraSpacing.ExtraSmall,
+            ChatDimens.EngagementGap,
             if (alignEnd) Alignment.End else Alignment.Start,
         ),
-        verticalArrangement = Arrangement.spacedBy(WaiveraSpacing.ExtraSmall),
+        verticalArrangement = Arrangement.spacedBy(ChatDimens.EngagementGap),
+        itemVerticalAlignment = Alignment.CenterVertically,
     ) {
-        reactions.forEach { reaction -> ReactionPill(reaction, onToggle, onDetails) }
+        reactions.forEach { reaction -> ReactionChip(reaction, onToggle, onDetails) }
+        if (onOpenThread != null && replyCount > 0) RepliesChip(count = replyCount, onClick = onOpenThread)
     }
 }
 
+/** The inside of every engagement chip: padded from its text, on the chip shape. */
 @Composable
-private fun ReactionPill(reaction: ReactionSummary, onToggle: ((String) -> Unit)?, onDetails: ((String) -> Unit)?) {
+private fun EngagementChipBody(
+    fill: Color,
+    outline: Color,
+    outlineWidth: Dp,
+    modifier: Modifier = Modifier,
+    content: @Composable () -> Unit,
+) {
+    Row(
+        modifier = modifier
+            .background(fill, WaiveraShapes.Chip)
+            .border(outlineWidth, outline, WaiveraShapes.Chip)
+            .padding(horizontal = ChatDimens.EngagementChipPaddingX, vertical = ChatDimens.EngagementChipPaddingY),
+        horizontalArrangement = Arrangement.spacedBy(WaiveraSpacing.ExtraSmall),
+        verticalAlignment = Alignment.CenterVertically,
+    ) { content() }
+}
+
+@Composable
+private fun ReactionChip(reaction: ReactionSummary, onToggle: ((String) -> Unit)?, onDetails: ((String) -> Unit)?) {
     val colors = WaiveraTheme.colors
     val label = if (reaction.mine) {
         stringResource(R.string.feature_chat_reaction_label_mine, reaction.emoji, reaction.count)
     } else {
         stringResource(R.string.feature_chat_reaction_label, reaction.emoji, reaction.count)
     }
-    // Adding or taking back a reaction, or someone else's landing, pops the pill.
+    // Adding or taking back a reaction, or someone else's landing, pops the chip.
     val pop = rememberPopScale(key = reaction.count to reaction.mine)
     val content = @Composable {
-        Row(
-            modifier = Modifier
-                .popScale(pop)
-                .heightIn(min = ChatDimens.ReactionPillHeight)
-                .background(if (reaction.mine) colors.accentSoft else colors.background, WaiveraShapes.Pill)
-                .border(
-                    if (reaction.mine) WaiveraSizes.SelectedOutline else WaiveraSpacing.Hairline,
-                    if (reaction.mine) colors.accent else colors.border,
-                    WaiveraShapes.Pill,
-                )
-                .padding(horizontal = WaiveraSpacing.Small),
-            horizontalArrangement = Arrangement.spacedBy(WaiveraSpacing.ExtraSmall),
-            verticalAlignment = Alignment.CenterVertically,
+        EngagementChipBody(
+            fill = if (reaction.mine) colors.accentSoft else colors.surface,
+            outline = if (reaction.mine) colors.accent else colors.border,
+            outlineWidth = if (reaction.mine) WaiveraSizes.SelectedOutline else WaiveraSpacing.Hairline,
+            modifier = Modifier.popScale(pop),
         ) {
             Text(text = reaction.emoji, style = MaterialTheme.typography.bodySmall)
             // Always shown, 1 included (UI2-28): a bare emoji reads as decoration, not a count.
             Text(
                 text = reaction.count.toString(),
-                style = MaterialTheme.typography.labelSmall,
+                style = MaterialTheme.typography.labelMedium,
                 fontWeight = if (reaction.mine) FontWeight.SemiBold else null,
                 color = if (reaction.mine) colors.onAccentSoft else colors.textSecondary,
             )
@@ -160,27 +186,55 @@ private fun ReactionPill(reaction: ReactionSummary, onToggle: ((String) -> Unit)
             onClickLabel = toggleLabel,
             onLongClick = details,
             onLongClickLabel = detailsLabel,
-            shape = WaiveraShapes.Pill,
-            // The pill is one spoken label ("thumbs up, 3, you reacted"), so its children are
+            shape = WaiveraShapes.Chip,
+            // The chip is one spoken label ("thumbs up, 3, you reacted"), so its children are
             // cleared. Clearing also drops the clickable's own actions (this modifier comes
             // first), so tap and long press are set again here for TalkBack.
-            modifier = Modifier
-                .minimumInteractiveComponentSize()
-                .clearAndSetSemantics {
-                    contentDescription = label
-                    role = Role.Button
-                    onClick(label = toggleLabel) {
-                        toggle()
+            modifier = Modifier.clearAndSetSemantics {
+                contentDescription = label
+                role = Role.Button
+                onClick(label = toggleLabel) {
+                    toggle()
+                    true
+                }
+                if (details != null) {
+                    onLongClick(label = detailsLabel) {
+                        details()
                         true
                     }
-                    if (details != null) {
-                        onLongClick(label = detailsLabel) {
-                            details()
-                            true
-                        }
-                    }
-                },
-        ) { Box(Modifier.align(Alignment.Center)) { content() } }
+                }
+            },
+        ) { content() }
+    }
+}
+
+/** "1 reply" / "4 replies": opens the thread. The reply icon is decoration; the text is the label. */
+@Composable
+private fun RepliesChip(count: Int, onClick: () -> Unit) {
+    val colors = WaiveraTheme.colors
+    WaiveraPressable(
+        onClick = onClick,
+        onClickLabel = stringResource(R.string.feature_chat_open_thread),
+        shape = WaiveraShapes.Chip,
+    ) {
+        EngagementChipBody(
+            fill = colors.accentWash,
+            outline = colors.accentBorder,
+            outlineWidth = WaiveraSpacing.Hairline,
+        ) {
+            Icon(
+                painterResource(WaiveraIcons.Reply),
+                contentDescription = null,
+                tint = colors.accent,
+                modifier = Modifier.size(WaiveraSizes.IconSmall),
+            )
+            Text(
+                text = pluralStringResource(R.plurals.feature_chat_thread_replies, count, count),
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = FontWeight.SemiBold,
+                color = colors.accent,
+            )
+        }
     }
 }
 

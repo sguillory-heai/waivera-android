@@ -152,31 +152,72 @@ fun MessageRowView(
             .background(rowBackground)
             .then(if (highlighted) Modifier.border(WaiveraSpacing.Hairline, colors.accentBorderStrong) else Modifier),
     ) {
-        Row(
+        Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(
                     start = WaiveraSpacing.Gutter,
                     end = WaiveraSpacing.Gutter,
-                    top = if (row.groupedWithPrevious) WaiveraSpacing.Hairline else WaiveraSpacing.Small,
-                    bottom = if (row.isBot) WaiveraSpacing.Small else WaiveraSpacing.Hairline,
+                    // Half the run gap on each side of a grouped bubble, so a run is held
+                    // together by exactly ChatDimens.RunGap whatever its rows show.
+                    top = if (row.groupedWithPrevious) ChatDimens.RunGap / 2 else WaiveraSpacing.Small,
+                    bottom = if (row.isBot) WaiveraSpacing.Small else ChatDimens.RunGap / 2,
                 ),
-            horizontalArrangement = if (row.isMine) Arrangement.End else Arrangement.Start,
         ) {
-            if (!row.isMine) {
-                AuthorAvatar(row, authorName, callbacks)
-                Spacer(Modifier.width(WaiveraSpacing.Small))
+            // The author line sits above the avatar's row, so the avatar starts level with the
+            // bubble at every font scale. It used to sit beside the line on a fixed 18dp offset,
+            // which in a DM (no author line) pushed the avatar below a one-line bubble and opened
+            // a permanent gap under the first bubble of every incoming run.
+            if (row.startsIncomingRun() && (showAuthorLine || row.isBot)) {
+                AuthorLine(
+                    name = authorName,
+                    isBot = row.isBot,
+                    modifier = Modifier
+                        .padding(start = WaiveraSizes.AvatarSmall + WaiveraSpacing.Small)
+                        .fillMaxWidth(if (row.isBot) 1f else ChatDimens.BUBBLE_MAX_WIDTH_FRACTION),
+                )
             }
-            Column(
-                modifier = Modifier.fillMaxWidth(if (row.isBot) 1f else ChatDimens.BUBBLE_MAX_WIDTH_FRACTION),
-                horizontalAlignment = if (row.isMine) Alignment.End else Alignment.Start,
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = if (row.isMine) Arrangement.End else Arrangement.Start,
             ) {
-                if (row.startsIncomingRun() && (showAuthorLine || row.isBot)) AuthorLine(authorName, row.isBot)
-                Bubble(row, authorName, time, callbacks, arrival)
-                Footer(row, time, timestampVisible, callbacks)
+                if (!row.isMine) {
+                    AuthorAvatar(row, authorName, callbacks)
+                    Spacer(Modifier.width(WaiveraSpacing.Small))
+                }
+                Column(
+                    modifier = Modifier.fillMaxWidth(if (row.isBot) 1f else ChatDimens.BUBBLE_MAX_WIDTH_FRACTION),
+                    horizontalAlignment = if (row.isMine) Alignment.End else Alignment.Start,
+                ) {
+                    Bubble(row, authorName, time, callbacks, arrival)
+                    Engagement(row, callbacks)
+                    Footer(row, time, timestampVisible, callbacks)
+                }
             }
         }
     }
+}
+
+/**
+ * Reactions, then "N replies", side by side under the bubble and on its side (the web's
+ * engagement row), so the bubble only ever holds the message.
+ */
+@Composable
+private fun Engagement(row: TimelineItem.MessageRow, callbacks: MessageRowCallbacks) {
+    val message = row.message
+    val threadRoot = message.navigationRootId?.takeIf { !message.isThreadReply && message.threadReplyCount > 0 }
+    val onOpenThread: (() -> Unit)? = callbacks.onOpenThread?.let { open -> threadRoot?.let { root -> { open(root) } } }
+    val replies = if (onOpenThread != null) message.threadReplyCount else 0
+    if (row.reactions.isEmpty() && replies == 0) return
+    MessageEngagementRow(
+        reactions = row.reactions,
+        replyCount = replies,
+        alignEnd = row.isMine,
+        onToggle = callbacks.onReact?.let { react -> { emoji: String -> react(message.id, emoji) } },
+        onDetails = callbacks.onReactionDetails?.let { details -> { emoji: String -> details(message.id, emoji) } },
+        onOpenThread = onOpenThread,
+        modifier = Modifier.padding(top = ChatDimens.EngagementTop),
+    )
 }
 
 /** The first bubble of someone else's run: where the author line goes. */
@@ -184,7 +225,7 @@ private fun TimelineItem.MessageRow.startsIncomingRun(): Boolean = !isMine && !g
 
 @Composable
 private fun AuthorAvatar(row: TimelineItem.MessageRow, authorName: String, callbacks: MessageRowCallbacks) {
-    Box(Modifier.padding(top = if (row.groupedWithPrevious) 0.dp else ChatDimens.AvatarTopOffset)) {
+    Box {
         if (row.groupedWithPrevious) {
             Spacer(Modifier.size(WaiveraSizes.AvatarSmall))
         } else if (row.isBot) {
@@ -218,10 +259,10 @@ private fun AuthorAvatar(row: TimelineItem.MessageRow, authorName: String, callb
 }
 
 @Composable
-private fun AuthorLine(name: String, isBot: Boolean) {
+private fun AuthorLine(name: String, isBot: Boolean, modifier: Modifier = Modifier) {
     val colors = WaiveraTheme.colors
     Row(
-        modifier = Modifier.padding(bottom = WaiveraSpacing.XxSmall),
+        modifier = modifier.padding(bottom = WaiveraSpacing.XxSmall),
         horizontalArrangement = Arrangement.spacedBy(WaiveraSpacing.ExtraSmall),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -324,7 +365,7 @@ internal fun InMyBubbleColors(inMyBubble: Boolean, content: @Composable () -> Un
     )
 }
 
-/** The bubble's body, attachment, reactions and thread chip, top to bottom. */
+/** The bubble's body and attachment, top to bottom. Reactions and replies sit under it ([Engagement]). */
 @Composable
 private fun BubbleContent(row: TimelineItem.MessageRow, callbacks: MessageRowCallbacks) {
     val message = row.message
@@ -335,21 +376,6 @@ private fun BubbleContent(row: TimelineItem.MessageRow, callbacks: MessageRowCal
         BubbleBody(row, callbacks)
         message.attachment?.let {
             MessageAttachmentView(message, it, onOpen = { callbacks.onOpenAttachment(message) })
-        }
-        if (row.reactions.isNotEmpty()) {
-            ReactionPills(
-                reactions = row.reactions,
-                alignEnd = row.isMine,
-                onToggle = callbacks.onReact?.let { react -> { emoji: String -> react(message.id, emoji) } },
-                onDetails = callbacks.onReactionDetails?.let { details ->
-                    { emoji: String -> details(message.id, emoji) }
-                },
-            )
-        }
-        val threadRoot = message.navigationRootId?.takeIf { !message.isThreadReply && message.threadReplyCount > 0 }
-        val openThread = callbacks.onOpenThread
-        if (openThread != null && threadRoot != null) {
-            ThreadChip(count = message.threadReplyCount, onClick = { openThread(threadRoot) })
         }
     }
 }
@@ -652,38 +678,6 @@ private fun PendingMeta(message: Message, callbacks: MessageRowCallbacks, modifi
                 onEdit = { callbacks.onEditFailed(message) },
                 onRetry = { callbacks.onRetry(clientId) },
                 modifier = Modifier.padding(top = WaiveraSpacing.ExtraSmall),
-            )
-        }
-    }
-}
-
-@Composable
-private fun ThreadChip(count: Int, onClick: () -> Unit) {
-    val colors = WaiveraTheme.colors
-    WaiveraPressable(
-        onClick = onClick,
-        onClickLabel = stringResource(R.string.feature_chat_open_thread),
-        shape = WaiveraShapes.Chip,
-        modifier = Modifier.defaultMinSize(minHeight = WaiveraSpacing.MinTouchTarget),
-    ) {
-        Row(
-            modifier = Modifier
-                .align(Alignment.CenterStart)
-                .background(colors.accentWash, WaiveraShapes.Chip)
-                .padding(horizontal = WaiveraSpacing.Small, vertical = WaiveraSpacing.ExtraSmall),
-            horizontalArrangement = Arrangement.spacedBy(WaiveraSpacing.ExtraSmall),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Icon(
-                painterResource(WaiveraIcons.Reply),
-                contentDescription = null,
-                tint = colors.accent,
-                modifier = Modifier.size(WaiveraSizes.IconSmall),
-            )
-            Text(
-                text = pluralStringResource(R.plurals.feature_chat_thread_replies, count, count),
-                style = MaterialTheme.typography.labelMedium,
-                color = colors.accent,
             )
         }
     }

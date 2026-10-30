@@ -50,11 +50,16 @@ private fun MessageStatesPreview() {
                 highlighted = true,
                 callbacks = MessageRowCallbacks.None,
             )
-            ReactionPills(
-                reactions = listOf(ReactionSummary("👍", 2, mine = true, userIds = listOf("a", "b"))),
+            MessageEngagementRow(
+                reactions = listOf(
+                    ReactionSummary("👍", 2, mine = true, userIds = listOf("a", "b")),
+                    ReactionSummary("🎉", 1, mine = false, userIds = listOf("c")),
+                ),
                 alignEnd = false,
                 onToggle = {},
                 onDetails = {},
+                replyCount = 3,
+                onOpenThread = {},
             )
         }
     }

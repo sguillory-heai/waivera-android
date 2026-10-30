@@ -30,7 +30,7 @@ class ReactionPillSemanticsTest {
         val details = mutableListOf<String>()
         compose.setContent {
             WaiveraTheme {
-                ReactionPills(
+                MessageEngagementRow(
                     reactions = listOf(reaction),
                     alignEnd = false,
                     onToggle = { toggled += it },
@@ -51,7 +51,7 @@ class ReactionPillSemanticsTest {
     fun readOnlyPillHasNoActions() {
         compose.setContent {
             WaiveraTheme {
-                ReactionPills(reactions = listOf(reaction), alignEnd = false, onToggle = null, onDetails = null)
+                MessageEngagementRow(reactions = listOf(reaction), alignEnd = false, onToggle = null, onDetails = null)
             }
         }
         compose.onNodeWithContentDescription("👍, 3")

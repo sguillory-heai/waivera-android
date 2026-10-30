@@ -181,7 +181,7 @@
     <string name="feature_chat_open_image">Open image preview</string>
     <string name="feature_chat_image_unavailable">Image unavailable</string>
     <string name="feature_chat_image_close">Close image preview</string>
-    <string name="feature_chat_image_zoom_hint">Pinch or double-tap to zoom</string>
+    <string name="feature_chat_image_zoom_hint">Pinch or double-tap to zoom. Swipe down to close.</string>
     <string name="feature_chat_file_caption">Tap to save or share</string>
     <string name="feature_chat_file_sheet_message">What would you like to do with this file?</string>
     <string name="feature_chat_file_save">Save to device</string>

@@ -18,14 +18,32 @@ internal object ChatDimens {
     val BubbleGroupedRadius: Dp = 6.dp
     val BubbleMinWidth: Dp = 54.dp
     const val BUBBLE_MAX_WIDTH_FRACTION = 0.82f
+
+    /** Where the skeleton's avatar bone sits: below its author-line bone. */
     val AvatarTopOffset: Dp = 18.dp
+
+    /**
+     * The gap between two bubbles of one run. Half of it pads each side of a grouped row, and a
+     * hidden time line adds nothing to it.
+     */
+    val RunGap: Dp = WaiveraSpacing.XxSmall
     val ImageWidth: Dp = 250.dp
     val ImageHeight: Dp = 190.dp
     val ImageLoadingHeight: Dp = 150.dp
     val ImageRadius: Dp = 13.dp
     val ImageBadge: Dp = 28.dp
     val FileCardWidth: Dp = 250.dp
-    val ReactionPillHeight: Dp = 30.dp
+
+    /**
+     * The engagement row under a bubble (reaction chips, then "N replies"): its distance from the
+     * bubble, and the gap between chips across and between wrapped lines (the web's mt-1, gap-1.5).
+     * Each chip is sized from its text plus [EngagementChipPaddingX] and [EngagementChipPaddingY],
+     * never a fixed height, so it grows cleanly from 85% to 200% font.
+     */
+    val EngagementTop: Dp = WaiveraSpacing.ExtraSmall
+    val EngagementGap: Dp = WaiveraSpacing.ExtraSmall + WaiveraSpacing.XxSmall
+    val EngagementChipPaddingX: Dp = WaiveraSpacing.Small
+    val EngagementChipPaddingY: Dp = WaiveraSpacing.ExtraSmall
     val TypingSlot: Dp = 22.dp
     val ComposerMinHeight: Dp = 48.dp
     val ComposerMaxHeight: Dp = 120.dp
@@ -91,6 +109,16 @@ internal object ChatDimens {
     const val TIME_TICK_MILLIS = 30_000L
 
     const val MAX_ZOOM = 5f
+
+    /**
+     * Swipe down (or up) to close the image preview. Releasing farther than [ImageDismissDistance]
+     * from rest, or flinging faster than [ImageDismissFlingVelocity] per second the way the image
+     * is already going, closes it; anything less springs back. The backdrop fades with the drag
+     * and is fully faded at [ImageDismissFadeDistance].
+     */
+    val ImageDismissDistance: Dp = 120.dp
+    val ImageDismissFlingVelocity: Dp = 1_000.dp
+    val ImageDismissFadeDistance: Dp = 320.dp
     const val DOUBLE_TAP_ZOOM = 2.5f
     const val SKELETON_FRACTIONS_COUNT = 5
 
