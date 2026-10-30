@@ -130,12 +130,19 @@ class MessageEngagementLayoutTest {
         assertTrue("replies $replies is not after the last reaction $last", replies.top >= last.top)
         val columnRight = SMALL_PHONE_WIDTH - WaiveraSpacing.Gutter
         assertTrue("a chip ran past the column", maxOf(last.right, replies.right) <= columnRight)
-        assertEquals(
-            "the second line does not start at the bubble's edge",
-            bubble.left.value,
-            last.left.value.coerceAtMost(replies.left.value),
-            TOLERANCE,
-        )
+        val labels = ChatPolishFixtures.manyReactions.mapIndexed { index, reaction ->
+            val label = "${reaction.emoji}, ${reaction.count}"
+            if (index == 0) "$label, including you" else label
+        }
+        val wrapped = labels.map(::chip).plus(replies).filter { it.top > first.bottom }
+        wrapped.groupBy { it.top }.values.forEach { line ->
+            assertEquals(
+                "a wrapped line does not start at the bubble's edge",
+                bubble.left.value,
+                line.minOf { it.left.value },
+                TOLERANCE,
+            )
+        }
     }
 
     @Test
