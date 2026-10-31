@@ -165,11 +165,8 @@ class AndroidNotifier @Inject constructor(
         // The system can drop a post without telling the app (a blocked channel or conversation);
         // the trace says so, so a tester can tell that from a push that never came.
         main.postDelayed({
-            if (activeChat(message.conversationId) ==
-                null
-            ) {
-                trace.note(PushStep.Gone, null)
-            }
+            val posted = activeChat(message.conversationId) != null
+            noteUndelivered(context, trace, posted, channel.id, shortcutId)
         }, CHECK_DELAY_MILLIS)
         // The system list may not show the post above yet, so its tag is added by hand.
         syncSummary(activeChatTags() + tag)
@@ -330,4 +327,29 @@ private fun NotificationCompat.MessagingStyle.dropOlderPictures() {
             )
         }
     }
+}
+
+/** Notes a chat alert the system dropped or is hiding, with the settings that decide it (numbers only). */
+private fun noteUndelivered(
+    context: Context,
+    trace: PushTrace,
+    posted: Boolean,
+    channelId: String,
+    shortcutId: String?,
+) {
+    val system = context.getSystemService<NotificationManager>() ?: return
+    val step = when {
+        !posted -> PushStep.Gone
+        system.currentInterruptionFilter != NotificationManager.INTERRUPTION_FILTER_ALL -> PushStep.Muted
+        else -> return
+    }
+    val conversationImportance = if (shortcutId != null && Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+        system.getNotificationChannel(channelId, shortcutId)?.importance
+    } else {
+        null
+    }
+    val detail = "channel ${system.getNotificationChannel(channelId)?.importance}, " +
+        "conversation $conversationImportance, dnd ${system.currentInterruptionFilter}, " +
+        "app ${system.areNotificationsEnabled()}"
+    trace.note(step, detail)
 }
