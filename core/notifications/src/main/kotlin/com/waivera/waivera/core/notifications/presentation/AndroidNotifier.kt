@@ -43,6 +43,7 @@ class AndroidNotifier @Inject constructor(
     private val intents = NotificationIntents(context)
     private val shortcuts = ConversationShortcuts(context)
     private val main = Handler(Looper.getMainLooper())
+    private val variants = DebugAlertVariants(context, ::post)
 
     override fun canPost(): Boolean = manager.areNotificationsEnabled() && hasPostPermission()
 
@@ -149,17 +150,22 @@ class AndroidNotifier @Inject constructor(
                 person = sender.takeIf { groupTitle == null },
             )
         }.getOrNull()
-        val notification = chatBuilder(
-            message.conversationId,
-            message.threadRootMessageId,
-            message.messageId,
-            message.target,
-            channel,
-        )
-            .conversationShortcut(shortcutId)
+        val fullBuilder = {
+            chatBuilder(
+                message.conversationId,
+                message.threadRootMessageId,
+                message.messageId,
+                message.target,
+                channel,
+            ).conversationShortcut(shortcutId)
+        }
+        val notification = fullBuilder()
             .setStyle(style)
             .addExtras(extras.toBundle())
             .build()
+        if (variants.isOn()) {
+            variants.post(senderName, text, style, base = { baseBuilder(channel) }, full = fullBuilder)
+        }
         val tag = chatTag(message.conversationId)
         post(tag, notification)
         // The system can drop a post without telling the app (a blocked channel or conversation);
