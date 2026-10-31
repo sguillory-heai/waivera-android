@@ -5,11 +5,24 @@ import android.content.pm.ApplicationInfo
 import android.os.Handler
 import android.os.Looper
 import android.widget.Toast
+import androidx.annotation.StringRes
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
 
 /** Where a push ended up. Steps and details never carry payload text, names or tokens. */
-enum class PushStep { Shown, Hidden, CannotPost, Unusable, Failed, NoToken, Cleared, Gone, Muted, ClearedAll }
+enum class PushStep(@StringRes val text: Int) {
+    Shown(R.string.core_notifications_debug_shown),
+    Hidden(R.string.core_notifications_debug_hidden),
+    CannotPost(R.string.core_notifications_debug_cannot_post),
+    Unusable(R.string.core_notifications_debug_unusable),
+    Failed(R.string.core_notifications_debug_failed),
+    NoToken(R.string.core_notifications_debug_no_token),
+    Cleared(R.string.core_notifications_debug_cleared),
+    Gone(R.string.core_notifications_debug_gone),
+    Muted(R.string.core_notifications_debug_muted),
+    ClearedAll(R.string.core_notifications_debug_cleared_all),
+    Received(R.string.core_notifications_debug_received),
+}
 
 /** Notes each push outcome, so a tester holding the phone can tell where a push stopped. */
 fun interface PushTrace {
@@ -25,18 +38,7 @@ class ToastPushTrace @Inject constructor(@ApplicationContext private val context
 
     override fun note(step: PushStep, detail: String?) {
         if (context.applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE == 0) return
-        val id = when (step) {
-            PushStep.Shown -> R.string.core_notifications_debug_shown
-            PushStep.Hidden -> R.string.core_notifications_debug_hidden
-            PushStep.CannotPost -> R.string.core_notifications_debug_cannot_post
-            PushStep.Unusable -> R.string.core_notifications_debug_unusable
-            PushStep.Failed -> R.string.core_notifications_debug_failed
-            PushStep.NoToken -> R.string.core_notifications_debug_no_token
-            PushStep.Cleared -> R.string.core_notifications_debug_cleared
-            PushStep.Gone -> R.string.core_notifications_debug_gone
-            PushStep.Muted -> R.string.core_notifications_debug_muted
-            PushStep.ClearedAll -> R.string.core_notifications_debug_cleared_all
-        }
+        val id = step.text
         val text = if (detail == null) context.getString(id) else context.getString(id, detail)
         synchronized(recent) {
             recent.addLast("${java.time.LocalTime.now().withNano(0)}  $text")

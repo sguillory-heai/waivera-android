@@ -49,8 +49,11 @@ class PushMessageHandlerTest {
         handler.handle(mapOf("type" to "chat"))
         assertEquals(
             listOf(PushStep.Shown to null, PushStep.Hidden to "SignedOut", PushStep.Unusable to null),
-            notes,
+            notes.filter { it.first != PushStep.Received },
         )
+        assertEquals(3, notes.count { it.first == PushStep.Received }, "every payload is noted as it arrives")
+        val received = notes.first { it.first == PushStep.Received }.second.orEmpty()
+        assertTrue("keys [" in received && "Chat" in received, received)
     }
 
     @Test

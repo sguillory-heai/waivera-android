@@ -43,4 +43,5 @@
     <string name="core_notifications_debug_muted" translatable="false">Debug: chat alert posted, but Do Not Disturb or a mode is hiding it (%1$s)</string>
     <string name="core_notifications_debug_variant" translatable="false">Test %1$s</string>
     <string name="core_notifications_debug_cleared_all" translatable="false">Debug: every Waivera notification was cleared (sign-out path)</string>
+    <string name="core_notifications_debug_received" translatable="false">Debug: push received (%1$s)</string>
 </resources>

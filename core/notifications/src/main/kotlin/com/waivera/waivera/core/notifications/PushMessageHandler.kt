@@ -41,7 +41,9 @@ class PushMessageHandler @Inject constructor(
         notificationTitle: String? = null,
         notificationBody: String? = null,
     ): PresentationDecision? {
-        val parsed = PushPayloadParser.parse(data, notificationTitle, notificationBody) ?: return unusable()
+        val parsed = PushPayloadParser.parse(data, notificationTitle, notificationBody)
+            .also { trace.note(PushStep.Received, receivedDetail(data, notificationTitle != null, it)) }
+            ?: return unusable()
         if (!session.allowsNotifications()) {
             trace.note(PushStep.Hidden, PresentationDecision.SuppressReason.SignedOut.name)
             return PresentationDecision.Suppress(PresentationDecision.SuppressReason.SignedOut)
@@ -65,6 +67,13 @@ class PushMessageHandler @Inject constructor(
             decision is PresentationDecision.Show -> show(message, decision.channel, conversation)
         }
         return decision
+    }
+
+    /** Key names, which fields are present and the parsed kind; never a value. */
+    private fun receivedDetail(data: Map<String, String>, hasNotificationBlock: Boolean, parsed: PushMessage?): String {
+        val kind = parsed?.let { it::class.simpleName } ?: "none"
+        val text = parsed?.let { "title ${it.title != null}, body ${it.body != null}" } ?: "no message"
+        return "keys ${data.keys.sorted()}, notification block $hasNotificationBlock, $kind, $text"
     }
 
     private fun unusable(): PresentationDecision? {
