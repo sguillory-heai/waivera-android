@@ -14,6 +14,17 @@
                 <action android:name="com.waivera.waivera.DEBUG_PUSH" />
             </intent-filter>
         </receiver>
+        <!-- Debug builds only: a second launcher entry testers use to check notifications without adb. -->
+        <activity
+            android:name=".debug.PushTestActivity"
+            android:exported="true"
+            android:label="@string/core_notifications_debug_launcher"
+            android:taskAffinity="com.waivera.waivera.pushtest">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
     </application>
 
 </manifest>

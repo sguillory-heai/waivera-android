@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="core_notifications_debug_launcher" translatable="false">Waivera push test</string>
+    <string name="core_notifications_debug_post_test" translatable="false">Post a test notification</string>
+    <string name="core_notifications_debug_refresh" translatable="false">Refresh</string>
+    <string name="core_notifications_debug_test_title" translatable="false">Waivera test %1$d</string>
+    <string name="core_notifications_debug_test_text" translatable="false">If you can read this in the drawer, plain notifications work.</string>
+    <string name="core_notifications_debug_post_failed" translatable="false">Posting failed: %1$s</string>
+    <dimen name="core_notifications_debug_padding">16dp</dimen>
+</resources>

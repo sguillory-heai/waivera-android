@@ -9,7 +9,7 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
 
 /** Where a push ended up. Steps and details never carry payload text, names or tokens. */
-enum class PushStep { Shown, Hidden, CannotPost, Unusable, Failed, NoToken, Cleared, Gone, Muted }
+enum class PushStep { Shown, Hidden, CannotPost, Unusable, Failed, NoToken, Cleared, Gone, Muted, ClearedAll }
 
 /** Notes each push outcome, so a tester holding the phone can tell where a push stopped. */
 fun interface PushTrace {
@@ -35,8 +35,21 @@ class ToastPushTrace @Inject constructor(@ApplicationContext private val context
             PushStep.Cleared -> R.string.core_notifications_debug_cleared
             PushStep.Gone -> R.string.core_notifications_debug_gone
             PushStep.Muted -> R.string.core_notifications_debug_muted
+            PushStep.ClearedAll -> R.string.core_notifications_debug_cleared_all
         }
         val text = if (detail == null) context.getString(id) else context.getString(id, detail)
+        synchronized(recent) {
+            recent.addLast("${java.time.LocalTime.now().withNano(0)}  $text")
+            while (recent.size > MAX_RECENT) recent.removeFirst()
+        }
         main.post { Toast.makeText(context, text, Toast.LENGTH_LONG).show() }
+    }
+
+    companion object {
+        private const val MAX_RECENT = 40
+        private val recent = ArrayDeque<String>()
+
+        /** The latest notes, oldest first, for the debug push test screen; empty in release builds. */
+        fun recentNotes(): List<String> = synchronized(recent) { recent.toList() }
     }
 }

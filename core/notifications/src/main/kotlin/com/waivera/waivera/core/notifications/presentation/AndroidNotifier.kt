@@ -106,6 +106,7 @@ class AndroidNotifier @Inject constructor(
     }
 
     override fun cancelAll() {
+        if (activeChatTags().isNotEmpty()) trace.note(PushStep.ClearedAll, null)
         manager.cancelAll()
         runCatching { shortcuts.removeAll() }
     }
