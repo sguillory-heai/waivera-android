@@ -26,6 +26,14 @@ class PushPayloadParserTest {
     }
 
     @Test
+    fun `a push without any type but with a conversation is shown as a chat`() {
+        val chat =
+            assertIs<PushMessage.Chat>(PushPayloadParser.parse(mapOf("conversationId" to "7", "messageId" to "8")))
+        assertEquals(7L, chat.conversationId)
+        assertNull(chat.title)
+    }
+
+    @Test
     fun `data-only map parses the same as the full request body`() {
         assertEquals(parse("push-chat-message-android.json"), parse("push-chat-message-android-data.json"))
     }

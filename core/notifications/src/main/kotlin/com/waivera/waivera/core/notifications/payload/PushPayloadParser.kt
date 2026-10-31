@@ -34,6 +34,10 @@ object PushPayloadParser {
                 else -> PushMessage.Unknown(type = type, title = title, body = body)
             }
         }
+        return parseLegacy(fields, title, body)
+    }
+
+    private fun parseLegacy(fields: CaseInsensitiveFields, title: String?, body: String?): PushMessage? {
         val legacyType = fields["NotificationType"]
         return when (legacyType?.lowercase()) {
             LEGACY_MEETING -> PushMessage.Meeting(
@@ -53,6 +57,12 @@ object PushPayloadParser {
                 title = title ?: fields["MainTitle"],
                 body = body,
             )
+            // No type at all but a conversation to open: show it as a chat rather than drop it.
+            null -> if (DeepLinkUris.positiveId(fields["conversationId"]) != null) {
+                parseChat(fields, title, body)
+            } else {
+                PushMessage.Unknown(type = null, title = title, body = body)
+            }
             else -> PushMessage.Unknown(type = legacyType, title = title, body = body)
         }
     }
