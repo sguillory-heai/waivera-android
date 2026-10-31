@@ -29,7 +29,8 @@ import org.robolectric.annotation.Config
 class AndroidNotifierTest {
     private val context: Application = RuntimeEnvironment.getApplication()
     private val manager = context.getSystemService(NotificationManager::class.java)
-    private val notifier = AndroidNotifier(context)
+    private val notes = mutableListOf<PushStep>()
+    private val notifier = AndroidNotifier(context) { step, _ -> notes += step }
 
     private fun chat(messageId: Long, body: String, conversationId: Long = 7) = PushMessage.Chat(
         conversationId = conversationId,
@@ -138,6 +139,14 @@ class AndroidNotifierTest {
         val style =
             assertNotNull(NotificationCompat.MessagingStyle.extractMessagingStyleFromNotification(postedChat(7)))
         assertEquals(listOf(false, false, true), style.messages.map { it.person?.icon != null })
+    }
+
+    @Test
+    fun `clearing a showing chat alert is traced, clearing nothing is not`() {
+        notifier.cancelConversation(7)
+        notifier.show(chat(1, "hi"), WaiveraChannel.Messages, null)
+        notifier.cancelConversation(7)
+        assertEquals(listOf(PushStep.Cleared), notes)
     }
 
     @Test

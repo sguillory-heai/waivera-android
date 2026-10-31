@@ -9,7 +9,7 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
 
 /** Where a push ended up. Steps and details never carry payload text, names or tokens. */
-enum class PushStep { Shown, Hidden, CannotPost, Unusable, Failed, NoToken }
+enum class PushStep { Shown, Hidden, CannotPost, Unusable, Failed, NoToken, Cleared, Gone }
 
 /** Notes each push outcome, so a tester holding the phone can tell where a push stopped. */
 fun interface PushTrace {
@@ -32,6 +32,8 @@ class ToastPushTrace @Inject constructor(@ApplicationContext private val context
             PushStep.Unusable -> R.string.core_notifications_debug_unusable
             PushStep.Failed -> R.string.core_notifications_debug_failed
             PushStep.NoToken -> R.string.core_notifications_debug_no_token
+            PushStep.Cleared -> R.string.core_notifications_debug_cleared
+            PushStep.Gone -> R.string.core_notifications_debug_gone
         }
         val text = if (detail == null) context.getString(id) else context.getString(id, detail)
         main.post { Toast.makeText(context, text, Toast.LENGTH_LONG).show() }

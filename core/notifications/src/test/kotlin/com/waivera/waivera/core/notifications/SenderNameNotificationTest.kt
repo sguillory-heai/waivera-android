@@ -33,7 +33,7 @@ import org.robolectric.annotation.Config
 class SenderNameNotificationTest {
     private val context: Application = RuntimeEnvironment.getApplication()
     private val manager = context.getSystemService(NotificationManager::class.java)
-    private val notifier = AndroidNotifier(context)
+    private val notifier = AndroidNotifier(context) { _, _ -> }
 
     @Before
     fun setUp() {

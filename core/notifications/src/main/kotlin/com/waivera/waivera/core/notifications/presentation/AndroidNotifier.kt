@@ -6,12 +6,16 @@ import android.app.NotificationManager
 import android.content.Context
 import android.content.pm.PackageManager
 import android.os.Build
+import android.os.Handler
+import android.os.Looper
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.app.Person
 import androidx.core.content.ContextCompat
 import androidx.core.content.LocusIdCompat
 import androidx.core.content.getSystemService
+import com.waivera.waivera.core.notifications.PushStep
+import com.waivera.waivera.core.notifications.PushTrace
 import com.waivera.waivera.core.notifications.R
 import com.waivera.waivera.core.notifications.channel.WaiveraChannel
 import com.waivera.waivera.core.notifications.deeplink.DeepLinkTarget
@@ -31,10 +35,14 @@ import javax.inject.Singleton
  * show a public version without sender or text when the lock screen hides sensitive content.
  */
 @Singleton
-class AndroidNotifier @Inject constructor(@ApplicationContext private val context: Context) : Notifier {
+class AndroidNotifier @Inject constructor(
+    @ApplicationContext private val context: Context,
+    private val trace: PushTrace,
+) : Notifier {
     private val manager = NotificationManagerCompat.from(context)
     private val intents = NotificationIntents(context)
     private val shortcuts = ConversationShortcuts(context)
+    private val main = Handler(Looper.getMainLooper())
 
     override fun canPost(): Boolean = manager.areNotificationsEnabled() && hasPostPermission()
 
@@ -89,6 +97,7 @@ class AndroidNotifier @Inject constructor(@ApplicationContext private val contex
 
     override fun cancelConversation(conversationId: Long) {
         val tag = chatTag(conversationId)
+        if (activeChat(conversationId) != null) trace.note(PushStep.Cleared, null)
         manager.cancel(tag, NOTIFICATION_ID)
         // The system list can still hold the notification just cancelled, so it is left out by
         // tag; counting it once left the summary behind as a bare "Waivera" notification.
@@ -153,6 +162,15 @@ class AndroidNotifier @Inject constructor(@ApplicationContext private val contex
             .build()
         val tag = chatTag(message.conversationId)
         post(tag, notification)
+        // The system can drop a post without telling the app (a blocked channel or conversation);
+        // the trace says so, so a tester can tell that from a push that never came.
+        main.postDelayed({
+            if (activeChat(message.conversationId) ==
+                null
+            ) {
+                trace.note(PushStep.Gone, null)
+            }
+        }, CHECK_DELAY_MILLIS)
         // The system list may not show the post above yet, so its tag is added by hand.
         syncSummary(activeChatTags() + tag)
     }
@@ -266,6 +284,7 @@ class AndroidNotifier @Inject constructor(@ApplicationContext private val contex
         const val CHAT_GROUP = "com.waivera.waivera.CHAT"
         const val MAX_MESSAGES = 7
         private const val MIN_FOR_SUMMARY = 2
+        private const val CHECK_DELAY_MILLIS = 1_500L
         internal const val NOTIFICATION_ID = 1
         internal const val CHAT_TAG_PREFIX = "chat:"
         internal const val GENERIC_TAG_PREFIX = "push:"

@@ -38,4 +38,6 @@
     <string name="core_notifications_debug_unusable" translatable="false">Debug: push arrived without a chat to open</string>
     <string name="core_notifications_debug_failed" translatable="false">Debug: push arrived, but the notification failed (%1$s)</string>
     <string name="core_notifications_debug_no_token" translatable="false">Debug: no push token from Firebase</string>
+    <string name="core_notifications_debug_cleared" translatable="false">Debug: chat alert cleared (chat read or opened)</string>
+    <string name="core_notifications_debug_gone" translatable="false">Debug: chat alert was posted but is not in the shade</string>
 </resources>
