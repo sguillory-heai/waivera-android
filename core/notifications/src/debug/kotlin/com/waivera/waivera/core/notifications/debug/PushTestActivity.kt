@@ -1,8 +1,10 @@
 package com.waivera.waivera.core.notifications.debug
 
+import android.Manifest
 import android.annotation.SuppressLint
 import android.app.Activity
 import android.app.NotificationManager
+import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
 import android.widget.Button
@@ -11,6 +13,7 @@ import android.widget.ScrollView
 import android.widget.TextView
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
+import androidx.core.content.ContextCompat
 import androidx.core.content.getSystemService
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
@@ -62,6 +65,17 @@ class PushTestActivity : Activity() {
     }
 
     private fun postTest() {
+        // Without the permission the system drops the post silently, so say so instead.
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+            ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) !=
+            PackageManager.PERMISSION_GRANTED
+        ) {
+            report.text = getString(
+                R.string.core_notifications_debug_post_failed,
+                Manifest.permission.POST_NOTIFICATIONS,
+            )
+            return
+        }
         testCount += 1
         val notification = NotificationCompat.Builder(this, WaiveraChannel.Messages.id)
             .setSmallIcon(R.drawable.core_notifications_ic_notification)
