@@ -20,6 +20,10 @@ import androidx.core.view.WindowInsetsCompat
 import com.waivera.waivera.core.notifications.R
 import com.waivera.waivera.core.notifications.ToastPushTrace
 import com.waivera.waivera.core.notifications.channel.WaiveraChannel
+import com.waivera.waivera.core.notifications.di.NotificationsEntryPoint
+import dagger.hilt.android.EntryPointAccessors
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 /**
  * Debug builds only: a second launcher entry ("Waivera push test") for testers without adb. It
@@ -30,6 +34,7 @@ import com.waivera.waivera.core.notifications.channel.WaiveraChannel
 class PushTestActivity : Activity() {
     private lateinit var report: TextView
     private var testCount = 0
+    private var simulated = 0
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -39,6 +44,14 @@ class PushTestActivity : Activity() {
             text = getString(R.string.core_notifications_debug_post_test)
             setOnClickListener { postTest() }
         }
+        val simulate = Button(this).apply {
+            text = getString(R.string.core_notifications_debug_simulate_now)
+            setOnClickListener { simulateChatPush(delayMillis = 0) }
+        }
+        val simulateLater = Button(this).apply {
+            text = getString(R.string.core_notifications_debug_simulate_later)
+            setOnClickListener { simulateChatPush(delayMillis = BACKGROUND_DELAY_MILLIS) }
+        }
         val refresh = Button(this).apply {
             text = getString(R.string.core_notifications_debug_refresh)
             setOnClickListener { render() }
@@ -47,6 +60,8 @@ class PushTestActivity : Activity() {
             orientation = LinearLayout.VERTICAL
             setPadding(padding, padding, padding, padding)
             addView(post)
+            addView(simulate)
+            addView(simulateLater)
             addView(refresh)
             addView(report)
         }
@@ -87,6 +102,28 @@ class PushTestActivity : Activity() {
         report.postDelayed({ render() }, RENDER_DELAY_MILLIS)
     }
 
+    /**
+     * Runs a made-up chat push through the real push handler, the same path an FCM message takes,
+     * so a tester can compare it with the plain test and, after a delay, with the app in the
+     * background. The conversation id is fake; nothing reaches the server.
+     */
+    private fun simulateChatPush(delayMillis: Long) {
+        simulated += 1
+        val data = mapOf(
+            "type" to "chat",
+            "conversationId" to SIMULATED_CONVERSATION_ID.toString(),
+            "messageId" to (SIMULATED_MESSAGE_BASE + simulated).toString(),
+            "title" to getString(R.string.core_notifications_debug_simulated_sender),
+            "body" to getString(R.string.core_notifications_debug_simulated_body, simulated),
+        )
+        val entryPoint = EntryPointAccessors.fromApplication(applicationContext, NotificationsEntryPoint::class.java)
+        entryPoint.scope().launch {
+            delay(delayMillis)
+            entryPoint.pushHandler().handle(data)
+        }
+        report.postDelayed({ render() }, delayMillis + RENDER_DELAY_MILLIS)
+    }
+
     // A diagnostic report read by developers, not product copy.
     @SuppressLint("SetTextI18n")
     private fun render() {
@@ -115,5 +152,8 @@ class PushTestActivity : Activity() {
     private companion object {
         const val TEST_TAG = "debug-test"
         const val RENDER_DELAY_MILLIS = 1_000L
+        const val BACKGROUND_DELAY_MILLIS = 10_000L
+        const val SIMULATED_CONVERSATION_ID = 999_999L
+        const val SIMULATED_MESSAGE_BASE = 900_000_000L
     }
 }

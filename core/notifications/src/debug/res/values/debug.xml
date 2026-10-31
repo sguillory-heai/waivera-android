@@ -6,5 +6,9 @@
     <string name="core_notifications_debug_test_title" translatable="false">Waivera test %1$d</string>
     <string name="core_notifications_debug_test_text" translatable="false">If you can read this in the drawer, plain notifications work.</string>
     <string name="core_notifications_debug_post_failed" translatable="false">Posting failed: %1$s</string>
+    <string name="core_notifications_debug_simulate_now" translatable="false">Simulate a chat push now</string>
+    <string name="core_notifications_debug_simulate_later" translatable="false">Simulate a chat push in 10 s (then press Home)</string>
+    <string name="core_notifications_debug_simulated_sender" translatable="false">Test Sender</string>
+    <string name="core_notifications_debug_simulated_body" translatable="false">Simulated chat message %1$d</string>
     <dimen name="core_notifications_debug_padding">16dp</dimen>
 </resources>
