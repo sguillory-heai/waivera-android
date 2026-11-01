@@ -86,9 +86,11 @@ object PushPayloadParser {
 
     /** Legacy payloads send empty strings for absent values; treat blank as absent. */
     private class CaseInsensitiveFields(data: Map<String, String>) {
-        private val values: Map<String, String> = data.entries
-            .filter { it.value.isNotBlank() }
-            .associate { it.key.lowercase() to it.value.trim() }
+        // Read each key and value while iterating: FCM hands over an android.util.ArrayMap whose
+        // entry iterator reuses one entry object, so keeping entries leaves only the last field.
+        private val values: Map<String, String> = buildMap {
+            data.forEach { (key, value) -> if (value.isNotBlank()) put(key.lowercase(), value.trim()) }
+        }
 
         operator fun get(key: String): String? = values[key.lowercase()]
     }

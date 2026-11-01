@@ -74,7 +74,7 @@ class PushMessageHandler @Inject constructor(
         val kind = parsed?.let { it::class.simpleName } ?: "none"
         val text = parsed?.let { "title ${it.title != null}, body ${it.body != null}" } ?: "no message"
         // Lengths only, plus the type when it is a short code word: enough to tell blank from set.
-        val lengths = data.entries.sortedBy { it.key }.joinToString { "${it.key} ${it.value.length}" }
+        val lengths = data.toSortedMap().map { (key, value) -> "$key ${value.length}" }.joinToString()
         val type = data.entries.firstOrNull { it.key.equals("type", ignoreCase = true) }?.value
             ?.takeIf { it.length <= TYPE_PREVIEW_MAX && it.all { c -> c.isLetter() || c == '_' || c == '-' } }
         return "keys ${data.keys.sorted()}, lengths [$lengths], type '$type', " +

@@ -17,7 +17,8 @@ class WaiveraMessagingService : FirebaseMessagingService() {
     }
 
     override fun onMessageReceived(message: RemoteMessage) {
-        val data = message.data
+        // Copy now: the ArrayMap FCM returns is not safe to iterate lazily or from another thread.
+        val data = HashMap(message.data)
         val title = message.notification?.title
         val body = message.notification?.body
         entryPoint.scope().launch { entryPoint.pushHandler().handle(data, title, body) }

@@ -34,6 +34,48 @@ class PushPayloadParserTest {
     }
 
     @Test
+    fun `a map whose iterator reuses one entry object still parses every field`() {
+        val chat = assertIs<PushMessage.Chat>(
+            PushPayloadParser.parse(
+                ReusedEntryMap(
+                    listOf(
+                        "type" to "chat",
+                        "conversationId" to "7",
+                        "title" to "Alex",
+                        "body" to "hi",
+                        "channelId" to "c",
+                    ),
+                ),
+            ),
+        )
+        assertEquals(7L, chat.conversationId)
+        assertEquals("Alex", chat.title)
+        assertEquals("hi", chat.body)
+    }
+
+    /** Mirrors android.util.ArrayMap, whose entry iterator hands back the same mutable entry each step. */
+    private class ReusedEntryMap(private val pairs: List<Pair<String, String>>) : AbstractMap<String, String>() {
+        override val entries: Set<Map.Entry<String, String>> = object : AbstractSet<Map.Entry<String, String>>() {
+            override val size get() = pairs.size
+
+            override fun iterator(): Iterator<Map.Entry<String, String>> =
+                object : Iterator<Map.Entry<String, String>>, Map.Entry<String, String> {
+                    private var index = -1
+                    override val key get() = pairs[index].first
+                    override val value get() = pairs[index].second
+
+                    override fun hasNext() = index + 1 < pairs.size
+
+                    override fun next(): Map.Entry<String, String> {
+                        if (!hasNext()) throw NoSuchElementException()
+                        index++
+                        return this
+                    }
+                }
+        }
+    }
+
+    @Test
     fun `data-only map parses the same as the full request body`() {
         assertEquals(parse("push-chat-message-android.json"), parse("push-chat-message-android-data.json"))
     }
