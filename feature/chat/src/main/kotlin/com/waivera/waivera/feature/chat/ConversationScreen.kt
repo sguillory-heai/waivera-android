@@ -10,6 +10,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
+import androidx.compose.foundation.interaction.DragInteraction
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.WindowInsets
@@ -234,7 +235,13 @@ fun ConversationScreen(
             messageFor = viewModel::message,
             listState = listState,
             snackbarHostState = snackbarHostState,
-            onJumpToLatest = { scope.launch { listState.animateScrollToItem(0) } },
+            onJumpToLatest = {
+                scope.launch {
+                    listState.animateScrollToItem(0)
+                    // The animation's last step can land short of the newest row; snap the rest.
+                    listState.scrollToItem(0)
+                }
+            },
             modifier = modifier,
         )
     }
@@ -492,7 +499,14 @@ private fun MessageList(
             listState.firstVisibleItemIndex > 0 || listState.firstVisibleItemScrollOffset > jumpThresholdPx
         }
     }
-    val showJump = scrolledAway && onJumpToLatest != null
+    // A tap hides the pill at once: the animated scroll can settle a few pixels short of the
+    // threshold, which left it showing until the next drag. A drag of the person's own clears it.
+    var jumping by remember { mutableStateOf(false) }
+    LaunchedEffect(scrolledAway) { if (!scrolledAway) jumping = false }
+    LaunchedEffect(listState) {
+        listState.interactionSource.interactions.collect { if (it is DragInteraction.Start) jumping = false }
+    }
+    val showJump = scrolledAway && onJumpToLatest != null && !jumping
 
     HideKeyboardOnDrag(listState)
     val listMotion = rememberListMotion(newestFirst, actions.rows, state.sheet)
@@ -579,7 +593,12 @@ private fun MessageList(
             enter = slideInVertically(motion.layout()) { it } + fadeIn(motion.state()),
             exit = slideOutVertically(motion.layout()) { it } + fadeOut(motion.state()),
         ) {
-            JumpToLatestPill(onClick = { onJumpToLatest?.invoke() })
+            JumpToLatestPill(
+                onClick = {
+                    jumping = true
+                    onJumpToLatest?.invoke()
+                },
+            )
         }
     }
 }

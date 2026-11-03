@@ -271,7 +271,13 @@ private fun IconBesideText(icon: @Composable () -> Unit, text: @Composable () ->
 // Attachments -------------------------------------------------------------------------------
 
 @Composable
-fun MessageAttachmentView(message: Message, attachment: Attachment, onOpen: () -> Unit, modifier: Modifier = Modifier) {
+fun MessageAttachmentView(
+    message: Message,
+    attachment: Attachment,
+    onOpen: () -> Unit,
+    modifier: Modifier = Modifier,
+    onLongPress: (() -> Unit)? = null,
+) {
     when {
         attachment.isBlocked -> AttachmentNotice(
             R.string.feature_chat_attachment_blocked,
@@ -280,8 +286,8 @@ fun MessageAttachmentView(message: Message, attachment: Attachment, onOpen: () -
         )
         attachment.isPending && !message.isPending ->
             AttachmentNotice(R.string.feature_chat_attachment_scanning, WaiveraIcons.Info, modifier)
-        Attachments.isImage(attachment) -> ImageAttachment(message, onOpen, modifier)
-        else -> FileAttachment(message, attachment, onOpen, modifier)
+        Attachments.isImage(attachment) -> ImageAttachment(message, onOpen, onLongPress, modifier)
+        else -> FileAttachment(message, attachment, onOpen, onLongPress, modifier)
     }
     if (message.isPending) UploadState(message.sendState, message.uploadProgress)
 }
@@ -332,7 +338,7 @@ private fun UploadState(state: SendState, progress: Float?) {
 }
 
 @Composable
-private fun ImageAttachment(message: Message, onOpen: () -> Unit, modifier: Modifier) {
+private fun ImageAttachment(message: Message, onOpen: () -> Unit, onLongPress: (() -> Unit)?, modifier: Modifier) {
     val colors = WaiveraTheme.colors
     val maxPx = with(LocalDensity.current) { ChatDimens.ImageWidth.roundToPx() * 2 }
     val model = LocalChatImages.current.attachmentModel(message)
@@ -352,6 +358,8 @@ private fun ImageAttachment(message: Message, onOpen: () -> Unit, modifier: Modi
             depth = PressDepth.Card,
             onClick = onOpen,
             onClickLabel = stringResource(R.string.feature_chat_open_image),
+            onLongClick = onLongPress,
+            onLongClickLabel = onLongPress?.let { stringResource(R.string.feature_chat_open_actions) },
             shape = ChatDimens.ImageShape,
             modifier = modifier.semantics { contentDescription = message.attachment?.originalName ?: "" },
         ) {
@@ -406,7 +414,13 @@ private fun AttachmentNotice(text: Int, icon: Int, modifier: Modifier) {
 }
 
 @Composable
-private fun FileAttachment(message: Message, attachment: Attachment, onOpen: () -> Unit, modifier: Modifier) {
+private fun FileAttachment(
+    message: Message,
+    attachment: Attachment,
+    onOpen: () -> Unit,
+    onLongPress: (() -> Unit)?,
+    modifier: Modifier,
+) {
     val colors = WaiveraTheme.colors
     val name = Attachments.fileName(attachment, message.id)
     val icon = when (Attachments.kind(attachment, message.id)) {
@@ -419,6 +433,8 @@ private fun FileAttachment(message: Message, attachment: Attachment, onOpen: () 
         onClick = onOpen,
         enabled = !message.isPending,
         onClickLabel = stringResource(R.string.feature_chat_file_caption),
+        onLongClick = onLongPress,
+        onLongClickLabel = onLongPress?.let { stringResource(R.string.feature_chat_open_actions) },
         shape = WaiveraShapes.Card,
         modifier = modifier.widthIn(max = ChatDimens.FileCardWidth),
     ) {

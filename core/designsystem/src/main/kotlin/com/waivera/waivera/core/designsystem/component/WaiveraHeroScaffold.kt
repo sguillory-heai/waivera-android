@@ -3,6 +3,7 @@ package com.waivera.waivera.core.designsystem.component
 import android.app.Activity
 import android.content.Context
 import android.content.ContextWrapper
+import android.view.Window
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -48,6 +49,7 @@ import com.waivera.waivera.core.designsystem.theme.WaiveraSpacing
 import com.waivera.waivera.core.designsystem.theme.WaiveraTextStyles
 import com.waivera.waivera.core.designsystem.theme.WaiveraTheme
 import com.waivera.waivera.core.designsystem.theme.isShortWindow
+import java.util.WeakHashMap
 
 /**
  * The top of a tab screen in concept A: the full-bleed plum hero (drawn behind the status bar)
@@ -190,6 +192,10 @@ private fun heroCardArrangement(compact: Boolean): Arrangement.Vertical =
  * Light status bar icons while the caller is composed, restored to the theme's when it leaves.
  * The app sets dark icons in the light theme, which vanish on the plum hero. In previews and
  * screenshot tests there is no activity window, so it does nothing.
+ *
+ * Callers are counted per window: going from one hero screen to another, the new screen asks
+ * before the old one leaves, and the old one's restore used to turn the icons dark on the new
+ * hero. The theme's icons come back only when the last caller leaves.
  */
 @Composable
 fun LightStatusBarIcons() {
@@ -199,10 +205,23 @@ fun LightStatusBarIcons() {
     DisposableEffect(view, dark) {
         val window = view.context.findActivity()?.window
         val controller = window?.let { WindowCompat.getInsetsController(it, view) }
+        if (window != null) lightIconRequests[window] = (lightIconRequests[window] ?: 0) + 1
         controller?.isAppearanceLightStatusBars = false
-        onDispose { controller?.isAppearanceLightStatusBars = !dark }
+        onDispose {
+            if (window == null) return@onDispose
+            val left = (lightIconRequests[window] ?: 1) - 1
+            if (left > 0) {
+                lightIconRequests[window] = left
+            } else {
+                lightIconRequests.remove(window)
+                controller?.isAppearanceLightStatusBars = !dark
+            }
+        }
     }
 }
+
+/** Composed [LightStatusBarIcons] callers per window; read and written on the main thread only. */
+private val lightIconRequests = WeakHashMap<Window, Int>()
 
 private tailrec fun Context.findActivity(): Activity? = when (this) {
     is Activity -> this

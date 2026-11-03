@@ -475,8 +475,8 @@ private fun CallJoinButton(onJoin: () -> Unit, modifier: Modifier = Modifier) {
 private const val CALL_BANNER_STACK_FONT_SCALE = 1.3f
 
 /**
- * Floats over the timeline, so it is lifted off the bubbles with a shadow and a strong border:
- * in dark mode a flat surface pill had almost the same value as an incoming bubble (UI3-03).
+ * Floats over the timeline as a solid violet pill with a shadow, which sets it apart from the
+ * bubbles in both themes without the hard outline it once had (UI3-03, device review 2026-11-03).
  */
 @Composable
 fun JumpToLatestPill(onClick: () -> Unit, modifier: Modifier = Modifier) {
@@ -490,8 +490,7 @@ fun JumpToLatestPill(onClick: () -> Unit, modifier: Modifier = Modifier) {
             modifier = Modifier
                 .align(Alignment.Center)
                 .shadow(WaiveraElevation.Level3, WaiveraShapes.Pill)
-                .background(colors.surface, WaiveraShapes.Pill)
-                .border(WaiveraSpacing.Hairline, colors.borderStrong, WaiveraShapes.Pill)
+                .background(colors.accent, WaiveraShapes.Pill)
                 .padding(horizontal = WaiveraSpacing.MediumSmall, vertical = WaiveraSpacing.Small),
             horizontalArrangement = Arrangement.spacedBy(WaiveraSpacing.ExtraSmall),
             verticalAlignment = Alignment.CenterVertically,
@@ -499,13 +498,13 @@ fun JumpToLatestPill(onClick: () -> Unit, modifier: Modifier = Modifier) {
             Icon(
                 painterResource(ChatIcons.ChevronDown),
                 contentDescription = null,
-                tint = colors.accent,
+                tint = colors.onAccent,
                 modifier = Modifier.size(WaiveraSizes.IconSmall),
             )
             Text(
                 text = stringResource(R.string.feature_chat_jump_to_latest),
                 style = MaterialTheme.typography.labelLarge,
-                color = colors.accent,
+                color = colors.onAccent,
             )
         }
     }

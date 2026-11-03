@@ -304,17 +304,20 @@ private fun Bubble(
     val anchors = LocalMessageFocusAnchors.current
     val view = LocalView.current
     val anchor = remember { AnchorCoordinates() }
+    // The attachment takes its own long press too: a photo sent alone has no other surface to
+    // hold, and it would otherwise swallow the gesture as its own tap target.
+    val longPress = callbacks.onLongPress?.takeIf {
+        !message.isDeleted && !message.isPending
+    }?.let { open ->
+        {
+            anchors?.record(message.id, anchor.screenBounds(view))
+            open(message)
+        }
+    }
     WaiveraPressable(
         onClick = { callbacks.onToggleTimestamp(row.key) },
         onClickLabel = stringResource(R.string.feature_chat_show_time),
-        onLongClick = callbacks.onLongPress?.takeIf {
-            !message.isDeleted && !message.isPending
-        }?.let { open ->
-            {
-                anchors?.record(message.id, anchor.screenBounds(view))
-                open(message)
-            }
-        },
+        onLongClick = longPress,
         onLongClickLabel = stringResource(R.string.feature_chat_open_actions),
         role = null,
         shape = shape,
@@ -344,7 +347,7 @@ private fun Bubble(
                 horizontalAlignment = if (row.isMine) Alignment.End else Alignment.Start,
                 verticalArrangement = Arrangement.spacedBy(WaiveraSpacing.ExtraSmall + WaiveraSpacing.XxSmall),
             ) {
-                InMyBubbleColors(inMyBubble = tinted) { BubbleContent(row, callbacks) }
+                InMyBubbleColors(inMyBubble = tinted) { BubbleContent(row, callbacks, longPress) }
             }
         }
     }
@@ -367,7 +370,11 @@ internal fun InMyBubbleColors(inMyBubble: Boolean, content: @Composable () -> Un
 
 /** The bubble's body and attachment, top to bottom. Reactions and replies sit under it ([Engagement]). */
 @Composable
-private fun BubbleContent(row: TimelineItem.MessageRow, callbacks: MessageRowCallbacks) {
+private fun BubbleContent(
+    row: TimelineItem.MessageRow,
+    callbacks: MessageRowCallbacks,
+    onLongPress: (() -> Unit)?,
+) {
     val message = row.message
     Column(
         horizontalAlignment = if (row.isMine) Alignment.End else Alignment.Start,
@@ -375,7 +382,12 @@ private fun BubbleContent(row: TimelineItem.MessageRow, callbacks: MessageRowCal
     ) {
         BubbleBody(row, callbacks)
         message.attachment?.let {
-            MessageAttachmentView(message, it, onOpen = { callbacks.onOpenAttachment(message) })
+            MessageAttachmentView(
+                message,
+                it,
+                onOpen = { callbacks.onOpenAttachment(message) },
+                onLongPress = onLongPress,
+            )
         }
     }
 }
