@@ -180,6 +180,10 @@ class InMemoryDatabase {
 
         override suspend fun upsert(rows: List<PersonEntity>) = this.rows.update { it + rows.associateBy { r -> r.id } }
 
+        override suspend fun ids(): List<String> = rows.value.keys.toList()
+
+        override suspend fun delete(ids: List<String>) = rows.update { it - ids.toSet() }
+
         override suspend fun clear() = rows.update { emptyMap() }
     }
 
