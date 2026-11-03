@@ -1,6 +1,7 @@
 package com.waivera.waivera.core.data
 
 import com.waivera.waivera.core.data.live.ChatCache
+import com.waivera.waivera.core.data.live.ConversationReadListener
 import com.waivera.waivera.core.data.live.LiveActivityRepository
 import com.waivera.waivera.core.data.live.LiveBookmarkRepository
 import com.waivera.waivera.core.data.live.LiveCalendarRepository
@@ -64,6 +65,7 @@ class TestGraph(val scope: CoroutineScope, connected: Boolean = true) : AutoClos
 
     /** Conversations whose notifications the data layer asked to clear. */
     val readsCleared = mutableListOf<Long>()
+    val threadReadsCleared = mutableListOf<Pair<Long, Long>>()
     val outboxDir = Files.createTempDirectory("outbox").toFile()
 
     /** The Firebase ID token the push repository captures; null once Firebase has signed out. */
@@ -89,7 +91,16 @@ class TestGraph(val scope: CoroutineScope, connected: Boolean = true) : AutoClos
     val typing = TypingTracker(realtime, clock, scope)
     val conversations = LiveConversationRepository(
         chatApi, videoApi, server.config, cache, sync, session, typing, visible, clock, outbox,
-    ) { readsCleared += it }
+        object : ConversationReadListener {
+            override fun onRead(conversationId: Long) {
+                readsCleared += conversationId
+            }
+
+            override fun onThreadRead(conversationId: Long, rootMessageId: Long) {
+                threadReadsCleared += conversationId to rootMessageId
+            }
+        },
+    )
     val connectivity = FakeConnectivityMonitor()
     val processor = OutboxProcessor(outbox, chatApi, realtime, ingest, session, connectivity)
     val messages = LiveMessageRepository(

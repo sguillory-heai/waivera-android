@@ -27,8 +27,10 @@ import javax.inject.Singleton
 /**
  * Builds and posts Waivera notifications.
  *
- * Chat: one `MessagingStyle` notification per conversation (tag `chat:{id}`), so later messages
- * update it in place instead of stacking; messages are de-duplicated by message id and capped at
+ * Chat: one `MessagingStyle` notification per conversation (tag `chat:{id}`), and one per thread
+ * (tag `chat:{id}:thread:{root}`) titled "Thread in …", so later messages update it in place
+ * instead of stacking and a tap opens the place the message is: thread replies are hidden in the
+ * main timeline; messages are de-duplicated by message id and capped at
  * [MAX_MESSAGES]. Each names a conversation shortcut, so Android 11+ shows it as a conversation
  * with the sender's picture, like a text message. Chat notifications share a group, with a summary
  * only while two or more conversations are showing; they carry inline Reply and Mark read, and
@@ -54,12 +56,12 @@ class AndroidNotifier @Inject constructor(
     }
 
     override fun showReplySent(conversationId: Long, threadRootMessageId: Long?, text: String) {
-        val existing = activeChat(conversationId)
+        val existing = activeChat(conversationId, threadRootMessageId)
         val state = ChatNotificationExtras.from(existing)
         val style = existing?.let(NotificationCompat.MessagingStyle::extractMessagingStyleFromNotification)
             ?: messagingStyle(context, conversation = null)
         style.addMessage(NotificationCompat.MessagingStyle.Message(text, System.currentTimeMillis(), null as Person?))
-        val target = state.target ?: DeepLinkTarget.Conversation(conversationId)
+        val target = state.target ?: targetFor(conversationId, threadRootMessageId)
         val notification = chatBuilder(
             conversationId,
             threadRootMessageId,
@@ -72,13 +74,13 @@ class AndroidNotifier @Inject constructor(
             .setOnlyAlertOnce(true)
             .addExtras(state.copy(target = target).toBundle())
             .build()
-        post(chatTag(conversationId), notification)
+        post(chatTag(conversationId, threadRootMessageId), notification)
     }
 
     override fun showReplyFailed(conversationId: Long, threadRootMessageId: Long?) {
-        val existing = activeChat(conversationId)
+        val existing = activeChat(conversationId, threadRootMessageId)
         val state = ChatNotificationExtras.from(existing)
-        val target = state.target ?: DeepLinkTarget.Conversation(conversationId)
+        val target = state.target ?: targetFor(conversationId, threadRootMessageId)
         val notification = chatBuilder(
             conversationId,
             threadRootMessageId,
@@ -92,12 +94,12 @@ class AndroidNotifier @Inject constructor(
             .setOnlyAlertOnce(true)
             .addExtras(state.copy(target = target).toBundle())
             .build()
-        post(chatTag(conversationId), notification)
+        post(chatTag(conversationId, threadRootMessageId), notification)
     }
 
-    override fun cancelConversation(conversationId: Long) {
-        val tag = chatTag(conversationId)
-        if (activeChat(conversationId) != null) trace.note(PushStep.Cleared, null)
+    override fun cancelChat(conversationId: Long, threadRootMessageId: Long?) {
+        val tag = chatTag(conversationId, threadRootMessageId)
+        if (activeChat(conversationId, threadRootMessageId) != null) trace.note(PushStep.Cleared, null)
         manager.cancel(tag, NOTIFICATION_ID)
         // The system list can still hold the notification just cancelled, so it is left out by
         // tag; counting it once left the summary behind as a bare "Waivera" notification.
@@ -115,13 +117,18 @@ class AndroidNotifier @Inject constructor(
         channel: WaiveraChannel,
         conversation: ConversationNotificationInfo?,
     ) {
-        val existing = activeChat(message.conversationId)
+        val threadRoot = message.threadRootMessageId
+        val existing = activeChat(message.conversationId, threadRoot)
         val state = ChatNotificationExtras.from(existing)
         if (message.messageId != null && message.messageId in state.messageIds) return
 
-        val style = existing?.let(NotificationCompat.MessagingStyle::extractMessagingStyleFromNotification)
-            ?: messagingStyle(context, conversation)
         val senderName = message.title ?: context.getString(R.string.core_notifications_someone)
+        val style = existing?.let(NotificationCompat.MessagingStyle::extractMessagingStyleFromNotification)
+            ?: if (threadRoot != null) {
+                threadStyle(context, conversation, senderName)
+            } else {
+                messagingStyle(context, conversation)
+            }
         // In a group the collapsed line is "<sender>: <text>", so a long sender is shortened to
         // leave the text room; the key keeps the full name, which identifies the sender.
         val shownName = if (style.isGroupConversation) SenderName.short(context, senderName) else senderName
@@ -142,7 +149,8 @@ class AndroidNotifier @Inject constructor(
             target = message.target,
             channel = channel,
         )
-        val groupTitle = style.conversationTitle?.toString()?.takeIf { style.isGroupConversation }
+        // The shortcut names the conversation, never "Thread in …", so a thread shares its chat's.
+        val groupTitle = conversation?.title?.takeIf { conversation.isGroup }
         val shortcutId = runCatching {
             shortcuts.publish(
                 conversationId = message.conversationId,
@@ -152,7 +160,7 @@ class AndroidNotifier @Inject constructor(
         }.getOrNull()
         val notification = chatBuilder(
             message.conversationId,
-            message.threadRootMessageId,
+            threadRoot,
             message.messageId,
             message.target,
             channel,
@@ -161,12 +169,12 @@ class AndroidNotifier @Inject constructor(
             .setStyle(style)
             .addExtras(extras.toBundle())
             .build()
-        val tag = chatTag(message.conversationId)
+        val tag = chatTag(message.conversationId, threadRoot)
         post(tag, notification)
         // The system can drop a post without telling the app (a blocked channel or conversation);
         // the trace says so, so a tester can tell that from a push that never came.
         main.postDelayed({
-            val posted = activeChat(message.conversationId) != null
+            val posted = activeChat(message.conversationId, threadRoot) != null
             noteUndelivered(context, trace, posted, channel.id, shortcutId)
         }, CHECK_DELAY_MILLIS)
         // The system list may not show the post above yet, so its tag is added by hand.
@@ -209,9 +217,11 @@ class AndroidNotifier @Inject constructor(
             .setGroup(CHAT_GROUP)
             .setVisibility(NotificationCompat.VISIBILITY_PRIVATE)
             .setPublicVersion(publicVersion(resolvedChannel))
-            .setContentIntent(intents.open(target, requestCode = conversationId.hashCode()))
+            .setContentIntent(
+                intents.open(target, requestCode = chatTag(conversationId, threadRootMessageId).hashCode()),
+            )
             .addAction(intents.reply(conversationId, threadRootMessageId))
-            .addAction(intents.markRead(conversationId, messageId))
+            .addAction(intents.markRead(conversationId, threadRootMessageId, messageId))
     }
 
     /**
@@ -248,10 +258,11 @@ class AndroidNotifier @Inject constructor(
             .setSmallIcon(R.drawable.core_notifications_ic_notification)
             .setColor(ContextCompat.getColor(context, R.color.core_notifications_accent))
 
-    private fun activeChat(conversationId: Long): Notification? = context.getSystemService<NotificationManager>()
-        ?.activeNotifications
-        ?.firstOrNull { it.tag == chatTag(conversationId) && it.id == NOTIFICATION_ID }
-        ?.notification
+    private fun activeChat(conversationId: Long, threadRootMessageId: Long?): Notification? =
+        context.getSystemService<NotificationManager>()
+            ?.activeNotifications
+            ?.firstOrNull { it.tag == chatTag(conversationId, threadRootMessageId) && it.id == NOTIFICATION_ID }
+            ?.notification
 
     private fun activeChatTags(): Set<String> = context.getSystemService<NotificationManager>()
         ?.activeNotifications
@@ -285,13 +296,27 @@ class AndroidNotifier @Inject constructor(
         private const val CHECK_DELAY_MILLIS = 1_500L
         internal const val NOTIFICATION_ID = 1
         internal const val CHAT_TAG_PREFIX = "chat:"
+        private const val THREAD_TAG_INFIX = ":thread:"
         internal const val GENERIC_TAG_PREFIX = "push:"
         internal const val SUMMARY_TAG = "chat-summary"
         private const val SUMMARY_REQUEST_CODE = -1
 
-        fun chatTag(conversationId: Long): String = "$CHAT_TAG_PREFIX$conversationId"
+        fun chatTag(conversationId: Long, threadRootMessageId: Long? = null): String =
+            if (threadRootMessageId == null) {
+                "$CHAT_TAG_PREFIX$conversationId"
+            } else {
+                "$CHAT_TAG_PREFIX$conversationId$THREAD_TAG_INFIX$threadRootMessageId"
+            }
     }
 }
+
+/** Where a chat notification opens when it has no message's own target yet. */
+private fun targetFor(conversationId: Long, threadRootMessageId: Long?): DeepLinkTarget =
+    if (threadRootMessageId == null) {
+        DeepLinkTarget.Conversation(conversationId)
+    } else {
+        DeepLinkTarget.Thread(conversationId, threadRootMessageId, null)
+    }
 
 private fun messagingStyle(
     context: Context,
@@ -304,6 +329,29 @@ private fun messagingStyle(
         style.setConversationTitle(conversation.title)
         style.setGroupConversation(true)
     }
+    return style
+}
+
+/**
+ * A thread's notification is titled after its chat ("Thread in North team", "Thread with Alex
+ * Rivera"), so the shade says where the reply is before anyone taps it. Shown as a group so the
+ * title is always visible, even for a direct chat.
+ */
+private fun threadStyle(
+    context: Context,
+    conversation: ConversationNotificationInfo?,
+    senderName: String,
+): NotificationCompat.MessagingStyle {
+    val style = messagingStyle(context, conversation = null)
+    val name = conversation?.title?.takeIf { it.isNotBlank() }
+    val title = when {
+        conversation == null -> context.getString(R.string.core_notifications_thread_title_unknown)
+        conversation.isGroup -> name?.let { context.getString(R.string.core_notifications_thread_title_group, it) }
+            ?: context.getString(R.string.core_notifications_thread_title_unknown)
+        else -> context.getString(R.string.core_notifications_thread_title_direct, name ?: senderName)
+    }
+    style.setConversationTitle(title)
+    style.setGroupConversation(true)
     return style
 }
 

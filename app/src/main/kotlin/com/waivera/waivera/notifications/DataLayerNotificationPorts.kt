@@ -34,6 +34,7 @@ import kotlinx.coroutines.flow.first
 class DataLayerChatNotificationActions @Inject constructor(
     private val replies: DurableMessageSender,
     private val conversations: ConversationRepository,
+    private val threads: ThreadRepository,
 ) : ChatNotificationActions {
     override suspend fun reply(conversationId: Long, text: String, threadRootMessageId: Long?) {
         // The receiver finishes right after this returns and the process may go with it, so the
@@ -41,7 +42,13 @@ class DataLayerChatNotificationActions @Inject constructor(
         replies.sendDurably(conversationId = conversationId, text = text, parentMessageId = threadRootMessageId)
     }
 
-    override suspend fun markRead(conversationId: Long, lastMessageId: Long?) {
+    override suspend fun markRead(conversationId: Long, lastMessageId: Long?, threadRootMessageId: Long?) {
+        if (threadRootMessageId != null) {
+            // A thread push always names its reply; without one there is nothing to read through.
+            val reply = lastMessageId ?: return
+            threads.markRead(conversationId, threadRootMessageId, reply).getOrThrow()
+            return
+        }
         val through = lastMessageId
             ?: conversations.observeConversation(conversationId).first()?.lastMessage?.messageId
             ?: conversations.refreshConversation(conversationId).getOrThrow().lastMessage?.messageId

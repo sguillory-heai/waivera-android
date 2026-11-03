@@ -12,6 +12,9 @@ interface ChatNotificationActions {
      */
     suspend fun reply(conversationId: Long, text: String, threadRootMessageId: Long?)
 
-    /** Marks the conversation read through [lastMessageId] (read-through), or entirely when null. */
-    suspend fun markRead(conversationId: Long, lastMessageId: Long?)
+    /**
+     * Marks the conversation read through [lastMessageId] (read-through), or entirely when null.
+     * With [threadRootMessageId] it is that thread that is read, through [lastMessageId].
+     */
+    suspend fun markRead(conversationId: Long, lastMessageId: Long?, threadRootMessageId: Long? = null)
 }

@@ -176,6 +176,11 @@ class RealtimeSyncTest {
         // IF-07: the hub reports this user's own reads, from this device or another one.
         sync.apply(HubEvent.ChatReadState(ChatReadStateDto(conversationId = 7, threadRootMessageId = 9_310)))
         assertEquals(emptyList(), graph.readsCleared, "a thread read leaves the conversation's alerts")
+        assertEquals(
+            listOf(7L to 9_310L),
+            graph.threadReadsCleared,
+            "a thread read on the web clears that thread's alert",
+        )
         sync.apply(HubEvent.ChatReadState(ChatReadStateDto(conversationId = 7)))
         assertEquals(listOf(7L), graph.readsCleared)
         graph.readsCleared.clear()

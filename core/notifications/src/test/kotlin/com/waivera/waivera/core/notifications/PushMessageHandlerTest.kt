@@ -195,8 +195,8 @@ private class FakeNotifier : Notifier {
 
     override fun showReplyFailed(conversationId: Long, threadRootMessageId: Long?) = Unit
 
-    override fun cancelConversation(conversationId: Long) {
-        cancelled += conversationId
+    override fun cancelChat(conversationId: Long, threadRootMessageId: Long?) {
+        if (threadRootMessageId == null) cancelled += conversationId
     }
 
     override fun cancelAll() = Unit

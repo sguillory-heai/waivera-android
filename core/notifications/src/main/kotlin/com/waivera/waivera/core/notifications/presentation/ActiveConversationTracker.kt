@@ -14,7 +14,7 @@ data class VisibleChat(val conversationId: Long, val threadRootMessageId: Long? 
  * Records which chat is on screen. The app shell is the only caller: it calls [enter] when the
  * top route is a conversation or thread and the activity is resumed, and [clear] otherwise, so a
  * chat that is merely on the back stack never counts as visible. Chat screens never call it.
- * Entering a chat also clears its notification.
+ * Entering a chat or thread also clears that one's notification.
  */
 @Singleton
 class ActiveConversationTracker @Inject constructor(private val notifier: Notifier) {
@@ -24,7 +24,11 @@ class ActiveConversationTracker @Inject constructor(private val notifier: Notifi
 
     fun enter(conversationId: Long, threadRootMessageId: Long? = null) {
         visibleChat.value = VisibleChat(conversationId, threadRootMessageId)
-        notifier.cancelConversation(conversationId)
+        if (threadRootMessageId == null) {
+            notifier.cancelConversation(conversationId)
+        } else {
+            notifier.cancelThread(conversationId, threadRootMessageId)
+        }
     }
 
     /** Nothing is on screen (the app left the foreground, or the shell left the chat). */

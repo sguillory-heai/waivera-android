@@ -36,7 +36,7 @@ internal class NotificationIntents(private val context: Context) {
             .build()
         val pending = PendingIntent.getBroadcast(
             context,
-            requestCode(conversationId, REQUEST_REPLY),
+            requestCode(conversationId, threadRootMessageId, REQUEST_REPLY),
             NotificationActionReceiver.replyIntent(context, conversationId, threadRootMessageId),
             PendingIntent.FLAG_UPDATE_CURRENT or mutableFlag(),
         )
@@ -54,11 +54,11 @@ internal class NotificationIntents(private val context: Context) {
             .build()
     }
 
-    fun markRead(conversationId: Long, messageId: Long?): NotificationCompat.Action {
+    fun markRead(conversationId: Long, threadRootMessageId: Long?, messageId: Long?): NotificationCompat.Action {
         val pending = PendingIntent.getBroadcast(
             context,
-            requestCode(conversationId, REQUEST_MARK_READ),
-            NotificationActionReceiver.markReadIntent(context, conversationId, messageId),
+            requestCode(conversationId, threadRootMessageId, REQUEST_MARK_READ),
+            NotificationActionReceiver.markReadIntent(context, conversationId, threadRootMessageId, messageId),
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )
         return NotificationCompat.Action.Builder(
@@ -75,7 +75,12 @@ internal class NotificationIntents(private val context: Context) {
     private fun mutableFlag(): Int =
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) PendingIntent.FLAG_MUTABLE else 0
 
-    private fun requestCode(conversationId: Long, action: Int): Int = conversationId.hashCode() * ACTION_KINDS + action
+    /**
+     * Intents that differ only in extras share one PendingIntent, so a chat and each of its
+     * threads need their own codes, or Reply on one would send to the other.
+     */
+    private fun requestCode(conversationId: Long, threadRootMessageId: Long?, action: Int): Int =
+        AndroidNotifier.chatTag(conversationId, threadRootMessageId).hashCode() * ACTION_KINDS + action
 
     private companion object {
         const val REQUEST_REPLY = 1

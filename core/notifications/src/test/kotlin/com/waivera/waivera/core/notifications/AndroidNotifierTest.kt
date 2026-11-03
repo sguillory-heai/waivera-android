@@ -10,6 +10,7 @@ import com.waivera.waivera.core.notifications.channel.NotificationChannelInstall
 import com.waivera.waivera.core.notifications.channel.WaiveraChannel
 import com.waivera.waivera.core.notifications.payload.PushMessage
 import com.waivera.waivera.core.notifications.presentation.AndroidNotifier
+import com.waivera.waivera.core.notifications.presentation.ChatNotificationExtras
 import com.waivera.waivera.core.notifications.presentation.ConversationNotificationInfo
 import com.waivera.waivera.core.notifications.presentation.ConversationShortcuts
 import kotlin.test.assertEquals
@@ -222,6 +223,80 @@ class AndroidNotifierTest {
         )
         assertEquals(listOf("can you cover Friday?", "Yes"), style.messages.map { it.text.toString() })
         assertNull(style.messages.last().person, "a null person is the device user")
+    }
+
+    private fun threadReply(messageId: Long, body: String) = chat(messageId, body).copy(threadRootMessageId = 40)
+
+    private fun contentUri(notification: Notification) = shadowOf(notification.contentIntent).savedIntent.data
+
+    @Test
+    fun `a thread reply gets its own notification named after its chat that opens the thread`() {
+        notifier.show(
+            chat(1, "main chat"),
+            WaiveraChannel.GroupActivity,
+            ConversationNotificationInfo("North team", true),
+        )
+        notifier.show(
+            threadReply(2, "on it"),
+            WaiveraChannel.GroupActivity,
+            ConversationNotificationInfo("North team", true),
+        )
+
+        val main = postedChat(7)
+        val thread = assertNotNull(posted(AndroidNotifier.chatTag(7, threadRootMessageId = 40)))
+        val mainStyle = assertNotNull(NotificationCompat.MessagingStyle.extractMessagingStyleFromNotification(main))
+        val threadStyle = assertNotNull(NotificationCompat.MessagingStyle.extractMessagingStyleFromNotification(thread))
+        assertEquals(listOf("main chat"), mainStyle.messages.map { it.text.toString() })
+        assertEquals(listOf("on it"), threadStyle.messages.map { it.text.toString() })
+        assertEquals("Thread in North team", threadStyle.conversationTitle?.toString())
+        assertEquals(
+            PushMessage.Chat(7, 2, 40, "Alex Rivera", "on it").target,
+            ChatNotificationExtras.from(thread).target,
+        )
+        assertTrue(contentUri(thread) != contentUri(main), "the thread opens the thread, not the chat")
+        assertEquals(ConversationShortcuts.shortcutId(7), thread.shortcutId)
+    }
+
+    @Test
+    fun `a direct chat's thread is titled with the person`() {
+        notifier.show(
+            threadReply(2, "on it"),
+            WaiveraChannel.Messages,
+            ConversationNotificationInfo("Alex Rivera", false),
+        )
+        val style = assertNotNull(
+            NotificationCompat.MessagingStyle.extractMessagingStyleFromNotification(
+                assertNotNull(posted(AndroidNotifier.chatTag(7, 40))),
+            ),
+        )
+        assertEquals("Thread with Alex Rivera", style.conversationTitle?.toString())
+    }
+
+    @Test
+    fun `reading a thread clears only its notification and reading the chat leaves the thread`() {
+        notifier.show(chat(1, "main chat"), WaiveraChannel.Messages, null)
+        notifier.show(threadReply(2, "on it"), WaiveraChannel.Messages, null)
+        notifier.cancelConversation(7)
+        assertNull(posted(AndroidNotifier.chatTag(7)))
+        assertNotNull(posted(AndroidNotifier.chatTag(7, 40)))
+        notifier.cancelThread(7, 40)
+        assertTrue(manager.activeNotifications.isEmpty())
+    }
+
+    @Test
+    fun `replying from a thread notification stays in the thread`() {
+        notifier.show(chat(1, "main chat"), WaiveraChannel.Messages, null)
+        notifier.show(threadReply(2, "on it"), WaiveraChannel.Messages, null)
+        notifier.showReplySent(conversationId = 7, threadRootMessageId = 40, text = "Thanks")
+
+        val thread = assertNotNull(posted(AndroidNotifier.chatTag(7, 40)))
+        val style = assertNotNull(NotificationCompat.MessagingStyle.extractMessagingStyleFromNotification(thread))
+        assertEquals(listOf("on it", "Thanks"), style.messages.map { it.text.toString() })
+        val mainReply = postedChat(7).actions.first().actionIntent
+        val threadReply = thread.actions.first().actionIntent
+        assertTrue(mainReply != threadReply, "a shared PendingIntent would send one chat's reply to the other")
+        assertEquals("40", shadowOf(threadReply).savedIntent.getStringExtra("threadRootMessageId"))
+        assertNull(shadowOf(mainReply).savedIntent.getStringExtra("threadRootMessageId"))
     }
 
     @Test

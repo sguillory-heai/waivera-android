@@ -52,8 +52,12 @@ abstract class NotificationBindingsModule {
 
         /** A conversation read here or on another device leaves the shade too (IF-07). */
         @Provides
-        fun conversationReads(notifier: Notifier): ConversationReadListener =
-            ConversationReadListener(notifier::cancelConversation)
+        fun conversationReads(notifier: Notifier): ConversationReadListener = object : ConversationReadListener {
+            override fun onRead(conversationId: Long) = notifier.cancelConversation(conversationId)
+
+            override fun onThreadRead(conversationId: Long, rootMessageId: Long) =
+                notifier.cancelThread(conversationId, rootMessageId)
+        }
 
         /** A session end clears the shade too, even with no screen alive to do it (AS-02). */
         @Provides

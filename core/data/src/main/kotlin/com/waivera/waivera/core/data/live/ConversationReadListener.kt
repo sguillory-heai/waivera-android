@@ -7,4 +7,7 @@ package com.waivera.waivera.core.data.live
  */
 fun interface ConversationReadListener {
     fun onRead(conversationId: Long)
+
+    /** A thread was read; its own notification goes, the main chat's stays. */
+    fun onThreadRead(conversationId: Long, rootMessageId: Long) = Unit
 }

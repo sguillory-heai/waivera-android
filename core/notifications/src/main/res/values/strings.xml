@@ -24,6 +24,10 @@
     <!-- A sender name cut to fit the collapsed notification line. -->
     <string name="core_notifications_sender_cut">%1$s…</string>
     <string name="core_notifications_new_message">New message</string>
+    <!-- Title of a thread reply's notification, so the shade says where the reply is. -->
+    <string name="core_notifications_thread_title_group">Thread in %1$s</string>
+    <string name="core_notifications_thread_title_direct">Thread with %1$s</string>
+    <string name="core_notifications_thread_title_unknown">Reply in a thread</string>
     <string name="core_notifications_reply_failed">Couldn’t send your reply. Open the chat to try again.</string>
     <string name="core_notifications_summary_title">Waivera</string>
     <plurals name="core_notifications_summary_text">

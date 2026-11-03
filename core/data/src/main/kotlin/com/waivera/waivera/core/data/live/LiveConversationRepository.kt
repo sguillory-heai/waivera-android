@@ -272,9 +272,14 @@ class LiveConversationRepository @Inject constructor(
                 unread.map { it.id }
             }
             cleared.forEach(reads::onRead)
-        } else if (state.threadRootMessageId == null) {
-            cache.updateConversation(state.conversationId) { it.copy(unreadCount = 0, lastReadAt = readAt) }
-            reads.onRead(state.conversationId)
+        } else {
+            val root = state.threadRootMessageId
+            if (root == null) {
+                cache.updateConversation(state.conversationId) { it.copy(unreadCount = 0, lastReadAt = readAt) }
+                reads.onRead(state.conversationId)
+            } else {
+                reads.onThreadRead(state.conversationId, root)
+            }
         }
     }
 

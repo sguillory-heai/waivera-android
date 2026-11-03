@@ -63,9 +63,17 @@ class NotificationActionReceiver : BroadcastReceiver() {
     @Suppress("TooGenericExceptionCaught")
     private suspend fun markRead(entryPoint: NotificationsEntryPoint, intent: Intent, conversationId: Long) {
         val messageId = DeepLinkUris.positiveId(intent.getStringExtra(EXTRA_MESSAGE_ID))
-        entryPoint.notifier().cancelConversation(conversationId)
+        val threadRoot = DeepLinkUris.positiveId(intent.getStringExtra(EXTRA_THREAD_ROOT_ID))
+        val notifier = entryPoint.notifier()
+        if (threadRoot ==
+            null
+        ) {
+            notifier.cancelConversation(conversationId)
+        } else {
+            notifier.cancelThread(conversationId, threadRoot)
+        }
         try {
-            entryPoint.chatActions().markRead(conversationId, messageId)
+            entryPoint.chatActions().markRead(conversationId, messageId, threadRoot)
         } catch (cancelled: CancellationException) {
             throw cancelled
         } catch (ignored: Exception) {
@@ -88,10 +96,15 @@ class NotificationActionReceiver : BroadcastReceiver() {
                 .putExtra(EXTRA_CONVERSATION_ID, conversationId.toString())
                 .putExtra(EXTRA_THREAD_ROOT_ID, threadRootMessageId?.toString())
 
-        internal fun markReadIntent(context: Context, conversationId: Long, messageId: Long?): Intent =
-            Intent(context, NotificationActionReceiver::class.java)
-                .setAction(ACTION_MARK_READ)
-                .putExtra(EXTRA_CONVERSATION_ID, conversationId.toString())
-                .putExtra(EXTRA_MESSAGE_ID, messageId?.toString())
+        internal fun markReadIntent(
+            context: Context,
+            conversationId: Long,
+            threadRootMessageId: Long?,
+            messageId: Long?,
+        ): Intent = Intent(context, NotificationActionReceiver::class.java)
+            .setAction(ACTION_MARK_READ)
+            .putExtra(EXTRA_CONVERSATION_ID, conversationId.toString())
+            .putExtra(EXTRA_THREAD_ROOT_ID, threadRootMessageId?.toString())
+            .putExtra(EXTRA_MESSAGE_ID, messageId?.toString())
     }
 }
