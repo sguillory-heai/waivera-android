@@ -6,14 +6,17 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
+import com.waivera.waivera.core.screenshottesting.ScreenshotSdk
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
 
 /** How inline marks, links and mentions become styled text (03 §7). */
 @RunWith(RobolectricTestRunner::class)
+@Config(sdk = [ScreenshotSdk.VALUE])
 class RichInlineAnnotationTest {
     private val colors = RichInlineColors(accent = Color.Magenta, mentionBackground = Color.Yellow)
 
