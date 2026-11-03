@@ -6,7 +6,7 @@ import com.waivera.waivera.core.data.model.Synced
 import com.waivera.waivera.core.data.repository.PeopleRepository
 import com.waivera.waivera.core.network.api.AuthenticationApi
 import com.waivera.waivera.core.network.api.FileApi
-import com.waivera.waivera.core.network.dto.GetUserNameResponseVM
+import com.waivera.waivera.core.network.dto.UserInfoResponse
 import com.waivera.waivera.core.network.error.WaiveraError
 import com.waivera.waivera.core.network.error.apiCall
 import com.waivera.waivera.core.network.error.apiCallOrNull
@@ -17,17 +17,22 @@ import java.util.Base64
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import kotlinx.serialization.builtins.serializer
 
 /**
- * The staff directory comes from `/api/Authentication/get-username-list` (02, the endpoint the
- * Expo app uses; `initiation-directory` is SUPER ADMIN only, AF-01), merged with every
- * conversation participant seen. A directory entry has only an id and a name, so it never
- * overwrites a richer cached person. Avatars come from `/api/file/avatar/{id}` as
- * data URIs; they are decoded once and cached in memory, including a short negative cache so a
- * list of avatar-less people does not refetch on every scroll.
+ * The staff directory comes from `GET /api/users?onlyActive=true`, the list the web chat uses:
+ * staff in the caller's own organization. Caseload participants in that list are left out, as
+ * the staff app has always done. `get-username-list` is never used because it lists every
+ * organization's users, and `initiation-directory` is SUPER ADMIN only (AF-01). The directory
+ * replaces earlier entries, keeping only people who are also in a cached conversation. Avatars
+ * come from `/api/file/avatar/{id}` as data URIs; they are decoded once and cached in memory,
+ * including a short negative cache so a list of avatar-less people does not refetch on every
+ * scroll.
  */
 @Singleton
 class LivePeopleRepository @Inject constructor(
@@ -40,31 +45,70 @@ class LivePeopleRepository @Inject constructor(
     SignOutCleaner {
     private val avatars = LinkedHashMap<String, CachedAvatar>()
     private val avatarLock = Mutex()
+    private val scopeLock = Mutex()
+
+    /** Set once the old cache is known to be gone; sign-out clears it with the cache. */
+    @Volatile private var scopeChecked = false
 
     private class CachedAvatar(val bytes: ByteArray?, val expiresAt: Long)
 
-    override fun observeDirectory(): Flow<Synced<List<Person>>> = sync.synced(KEY, cache.observePeople())
+    override fun observeDirectory(): Flow<Synced<List<Person>>> = sync.synced(
+        KEY,
+        flow {
+            dropLegacyDirectory()
+            emitAll(cache.observePeople())
+        },
+    )
 
     override fun observePerson(userId: String): Flow<Person?> = cache.observePerson(userId)
 
     override suspend fun refresh(): Result<Unit> = sync.track(KEY) {
-        // 204 means no users and has no data; the directory is then the known participants.
-        val entries = apiCallOrNull { authApi.getUserNameList() }?.data.orEmpty()
+        val entries = apiCallOrNull { authApi.getUsers(onlyActive = true) }.orEmpty()
+        dropLegacyDirectory()
         val known = cache.observePeople().first().associateBy { it.id }
-        cache.putPeople(entries.mapNotNull { directoryPerson(it, known) })
+        val directory = entries.mapNotNull { directoryPerson(it, known) }
+        // The list always holds at least the caller, so an empty one is a server fault, not a
+        // reason to clear everyone already shown.
+        if (directory.isNotEmpty()) cache.replaceDirectory(directory)
     }
 
-    /** A new person from the directory, or a cached one that had no name yet; null when nothing changes. */
-    private fun directoryPerson(entry: GetUserNameResponseVM, known: Map<String, Person>): Person? {
-        val id = entry.userId?.trim()?.takeIf(String::isNotEmpty) ?: return null
-        val name = entry.userName?.trim()?.takeIf(String::isNotEmpty)
-        val cached = known[id]
-        return when {
-            cached == null -> Person(id, displayName = name)
-            cached.name.isBlank() && name != null -> cached.copy(displayName = name)
-            else -> null
+    /**
+     * Builds before 2026-11-03 cached every organization's staff from `get-username-list`. Once
+     * per sign-in, before the cache is first shown or refreshed, everyone not in a cached
+     * conversation is dropped, so that list never shows again, offline included.
+     */
+    private suspend fun dropLegacyDirectory() {
+        if (scopeChecked) return
+        scopeLock.withLock {
+            if (scopeChecked) return
+            if (cache.document(SCOPE_KEY, String.serializer()) != SCOPE) {
+                cache.replaceDirectory(emptyList())
+                // The old list's sync time would make the emptied cache look fresh.
+                sync.forget(KEY)
+                cache.putDocument(SCOPE_KEY, String.serializer(), SCOPE)
+            }
+            scopeChecked = true
         }
     }
+
+    /** A staff member from the directory, keeping cached fields the directory leaves empty. */
+    private fun directoryPerson(entry: UserInfoResponse, known: Map<String, Person>): Person? {
+        val id = entry.id?.trim()?.takeIf(String::isNotEmpty) ?: return null
+        if (entry.isParticipant || entry.deactivated || entry.employeeRole.equals(PARTICIPANT, ignoreCase = true)) {
+            return null
+        }
+        val cached = known[id]
+        return Person(
+            id = id,
+            firstName = entry.firstName.clean() ?: cached?.firstName,
+            lastName = entry.lastName.clean() ?: cached?.lastName,
+            displayName = entry.displayName.clean() ?: cached?.displayName,
+            email = entry.email.clean() ?: cached?.email,
+            avatarUrl = cached?.avatarUrl,
+        )
+    }
+
+    private fun String?.clean(): String? = this?.trim()?.takeIf(String::isNotEmpty)
 
     override suspend fun details(userId: String): Result<PersonDetails> = catchingWaivera {
         val dto = apiCall { authApi.getUserDetails(userId) }.requireData()
@@ -106,11 +150,15 @@ class LivePeopleRepository @Inject constructor(
     }
 
     override suspend fun clear() {
+        scopeChecked = false
         avatarLock.withLock { avatars.clear() }
     }
 
     companion object {
         const val KEY = "people"
+        private const val PARTICIPANT = "Participant"
+        private const val SCOPE_KEY = "people.directoryScope"
+        private const val SCOPE = "organization"
         private const val MILLIS = 1_000L
         private const val DEFAULT_TTL = 30 * 60 * 1_000L
         private const val NEGATIVE_TTL = 5 * 60 * 1_000L

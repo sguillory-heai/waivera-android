@@ -2,7 +2,10 @@ package com.waivera.waivera.core.data
 
 import app.cash.turbine.test
 import com.waivera.waivera.core.data.live.LivePeopleRepository
+import com.waivera.waivera.core.data.model.Conversation
+import com.waivera.waivera.core.data.model.ConversationKind
 import com.waivera.waivera.core.data.model.CurrentUser
+import com.waivera.waivera.core.data.model.Person
 import com.waivera.waivera.core.data.model.SessionState
 import com.waivera.waivera.core.data.model.SyncStatus
 import com.waivera.waivera.core.data.model.isEmpty
@@ -161,11 +164,12 @@ class FeedRepositoriesTest {
     @Test
     fun directoryLoadsAndAvatarsDecodeWithANegativeCache() = testScope.runTest {
         graph.server.json(
-            "GET /api/Authentication/get-username-list",
-            """{"data":[{"userId":"usr_jordan_lee","userName":"Jordan Lee"}],"statusCode":200,"success":true}""",
+            "GET /api/users",
+            """[{"id":"usr_jordan_lee","displayName":"Jordan Lee","isParticipant":false}]""",
         )
         graph.people.refresh().getOrThrow()
         assertEquals(listOf("usr_jordan_lee"), graph.people.observeDirectory().first().data.map { it.id })
+        assertEquals(listOf("onlyActive=true"), graph.server.requestsTo("/api/users").map { it.url.query })
 
         graph.server.fixture("GET /api/file/avatar/usr_jordan_lee", "rest-file-avatar-base64.json")
         val bytes = assertNotNull(graph.people.avatar("usr_jordan_lee"))
@@ -185,25 +189,68 @@ class FeedRepositoriesTest {
 
     @Test
     fun emptyDirectoryIsEmpty() = testScope.runTest {
-        graph.server.status("GET /api/Authentication/get-username-list", 204)
+        graph.server.json("GET /api/users", "[]")
         graph.people.refresh().getOrThrow()
         assertTrue(graph.people.observeDirectory().first().isEmpty)
     }
 
     @Test
-    fun ordinaryStaffGetTheDirectoryFromTheUsernameList() = testScope.runTest {
-        // initiation-directory is SUPER ADMIN only: ordinary staff get 403 there (AF-01).
+    fun anEmptyListNeverClearsTheDirectoryAlreadyShown() = testScope.runTest {
+        graph.server.fixture("GET /api/users", "rest-users-list.json")
+        graph.people.refresh().getOrThrow()
+        graph.server.json("GET /api/users", "[]")
+        graph.people.refresh().getOrThrow()
+        assertEquals(3, graph.people.observeDirectory().first().data.size)
+    }
+
+    @Test
+    fun theDirectoryIsTheCallersOrganizationWithoutParticipants() = testScope.runTest {
+        // initiation-directory is SUPER ADMIN only (AF-01); get-username-list spans every
+        // organization, so neither is ever read.
         graph.server.status("GET /api/chat/initiation-directory", 403)
-        graph.server.fixture("GET /api/Authentication/get-username-list", "rest-auth-get-username-list.json")
+        graph.server.fixture("GET /api/users", "rest-users-list.json")
         graph.people.refresh().getOrThrow()
         val people = graph.people.observeDirectory().first().data
         assertEquals(listOf("Alex Rivera", "Jordan Lee", "Priya Raman"), people.map { it.name }.sorted())
         assertTrue(graph.server.requestsTo("/api/chat/initiation-directory").isEmpty())
+        assertTrue(graph.server.requestsTo("/api/Authentication/get-username-list").isEmpty())
     }
 
     @Test
-    fun theDirectoryNeverOverwritesARicherCachedPerson() = testScope.runTest {
-        val participant = com.waivera.waivera.core.data.model.Person(
+    fun theDirectoryDropsPeopleTheServerNoLongerListsUnlessTheyShareAConversation() = testScope.runTest {
+        val elsewhere = Person(id = "usr_other_agency", displayName = "Other Agency")
+        val coworker = Person(id = "usr_in_a_chat", displayName = "In A Chat")
+        graph.cache.putPeople(listOf(elsewhere, coworker))
+        graph.cache.putConversations(
+            listOf(
+                Conversation(
+                    id = 77,
+                    kind = ConversationKind.DIRECT,
+                    participants = listOf(coworker),
+                ),
+            ),
+        )
+        graph.server.fixture("GET /api/users", "rest-users-list.json")
+        graph.people.refresh().getOrThrow()
+        val ids = graph.people.observeDirectory().first().data.map { it.id }.toSet()
+        assertEquals(setOf("usr_alex_rivera", "usr_priya_raman", "usr_jordan_lee", "usr_in_a_chat"), ids)
+    }
+
+    @Test
+    fun anOldCrossOrganizationCacheIsDroppedBeforeItIsShownOffline() = testScope.runTest {
+        val elsewhere = Person(id = "usr_other_agency", displayName = "Other Agency")
+        graph.cache.putPeople(listOf(elsewhere))
+        assertTrue(graph.people.observeDirectory().first().data.isEmpty(), "dropped without a refresh")
+
+        // Once only: people the directory adds later stay.
+        graph.cache.putPeople(listOf(elsewhere))
+        assertEquals(listOf("usr_other_agency"), graph.people.observeDirectory().first().data.map { it.id })
+    }
+
+    @Test
+    fun theDirectoryKeepsCachedFieldsItLeavesEmpty() = testScope.runTest {
+        graph.people.observeDirectory().first() // past the one-time drop of an old cache
+        val participant = Person(
             id = "usr_priya_raman",
             firstName = "Priya",
             lastName = "Raman",
@@ -211,11 +258,10 @@ class FeedRepositoriesTest {
             avatarUrl = "https://cdn.example.test/p.png",
         )
         graph.cache.putPeople(listOf(participant))
-        graph.server.fixture("GET /api/Authentication/get-username-list", "rest-auth-get-username-list.json")
+        graph.server.json("GET /api/users", """[{"id":"usr_priya_raman","displayName":"Priya Raman"}]""")
         graph.people.refresh().getOrThrow()
-        val people = graph.people.observeDirectory().first().data
-        assertEquals(participant, people.single { it.id == "usr_priya_raman" })
-        assertEquals(3, people.size)
+        val priya = graph.people.observeDirectory().first().data.single()
+        assertEquals(participant.copy(displayName = "Priya Raman"), priya)
     }
 
     @Test

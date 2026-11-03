@@ -65,7 +65,7 @@ class ApiCallTest {
     fun noContentDirectoryIsNull() = runTest {
         server.enqueue(MockResponse.Builder().code(204).build())
 
-        assertNull(apiCallOrNull { auth.getUserNameList() })
+        assertNull(apiCallOrNull { auth.getUsers() })
     }
 
     @Test

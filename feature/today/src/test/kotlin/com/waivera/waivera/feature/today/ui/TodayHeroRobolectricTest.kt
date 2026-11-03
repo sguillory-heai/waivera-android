@@ -5,6 +5,7 @@ import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertHasClickAction
+import androidx.compose.ui.test.assertHasNoClickAction
 import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasText
@@ -40,7 +41,12 @@ class TodayHeroRobolectricTest {
 
     private val context: Context = RuntimeEnvironment.getApplication()
 
-    private fun show(state: TodayUiState, onOpenEvent: (String) -> Unit = {}) {
+    private fun show(
+        state: TodayUiState,
+        onOpenEvent: (String) -> Unit = {},
+        onOpenScheduleToday: () -> Unit = {},
+        onOpenScheduleWeek: () -> Unit = {},
+    ) {
         val callbacks = TodayCallbacks(
             onAction = {},
             onAccountClick = {},
@@ -48,6 +54,8 @@ class TodayHeroRobolectricTest {
             onOpenMessage = { _, _, _ -> },
             onOpenSchedule = {},
             onOpenEvent = onOpenEvent,
+            onOpenScheduleToday = onOpenScheduleToday,
+            onOpenScheduleWeek = onOpenScheduleWeek,
         )
         compose.setContent {
             WaiveraTheme(darkTheme = false, motion = WaiveraMotionScheme.Reduced, hapticsEnabled = false) {
@@ -155,6 +163,20 @@ class TodayHeroRobolectricTest {
         compose.onNodeWithContentDescription("3 events today").assertExists()
         compose.onNodeWithContentDescription("6 unread chats").assertExists()
         compose.onNodeWithContentDescription("14 events this week").assertExists()
+    }
+
+    @Test
+    fun theDayAndWeekStatsOpenTheSchedule() {
+        val opened = mutableListOf<String>()
+        show(
+            TodayPreviewStates.populated(),
+            onOpenScheduleToday = { opened += "day" },
+            onOpenScheduleWeek = { opened += "week" },
+        )
+        compose.onNodeWithContentDescription("3 events today").assertHasClickAction().performClick()
+        compose.onNodeWithContentDescription("14 events this week").assertHasClickAction().performClick()
+        compose.onNodeWithContentDescription("6 unread chats").assertHasNoClickAction()
+        assertEquals(listOf("day", "week"), opened)
     }
 
     @Test

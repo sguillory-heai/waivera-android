@@ -96,8 +96,20 @@ import java.time.LocalDate
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
+/** What another tab asked the schedule to show: today in the Day view, or this week. */
+enum class ScheduleFocus { TODAY, THIS_WEEK }
+
+/**
+ * One request to show a [ScheduleFocus]. [id] changes on every request, so asking for the same
+ * focus again (after the person moved on) still applies.
+ */
+@Immutable
+data class ScheduleFocusRequest(val focus: ScheduleFocus, val id: Long)
+
 /**
  * Entry point for the schedule tab. Owned by `:feature:calendar`; routed by `:app`.
+ *
+ * @param focus a pending request from another tab; applied once, then [onFocusHandled] clears it.
  */
 @Composable
 fun ScheduleScreen(
@@ -105,8 +117,21 @@ fun ScheduleScreen(
     onOpenEvent: (eventId: String) -> Unit,
     onOpenConversation: (conversationId: Long) -> Unit,
     modifier: Modifier = Modifier,
+    focus: ScheduleFocusRequest? = null,
+    onFocusHandled: () -> Unit = {},
 ) {
     val viewModel: ScheduleViewModel = hiltViewModel()
+    val focusHandled by rememberUpdatedState(onFocusHandled)
+    LaunchedEffect(viewModel, focus) {
+        val request = focus ?: return@LaunchedEffect
+        viewModel.showToday(
+            when (request.focus) {
+                ScheduleFocus.TODAY -> ScheduleView.DAY
+                ScheduleFocus.THIS_WEEK -> ScheduleView.WEEK
+            },
+        )
+        focusHandled()
+    }
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbarHost = remember { SnackbarHostState() }
     val openConversation by rememberUpdatedState(onOpenConversation)
@@ -135,7 +160,7 @@ fun ScheduleScreen(
             }
         }
     }
-    PreferWeekAtLargeFont(view = state.view, onSelectView = viewModel::selectView)
+    PreferWeekAtLargeFont(view = state.view, onPreferWeek = viewModel::preferWeekOverMonth)
     Box(modifier = modifier) {
         ScheduleContent(
             state = state,
@@ -539,11 +564,11 @@ private fun PeriodRow(state: ScheduleUiState, actions: ScheduleActions, modifier
  * Month at that size it switches to the week strip. Picking Month again afterwards sticks.
  */
 @Composable
-private fun PreferWeekAtLargeFont(view: ScheduleView, onSelectView: (ScheduleView) -> Unit) {
+private fun PreferWeekAtLargeFont(view: ScheduleView, onPreferWeek: () -> Unit) {
     val compact = usesCompactCalendar(LocalDensity.current.fontScale)
     var applied by rememberSaveable { mutableStateOf(false) }
     LaunchedEffect(compact) {
-        if (!applied && compact && view == ScheduleView.MONTH) onSelectView(ScheduleView.WEEK)
+        if (!applied && compact && view == ScheduleView.MONTH) onPreferWeek()
         applied = true
     }
 }

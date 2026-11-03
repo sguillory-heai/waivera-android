@@ -84,9 +84,9 @@ internal fun TodayHero(state: TodayUiState, callbacks: TodayCallbacks, modifier:
         },
     ) {
         if (caughtUp) {
-            RewardHeroBody(state)
+            RewardHeroBody(state, callbacks)
         } else {
-            DayHeroBody(state, onOpenEvent = callbacks.onOpenEvent)
+            DayHeroBody(state, callbacks)
         }
     }
 }
@@ -96,7 +96,8 @@ internal fun TodayHero(state: TodayUiState, callbacks: TodayCallbacks, modifier:
  * two Needs you rows show under the hero instead of one.
  */
 @Composable
-private fun DayHeroBody(state: TodayUiState, onOpenEvent: (String) -> Unit) {
+private fun DayHeroBody(state: TodayUiState, callbacks: TodayCallbacks) {
+    val onOpenEvent = callbacks.onOpenEvent
     val formats = rememberTodayFormats()
     val hero = WaiveraHero.colors
     val compact = isShortWindow()
@@ -163,9 +164,17 @@ private fun DayHeroBody(state: TodayUiState, onOpenEvent: (String) -> Unit) {
     Spacer(Modifier.height(if (compact) WaiveraSpacing.Small else WaiveraSpacing.Small + WaiveraSpacing.XxSmall))
     WaiveraStatGroup(
         stats = listOf(
-            countStat(state.stats.eventsToday, R.plurals.feature_today_brand_stat_events_today),
+            countStat(
+                state.stats.eventsToday,
+                R.plurals.feature_today_brand_stat_events_today,
+                onClick = callbacks.onOpenScheduleToday,
+            ),
             countStat(state.stats.unreadChats, R.plurals.feature_today_brand_stat_unread_chats),
-            countStat(state.stats.eventsThisWeek, R.plurals.feature_today_brand_stat_events_week),
+            countStat(
+                state.stats.eventsThisWeek,
+                R.plurals.feature_today_brand_stat_events_week,
+                onClick = callbacks.onOpenScheduleWeek,
+            ),
         ),
         compact = compactTiles,
         modifier = Modifier.padding(horizontal = WaiveraSpacing.Gutter),
@@ -445,21 +454,25 @@ private fun PlaceholderLine(fraction: Float, style: TextStyle, modifier: Modifie
     }
 }
 
-/** A stat for a count; a dash (and "still loading" for TalkBack) until its source loads. */
+/**
+ * A stat for a count; a dash (and "still loading" for TalkBack) until its source loads. With
+ * [onClick] the tile opens what it counts (the day or the week on the schedule).
+ */
 @Composable
-private fun countStat(value: Int?, @PluralsRes label: Int): WaiveraStat {
+private fun countStat(value: Int?, @PluralsRes label: Int, onClick: (() -> Unit)? = null): WaiveraStat {
     val words = pluralStringResource(label, value ?: 0)
     return WaiveraStat(
         value = value?.toString() ?: stringResource(R.string.feature_today_brand_stat_unknown),
         label = words,
         contentDescription = value?.let { stringResource(R.string.feature_today_brand_stat_a11y, it, words) }
             ?: stringResource(R.string.feature_today_brand_stat_loading_a11y, words),
+        onClick = onClick,
     )
 }
 
 /** All caught up: the reward ring, the one 🎉 headline, the handled count and the day's stats. */
 @Composable
-private fun RewardHeroBody(state: TodayUiState) {
+private fun RewardHeroBody(state: TodayUiState, callbacks: TodayCallbacks) {
     val hero = WaiveraHero.colors
     val progress = state.progress
     val handled = progress?.handled ?: 0
@@ -511,8 +524,16 @@ private fun RewardHeroBody(state: TodayUiState) {
     WaiveraStatGroup(
         stats = listOf(
             handledStat(progress),
-            countStat(value = state.stats.eventsToday, label = R.plurals.feature_today_brand_stat_events_today),
-            countStat(value = state.stats.eventsThisWeek, label = R.plurals.feature_today_brand_stat_events_week),
+            countStat(
+                value = state.stats.eventsToday,
+                label = R.plurals.feature_today_brand_stat_events_today,
+                onClick = callbacks.onOpenScheduleToday,
+            ),
+            countStat(
+                value = state.stats.eventsThisWeek,
+                label = R.plurals.feature_today_brand_stat_events_week,
+                onClick = callbacks.onOpenScheduleWeek,
+            ),
         ),
         modifier = Modifier.padding(horizontal = WaiveraSpacing.Gutter),
     )

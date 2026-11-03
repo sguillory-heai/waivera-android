@@ -186,7 +186,7 @@ interface ChatApi {
 
     // Deliberately absent: `GET api/chat/user/{userId}/get-myChannels` trusts the path user id
     // (G-16, AS-11) and `GET api/chat/initiation-directory` is SUPER ADMIN only (AF-01). The staff
-    // directory is `AuthenticationApi.getUserNameList`.
+    // directory is `AuthenticationApi.getUsers`.
 
     companion object {
         const val MESSAGE_PAGE_SIZE = 50

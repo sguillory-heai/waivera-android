@@ -24,6 +24,8 @@ import com.waivera.waivera.feature.today.ui.TodayPreviewStates
  * @param onOpenMessage opens a message highlighted in its conversation, or its thread when
  *   [threadRootMessageId] is set (activity and mention rows). Without it, rows fall
  *   back to [onOpenConversation].
+ * @param onOpenScheduleToday the "events today" stat; the schedule on today's Day view.
+ * @param onOpenScheduleWeek the "events this week" stat; the schedule on this week's Week view.
  */
 @Composable
 fun TodayScreen(
@@ -33,6 +35,8 @@ fun TodayScreen(
     onOpenEvent: (eventId: String) -> Unit,
     modifier: Modifier = Modifier,
     onOpenMessage: ((conversationId: Long, messageId: Long, threadRootMessageId: Long?) -> Unit)? = null,
+    onOpenScheduleToday: () -> Unit = onOpenSchedule,
+    onOpenScheduleWeek: () -> Unit = onOpenSchedule,
 ) {
     val viewModel: TodayViewModel = hiltViewModel()
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -40,7 +44,14 @@ fun TodayScreen(
     val openMessage by rememberUpdatedState(onOpenMessage)
     val openConversation by rememberUpdatedState(onOpenConversation)
     TodayEffects(viewModel, snackbarHostState, onOpenConversation = { id -> openConversation(id) })
-    val callbacks = remember(viewModel, onAccountClick, onOpenSchedule, onOpenEvent) {
+    val callbacks = remember(
+        viewModel,
+        onAccountClick,
+        onOpenSchedule,
+        onOpenEvent,
+        onOpenScheduleToday,
+        onOpenScheduleWeek,
+    ) {
         TodayCallbacks(
             onAction = viewModel::onAction,
             onAccountClick = onAccountClick,
@@ -50,6 +61,8 @@ fun TodayScreen(
             },
             onOpenSchedule = onOpenSchedule,
             onOpenEvent = onOpenEvent,
+            onOpenScheduleToday = onOpenScheduleToday,
+            onOpenScheduleWeek = onOpenScheduleWeek,
         )
     }
     TodayContent(state = state, callbacks = callbacks, snackbarHostState = snackbarHostState, modifier = modifier)

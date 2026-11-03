@@ -2,11 +2,11 @@ package com.waivera.waivera.core.network.api
 
 import com.waivera.waivera.core.network.dto.ApiResponse
 import com.waivera.waivera.core.network.dto.GetUserNameResponseDBVM
-import com.waivera.waivera.core.network.dto.GetUserNameResponseVM
 import com.waivera.waivera.core.network.dto.OrganizationDto
 import com.waivera.waivera.core.network.dto.OrganizationResponse
 import com.waivera.waivera.core.network.dto.PagedResponse
 import com.waivera.waivera.core.network.dto.UpdateContactAndTimezoneRequest
+import com.waivera.waivera.core.network.dto.UserInfoResponse
 import com.waivera.waivera.core.network.dto.UserLoginResponseDto
 import com.waivera.waivera.core.network.dto.UserWithRoleDto
 import kotlinx.serialization.json.JsonElement
@@ -59,10 +59,6 @@ interface AuthenticationApi {
     @GET("api/Authentication/OrganizationDetails")
     suspend fun getOrganizationDetails(): Response<ApiResponse<List<OrganizationDto>>>
 
-    /** The staff directory. 204 (no `data`) when there are no users. */
-    @GET("api/Authentication/get-username-list")
-    suspend fun getUserNameList(): Response<ApiResponse<List<GetUserNameResponseVM>>>
-
     /** Includes waiver participants; not used by the staff app (docs/chat-stability-round3). */
     @GET("api/Authentication/get-combined-user-list")
     suspend fun getCombinedUserList(): Response<ApiResponse<List<GetUserNameResponseDBVM>>>
@@ -79,6 +75,14 @@ interface AuthenticationApi {
     /** Bare, not enveloped. 404 when the user has no organization. */
     @GET("api/users/organization")
     suspend fun getCurrentOrganization(): Response<OrganizationResponse>
+
+    /**
+     * The staff directory: users in the caller's own organization plus the caller's caseload
+     * participants, the list the web chat uses. Bare, not enveloped. Never use
+     * `get-username-list` for this; it returns every active user in every organization.
+     */
+    @GET("api/users")
+    suspend fun getUsers(@Query("onlyActive") onlyActive: Boolean = true): Response<List<UserInfoResponse>>
 
     @GET("api/users/search")
     suspend fun searchUsers(@Query("q") query: String): Response<JsonElement>

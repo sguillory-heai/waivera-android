@@ -136,6 +136,12 @@ interface PersonDao {
     @Upsert
     suspend fun upsert(rows: List<PersonEntity>)
 
+    @Query("SELECT id FROM people")
+    suspend fun ids(): List<String>
+
+    @Query("DELETE FROM people WHERE id IN (:ids)")
+    suspend fun delete(ids: List<String>)
+
     @Query("DELETE FROM people")
     suspend fun clear()
 }

@@ -79,11 +79,31 @@ data class OrganizationResponse(
     val isSandbox: Boolean = false,
 )
 
-/** `GetUserNameResponseVM` from `get-username-list`: the staff directory. */
+/**
+ * `GetUserNameResponseVM` from `get-username-list`. That endpoint is not scoped to the caller's
+ * organization, so the app does not use it; the directory is [UserInfoResponse].
+ */
 @Serializable
 data class GetUserNameResponseVM(
     @Serializable(with = StringOrNumberSerializer::class) val userId: String? = null,
     val userName: String? = null,
+)
+
+/**
+ * `dto/Response/UserInfoResponse.cs` from `GET /api/users` (bare list): the caller's organization
+ * plus their caseload participants. Only the fields the app reads are mirrored; external users
+ * are kept, as on the web chat.
+ */
+@Serializable
+data class UserInfoResponse(
+    @Serializable(with = StringOrNumberSerializer::class) val id: String? = null,
+    val firstName: String? = null,
+    val lastName: String? = null,
+    val email: String? = null,
+    val displayName: String? = null,
+    @Serializable(with = LenientBooleanSerializer::class) val isParticipant: Boolean = false,
+    @Serializable(with = LenientBooleanSerializer::class) val deactivated: Boolean = false,
+    val employeeRole: String? = null,
 )
 
 /**

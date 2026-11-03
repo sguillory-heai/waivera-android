@@ -132,7 +132,7 @@ only the server can close them.
 - **Ask.** Derive the user from `HttpContext.Items["uid"]` and drop the path parameter, or 403
   when it is not the caller.
 - **Client today.** The Android client no longer declares this endpoint (nor `initiation-directory`);
-  the staff directory comes from `get-username-list`.
+  the staff directory comes from `GET /api/users?onlyActive=true`.
 
 ## 10. User details are not scoped to the caller's organization (medium)
 

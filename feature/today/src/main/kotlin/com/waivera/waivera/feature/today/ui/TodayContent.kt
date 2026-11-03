@@ -61,6 +61,10 @@ internal class TodayCallbacks(
     val onOpenMessage: (conversationId: Long, messageId: Long, threadRootMessageId: Long?) -> Unit,
     val onOpenSchedule: () -> Unit,
     val onOpenEvent: (eventId: String) -> Unit,
+    /** The "events today" stat: the schedule's Day view on today. */
+    val onOpenScheduleToday: () -> Unit = onOpenSchedule,
+    /** The "events this week" stat: the schedule's Week view on this week. */
+    val onOpenScheduleWeek: () -> Unit = onOpenSchedule,
 )
 
 /**
@@ -461,6 +465,8 @@ private fun guardNavigation(callbacks: TodayCallbacks): TodayCallbacks {
             onOpenMessage = { c, m, r -> guard { callbacks.onOpenMessage(c, m, r) } },
             onOpenSchedule = { guard(callbacks.onOpenSchedule) },
             onOpenEvent = { id -> guard { callbacks.onOpenEvent(id) } },
+            onOpenScheduleToday = { guard(callbacks.onOpenScheduleToday) },
+            onOpenScheduleWeek = { guard(callbacks.onOpenScheduleWeek) },
         )
     }
 }

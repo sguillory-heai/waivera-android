@@ -3,6 +3,8 @@ package com.waivera.waivera.core.designsystem.component
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
@@ -12,18 +14,25 @@ import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Text
+import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.onClick
+import androidx.compose.ui.semantics.role
 import androidx.compose.ui.text.rememberTextMeasurer
 import com.waivera.waivera.core.designsystem.preview.WaiveraPreviews
+import com.waivera.waivera.core.designsystem.theme.PressDepth
 import com.waivera.waivera.core.designsystem.theme.WaiveraHero
 import com.waivera.waivera.core.designsystem.theme.WaiveraShapes
 import com.waivera.waivera.core.designsystem.theme.WaiveraSizes
@@ -51,6 +60,7 @@ fun WaiveraStatRow(modifier: Modifier = Modifier, content: @Composable RowScope.
  * glass tile. TalkBack reads [contentDescription] (for example "14 events this week") as one item.
  * Use it inside [WaiveraStatRow]. [compact] (a short window at regular font) puts the label
  * beside the number on a shorter tile, so the sheet's first rows still show above the fold.
+ * With [onClick] the tile is a button that opens what it counts.
  */
 @Composable
 fun RowScope.WaiveraStatTile(
@@ -59,14 +69,15 @@ fun RowScope.WaiveraStatTile(
     contentDescription: String,
     modifier: Modifier = Modifier,
     compact: Boolean = false,
+    onClick: (() -> Unit)? = null,
 ) {
     val hero = WaiveraHero.colors
     val tile = modifier
         .weight(1f)
         .fillMaxHeight()
+        .statClick(onClick, contentDescription, PressDepth.Card)
         .background(hero.tile, WaiveraShapes.StatTile)
         .border(BorderStroke(WaiveraSpacing.Hairline, hero.tileBorder), WaiveraShapes.StatTile)
-        .clearAndSetSemantics { this.contentDescription = contentDescription }
     if (compact) {
         Row(
             modifier = tile.padding(
@@ -105,9 +116,41 @@ private fun StatNumber(value: String) {
     }
 }
 
-/** One stat for [WaiveraStatGroup]: its number, its label and what TalkBack reads for it. */
+/**
+ * The press response and click of a stat, read by TalkBack as one item: a button when it opens
+ * something, plain text otherwise. The tile's own shape bounds the ripple and the tint.
+ */
+@Composable
+private fun Modifier.statClick(action: (() -> Unit)?, description: String, depth: PressDepth): Modifier {
+    if (action == null) return clearAndSetSemantics { contentDescription = description }
+    val interactions = remember { MutableInteractionSource() }
+    val press = rememberPressFeedback(interactions, depth = depth)
+    return this
+        .heightIn(min = WaiveraSpacing.MinTouchTarget)
+        .pressFeedback(press, shape = WaiveraShapes.StatTile)
+        .clip(WaiveraShapes.StatTile)
+        .clickable(interactionSource = interactions, indication = ripple(), onClick = action)
+        .clearAndSetSemantics {
+            contentDescription = description
+            role = Role.Button
+            onClick {
+                action()
+                true
+            }
+        }
+}
+
+/**
+ * One stat for [WaiveraStatGroup]: its number, its label, what TalkBack reads for it and, when
+ * the stat opens something, what a tap does.
+ */
 @Immutable
-data class WaiveraStat(val value: String, val label: String, val contentDescription: String)
+data class WaiveraStat(
+    val value: String,
+    val label: String,
+    val contentDescription: String,
+    val onClick: (() -> Unit)? = null,
+)
 
 /**
  * The hero's stats, laid out for the text size: three equal tiles in a row, or, when a tile's
@@ -144,6 +187,7 @@ fun WaiveraStatGroup(stats: List<WaiveraStat>, modifier: Modifier = Modifier, co
                         label = stat.label,
                         contentDescription = stat.contentDescription,
                         compact = compact,
+                        onClick = stat.onClick,
                     )
                 }
             }
@@ -166,8 +210,8 @@ private fun StatCard(stats: List<WaiveraStat>) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(vertical = WaiveraSpacing.ExtraSmall + WaiveraSpacing.XxSmall)
-                    .clearAndSetSemantics { contentDescription = stat.contentDescription },
+                    .statClick(stat.onClick, stat.contentDescription, PressDepth.Row)
+                    .padding(vertical = WaiveraSpacing.ExtraSmall + WaiveraSpacing.XxSmall),
                 horizontalArrangement = Arrangement.spacedBy(WaiveraSpacing.Small),
                 verticalAlignment = Alignment.CenterVertically,
             ) {

@@ -176,6 +176,22 @@ class ChatCache @Inject constructor(
         )
     }
 
+    /**
+     * Replaces the directory: [directory] is upserted and every cached person who is neither in
+     * it nor a participant of a cached conversation is removed, so people the server no longer
+     * lists for this user (another organization, a deactivated account) leave the device.
+     */
+    suspend fun replaceDirectory(directory: List<Person>) {
+        transactions.run {
+            val keep = directory.mapTo(HashSet()) { it.id }
+            conversations().flatMapTo(keep) { conversation -> conversation.participants.map { it.id } }
+            val stale = personDao.ids().filterNot(keep::contains)
+            // SQLite caps bound parameters at 999 on older Android versions.
+            stale.chunked(DELETE_CHUNK).forEach { personDao.delete(it) }
+            putPeople(directory)
+        }
+    }
+
     // Documents
 
     fun <T> observeDocument(key: String, serializer: KSerializer<T>): Flow<T?> =
@@ -207,5 +223,9 @@ class ChatCache @Inject constructor(
         null
     } catch (_: IllegalArgumentException) {
         null
+    }
+
+    private companion object {
+        const val DELETE_CHUNK = 500
     }
 }

@@ -91,5 +91,6 @@ rest-mobile-push-register-request-ios.json
 rest-mobile-push-register.json
 rest-mobile-push-unregister.json
 rest-timeoff-get-for-user-profile.json
+rest-users-list.json
 rest-users-organization.json
 rest-video-create-meeting-room.json

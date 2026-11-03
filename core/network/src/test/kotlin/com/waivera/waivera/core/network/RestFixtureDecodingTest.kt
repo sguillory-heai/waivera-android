@@ -27,6 +27,7 @@ import com.waivera.waivera.core.network.dto.OrganizationResponse
 import com.waivera.waivera.core.network.dto.TimeOffProfileDto
 import com.waivera.waivera.core.network.dto.UnifiedConversationResponse
 import com.waivera.waivera.core.network.dto.UploadAttachmentResponse
+import com.waivera.waivera.core.network.dto.UserInfoResponse
 import com.waivera.waivera.core.network.dto.UserLoginResponseDto
 import com.waivera.waivera.core.network.dto.UserWithRoleDto
 import com.waivera.waivera.core.testing.Fixtures
@@ -101,6 +102,7 @@ class RestFixtureDecodingTest {
         "rest-mobile-push-register.json" to MobilePushResultDto.serializer(),
         "rest-mobile-push-unregister.json" to MobilePushResultDto.serializer(),
         "rest-timeoff-get-for-user-profile.json" to envelope(ListSerializer(TimeOffProfileDto.serializer())),
+        "rest-users-list.json" to ListSerializer(UserInfoResponse.serializer()),
         "rest-users-organization.json" to OrganizationResponse.serializer(),
         "rest-video-create-meeting-room.json" to envelope(CreateMeetingRoomResponse.serializer()),
     )

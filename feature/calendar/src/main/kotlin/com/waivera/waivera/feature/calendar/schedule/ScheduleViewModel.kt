@@ -123,6 +123,14 @@ class ScheduleViewModel @Inject constructor(
         view.value = newView
     }
 
+    /**
+     * Large font starts on Week instead of the cramped Month. It checks the live view, so a Day
+     * view another tab asked for in the same frame is kept.
+     */
+    fun preferWeekOverMonth() {
+        if (view.value == ScheduleView.MONTH) view.value = ScheduleView.WEEK
+    }
+
     fun selectDate(date: LocalDate) {
         selection.value = date
     }
@@ -137,6 +145,12 @@ class ScheduleViewModel @Inject constructor(
     fun goToToday() {
         now.value = clock.instant()
         selection.value = null
+    }
+
+    /** Opened from Today's stats: today's date in [focusView] (Day for today, Week for this week). */
+    fun showToday(focusView: ScheduleView) {
+        view.value = focusView
+        goToToday()
     }
 
     /** Pull to refresh or the Refresh action: feed and milestones together. */

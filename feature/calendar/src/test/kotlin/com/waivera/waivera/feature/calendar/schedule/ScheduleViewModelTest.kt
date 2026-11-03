@@ -185,6 +185,26 @@ class ScheduleViewModelTest {
     }
 
     @Test
+    fun todaysStatsOpenTodayInTheirViewAndLargeFontKeepsTheDay() = runTest {
+        val vm = viewModel()
+        vm.selectDate(LocalDate.of(2026, 11, 20))
+        vm.showToday(ScheduleView.DAY)
+        assertEquals(ScheduleView.DAY, vm.uiState.value.view)
+        assertEquals(LocalDate.of(2026, 11, 1), vm.uiState.value.selectedDate)
+        vm.preferWeekOverMonth()
+        assertEquals(ScheduleView.DAY, vm.uiState.value.view, "the large-font switch only replaces Month")
+
+        vm.selectDate(LocalDate.of(2026, 12, 9))
+        vm.showToday(ScheduleView.WEEK)
+        assertEquals(ScheduleView.WEEK, vm.uiState.value.view)
+        assertEquals(LocalDate.of(2026, 11, 1), vm.uiState.value.selectedDate)
+
+        vm.selectView(ScheduleView.MONTH)
+        vm.preferWeekOverMonth()
+        assertEquals(ScheduleView.WEEK, vm.uiState.value.view)
+    }
+
+    @Test
     fun jumpToTodayIsOfferedOnlyWhileTodayIsOutOfSight() = runTest {
         val vm = viewModel()
         vm.selectView(ScheduleView.WEEK)

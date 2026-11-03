@@ -1,8 +1,13 @@
 package com.waivera.waivera.ui
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import com.waivera.waivera.feature.auth.PasswordChangeScreen
 import com.waivera.waivera.feature.calendar.CalendarEventScreen
+import com.waivera.waivera.feature.calendar.ScheduleFocus
+import com.waivera.waivera.feature.calendar.ScheduleFocusRequest
 import com.waivera.waivera.feature.calendar.ScheduleScreen
 import com.waivera.waivera.feature.chat.ChatListScreen
 import com.waivera.waivera.feature.chat.ConversationScreen
@@ -45,6 +50,23 @@ class RouteActions(private val shell: ShellActions, val openAccountMenu: () -> U
     val openEvent: (String) -> Unit = { id -> shell.push(CalendarEventRoute(id)) }
     val openSchedule: () -> Unit = { shell.select(TopLevelTab.Schedule) }
 
+    /** What Today's stats asked the schedule to show, until the schedule has applied it. */
+    var scheduleFocus by mutableStateOf<ScheduleFocusRequest?>(null)
+        private set
+    private var focusRequests = 0L
+
+    val openScheduleToday: () -> Unit = { openScheduleOn(ScheduleFocus.TODAY) }
+    val openScheduleWeek: () -> Unit = { openScheduleOn(ScheduleFocus.THIS_WEEK) }
+    val scheduleFocusHandled: () -> Unit = { scheduleFocus = null }
+
+    private fun openScheduleOn(focus: ScheduleFocus) {
+        scheduleFocus = ScheduleFocusRequest(focus, ++focusRequests)
+        // The second select pops the tab to its root (reselecting a tab does), so the day or
+        // week shows even when an event was left open on the Schedule tab.
+        shell.select(TopLevelTab.Schedule)
+        shell.select(TopLevelTab.Schedule)
+    }
+
     fun openThread(conversationId: Long): (Long) -> Unit = { root -> shell.push(ThreadRoute(conversationId, root)) }
 
     /**
@@ -74,6 +96,8 @@ fun RouteContent(route: AppRoute, actions: RouteActions) {
             onOpenSchedule = actions.openSchedule,
             onOpenEvent = actions.openEvent,
             onOpenMessage = actions.openMessage,
+            onOpenScheduleToday = actions.openScheduleToday,
+            onOpenScheduleWeek = actions.openScheduleWeek,
         )
         ChatListRoute -> ChatListScreen(
             onAccountClick = actions.openAccountMenu,
@@ -84,6 +108,8 @@ fun RouteContent(route: AppRoute, actions: RouteActions) {
             onAccountClick = actions.openAccountMenu,
             onOpenEvent = actions.openEvent,
             onOpenConversation = actions.openConversation,
+            focus = actions.scheduleFocus,
+            onFocusHandled = actions.scheduleFocusHandled,
         )
         is ConversationRoute -> ConversationScreen(
             conversationId = route.conversationId,
