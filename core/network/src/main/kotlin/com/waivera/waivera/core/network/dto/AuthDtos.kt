@@ -90,23 +90,6 @@ data class GetUserNameResponseVM(
 )
 
 /**
- * `dto/Response/UserInfoResponse.cs` from `GET /api/users` (bare list): the caller's organization
- * plus their caseload participants. Only the fields the app reads are mirrored; external users
- * are kept, as on the web chat.
- */
-@Serializable
-data class UserInfoResponse(
-    @Serializable(with = StringOrNumberSerializer::class) val id: String? = null,
-    val firstName: String? = null,
-    val lastName: String? = null,
-    val email: String? = null,
-    val displayName: String? = null,
-    @Serializable(with = LenientBooleanSerializer::class) val isParticipant: Boolean = false,
-    @Serializable(with = LenientBooleanSerializer::class) val deactivated: Boolean = false,
-    val employeeRole: String? = null,
-)
-
-/**
  * `GetUserNameResponseDBVM` from `get-combined-user-list`; includes waiver participants, so the app
  * does not use it.
  */
