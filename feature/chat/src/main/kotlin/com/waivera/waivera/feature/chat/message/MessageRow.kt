@@ -370,11 +370,7 @@ internal fun InMyBubbleColors(inMyBubble: Boolean, content: @Composable () -> Un
 
 /** The bubble's body and attachment, top to bottom. Reactions and replies sit under it ([Engagement]). */
 @Composable
-private fun BubbleContent(
-    row: TimelineItem.MessageRow,
-    callbacks: MessageRowCallbacks,
-    onLongPress: (() -> Unit)?,
-) {
+private fun BubbleContent(row: TimelineItem.MessageRow, callbacks: MessageRowCallbacks, onLongPress: (() -> Unit)?) {
     val message = row.message
     Column(
         horizontalAlignment = if (row.isMine) Alignment.End else Alignment.Start,
