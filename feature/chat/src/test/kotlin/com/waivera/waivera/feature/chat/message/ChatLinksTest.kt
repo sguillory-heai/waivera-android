@@ -50,7 +50,7 @@ class ChatLinksTest {
     }
 
     @Test
-    fun a_closing_link_leaves_the_text_and_addresses_inside_take_short_names() {
+    fun every_address_takes_its_short_name_and_a_closing_link_stays_in_the_text() {
         val doc = paragraph(
             text("Start with "),
             text("$web/task/HEA-1077", "$web/task/HEA-1077"),
@@ -74,9 +74,20 @@ class ChatLinksTest {
                 text("HEA-1077", "$web/task/HEA-1077"),
                 text(" and call "),
                 text("Accessible Rides", "$web/resources/$ID"),
+                text(" "),
+                RichInline.HardBreak,
+                text("Lakeview", "/resources/$OTHER"),
             ),
             shown,
         )
+    }
+
+    @Test
+    fun a_message_that_is_only_a_link_reads_as_its_short_name() {
+        val doc = paragraph(text("$web/task/HEA-1077", "$web/task/HEA-1077"))
+        val previews = mapOf<LinkTarget, LinkPreview>(LinkTarget.Task(1077, "HEA") to task("HEA-1077"))
+
+        assertEquals(paragraph(text("HEA-1077", "$web/task/HEA-1077")), links.present(doc, previews))
     }
 
     @Test

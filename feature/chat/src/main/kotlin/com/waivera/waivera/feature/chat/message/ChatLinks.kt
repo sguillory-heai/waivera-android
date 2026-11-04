@@ -89,27 +89,27 @@ class ChatLinks(private val webBase: HttpUrl?) {
     }
 
     /**
-     * [document] as it reads once its links have previews: an address shown as text is replaced
-     * by the short name of what it points at (a task's number, a resource's or article's title),
-     * so the reader can match text to preview; a link that ends the message leaves the text,
-     * since its preview sits right under it. Links still loading, or that the reader can't
-     * open, are left as written.
+     * [document] as it reads once its links have previews: every address shown as text is
+     * replaced by the short name of what it points at (a task's number, a resource's or article's
+     * title), wherever it sits, so each preview has a name in the text the reader can match it
+     * to, and a message that was only a link still reads as something. Links still loading, or
+     * that the reader can't open, are left as written.
      */
     fun present(document: RichDocument, previews: Map<LinkTarget, LinkPreview>): RichDocument {
         fun resolved(href: String?): LinkPreview? =
             href?.let(::target)?.let(previews::get)?.takeIf { it.shortName() != null }
-        val renamed = document.blocks.mapInlines { inlines ->
-            inlines.map { inline ->
-                val preview = (inline as? RichInline.Text)?.let { resolved(it.href) }
-                val name = preview?.shortName()
-                if (inline is RichInline.Text && name != null && looksLikeAddress(inline.text, inline.href)) {
-                    inline.copy(text = name)
-                } else {
-                    inline
+        return RichDocument(
+            document.blocks.mapInlines { inlines ->
+                inlines.map { inline ->
+                    val name = (inline as? RichInline.Text)?.let { resolved(it.href) }?.shortName()
+                    if (inline is RichInline.Text && name != null && looksLikeAddress(inline.text, inline.href)) {
+                        inline.copy(text = name)
+                    } else {
+                        inline
+                    }
                 }
-            }
-        }
-        return RichDocument(dropTrailingLink(renamed) { resolved(it) != null })
+            },
+        )
     }
 
     private fun looksLikeAddress(text: String, href: String?): Boolean {
@@ -119,22 +119,6 @@ class ChatLinks(private val webBase: HttpUrl?) {
             trimmed.startsWith("https://", ignoreCase = true) ||
             trimmed.startsWith("/")
     }
-
-    /** Without the last paragraph's closing link and the spaces or line breaks before it. */
-    private fun dropTrailingLink(blocks: List<RichBlock>, hasPreview: (String?) -> Boolean): List<RichBlock> {
-        val last = blocks.lastOrNull() as? RichBlock.Paragraph ?: return blocks
-        val inlines = last.inlines.toMutableList()
-        while (inlines.lastOrNull().isBlank()) inlines.removeAt(inlines.lastIndex)
-        val href = (inlines.lastOrNull() as? RichInline.Text)?.href
-        if (href == null || !hasPreview(href)) return blocks
-        while ((inlines.lastOrNull() as? RichInline.Text)?.href == href) inlines.removeAt(inlines.lastIndex)
-        while (inlines.lastOrNull().isBlank()) inlines.removeAt(inlines.lastIndex)
-        val rest = blocks.dropLast(1)
-        return if (inlines.isEmpty()) rest else rest + RichBlock.Paragraph(inlines)
-    }
-
-    private fun RichInline?.isBlank(): Boolean =
-        this == RichInline.HardBreak || (this is RichInline.Text && href == null && text.isBlank())
 
     private fun decode(value: String): String? = runCatching {
         URLDecoder.decode(value, Charsets.UTF_8.name())

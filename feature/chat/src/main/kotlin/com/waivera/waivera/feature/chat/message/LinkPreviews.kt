@@ -45,9 +45,9 @@ import java.time.format.DateTimeFormatter
 
 /**
  * A Waivera link in a message, resolved for the person reading it. Titles and details are always
- * one line. A link at the end of a message leaves the text once it has a preview; a link inside a
- * sentence stays, shown by its short name (a task's number, a resource or article title), so the
- * reader can tell which preview goes with which part of the message ([ChatLinks.present]).
+ * one line. Every link stays in the text, shown by its short name (a task's number, a resource or
+ * article title), so the reader can tell which preview goes with which part of the message
+ * ([ChatLinks.present]).
  */
 @Immutable
 sealed interface LinkPreview {
