@@ -59,9 +59,12 @@ import com.waivera.waivera.core.designsystem.theme.WaiveraSizes
 import com.waivera.waivera.core.designsystem.theme.WaiveraSpacing
 import com.waivera.waivera.core.designsystem.theme.WaiveraTextStyles
 import com.waivera.waivera.core.designsystem.theme.WaiveraTheme
+import com.waivera.waivera.core.designsystem.theme.glide
+import kotlin.math.abs
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
 /** One bottom tab. [key] is the caller's stable id for the tab. */
@@ -188,11 +191,12 @@ fun WaiveraNavigationBar(
 
 /**
  * The one pill the whole bar shares, as on iPhone: where each glyph rests, and the pill's centre
- * gliding to the selected one on the press spring. Under Remove animations the spring snaps.
- * Everything here is read in the draw block, so the glide never recomposes the bar.
+ * gliding to the selected one. It shrinks as it leaves the old tab, travels small, and swells back
+ * over the new icon as it arrives. Under Remove animations it snaps. Everything here is read in
+ * the draw block, so the glide never recomposes the bar.
  */
 @Stable
-private class TabPill(val x: Animatable<Float, *>, val y: Animatable<Float, *>) {
+private class TabPill(val x: Animatable<Float, *>, val y: Animatable<Float, *>, val squeeze: Animatable<Float, *>) {
     var bar: LayoutCoordinates? = null
     val centers = mutableStateMapOf<String, Offset>()
     val presses = mutableMapOf<String, PressFeedbackState>()
@@ -210,7 +214,7 @@ private class TabPill(val x: Animatable<Float, *>, val y: Animatable<Float, *>) 
 @Composable
 private fun rememberTabPill(selectedKey: String): TabPill {
     val motion = WaiveraTheme.motion
-    val pill = remember { TabPill(Animatable(0f), Animatable(0f)) }
+    val pill = remember { TabPill(Animatable(0f), Animatable(0f), Animatable(1f)) }
     SideEffect { pill.selectedKey = selectedKey }
     // The target is read here, outside composition, so a glide or a re-layout never recomposes
     // the bar. A new pick mid-glide redirects the pill from where it is, keeping its speed.
@@ -218,28 +222,51 @@ private fun rememberTabPill(selectedKey: String): TabPill {
         snapshotFlow { pill.selectedKey?.let { pill.centers[it] } }
             .filterNotNull()
             .collectLatest { target ->
-                if (!pill.placed) {
+                if (!pill.placed || motion.reduced) {
                     pill.x.snapTo(target.x)
                     pill.y.snapTo(target.y)
+                    pill.squeeze.snapTo(1f)
                     pill.placed = true
                     return@collectLatest
                 }
+                val from = pill.x.value
+                if (abs(target.x - from) < 1f) {
+                    coroutineScope {
+                        launch { pill.squeeze.animateTo(1f, motion.pop) }
+                        pill.y.animateTo(target.y, motion.glide())
+                    }
+                    return@collectLatest
+                }
                 coroutineScope {
-                    launch { pill.y.animateTo(target.y, motion.press()) }
-                    pill.x.animateTo(target.x, motion.press())
+                    launch { pill.y.animateTo(target.y, motion.glide()) }
+                    launch {
+                        pill.squeeze.animateTo(TAB_PILL_GLIDE_SCALE, motion.press())
+                        // Swell back once most of the way there, so it lands full size on the icon.
+                        snapshotFlow { (pill.x.value - from) / (target.x - from) }
+                            .first { it >= TAB_PILL_SWELL_AT }
+                        pill.squeeze.animateTo(1f, motion.pop)
+                    }
+                    pill.x.animateTo(target.x, motion.glide())
                 }
             }
     }
     return pill
 }
 
+/** How small the pill travels between tabs, as a fraction of its resting size. */
+private const val TAB_PILL_GLIDE_SCALE = 0.72f
+
+/** How far along its glide the pill starts swelling back to full size. */
+private const val TAB_PILL_SWELL_AT = 0.7f
+
 /**
  * Draws the shared pill, solid [fill], centred on its gliding centre. It shrinks with the
- * selected tab's press, so the tab under the finger and its pill give together.
+ * selected tab's press, so the tab under the finger and its pill give together, and with its
+ * own squeeze while it travels.
  */
 private fun DrawScope.drawTabPill(pill: TabPill, fill: Color) {
     if (!pill.placed) return
-    val scale = pill.selectedKey?.let { pill.presses[it]?.value } ?: 1f
+    val scale = (pill.selectedKey?.let { pill.presses[it]?.value } ?: 1f) * pill.squeeze.value
     val width = WaiveraSizes.NavIndicatorWidth.toPx() * scale
     val height = WaiveraSizes.NavIndicatorHeight.toPx() * scale
     val center = Offset(pill.x.value, pill.y.value)

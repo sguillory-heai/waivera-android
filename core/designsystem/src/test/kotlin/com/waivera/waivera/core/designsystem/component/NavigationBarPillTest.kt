@@ -1,5 +1,8 @@
 package com.waivera.waivera.core.designsystem.component
 
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toPixelMap
 import androidx.compose.ui.test.captureToImage
@@ -96,6 +99,65 @@ class NavigationBarPillTest {
         assertTrue("an unselected tab shows a pill: $rest", rest.near(colors.navBar))
     }
 
+    /**
+     * As on iPhone, picking another tab sends the one pill across the bar: part way there it sits
+     * between the two icons and is smaller than at rest, and it lands full size on the new icon.
+     */
+    @Test
+    fun picking_a_tab_glides_the_pill_across_small_and_lands_full_size() {
+        var selected by mutableStateOf("today")
+        compose.mainClock.autoAdvance = false
+        compose.setContent {
+            WaiveraTheme(darkTheme = false, motion = WaiveraMotionScheme.Standard, hapticsEnabled = false) {
+                WaiveraNavigationBar(
+                    items = listOf(
+                        NavigationBarItemModel(key = "today", label = "Today", icon = WaiveraIcons.Today),
+                        NavigationBarItemModel(key = "chat", label = "Chat", icon = WaiveraIcons.Chat),
+                    ),
+                    selectedKey = selected,
+                    onSelect = {},
+                )
+            }
+        }
+        compose.mainClock.advanceTimeBy(SETTLE_MILLIS)
+        val icons = compose.onAllNodesWithTag(NAV_ICON_TEST_TAG, useUnmergedTree = true)
+        val start = icons[0].getBoundsInRoot()
+        val end = icons[1].getBoundsInRoot()
+        val y = with(compose.density) { ((start.top + start.bottom) / 2).roundToPx() }
+        val startX = with(compose.density) { ((start.left + start.right) / 2).toPx() }
+        val endX = with(compose.density) { ((end.left + end.right) / 2).toPx() }
+        val restWidth = pillSpan(y).let { it.last - it.first }
+
+        selected = "chat"
+        // Frame by frame, drawing each one as a device does; one long jump skips the glide's start.
+        var mid = pillSpan(y)
+        repeat((MID_GLIDE_MILLIS / FRAME_MILLIS).toInt()) {
+            compose.mainClock.advanceTimeBy(FRAME_MILLIS)
+            mid = pillSpan(y)
+        }
+        val midCenter = (mid.first + mid.last) / 2f
+        assertTrue(
+            "the pill jumped instead of gliding: centre $midCenter",
+            midCenter > startX + 4 && midCenter < endX - 4,
+        )
+        assertTrue(
+            "the pill is not smaller while it travels: ${mid.last - mid.first} vs $restWidth",
+            mid.last - mid.first < restWidth,
+        )
+
+        compose.mainClock.advanceTimeBy(SETTLE_MILLIS)
+        val landed = pillSpan(y)
+        assertTrue("the pill did not land on the new icon", abs((landed.first + landed.last) / 2f - endX) <= 2f)
+        assertTrue("the pill did not land full size", abs((landed.last - landed.first) - restWidth) <= 2)
+    }
+
+    /** The pixels along row [y] drawn in the selected fill, first to last. */
+    private fun pillSpan(y: Int): IntRange {
+        val pixels = compose.onRoot().captureToImage().toPixelMap()
+        val hits = (0 until pixels.width).filter { pixels[it, y].near(colors.selectedFill) }
+        return hits.first()..hits.last()
+    }
+
     private fun Color.near(other: Color): Boolean = distanceTo(other) <= SAME_COLOR
 
     private fun Color.distanceTo(other: Color): Float =
@@ -107,5 +169,8 @@ class NavigationBarPillTest {
 
         // About 5/255: anti-aliasing stays under it; a gradient's spread or a pill edge doesn't.
         const val SAME_COLOR = 0.02f
+        const val SETTLE_MILLIS = 1_500L
+        const val MID_GLIDE_MILLIS = 160L
+        const val FRAME_MILLIS = 16L
     }
 }

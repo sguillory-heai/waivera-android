@@ -14,7 +14,8 @@ import kotlinx.serialization.json.contentOrNull
  * cannot fill, so a row never shows braces. Mirrors sprout_api `MobilePushNotificationService.InboxPush`.
  */
 object NoticeMapping {
-    private val Placeholder = Regex("\\{[A-Za-z]+}")
+    // Android's ICU regex rejects an unescaped closing brace that the JVM accepts.
+    private val Placeholder = Regex("\\{[A-Za-z]+\\}")
     private val Spaces = Regex("\\s{2,}")
     private val TaskPath = Regex("^/task/(\\d+)")
     private val EventQuery = Regex("[?&]eventId=([A-Za-z0-9_.:-]{1,128})")

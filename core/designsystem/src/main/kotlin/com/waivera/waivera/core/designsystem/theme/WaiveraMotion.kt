@@ -343,6 +343,16 @@ class WaiveraMotionScheme internal constructor(val reduced: Boolean) {
 }
 
 /**
+ * The tab pill travelling to the tab just picked, as on iPhone: slow enough to be seen crossing
+ * the bar (about a third of a second), settling without a bounce. Reduced motion snaps.
+ */
+fun <T> WaiveraMotionScheme.glide(): FiniteAnimationSpec<T> =
+    if (reduced) snap() else spring(dampingRatio = GLIDE_DAMPING, stiffness = GLIDE_STIFFNESS)
+
+private const val GLIDE_DAMPING = 0.86f
+private const val GLIDE_STIFFNESS = 320f
+
+/**
  * The arriving side of a swap (M2-02), Material's fade-through order: its fade waits
  * [WaiveraMotionScheme.SWAP_ENTER_DELAY_MILLIS], by when the leaving side is nearly gone, then
  * eases in. The leaving side has cleared before this one is halfway, so two texts never sit on
