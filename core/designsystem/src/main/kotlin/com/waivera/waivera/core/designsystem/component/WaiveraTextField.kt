@@ -74,6 +74,7 @@ fun WaiveraTextField(
     errorText: String? = null,
     enabled: Boolean = true,
     singleLine: Boolean = true,
+    minLines: Int = 1,
     keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
     keyboardActions: KeyboardActions = KeyboardActions.Default,
     visualTransformation: VisualTransformation = VisualTransformation.None,
@@ -136,6 +137,7 @@ fun WaiveraTextField(
             keyboardOptions = keyboardOptions,
             keyboardActions = keyboardActions,
             singleLine = singleLine,
+            minLines = if (singleLine) 1 else minLines,
             shape = WaiveraShapes.Field,
             colors = OutlinedTextFieldDefaults.colors(
                 focusedContainerColor = colors.raised,

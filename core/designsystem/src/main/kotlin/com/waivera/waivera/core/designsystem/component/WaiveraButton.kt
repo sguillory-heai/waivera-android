@@ -332,7 +332,7 @@ private fun Modifier.buttonSheen(finish: ButtonFinish, shape: Shape, colors: Wai
 private fun buttonBorder(variant: WaiveraButtonVariant, enabled: Boolean, colors: WaiveraColors): BorderStroke? = when {
     variant == WaiveraButtonVariant.Text -> null
     !enabled -> BorderStroke(WaiveraSpacing.Hairline, colors.border)
-    variant == WaiveraButtonVariant.Secondary -> BorderStroke(WaiveraSpacing.Hairline, colors.border)
+    variant == WaiveraButtonVariant.Secondary -> BorderStroke(WaiveraSpacing.Hairline, colors.fieldBorder)
     variant == WaiveraButtonVariant.DestructiveOutline -> BorderStroke(WaiveraSpacing.Hairline, colors.danger)
     variant == WaiveraButtonVariant.Selected -> BorderStroke(WaiveraSizes.SelectedOutline, colors.accent)
     variant == WaiveraButtonVariant.Unselected -> BorderStroke(WaiveraSpacing.Hairline, colors.border)

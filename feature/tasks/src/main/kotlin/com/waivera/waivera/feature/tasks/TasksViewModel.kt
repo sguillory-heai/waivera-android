@@ -5,16 +5,25 @@ import androidx.compose.runtime.Immutable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.waivera.waivera.core.data.model.TaskCounts
+import com.waivera.waivera.core.data.model.TaskQuery
+import com.waivera.waivera.core.data.model.TaskScope
 import com.waivera.waivera.core.data.model.TaskState
 import com.waivera.waivera.core.data.model.TaskSummary
 import com.waivera.waivera.core.data.model.TaskWindow
+import com.waivera.waivera.core.data.model.currentUserId
 import com.waivera.waivera.core.data.repository.CalendarRepository
+import com.waivera.waivera.core.data.repository.RequestRepository
+import com.waivera.waivera.core.data.repository.SessionRepository
 import com.waivera.waivera.core.data.repository.TaskRepository
 import com.waivera.waivera.core.network.error.waiveraErrorOrNull
 import com.waivera.waivera.core.network.time.WaiveraTime
 import dagger.hilt.android.lifecycle.HiltViewModel
 import java.time.Clock
 import java.time.LocalDate
+import java.time.temporal.ChronoUnit
+import java.time.temporal.TemporalAdjusters
+import java.time.temporal.WeekFields
+import java.util.Locale
 import javax.inject.Inject
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.Job
@@ -32,6 +41,15 @@ import kotlinx.coroutines.launch
 
 enum class TasksPhase { Loading, Error, Empty, Content }
 
+/** The Tasks tab's segments. Requests shows only to people the web shows Admin Requests to. */
+enum class TasksSegment { Casework, MyWork, Requests }
+
+/** How the list groups cards by due date, in display order. */
+enum class DueGroup { Overdue, ThisWeek, NextWeek, Later, NoDue }
+
+/** At most one badge per card: a request or delay first, then the work state. */
+enum class RowFlag { ClosureRequested, Delayed, InProgress, InReview }
+
 /** One task card, already worded for the person's day. */
 @Immutable
 data class TaskRow(
@@ -41,14 +59,28 @@ data class TaskRow(
     val about: String?,
     val due: DueText,
     val state: TaskState,
+    /** The date tile: month and day of the due date, or null without one. */
+    val tileMonth: String? = null,
+    val tileDay: String? = null,
+    /** Whole days past due; null when not overdue. */
+    val daysLate: Int? = null,
+    /** Someone else owns it; null when it is the person's own. */
+    val assignee: String? = null,
+    val flag: RowFlag? = null,
+    val group: DueGroup = DueGroup.NoDue,
 )
 
 @Immutable
+data class TaskSection(val group: DueGroup, val rows: List<TaskRow>)
+
+@Immutable
 data class TasksUiState(
+    val segment: TasksSegment = TasksSegment.Casework,
     val window: TaskWindow = TaskWindow.DueSoon,
+    val assignedToMe: Boolean = false,
     val query: String = "",
-    val rows: List<TaskRow> = emptyList(),
-    /** Matches on the server for this window and search, including pages not loaded yet. */
+    val sections: List<TaskSection> = emptyList(),
+    /** Matches on the server for this list and search, including pages not loaded yet. */
     val totalCount: Int = 0,
     val counts: TaskCounts? = null,
     val phase: TasksPhase = TasksPhase.Loading,
@@ -58,19 +90,31 @@ data class TasksUiState(
     /** A refresh failed while the last good list stays on screen. */
     val refreshFailed: Boolean = false,
     @StringRes val errorMessage: Int? = null,
+    val showsRequests: Boolean = false,
+    /** Requests waiting on this person, for the count in the Requests segment. */
+    val waitingCount: Int = 0,
 ) {
+    val rowCount: Int get() = sections.sumOf { it.rows.size }
+
     /** False after a failed next page, until a refresh, so a bad page is not retried in a loop. */
-    val canLoadMore: Boolean get() = phase == TasksPhase.Content && rows.size < totalCount && !pageFailed
+    val canLoadMore: Boolean get() = phase == TasksPhase.Content && rowCount < totalCount && !pageFailed
+
+    val segments: List<TasksSegment>
+        get() = if (showsRequests) TasksSegment.entries else listOf(TasksSegment.Casework, TasksSegment.MyWork)
 }
 
 /**
- * The Tasks tab: the person's own open tasks, from the server. Changing the window or the
- * search starts over at page one; scrolling near the end loads the next page.
+ * The Tasks tab. Casework is the web's client task list, scoped by the server to the person's
+ * role (their caseload, or the whole agency for owners); My work is their own employee tasks.
+ * Changing the segment, window, chip or search starts over at page one.
  */
 @OptIn(FlowPreview::class)
 @HiltViewModel
+@Suppress("TooManyFunctions") // One small handler per control on the tab.
 class TasksViewModel @Inject constructor(
     private val tasks: TaskRepository,
+    private val requests: RequestRepository,
+    private val session: SessionRepository,
     calendar: CalendarRepository,
     private val clock: Clock,
 ) : ViewModel() {
@@ -81,12 +125,26 @@ class TasksViewModel @Inject constructor(
     private var pageJob: Job? = null
     private var countsJob: Job? = null
 
-    val uiState: StateFlow<TasksUiState> = combine(local, zone) { l, zone ->
+    val uiState: StateFlow<TasksUiState> = combine(local, zone, requests.access, requests.waiting) {
+            l,
+            zone,
+            access,
+            waiting,
+        ->
         val today = clock.instant().atZone(zone).toLocalDate()
+        val me = session.state.value.currentUserId
+        val rows = l.items.map { row(it, today, me) }
+        val segment = if (l.segment == TasksSegment.Requests && access.loaded && !access.showsRequests) {
+            TasksSegment.Casework
+        } else {
+            l.segment
+        }
         TasksUiState(
+            segment = segment,
             window = l.window,
+            assignedToMe = l.assignedToMe,
             query = l.query,
-            rows = l.items.map { row(it, today) },
+            sections = rows.groupBy { it.group }.toSortedMap().map { (group, items) -> TaskSection(group, items) },
             totalCount = l.totalCount,
             counts = l.counts,
             phase = l.phase,
@@ -95,6 +153,8 @@ class TasksViewModel @Inject constructor(
             pageFailed = l.pageFailed,
             refreshFailed = l.refreshFailed,
             errorMessage = l.errorMessage,
+            showsRequests = access.showsRequests,
+            waitingCount = waiting?.count { it.kind.reviewableHere }.takeIf { access.showsRequests } ?: 0,
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS), TasksUiState())
 
@@ -107,15 +167,37 @@ class TasksViewModel @Inject constructor(
         }
     }
 
+    fun setSegment(segment: TasksSegment) {
+        val current = local.value.segment
+        if (segment == current) return
+        local.update { it.copy(segment = segment) }
+        when {
+            segment == TasksSegment.Requests -> viewModelScope.launch { requests.refreshWaiting() }
+            // Casework and My work are different lists; Requests back to the same list keeps it.
+            current == TasksSegment.Requests && local.value.scope == local.value.loadedScope -> Unit
+            else -> reload(showSkeleton = true)
+        }
+    }
+
     fun setWindow(window: TaskWindow) {
         if (window == local.value.window) return
         local.update { it.copy(window = window) }
         reload(showSkeleton = true)
     }
 
+    fun setAssignedToMe(on: Boolean) {
+        if (on == local.value.assignedToMe) return
+        local.update { it.copy(assignedToMe = on) }
+        reload(showSkeleton = true)
+    }
+
     fun onQueryChange(query: String) = local.update { it.copy(query = query) }
 
-    fun refresh() = reload(showSkeleton = false)
+    fun refresh() {
+        // A pull also re-checks what the person may see, so a role change on the web shows here.
+        viewModelScope.launch { requests.refreshAccess() }
+        reload(showSkeleton = false)
+    }
 
     fun loadMore() {
         val l = local.value
@@ -123,7 +205,7 @@ class TasksViewModel @Inject constructor(
         local.update { it.copy(isLoadingMore = true) }
         val request = l.request
         pageJob = viewModelScope.launch {
-            val next = tasks.myTasks(request.window, request.query, l.page + 1)
+            val next = tasks.tasks(request, l.page + 1)
             local.update { current ->
                 if (current.request != request) return@update current.copy(isLoadingMore = false)
                 next.fold(
@@ -152,17 +234,22 @@ class TasksViewModel @Inject constructor(
             it.copy(
                 phase = if (showSkeleton || it.phase == TasksPhase.Error) TasksPhase.Loading else it.phase,
                 items = if (showSkeleton) emptyList() else it.items,
+                counts = if (showSkeleton) null else it.counts,
                 isRefreshing = !showSkeleton,
                 isLoadingMore = false,
                 pageFailed = false,
                 refreshFailed = false,
+                loadedScope = request.scope,
             )
         }
+        if (!showSkeleton) viewModelScope.launch { requests.refreshWaiting() }
         countsJob = viewModelScope.launch {
-            tasks.counts().onSuccess { counts -> local.update { it.copy(counts = counts) } }
+            tasks.counts(request.scope, request.assignedToMe).onSuccess { counts ->
+                local.update { if (it.request.scope == request.scope) it.copy(counts = counts) else it }
+            }
         }
         listJob = viewModelScope.launch {
-            val result = tasks.myTasks(request.window, request.query, page = 1)
+            val result = tasks.tasks(request, page = 1)
             local.update { current ->
                 if (current.request != request) return@update current
                 result.fold(
@@ -176,12 +263,12 @@ class TasksViewModel @Inject constructor(
                             errorMessage = null,
                         )
                     },
-                    onFailure = { error ->
-                        val hasList = current.phase == TasksPhase.Content || current.phase == TasksPhase.Empty
+                    onFailure = {
+                        val keeps = current.items.isNotEmpty()
                         current.copy(
-                            phase = if (hasList && current.items.isNotEmpty()) TasksPhase.Content else TasksPhase.Error,
+                            phase = if (keeps) TasksPhase.Content else TasksPhase.Error,
                             isRefreshing = false,
-                            refreshFailed = hasList && current.items.isNotEmpty(),
+                            refreshFailed = keeps,
                             errorMessage = result.waiveraErrorOrNull()?.messageRes,
                         )
                     },
@@ -190,19 +277,35 @@ class TasksViewModel @Inject constructor(
         }
     }
 
-    private fun row(task: TaskSummary, today: LocalDate) = TaskRow(
-        id = task.id,
-        key = task.key,
-        title = task.title,
-        about = task.about,
-        due = TaskFormat.due(task.due, today),
-        state = task.state,
-    )
-
-    private data class Request(val window: TaskWindow, val query: String)
+    private fun row(task: TaskSummary, today: LocalDate, me: String?): TaskRow {
+        val due = task.due
+        val late = due?.takeIf { it.isBefore(today) }?.let { ChronoUnit.DAYS.between(it, today).toInt() }
+        return TaskRow(
+            id = task.id,
+            key = task.key,
+            title = task.title,
+            about = task.about,
+            due = TaskFormat.due(due, today),
+            state = task.state,
+            tileMonth = due?.let(TaskFormat::tileMonth),
+            tileDay = due?.dayOfMonth?.toString(),
+            daysLate = late,
+            assignee = task.assigneeName?.takeIf { task.assigneeId == null || task.assigneeId != me },
+            flag = when {
+                task.pendingClosure -> RowFlag.ClosureRequested
+                task.delayed -> RowFlag.Delayed
+                task.state == TaskState.InProgress -> RowFlag.InProgress
+                task.state == TaskState.InReview -> RowFlag.InReview
+                else -> null
+            },
+            group = group(due, today),
+        )
+    }
 
     private data class Local(
+        val segment: TasksSegment = TasksSegment.Casework,
         val window: TaskWindow = TaskWindow.DueSoon,
+        val assignedToMe: Boolean = false,
         val query: String = "",
         val items: List<TaskSummary> = emptyList(),
         val totalCount: Int = 0,
@@ -214,14 +317,45 @@ class TasksViewModel @Inject constructor(
         val pageFailed: Boolean = false,
         val refreshFailed: Boolean = false,
         @StringRes val errorMessage: Int? = null,
+        /** The list scope [items] belong to, so leaving Requests keeps a list that still fits. */
+        val loadedScope: TaskScope? = null,
     ) {
-        val request: Request get() = Request(window, query.trim())
+        /** Requests keeps the last task list's scope underneath it. */
+        val scope: TaskScope
+            get() = when (segment) {
+                TasksSegment.MyWork -> TaskScope.Mine
+                TasksSegment.Requests -> loadedScope ?: TaskScope.Casework
+                TasksSegment.Casework -> TaskScope.Casework
+            }
+
+        val request: TaskQuery
+            get() = TaskQuery(
+                scope = scope,
+                window = window,
+                search = query.trim(),
+                assignedToMe = assignedToMe && scope == TaskScope.Casework,
+            )
+
         val canLoadMore: Boolean
             get() = !isLoadingMore && !pageFailed && phase == TasksPhase.Content && items.size < totalCount
     }
 
-    private companion object {
-        const val STOP_TIMEOUT_MILLIS = 5_000L
-        const val SEARCH_DEBOUNCE_MILLIS = 300L
+    companion object {
+        private const val STOP_TIMEOUT_MILLIS = 5_000L
+        private const val SEARCH_DEBOUNCE_MILLIS = 300L
+
+        /** Weeks start on the locale's first day, as the phone's own calendar does. */
+        internal fun group(due: LocalDate?, today: LocalDate, locale: Locale = Locale.getDefault()): DueGroup {
+            if (due == null) return DueGroup.NoDue
+            if (due.isBefore(today)) return DueGroup.Overdue
+            val first = WeekFields.of(locale).firstDayOfWeek
+            val weekStart = today.with(TemporalAdjusters.previousOrSame(first))
+            val nextWeek = weekStart.plusWeeks(1)
+            return when {
+                due.isBefore(nextWeek) -> DueGroup.ThisWeek
+                due.isBefore(nextWeek.plusWeeks(1)) -> DueGroup.NextWeek
+                else -> DueGroup.Later
+            }
+        }
     }
 }

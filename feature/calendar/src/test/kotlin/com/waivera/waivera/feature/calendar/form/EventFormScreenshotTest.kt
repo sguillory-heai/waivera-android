@@ -48,4 +48,22 @@ class EventFormScreenshotTest {
             )
         }
     }
+
+    @Test
+    fun participantsAndEmailChoice() = captureScreenshots("event_form_participants", heightDp = 1300) {
+        WaiveraSheetFrame(title = "New event") {
+            EventFormFields(
+                ready.copy(
+                    invitees = ready.invitees + AttendeeOption(
+                        "42",
+                        "Sam Ortiz",
+                        "sam@example.com",
+                        participant = true,
+                    ),
+                    notifyParticipants = true,
+                ),
+                EventFormActions(),
+            )
+        }
+    }
 }

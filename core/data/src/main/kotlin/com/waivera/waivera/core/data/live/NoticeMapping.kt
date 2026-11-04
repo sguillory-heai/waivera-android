@@ -2,6 +2,7 @@ package com.waivera.waivera.core.data.live
 
 import com.waivera.waivera.core.data.model.Notice
 import com.waivera.waivera.core.data.model.NoticeKind
+import com.waivera.waivera.core.data.model.RequestKind
 import com.waivera.waivera.core.network.dto.EventNotificationResponse
 import com.waivera.waivera.core.network.dto.NotificationResourceDto
 import kotlinx.serialization.json.JsonObject
@@ -28,9 +29,16 @@ object NoticeMapping {
         val eventId = resources.firstOrNull { it.resourceType.equals("meeting", ignoreCase = true) }
             ?.let { EventQuery.find(it.resourceId)?.groupValues?.get(1) }
             ?: dto.actionUrl?.takeIf { it.startsWith("/calendar") }?.let { EventQuery.find(it)?.groupValues?.get(1) }
+        // Admin requests name their type ("Task Extension Request"); a pending one asks this person to review it.
+        val request = isRequestType(dto.type)
+        val reviewing = request && dto.status.equals(PENDING, ignoreCase = true)
         return Notice(
             id = dto.id,
-            kind = kind(dto.type, resources),
+            kind = when {
+                reviewing -> NoticeKind.Approval
+                request -> requestOutcomeKind(dto.type, taskId)
+                else -> kind(dto.type, resources)
+            },
             title = render(dto.title, resources, author(dto)),
             message = render(dto.message, resources, author(dto)),
             createdAt = dto.createdAt,
@@ -38,8 +46,23 @@ object NoticeMapping {
             taskId = taskId,
             eventId = eventId,
             webPath = webPath(dto.actionUrl, resources),
+            opensRequests = reviewing,
         )
     }
+
+    private fun isRequestType(type: String?): Boolean {
+        val t = type?.trim()?.lowercase() ?: return false
+        return RequestKind.of(t) != RequestKind.Other || (t.endsWith(" request") && !t.startsWith("task."))
+    }
+
+    /** A decided request reads as news about its task, or as time off. */
+    private fun requestOutcomeKind(type: String?, taskId: String?): NoticeKind = when {
+        type.orEmpty().contains("time off", ignoreCase = true) -> NoticeKind.TimeOff
+        taskId != null -> NoticeKind.TaskActivity
+        else -> NoticeKind.Other
+    }
+
+    private const val PENDING = "PENDING"
 
     fun render(template: String?, resources: List<NotificationResourceDto>, author: String? = null): String {
         if (template.isNullOrBlank()) return ""

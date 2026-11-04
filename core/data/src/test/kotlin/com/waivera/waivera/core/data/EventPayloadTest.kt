@@ -65,7 +65,7 @@ class EventPayloadTest {
     }
 
     @Test
-    fun an_edit_keeps_participants_and_outside_guests_it_does_not_show() {
+    fun an_edit_sends_the_form_participants_and_keeps_outside_guests_it_does_not_show() {
         val existing = ScheduleEvent(
             id = "e1",
             ownerUserId = "usr_me",
@@ -78,7 +78,12 @@ class EventPayloadTest {
         val body = EventPayload.build(
             draft(
                 LocalDate.of(2026, 11, 4),
-            ).copy(inviteeIds = listOf("usr_new"), waiveraVideo = false, location = "Room 2"),
+            ).copy(
+                inviteeIds = listOf("usr_new"),
+                participantIds = EventPayload.participants(existing),
+                waiveraVideo = false,
+                location = "Room 2",
+            ),
             chicago,
             "usr_me",
             existing,
@@ -89,5 +94,20 @@ class EventPayloadTest {
         assertEquals("Room 2", body.text("location"))
         assertEquals("true", body.text("isSprout"))
         assertEquals(listOf("usr_old"), EventPayload.invitees(existing))
+    }
+
+    @Test
+    fun notify_participants_is_sent_only_with_participants_to_email() {
+        val day = LocalDate.of(2026, 11, 4)
+        val on = EventPayload.build(
+            draft(day).copy(participantIds = listOf("42"), notifyParticipants = true),
+            chicago,
+            "usr_me",
+        )
+        assertEquals("true", on.text("notifyParticipants"))
+        val nobody = EventPayload.build(draft(day).copy(notifyParticipants = true), chicago, "usr_me")
+        assertEquals("false", nobody.text("notifyParticipants"))
+        val off = EventPayload.build(draft(day).copy(participantIds = listOf("42")), chicago, "usr_me")
+        assertEquals("false", off.text("notifyParticipants"))
     }
 }

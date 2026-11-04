@@ -45,6 +45,7 @@ object EventPayload {
             put("time_zone", zone.id)
             put("online", true)
             put("isSprout", !draft.waiveraVideo)
+            put("notifyParticipants", draft.notifyParticipants && draft.participantIds.isNotEmpty())
             putJsonArray("attendees") {
                 draft.inviteeIds.filter { it != ownerUserId }.distinct().forEach { id ->
                     addJsonObject {
@@ -52,27 +53,32 @@ object EventPayload {
                         put("ref", id)
                     }
                 }
-                // An edit keeps the guests the phone does not manage: participants and outside emails.
-                existing?.attendees.orEmpty().forEach { attendee ->
-                    when (attendee.type) {
-                        AttendeeType.WAIVER_PARTICIPANT -> attendee.userId?.let { ref ->
-                            addJsonObject {
-                                put("type", AttendeeType.WAIVER_PARTICIPANT.name)
-                                put("ref", ref)
-                            }
-                        }
-                        AttendeeType.EXTERNAL -> attendee.email?.let { email ->
-                            addJsonObject {
-                                put("type", AttendeeType.EXTERNAL.name)
-                                put("email", email)
-                            }
-                        }
-                        else -> Unit
+                draft.participantIds.distinct().forEach { id ->
+                    addJsonObject {
+                        put("type", AttendeeType.WAIVER_PARTICIPANT.name)
+                        put("ref", id)
                     }
                 }
+                // An edit keeps the guests the phone does not manage: outside emails.
+                existing?.attendees.orEmpty()
+                    .filter { it.type == AttendeeType.EXTERNAL }
+                    .mapNotNull { it.email }
+                    .distinct()
+                    .forEach { email ->
+                        addJsonObject {
+                            put("type", AttendeeType.EXTERNAL.name)
+                            put("email", email)
+                        }
+                    }
             }
         }
     }
+
+    /** Participants already invited to [event], for the edit form. */
+    fun participants(event: ScheduleEvent): List<String> = event.attendees
+        .filter { it.type == AttendeeType.WAIVER_PARTICIPANT && !it.userId.isNullOrBlank() }
+        .mapNotNull { it.userId }
+        .distinct()
 
     /** Coworkers already invited to [event], for the edit form. */
     fun invitees(event: ScheduleEvent): List<String> = event.attendees

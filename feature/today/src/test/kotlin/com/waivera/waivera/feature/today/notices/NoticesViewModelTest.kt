@@ -120,7 +120,7 @@ class NoticesViewModelTest {
         val (viewModel, effects) = start()
         viewModel.open("t")
         runCurrent()
-        assertEquals(NoticesEffect.Open(NoticeDestination.Web("https://app.example.test/task/42")), effects.single())
+        assertEquals(NoticesEffect.Open(NoticeDestination.Task(42)), effects.single())
         assertEquals(listOf("t"), notices.markedRead)
         assertEquals(0, viewModel.uiState.value.unreadCount)
     }

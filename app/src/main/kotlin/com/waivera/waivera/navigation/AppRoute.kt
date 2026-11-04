@@ -31,6 +31,10 @@ data object ScheduleRoute : AppRoute
 @Serializable
 data object TasksRoute : AppRoute
 
+/** Requests waiting on the person and their own, opened from an inbox row or Needs you; pushes open the inbox. */
+@Serializable
+data object RequestsRoute : AppRoute
+
 /** [taskId] is the server's numeric task id, not the "ORG-123" key. */
 @Serializable
 data class TaskRoute(val taskId: Int) : AppRoute

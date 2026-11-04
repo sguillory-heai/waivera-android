@@ -27,9 +27,16 @@ data class TaskListResponse(
     val taskStatus: StatusResponse? = null,
     val participant: TaskParticipantResponse? = null,
     val subjectEmployee: TaskUserResponse? = null,
+    val assignee: TaskUserResponse? = null,
     val taskContext: String? = null,
     val lastActivityDate: String? = null,
+    val hasPendingDeletion: Boolean = false,
+    val currentTaskDelay: TaskDelaySummaryResponse? = null,
 )
+
+/** `TaskDelayListResponse`: the active reported delay on a list row. */
+@Serializable
+data class TaskDelaySummaryResponse(val id: Long = 0, val delayEndDate: String? = null)
 
 /** `dto/Response/TaskResponse.cs`, the fields the task screen shows. */
 @Serializable
@@ -50,6 +57,8 @@ data class TaskResponse(
     val assignee: TaskUserResponse? = null,
     val subjectEmployee: TaskUserResponse? = null,
     val taskContext: String? = null,
+    /** Change requests on the task; a pending one shows on the task page. */
+    val administrativeTransactionRequests: List<AdminRequestResponse>? = null,
 )
 
 @Serializable

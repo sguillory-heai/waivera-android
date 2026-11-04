@@ -168,7 +168,8 @@ fun WaiveraTopBar(
                         .fillMaxWidth()
                         .heightIn(min = WaiveraSizes.TopBarMinHeight)
                         .padding(horizontal = WaiveraSpacing.ExtraSmall),
-                    verticalAlignment = Alignment.CenterVertically,
+                    // At large font the title wraps; the back button and actions stay on its first line.
+                    verticalAlignment = if (isLargeFontScale()) Alignment.Top else Alignment.CenterVertically,
                 ) {
                     if (onBack != null) {
                         WaiveraIconButton(

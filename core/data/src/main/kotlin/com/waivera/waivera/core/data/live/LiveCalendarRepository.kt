@@ -208,11 +208,22 @@ class LiveCalendarRepository @Inject constructor(
         apiCall { calendarApi.getAttendeeOptions(if (eventId == null) "create" else "edit", eventId) }
             .requireData()
             .people
-            .filter {
-                it.type.equals(AttendeeType.EMPLOYEE.name, ignoreCase = true) && it.id.isNotBlank() && it.id != me
+            .mapNotNull {
+                // The directory names participants "Participant"; events store them as WAIVER_PARTICIPANT.
+                val participant = it.type.equals(PARTICIPANT_OPTION, ignoreCase = true)
+                val employee = it.type.equals(AttendeeType.EMPLOYEE.name, ignoreCase = true)
+                val invitable = participant || (employee && it.id != me)
+                if (it.id.isBlank() || !invitable) return@mapNotNull null
+                AttendeeOption(
+                    it.id,
+                    it.name.trim().ifEmpty {
+                        it.email.orEmpty()
+                    },
+                    it.email,
+                    participant = participant,
+                )
             }
-            .map { AttendeeOption(it.id, it.name.trim().ifEmpty { it.email.orEmpty() }, it.email) }
-            .distinctBy { it.id }
+            .distinctBy { it.key }
             .sortedBy { it.name.lowercase() }
     }
 
@@ -275,6 +286,7 @@ class LiveCalendarRepository @Inject constructor(
 
     companion object {
         private const val MILESTONES = "milestones"
+        private const val PARTICIPANT_OPTION = "Participant"
         private val FEED_STALE: Duration = Duration.ofMinutes(1)
     }
 }

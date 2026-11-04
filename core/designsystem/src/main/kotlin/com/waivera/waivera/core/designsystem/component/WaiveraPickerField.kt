@@ -71,7 +71,8 @@ fun WaiveraPickerField(
                         if (errorText != null) colors.dangerText else colors.fieldBorder,
                         WaiveraShapes.Field,
                     )
-                    .padding(horizontal = WaiveraSpacing.Medium),
+                    // Vertical room keeps a value that wraps at large font clear of the border.
+                    .padding(horizontal = WaiveraSpacing.Medium, vertical = WaiveraSpacing.MediumSmall),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(

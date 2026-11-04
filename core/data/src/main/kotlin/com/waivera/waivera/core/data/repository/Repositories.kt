@@ -6,8 +6,12 @@ import com.waivera.waivera.core.data.model.AppSettings
 import com.waivera.waivera.core.data.model.AttachmentSource
 import com.waivera.waivera.core.data.model.AttendeeOption
 import com.waivera.waivera.core.data.model.Bookmark
+import com.waivera.waivera.core.data.model.ChangeOptions
+import com.waivera.waivera.core.data.model.ChangeReason
+import com.waivera.waivera.core.data.model.ChangeRequest
 import com.waivera.waivera.core.data.model.Conversation
 import com.waivera.waivera.core.data.model.DateRange
+import com.waivera.waivera.core.data.model.DelayPeriod
 import com.waivera.waivera.core.data.model.EmployeeFilePage
 import com.waivera.waivera.core.data.model.EmployeeProfile
 import com.waivera.waivera.core.data.model.EventDraft
@@ -24,6 +28,8 @@ import com.waivera.waivera.core.data.model.Organization
 import com.waivera.waivera.core.data.model.Person
 import com.waivera.waivera.core.data.model.PersonDetails
 import com.waivera.waivera.core.data.model.RealtimeStatus
+import com.waivera.waivera.core.data.model.RequestAccess
+import com.waivera.waivera.core.data.model.RequestOutcome
 import com.waivera.waivera.core.data.model.ScheduleEvent
 import com.waivera.waivera.core.data.model.ScheduleFeed
 import com.waivera.waivera.core.data.model.SessionState
@@ -31,12 +37,15 @@ import com.waivera.waivera.core.data.model.Synced
 import com.waivera.waivera.core.data.model.TaskActivity
 import com.waivera.waivera.core.data.model.TaskCounts
 import com.waivera.waivera.core.data.model.TaskDetail
+import com.waivera.waivera.core.data.model.TaskFile
 import com.waivera.waivera.core.data.model.TaskPage
-import com.waivera.waivera.core.data.model.TaskWindow
+import com.waivera.waivera.core.data.model.TaskQuery
+import com.waivera.waivera.core.data.model.TaskScope
 import com.waivera.waivera.core.data.model.ThemePreference
 import com.waivera.waivera.core.data.model.TimeOffSummary
 import com.waivera.waivera.core.data.model.currentUserId
 import java.io.File
+import java.time.LocalDate
 import java.time.YearMonth
 import java.time.ZoneId
 import kotlinx.coroutines.flow.Flow
@@ -261,10 +270,10 @@ interface NoticeRepository {
  * on the web, and the server is authoritative. Logging activity is the only write.
  */
 interface TaskRepository {
-    suspend fun myTasks(window: TaskWindow, search: String, page: Int): Result<TaskPage>
+    suspend fun tasks(query: TaskQuery, page: Int): Result<TaskPage>
 
-    /** How many open tasks the person has, and how many of them are overdue. */
-    suspend fun counts(): Result<TaskCounts>
+    /** How many open tasks a list holds, and how many of them are overdue. */
+    suspend fun counts(scope: TaskScope, assignedToMe: Boolean = false): Result<TaskCounts>
 
     suspend fun task(id: Int): Result<TaskDetail>
 
@@ -274,6 +283,61 @@ interface TaskRepository {
     suspend fun activityTypes(): Result<List<ActivityType>>
 
     suspend fun logActivity(activity: NewActivity): Result<Unit>
+}
+
+/**
+ * Change requests on tasks: asking for more time, reporting a delay or asking to close, and
+ * reviewing what others asked. [waiting] is shared by every screen that shows it, so a decision
+ * leaves all of them at once and comes back to all of them if the server refuses it.
+ */
+@Suppress("TooManyFunctions")
+interface RequestRepository {
+    /** What to offer, re-checked when the person signs in, returns to the app, or refreshes. */
+    val access: StateFlow<RequestAccess>
+
+    /** Requests waiting on this person, newest first; null until first loaded. */
+    val waiting: StateFlow<List<ChangeRequest>?>
+
+    suspend fun refreshAccess(): Result<Unit>
+
+    /** Loads access only when it has not been loaded for this session yet. */
+    suspend fun ensureAccess(): Result<Unit> = if (access.value.loaded) Result.success(Unit) else refreshAccess()
+
+    suspend fun refreshWaiting(): Result<Unit>
+
+    /** The person's own requests, newest first. */
+    suspend fun mine(): Result<List<ChangeRequest>>
+
+    /** Removes the request from [waiting] at once and puts it back if the server says no. */
+    suspend fun decide(request: ChangeRequest, approve: Boolean): Result<Unit>
+
+    suspend fun options(taskId: Int): Result<ChangeOptions>
+
+    suspend fun moreTimeReasons(): Result<List<ChangeReason>>
+
+    suspend fun delayReasons(): Result<List<ChangeReason>>
+
+    suspend fun closureReasons(): Result<List<ChangeReason>>
+
+    suspend fun files(taskId: Int): Result<List<TaskFile>>
+
+    suspend fun askMoreTime(
+        taskId: Int,
+        newDue: LocalDate,
+        reasonId: Long,
+        explanation: String,
+        evidenceId: Int?,
+    ): Result<RequestOutcome>
+
+    suspend fun reportDelay(
+        taskId: Int,
+        period: DelayPeriod,
+        reasonId: Long,
+        explanation: String,
+        evidenceId: Int?,
+    ): Result<RequestOutcome>
+
+    suspend fun askClosure(taskId: Int, reasonId: Long, comment: String): Result<Unit>
 }
 
 interface PeopleRepository {

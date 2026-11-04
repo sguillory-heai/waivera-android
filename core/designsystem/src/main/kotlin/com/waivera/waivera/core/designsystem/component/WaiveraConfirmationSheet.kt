@@ -43,9 +43,11 @@ fun WaiveraConfirmationSheet(
     destructive: Boolean = false,
     confirmInProgress: Boolean = false,
     confirmInProgressLabel: String? = null,
+    icon: Int? = null,
 ) {
     WaiveraBottomSheet(onDismissRequest = onDismiss, modifier = modifier) {
         ConfirmationContent(
+            icon = icon,
             title = title,
             message = message,
             confirmLabel = confirmLabel,
@@ -60,7 +62,7 @@ fun WaiveraConfirmationSheet(
 }
 
 @Composable
-internal fun ConfirmationContent(
+fun ConfirmationContent(
     title: String,
     message: String,
     confirmLabel: String,
@@ -71,10 +73,17 @@ internal fun ConfirmationContent(
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
     confirmInProgressLabel: String? = null,
+    icon: Int? = null,
 ) {
     WaiveraSheetContent(title = null, modifier = modifier) {
         if (destructive) {
-            WaiveraIconTile(icon = WaiveraIcons.Warning, tone = WaiveraTileTone.Danger, size = WaiveraSizes.CardTile)
+            WaiveraIconTile(
+                icon = icon ?: WaiveraIcons.Warning,
+                tone = WaiveraTileTone.Danger,
+                size = WaiveraSizes.CardTile,
+            )
+        } else if (icon != null) {
+            WaiveraIconTile(icon = icon, tone = WaiveraTileTone.Brand, size = WaiveraSizes.CardTile)
         }
         // Sheet titles often name a person or channel: wrap after a hyphen, never mid-word (UI5-05).
         Text(
@@ -83,7 +92,11 @@ internal fun ConfirmationContent(
             color = WaiveraTheme.colors.text,
             modifier = Modifier.semantics { heading() },
         )
-        Text(text = message, style = MaterialTheme.typography.bodyMedium, color = WaiveraTheme.colors.textSecondary)
+        Text(
+            text = message,
+            style = MaterialTheme.typography.bodyMedium,
+            color = WaiveraTheme.colors.textSecondary,
+        )
         Column(
             modifier = Modifier
                 .fillMaxWidth()
@@ -95,6 +108,8 @@ internal fun ConfirmationContent(
                 onClick = onConfirm,
                 modifier = Modifier.heightIn(min = WaiveraSizes.CtaHeight),
                 variant = if (destructive) WaiveraButtonVariant.Destructive else WaiveraButtonVariant.Primary,
+                // The confirm button repeats the sheet's icon, as the button that opened it does.
+                leadingIcon = icon,
                 // Never a bare spinner: without its own progress copy the confirm label stays beside it.
                 loadingText = (confirmInProgressLabel ?: confirmLabel).takeIf { confirmInProgress },
                 fullWidth = true,

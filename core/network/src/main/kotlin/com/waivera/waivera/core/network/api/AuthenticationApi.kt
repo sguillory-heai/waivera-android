@@ -1,6 +1,8 @@
 package com.waivera.waivera.core.network.api
 
 import com.waivera.waivera.core.network.dto.ApiResponse
+import com.waivera.waivera.core.network.dto.AuthBootstrapRequest
+import com.waivera.waivera.core.network.dto.AuthBootstrapResponse
 import com.waivera.waivera.core.network.dto.GetUserNameResponseDBVM
 import com.waivera.waivera.core.network.dto.OrganizationDto
 import com.waivera.waivera.core.network.dto.OrganizationResponse
@@ -31,6 +33,15 @@ interface AuthenticationApi {
     /** Bootstrap after Firebase sign-in. Identity fields live under `data` (gaps.md G-02). */
     @GET("api/Authentication/login")
     suspend fun login(): Response<ApiResponse<UserLoginResponseDto>>
+
+    /**
+     * Roles and permissions, as the web loads them. `identityTransition` true leaves the sign-in
+     * times alone: the phone calls this to re-check what to offer, not to sign in.
+     */
+    @POST("api/Authentication/bootstrap")
+    suspend fun bootstrap(
+        @Body request: AuthBootstrapRequest = AuthBootstrapRequest(identityTransition = true),
+    ): Response<ApiResponse<AuthBootstrapResponse>>
 
     @GET("api/Authentication/GetUserDetailsByUserID/{userId}")
     suspend fun getUserDetails(@Path("userId") userId: String): Response<ApiResponse<UserWithRoleDto>>

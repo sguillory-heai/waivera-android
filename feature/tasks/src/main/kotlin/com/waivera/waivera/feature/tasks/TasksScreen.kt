@@ -1,18 +1,25 @@
 package com.waivera.waivera.feature.tasks
 
+import androidx.compose.animation.AnimatedContent
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Icon
@@ -33,33 +40,41 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.CustomAccessibilityAction
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.customActions
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.withStyle
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.waivera.waivera.core.data.model.TaskCounts
 import com.waivera.waivera.core.data.model.TaskState
 import com.waivera.waivera.core.data.model.TaskWindow
+import com.waivera.waivera.core.designsystem.component.BadgeTone
 import com.waivera.waivera.core.designsystem.component.BannerTone
 import com.waivera.waivera.core.designsystem.component.SkeletonBlock
 import com.waivera.waivera.core.designsystem.component.SkeletonText
 import com.waivera.waivera.core.designsystem.component.WaiveraBanner
 import com.waivera.waivera.core.designsystem.component.WaiveraBusyIndicator
+import com.waivera.waivera.core.designsystem.component.WaiveraCountTone
 import com.waivera.waivera.core.designsystem.component.WaiveraEmptyState
 import com.waivera.waivera.core.designsystem.component.WaiveraErrorState
+import com.waivera.waivera.core.designsystem.component.WaiveraFilterChip
 import com.waivera.waivera.core.designsystem.component.WaiveraIconButton
-import com.waivera.waivera.core.designsystem.component.WaiveraIconTile
 import com.waivera.waivera.core.designsystem.component.WaiveraIllustration
 import com.waivera.waivera.core.designsystem.component.WaiveraLoadSwap
 import com.waivera.waivera.core.designsystem.component.WaiveraPressable
 import com.waivera.waivera.core.designsystem.component.WaiveraPullToRefreshBox
+import com.waivera.waivera.core.designsystem.component.WaiveraSectionHeader
 import com.waivera.waivera.core.designsystem.component.WaiveraSegmentedControl
 import com.waivera.waivera.core.designsystem.component.WaiveraStatusBadge
-import com.waivera.waivera.core.designsystem.component.WaiveraTileTone
 import com.waivera.waivera.core.designsystem.component.WaiveraTopBar
 import com.waivera.waivera.core.designsystem.component.rememberSkeletonPulse
 import com.waivera.waivera.core.designsystem.component.rememberSkeletonVisible
@@ -73,6 +88,8 @@ import com.waivera.waivera.core.designsystem.theme.WaiveraSizes
 import com.waivera.waivera.core.designsystem.theme.WaiveraSpacing
 import com.waivera.waivera.core.designsystem.theme.WaiveraTextStyles
 import com.waivera.waivera.core.designsystem.theme.WaiveraTheme
+import com.waivera.waivera.core.designsystem.theme.isLargeFontScale
+import com.waivera.waivera.core.designsystem.theme.swapTransition
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filter
 
@@ -85,19 +102,25 @@ fun TasksScreen(onAccountClick: () -> Unit, onOpenTask: (Int) -> Unit, modifier:
         state = state,
         actions = TasksActions(
             onAccountClick = onAccountClick,
+            onSegment = viewModel::setSegment,
             onWindow = viewModel::setWindow,
+            onAssignedToMe = viewModel::setAssignedToMe,
             onQueryChange = viewModel::onQueryChange,
             onRefresh = viewModel::refresh,
             onLoadMore = viewModel::loadMore,
             onOpenTask = onOpenTask,
         ),
+        requests = { RequestsScreen(onOpenTask = onOpenTask) },
         modifier = modifier,
     )
 }
 
+@Suppress("LongParameterList") // One callback per control; every one has a default.
 class TasksActions(
     val onAccountClick: () -> Unit = {},
+    val onSegment: (TasksSegment) -> Unit = {},
     val onWindow: (TaskWindow) -> Unit = {},
+    val onAssignedToMe: (Boolean) -> Unit = {},
     val onQueryChange: (String) -> Unit = {},
     val onRefresh: () -> Unit = {},
     val onLoadMore: () -> Unit = {},
@@ -105,25 +128,74 @@ class TasksActions(
 )
 
 @Composable
-fun TasksContent(state: TasksUiState, actions: TasksActions, modifier: Modifier = Modifier) {
+fun TasksContent(
+    state: TasksUiState,
+    actions: TasksActions,
+    modifier: Modifier = Modifier,
+    requests: @Composable () -> Unit = {},
+) {
     val colors = WaiveraTheme.colors
-    val refreshLabel = stringResource(R.string.feature_tasks_refresh)
     Column(modifier = modifier.fillMaxSize().background(colors.background)) {
         WaiveraTopBar(
             title = stringResource(R.string.feature_tasks_title),
             account = rememberTopBarAccount(onClick = actions.onAccountClick),
         )
-        TaskSearchField(value = state.query, onValueChange = actions.onQueryChange)
-        WaiveraSegmentedControl(
-            options = listOf(
-                stringResource(R.string.feature_tasks_window_due_soon),
-                stringResource(R.string.feature_tasks_window_overdue),
-                stringResource(R.string.feature_tasks_window_all),
+        SegmentRow(state, actions.onSegment)
+        val motion = WaiveraTheme.motion
+        // Each segment slides in from the side it sits on, so the switch reads as moving along the row.
+        AnimatedContent(
+            targetState = state.segment,
+            transitionSpec = { motion.swapTransition(direction = targetState.ordinal - initialState.ordinal) },
+            modifier = Modifier.weight(1f),
+            label = "tasksSegment",
+        ) { segment ->
+            if (segment == TasksSegment.Requests) {
+                Box(Modifier.fillMaxSize()) { requests() }
+            } else {
+                TaskListPane(state, actions)
+            }
+        }
+    }
+}
+
+@Composable
+private fun SegmentRow(state: TasksUiState, onSegment: (TasksSegment) -> Unit) {
+    val segments = state.segments
+    val labels = segments.map { it.label() }
+    WaiveraSegmentedControl(
+        options = labels,
+        selectedIndex = segments.indexOf(state.segment).coerceAtLeast(0),
+        onSelect = { onSegment(segments[it]) },
+        counts = segments.map { if (it == TasksSegment.Requests) state.waitingCount else null },
+        modifier = Modifier.padding(horizontal = WaiveraSpacing.Gutter, vertical = WaiveraSpacing.ExtraSmall),
+    )
+}
+
+@Composable
+private fun TasksSegment.label(): String = stringResource(
+    when (this) {
+        TasksSegment.Casework -> R.string.feature_tasks_segment_casework
+        TasksSegment.MyWork -> R.string.feature_tasks_segment_my_work
+        TasksSegment.Requests -> R.string.feature_tasks_segment_requests
+    },
+)
+
+@Composable
+private fun TaskListPane(state: TasksUiState, actions: TasksActions) {
+    val refreshLabel = stringResource(R.string.feature_tasks_refresh)
+    Column(Modifier.fillMaxSize()) {
+        TaskSearchField(
+            value = state.query,
+            placeholder = stringResource(
+                if (state.segment == TasksSegment.MyWork) {
+                    R.string.feature_tasks_search_mine
+                } else {
+                    R.string.feature_tasks_search_casework
+                },
             ),
-            selectedIndex = state.window.ordinal,
-            onSelect = { actions.onWindow(TaskWindow.entries[it]) },
-            modifier = Modifier.padding(horizontal = WaiveraSpacing.Gutter, vertical = WaiveraSpacing.ExtraSmall),
+            onValueChange = actions.onQueryChange,
         )
+        FilterChips(state, actions)
         if (state.refreshFailed) {
             WaiveraBanner(
                 message = stringResource(R.string.feature_tasks_refresh_failed),
@@ -168,11 +240,44 @@ fun TasksContent(state: TasksUiState, actions: TasksActions, modifier: Modifier 
     }
 }
 
+/** The due windows, then (casework only) Assigned to me. One row that scrolls at large font. */
 @Composable
-private fun TaskSearchField(value: String, onValueChange: (String) -> Unit) {
+private fun FilterChips(state: TasksUiState, actions: TasksActions) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .horizontalScroll(rememberScrollState())
+            .padding(horizontal = WaiveraSpacing.Gutter, vertical = WaiveraSpacing.ExtraSmall),
+        horizontalArrangement = Arrangement.spacedBy(WaiveraSpacing.Small),
+    ) {
+        TaskWindow.entries.forEach { window ->
+            WaiveraFilterChip(
+                label = stringResource(
+                    when (window) {
+                        TaskWindow.DueSoon -> R.string.feature_tasks_window_due_soon
+                        TaskWindow.Overdue -> R.string.feature_tasks_window_overdue
+                        TaskWindow.AllOpen -> R.string.feature_tasks_window_all
+                    },
+                ),
+                selected = window == state.window,
+                onClick = { actions.onWindow(window) },
+            )
+        }
+        if (state.segment == TasksSegment.Casework) {
+            WaiveraFilterChip(
+                label = stringResource(R.string.feature_tasks_assigned_to_me),
+                selected = state.assignedToMe,
+                onClick = { actions.onAssignedToMe(!state.assignedToMe) },
+                leadingIcon = WaiveraIcons.Person,
+            )
+        }
+    }
+}
+
+@Composable
+private fun TaskSearchField(value: String, placeholder: String, onValueChange: (String) -> Unit) {
     val colors = WaiveraTheme.colors
     val focusManager = LocalFocusManager.current
-    val placeholder = stringResource(R.string.feature_tasks_search)
     OutlinedTextField(
         value = value,
         onValueChange = onValueChange,
@@ -248,7 +353,11 @@ private fun TasksEmpty(state: TasksUiState, actions: TasksActions) {
                             R.string.feature_tasks_empty_overdue_message
                     TaskWindow.AllOpen ->
                         R.string.feature_tasks_empty_all_title to
-                            R.string.feature_tasks_empty_all_message
+                            when {
+                                state.segment == TasksSegment.MyWork -> R.string.feature_tasks_empty_mine_message
+                                state.assignedToMe -> R.string.feature_tasks_empty_assigned_message
+                                else -> R.string.feature_tasks_empty_casework_message
+                            }
                 }
                 WaiveraEmptyState(
                     title = stringResource(title),
@@ -265,7 +374,7 @@ private fun TasksEmpty(state: TasksUiState, actions: TasksActions) {
 private fun TaskList(state: TasksUiState, actions: TasksActions) {
     val listState = rememberLazyListState()
     // Keyed on the row count too, so a page that lands with the list still at its end asks again.
-    LoadMoreWhenNearEnd(listState, state.canLoadMore && !state.isLoadingMore, state.rows.size, actions.onLoadMore)
+    LoadMoreWhenNearEnd(listState, state.canLoadMore && !state.isLoadingMore, state.rowCount, actions.onLoadMore)
     LazyColumn(
         state = listState,
         modifier = Modifier.fillMaxSize(),
@@ -278,8 +387,13 @@ private fun TaskList(state: TasksUiState, actions: TasksActions) {
         verticalArrangement = Arrangement.spacedBy(WaiveraSpacing.Small),
     ) {
         item(key = "meta") { TasksMeta(state) }
-        items(state.rows, key = { it.id }) { row ->
-            TaskCard(row = row, onClick = { actions.onOpenTask(row.id) }, modifier = Modifier.animateItem())
+        state.sections.forEach { section ->
+            item(key = "group-${section.group}") {
+                GroupHeader(section, Modifier.animateItem())
+            }
+            items(section.rows, key = { it.id }) { row ->
+                TaskCard(row = row, onClick = { actions.onOpenTask(row.id) }, modifier = Modifier.animateItem())
+            }
         }
         if (state.isLoadingMore) {
             item(key = "more") {
@@ -337,16 +451,48 @@ private fun metaText(counts: TaskCounts): String {
 }
 
 @Composable
+private fun GroupHeader(section: TaskSection, modifier: Modifier = Modifier) {
+    val count = section.rows.size
+    WaiveraSectionHeader(
+        title = stringResource(
+            when (section.group) {
+                DueGroup.Overdue -> R.string.feature_tasks_group_overdue
+                DueGroup.ThisWeek -> R.string.feature_tasks_group_this_week
+                DueGroup.NextWeek -> R.string.feature_tasks_group_next_week
+                DueGroup.Later -> R.string.feature_tasks_group_later
+                DueGroup.NoDue -> R.string.feature_tasks_group_no_due
+            },
+        ),
+        count = count,
+        countDescription = pluralStringResource(R.plurals.feature_tasks_group_count, count, count),
+        countTone = if (section.group == DueGroup.Overdue) WaiveraCountTone.Attention else WaiveraCountTone.Info,
+        modifier = modifier.padding(top = WaiveraSpacing.Small),
+    )
+}
+
+/**
+ * At a glance: the due date as a tile, the title, who it is about, one line of facts (lateness in
+ * the attention colour, then the key, then another owner) and at most one badge.
+ */
+@Composable
 internal fun TaskCard(row: TaskRow, onClick: () -> Unit, modifier: Modifier = Modifier) {
     val colors = WaiveraTheme.colors
-    val overdue = row.due.overdue
+    val large = isLargeFontScale()
     WaiveraPressable(
         depth = PressDepth.Card,
         onClick = onClick,
         modifier = modifier
             .fillMaxWidth()
             .shadow(elevation = WaiveraElevation.Card, shape = WaiveraShapes.SheetCard, clip = false)
-            .background(colors.surface, WaiveraShapes.SheetCard),
+            .background(colors.surface, WaiveraShapes.SheetCard)
+            .then(
+                // Shadows vanish on the dark background, so a hairline keeps the card's edge.
+                if (colors.isDark) {
+                    Modifier.border(WaiveraSpacing.Hairline, colors.border, WaiveraShapes.SheetCard)
+                } else {
+                    Modifier
+                },
+            ),
         onClickLabel = stringResource(R.string.feature_tasks_open_task),
         shape = WaiveraShapes.SheetCard,
     ) {
@@ -355,31 +501,39 @@ internal fun TaskCard(row: TaskRow, onClick: () -> Unit, modifier: Modifier = Mo
             horizontalArrangement = Arrangement.spacedBy(WaiveraSpacing.MediumSmall),
             verticalAlignment = Alignment.Top,
         ) {
-            WaiveraIconTile(
-                icon = R.drawable.feature_tasks_ic_task,
-                tone = if (overdue) WaiveraTileTone.Danger else WaiveraTileTone.Amber,
-                size = WaiveraSizes.CardTile,
-                iconSize = WaiveraSizes.CardTileGlyph,
-            )
-            Column(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(WaiveraSpacing.ExtraSmall),
-            ) {
+            DateTile(row)
+            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(WaiveraSpacing.XxSmall)) {
                 Text(
-                    text = row.key,
-                    style = WaiveraTextStyles.Kicker,
-                    color = if (overdue) colors.dangerText else colors.textSecondary,
+                    text = row.title,
+                    style = MaterialTheme.typography.titleSmall,
+                    color = colors.text,
+                    maxLines = if (large) LARGE_TITLE_LINES else TITLE_LINES,
+                    overflow = TextOverflow.Ellipsis,
                 )
-                Text(text = row.title, style = MaterialTheme.typography.titleSmall, color = colors.text)
                 row.about?.let {
-                    Text(text = it, style = MaterialTheme.typography.bodyMedium, color = colors.textSecondary)
+                    Text(
+                        text = it,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = colors.text,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
                 }
                 Text(
-                    text = row.due.text(),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = if (overdue) colors.dangerText else colors.textSecondary,
+                    text = metaLine(row, large),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = colors.textSecondary,
                 )
-                WaiveraStatusBadge(text = row.state.label(), tone = TaskFormat.tone(row.state, overdue = false))
+                row.flag?.let { flag ->
+                    WaiveraStatusBadge(
+                        text = flag.label(),
+                        tone = when (flag) {
+                            RowFlag.ClosureRequested, RowFlag.Delayed, RowFlag.InReview -> BadgeTone.Warning
+                            RowFlag.InProgress -> BadgeTone.Accent
+                        },
+                        modifier = Modifier.padding(top = WaiveraSpacing.XxSmall),
+                    )
+                }
             }
             Icon(
                 painter = painterResource(WaiveraIcons.ChevronRight),
@@ -389,6 +543,79 @@ internal fun TaskCard(row: TaskRow, onClick: () -> Unit, modifier: Modifier = Mo
             )
         }
     }
+}
+
+/** The due date as a tile; overdue turns it red. TalkBack reads the full due text instead. */
+@Composable
+private fun DateTile(row: TaskRow) {
+    val colors = WaiveraTheme.colors
+    val tint = if (row.due.overdue) colors.tiles.danger else colors.tiles.brand
+    val dueText = row.due.text()
+    Column(
+        modifier = Modifier
+            .widthIn(min = WaiveraSizes.CardTile + WaiveraSpacing.Small)
+            .heightIn(min = WaiveraSizes.CardTile + WaiveraSpacing.Small)
+            .background(tint.container, WaiveraShapes.Tile)
+            .padding(horizontal = WaiveraSpacing.Small, vertical = WaiveraSpacing.ExtraSmall)
+            .clearAndSetSemantics { contentDescription = dueText },
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center,
+    ) {
+        val month = row.tileMonth
+        val day = row.tileDay
+        if (month != null && day != null) {
+            Text(
+                month.uppercase(),
+                style = WaiveraTextStyles.Kicker,
+                color = tint.content,
+                maxLines = 1,
+                softWrap = false,
+            )
+            Text(
+                text = day,
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.ExtraBold,
+                color = tint.content,
+                maxLines = 1,
+                softWrap = false,
+            )
+        } else {
+            Icon(
+                painter = painterResource(R.drawable.feature_tasks_ic_task),
+                contentDescription = null,
+                tint = tint.content,
+                modifier = Modifier.size(WaiveraSizes.CardTileGlyph),
+            )
+        }
+    }
+}
+
+/** Lateness (attention colour), the key, then another owner on its own line. At 200% each fact stacks. */
+@Composable
+private fun metaLine(row: TaskRow, large: Boolean): AnnotatedString {
+    val danger = WaiveraTheme.colors.dangerText
+    val late = row.daysLate?.let { pluralStringResource(R.plurals.feature_tasks_days_late, it, it) }
+    val owner = row.assignee?.let { stringResource(R.string.feature_tasks_assigned_to, it.replace(' ', NBSP)) }
+    val separator = if (large) "\n" else META_SEPARATOR
+    return buildAnnotatedString {
+        if (late != null) {
+            withStyle(SpanStyle(color = danger)) { append(late) }
+            append(separator)
+        }
+        append(row.key)
+        if (owner != null) {
+            append("\n")
+            append(owner)
+        }
+    }
+}
+
+@Composable
+private fun RowFlag.label(): String = when (this) {
+    RowFlag.ClosureRequested -> stringResource(R.string.feature_tasks_flag_closure)
+    RowFlag.Delayed -> stringResource(R.string.feature_tasks_flag_delayed)
+    RowFlag.InProgress -> stringResource(R.string.feature_tasks_state_in_progress)
+    RowFlag.InReview -> stringResource(R.string.feature_tasks_state_in_review)
 }
 
 @Composable
@@ -426,6 +653,11 @@ private fun TasksSkeleton() {
 }
 
 private const val LOAD_MORE_AHEAD = 4
+private const val TITLE_LINES = 2
+private const val LARGE_TITLE_LINES = 4
+private const val META_SEPARATOR = "\u00A0· "
+private const val NBSP = '\u00A0'
+
 private const val SKELETON_CARDS = 4
 private const val KEY_LINE = 0.25f
 private const val TITLE_LINE = 0.75f
@@ -434,37 +666,35 @@ private const val DUE_LINE = 0.45f
 internal object TasksPreviewStates {
     val rows = listOf(
         TaskRow(
-            991,
-            "HEA-991",
-            "Quarterly monitoring visit",
-            "Jordan Ellis",
-            DueText.WasOn("Oct 30"),
-            TaskState.InProgress,
+            991, "HEA-991", "Quarterly monitoring visit", "Jordan Ellis", DueText.WasOn("Oct 30"), TaskState.InProgress,
+            tileMonth = "Oct", tileDay = "30", daysLate = 5, flag = RowFlag.Delayed, group = DueGroup.Overdue,
         ),
         TaskRow(
-            1042,
-            "HEA-1042",
-            "Annual plan review",
-            "Maya Thompson",
-            DueText.On("Fri, Nov 6"),
-            TaskState.NotStarted,
+            1042, "HEA-1042", "Annual plan review", "Maya Thompson", DueText.On("Fri, Nov 6"), TaskState.NotStarted,
+            tileMonth = "Nov", tileDay = "6", group = DueGroup.ThisWeek,
         ),
         TaskRow(
-            1017,
-            "HEA-1017",
-            "Update emergency contacts",
-            "Jordan Ellis",
-            DueText.On("Mon, Nov 9"),
-            TaskState.InProgress,
+            987, "HEA-987", "Service authorization follow-up", "Luis Ortega", DueText.Tomorrow, TaskState.InReview,
+            tileMonth = "Nov", tileDay = "5", assignee = "Priya Raman", flag = RowFlag.InReview,
+            group = DueGroup.ThisWeek,
         ),
-        TaskRow(987, "HEA-987", "Service authorization follow-up", "Luis Ortega", DueText.Tomorrow, TaskState.InReview),
+        TaskRow(
+            1017, "HEA-1017", "Update emergency contacts", "Jordan Ellis",
+            DueText.On(
+                "Mon, Nov 9",
+            ),
+            TaskState.InProgress,
+            tileMonth = "Nov", tileDay = "9", flag = RowFlag.ClosureRequested, group = DueGroup.NextWeek,
+        ),
     )
 
-    fun populated() = TasksUiState(
-        rows = rows,
+    fun populated(showsRequests: Boolean = true) = TasksUiState(
+        sections = rows.groupBy { it.group }.map { (group, items) -> TaskSection(group, items) },
         totalCount = rows.size,
-        counts = TaskCounts(open = 5, overdue = 1),
+        counts = TaskCounts(open = 14, overdue = 1),
         phase = TasksPhase.Content,
+        showsRequests = showsRequests,
+        waitingCount = if (showsRequests) 2 else 0,
     )
 }
 

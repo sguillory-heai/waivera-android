@@ -2,6 +2,7 @@ package com.waivera.waivera.feature.tasks
 
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.remember
+import com.waivera.waivera.core.data.model.RequestKind
 import com.waivera.waivera.core.data.model.TaskState
 import com.waivera.waivera.core.designsystem.component.WaiveraSheetFrame
 import com.waivera.waivera.core.screenshottesting.ScreenshotSdk
@@ -56,4 +57,69 @@ class TasksScreenshotTest {
             )
         }
     }
+
+    @Test
+    fun requests() = captureScreenshots("tasks_requests", heightDp = 1100) {
+        RequestsContent(
+            state = TaskPreviewData.requestsState(),
+            snackbar = remember { SnackbarHostState() },
+            actions = remember { RequestsActions() },
+        )
+    }
+
+    @Test
+    fun requestReview() = captureScreenshots("tasks_request_review", heightDp = 1000) {
+        WaiveraSheetFrame(title = "More time") {
+            ReviewFields(item = TaskPreviewData.waitingRequest(), onApprove = {}, onReject = {}, onOpenTask = {})
+        }
+    }
+
+    @Test
+    fun askChooser() = captureScreenshots("tasks_ask_choices") {
+        WaiveraSheetFrame(title = "Ask for a change") {
+            AskChoices(TaskPreviewData.askForm(null), TaskPreviewData.task(), TaskPreviewData.today) {}
+        }
+    }
+
+    @Test
+    fun askMoreTime() = captureScreenshots("tasks_ask_more_time", heightDp = 1100) {
+        WaiveraSheetFrame(title = "Ask for more time") {
+            AskFieldsShot(AskKind.MoreTime)
+        }
+    }
+
+    @Test
+    fun askDelay() = captureScreenshots("tasks_ask_delay", heightDp = 1100) {
+        WaiveraSheetFrame(title = "Report a delay") {
+            AskFieldsShot(AskKind.Delay)
+        }
+    }
+
+    @Test
+    fun askClosure() = captureScreenshots("tasks_ask_closure", heightDp = 1100) {
+        WaiveraSheetFrame(title = "Ask to close") {
+            AskFieldsShot(AskKind.Closure)
+        }
+    }
+
+    @Test
+    fun taskDetailPending() = captureScreenshots("task_detail_pending") {
+        TaskDetailContent(
+            state = TaskPreviewData.detailState().copy(
+                pending = PendingBanner(RequestKind.MoreTime, newDue = "Thu, Nov 19"),
+            ),
+            snackbar = remember { SnackbarHostState() },
+            actions = TaskDetailActions.None,
+        )
+    }
+
+    @androidx.compose.runtime.Composable
+    private fun androidx.compose.foundation.layout.ColumnScope.AskFieldsShot(kind: AskKind) = AskFields(
+        form = TaskPreviewData.askForm(kind),
+        task = TaskPreviewData.task(),
+        today = TaskPreviewData.today,
+        actions = AskActions(),
+        onPickReason = {},
+        onPickFile = {},
+    )
 }

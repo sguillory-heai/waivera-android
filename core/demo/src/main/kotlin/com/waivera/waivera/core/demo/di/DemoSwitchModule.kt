@@ -12,6 +12,7 @@ import com.waivera.waivera.core.data.live.LivePeopleRepository
 import com.waivera.waivera.core.data.live.LiveProfileRepository
 import com.waivera.waivera.core.data.live.LivePushRegistrationRepository
 import com.waivera.waivera.core.data.live.LiveRealtimeStatusRepository
+import com.waivera.waivera.core.data.live.LiveRequestRepository
 import com.waivera.waivera.core.data.live.LiveSessionRepository
 import com.waivera.waivera.core.data.live.LiveSettingsRepository
 import com.waivera.waivera.core.data.live.LiveTaskRepository
@@ -29,6 +30,7 @@ import com.waivera.waivera.core.data.repository.PeopleRepository
 import com.waivera.waivera.core.data.repository.ProfileRepository
 import com.waivera.waivera.core.data.repository.PushRegistrationRepository
 import com.waivera.waivera.core.data.repository.RealtimeStatusRepository
+import com.waivera.waivera.core.data.repository.RequestRepository
 import com.waivera.waivera.core.data.repository.SessionRepository
 import com.waivera.waivera.core.data.repository.SettingsRepository
 import com.waivera.waivera.core.data.repository.TaskRepository
@@ -49,6 +51,7 @@ import com.waivera.waivera.core.demo.DemoProfileRepository
 import com.waivera.waivera.core.demo.DemoPushRegistrationRepository
 import com.waivera.waivera.core.demo.DemoRealtimeClient
 import com.waivera.waivera.core.demo.DemoRealtimeStatusRepository
+import com.waivera.waivera.core.demo.DemoRequestRepository
 import com.waivera.waivera.core.demo.DemoSessionRepository
 import com.waivera.waivera.core.demo.DemoSettingsRepository
 import com.waivera.waivera.core.demo.DemoTaskRepository
@@ -146,6 +149,13 @@ object DemoSwitchModule {
     @Provides
     fun tasks(mode: DemoMode, live: Provider<LiveTaskRepository>, demo: Provider<DemoTaskRepository>): TaskRepository =
         pick(mode, live, demo)
+
+    @Provides
+    fun requests(
+        mode: DemoMode,
+        live: Provider<LiveRequestRepository>,
+        demo: Provider<DemoRequestRepository>,
+    ): RequestRepository = pick(mode, live, demo)
 
     @Provides
     fun people(

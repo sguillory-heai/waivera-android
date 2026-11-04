@@ -10,6 +10,7 @@ import com.waivera.waivera.core.data.model.ScheduleEvent
 import com.waivera.waivera.core.data.model.SyncStatus
 import com.waivera.waivera.core.data.repository.CalendarRepository
 import com.waivera.waivera.core.network.NetworkConfig
+import com.waivera.waivera.core.network.dto.AttendeeType
 import com.waivera.waivera.core.network.time.WaiveraTime
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedFactory
@@ -53,6 +54,8 @@ data class EventFormUiState(
     val description: String = "",
     val zone: ZoneId = WaiveraTime.FallbackZone,
     val invitees: List<AttendeeOption> = emptyList(),
+    /** Email the invited participants; only offered once a participant is invited. */
+    val notifyParticipants: Boolean = false,
     val query: String = "",
     /** People matching [query] who are not invited yet; empty until the person types. */
     val matches: List<AttendeeOption> = emptyList(),
@@ -64,6 +67,7 @@ data class EventFormUiState(
     val titleMissing: Boolean get() = title.isBlank()
     val endBeforeStart: Boolean get() = !allDay && !end.isAfter(start)
     val isValid: Boolean get() = !titleMissing && !endBeforeStart
+    val hasParticipants: Boolean get() = invitees.any { it.participant }
 
     companion object {
         const val DEFAULT_HOUR = 9
@@ -135,6 +139,7 @@ class EventFormViewModel @AssistedInject constructor(
         val startAt = event.startAt?.atZone(zone)
         val endAt = event.endAt?.atZone(zone)
         val invited = EventPayload.invitees(event).toSet()
+        val participants = EventPayload.participants(event).toSet()
         state.update {
             it.copy(
                 phase = FormPhase.Ready,
@@ -149,9 +154,13 @@ class EventFormViewModel @AssistedInject constructor(
                 location = if (event.isSprout) event.location.orEmpty() else "",
                 description = event.description.orEmpty(),
                 invitees = event.attendees
-                    .filter { a -> a.userId in invited }
-                    .distinctBy { a -> a.userId }
-                    .map { a -> AttendeeOption(a.userId.orEmpty(), a.displayName ?: a.email.orEmpty(), a.email) },
+                    .mapNotNull { a ->
+                        val participant = a.type == AttendeeType.WAIVER_PARTICIPANT && a.userId in participants
+                        val coworker = a.type == AttendeeType.EMPLOYEE && a.userId in invited
+                        if (!participant && !coworker) return@mapNotNull null
+                        AttendeeOption(a.userId.orEmpty(), a.displayName ?: a.email.orEmpty(), a.email, participant)
+                    }
+                    .distinctBy { a -> a.key },
             )
         }
     }
@@ -191,10 +200,12 @@ class EventFormViewModel @AssistedInject constructor(
     fun setQuery(text: String) = state.update { it.copy(query = text).withMatches() }
 
     fun invite(person: AttendeeOption) = edit {
-        if (it.invitees.any { p -> p.id == person.id }) it else it.copy(invitees = it.invitees + person, query = "")
+        if (it.invitees.any { p -> p.key == person.key }) it else it.copy(invitees = it.invitees + person, query = "")
     }
 
-    fun uninvite(id: String) = edit { it.copy(invitees = it.invitees.filter { p -> p.id != id }) }
+    fun uninvite(person: AttendeeOption) = edit { it.copy(invitees = it.invitees.filter { p -> p.key != person.key }) }
+
+    fun setNotifyParticipants(notify: Boolean) = edit { it.copy(notifyParticipants = notify) }
 
     fun save() {
         val current = state.value
@@ -210,7 +221,9 @@ class EventFormViewModel @AssistedInject constructor(
             start = current.start,
             end = current.end,
             allDay = current.allDay,
-            inviteeIds = current.invitees.map(AttendeeOption::id),
+            inviteeIds = current.invitees.filter { !it.participant }.map(AttendeeOption::id),
+            participantIds = current.invitees.filter { it.participant }.map(AttendeeOption::id),
+            notifyParticipants = current.notifyParticipants && current.hasParticipants,
             waiveraVideo = current.waiveraVideo,
             location = current.location.takeIf { !current.waiveraVideo },
             description = current.description,
@@ -242,9 +255,9 @@ class EventFormViewModel @AssistedInject constructor(
     private fun EventFormUiState.withMatches(): EventFormUiState {
         val q = query.trim()
         if (q.isEmpty()) return copy(matches = emptyList())
-        val invited = invitees.map(AttendeeOption::id).toSet()
+        val invited = invitees.map(AttendeeOption::key).toSet()
         val found = directory.asSequence()
-            .filter { it.id !in invited }
+            .filter { it.key !in invited }
             .filter { it.name.contains(q, ignoreCase = true) || it.email?.contains(q, ignoreCase = true) == true }
             .take(MAX_MATCHES)
             .toList()

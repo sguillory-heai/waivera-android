@@ -151,11 +151,23 @@
     <string name="feature_calendar_form_time_placeholder">Pick a time</string>
     <string name="feature_calendar_form_end_before_start">End after it starts</string>
     <string name="feature_calendar_form_zone_note">Times are in %1$s, your saved time zone.</string>
-    <string name="feature_calendar_form_invite">Invite coworkers</string>
+    <string name="feature_calendar_form_invite">Invite people</string>
     <string name="feature_calendar_form_invite_placeholder">Search by name</string>
     <string name="feature_calendar_form_invite_add">Invite %1$s</string>
     <string name="feature_calendar_form_invite_remove">Remove %1$s</string>
-    <string name="feature_calendar_form_invite_none">No coworker matches that name.</string>
+    <string name="feature_calendar_form_invite_none">No one matches that name.</string>
+    <plurals name="feature_calendar_form_matches">
+        <item quantity="one">%d match</item>
+        <item quantity="other">%d matches</item>
+    </plurals>
+    <string name="feature_calendar_form_group_count">%1$s · %2$d</string>
+    <string name="feature_calendar_form_group_coworkers">Coworkers</string>
+    <string name="feature_calendar_form_group_participants">Participants</string>
+    <string name="feature_calendar_form_notify_participants">Email participants</string>
+    <string name="feature_calendar_form_notify_participants_note">Those with an email on file get the invite with a join link. Off, they only see it in Waivera.</string>
+    <string name="feature_calendar_form_notify_participants_edit">Sends this change to participants with an email on file, including anyone just added.</string>
+    <string name="feature_calendar_form_kind_coworker">Coworker</string>
+    <string name="feature_calendar_form_kind_participant">Participant</string>
     <string name="feature_calendar_form_directory_failed">Couldn’t load coworkers.</string>
     <string name="feature_calendar_form_video">Waivera video meeting</string>
     <string name="feature_calendar_form_video_subtitle">Everyone joins from the event</string>
@@ -163,7 +175,7 @@
     <string name="feature_calendar_form_location_placeholder">Address, room or link</string>
     <string name="feature_calendar_form_notes">Notes</string>
     <string name="feature_calendar_form_notes_placeholder">Anything people should know</string>
-    <string name="feature_calendar_form_on_web">Link a task or repeat it on the web</string>
+    <string name="feature_calendar_form_on_web">More options on the web</string>
     <string name="feature_calendar_form_create">Create event</string>
     <string name="feature_calendar_form_save">Save changes</string>
     <string name="feature_calendar_form_saving">Saving</string>

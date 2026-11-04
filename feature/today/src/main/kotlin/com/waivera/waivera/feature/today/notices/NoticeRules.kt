@@ -23,6 +23,11 @@ sealed interface NoticeDestination {
 
     data class Web(val url: String) : NoticeDestination
 
+    /** A request waiting on the person's review. */
+    data object Requests : NoticeDestination
+
+    data class Task(val taskId: Int) : NoticeDestination
+
     data object None : NoticeDestination
 }
 
@@ -50,9 +55,18 @@ data class NoticeGroup(val day: NoticeDay, val rows: List<NoticeRowModel>)
  * host is ever opened, so a notification can never send the person to another site.
  */
 class NoticeLinks @Inject constructor(private val config: NetworkConfig) {
+    @Suppress("ReturnCount") // One early answer per kind of link, in order of preference.
     fun destination(notice: Notice): NoticeDestination {
         val eventId = notice.eventId
         if (eventId != null) return NoticeDestination.Event(eventId)
+        if (notice.opensRequests) return NoticeDestination.Requests
+        // Tasks have their own page now; other web pages about a task still open on the web.
+        val taskId = notice.taskId?.toIntOrNull()
+        val webPath = notice.webPath
+        // Only the task's own page; deeper web pages about it (files, history) stay on the web.
+        if (taskId != null && (webPath == null || webPath.trimEnd('/') == "/task/$taskId")) {
+            return NoticeDestination.Task(taskId)
+        }
         val base = config.webBase
         val path = notice.webPath ?: notice.taskId?.let { "/task/$it" }
         val url = path?.let { base?.resolve(it) }?.takeIf { it.host == base?.host && it.scheme == base.scheme }

@@ -12,6 +12,7 @@ import com.waivera.waivera.core.data.live.LivePeopleRepository
 import com.waivera.waivera.core.data.live.LiveProfileRepository
 import com.waivera.waivera.core.data.live.LivePushRegistrationRepository
 import com.waivera.waivera.core.data.live.LiveRealtimeStatusRepository
+import com.waivera.waivera.core.data.live.LiveRequestRepository
 import com.waivera.waivera.core.data.live.LiveSessionRepository
 import com.waivera.waivera.core.data.live.LiveSettingsRepository
 import com.waivera.waivera.core.data.live.LiveTaskRepository
@@ -29,6 +30,7 @@ import com.waivera.waivera.core.data.repository.PeopleRepository
 import com.waivera.waivera.core.data.repository.ProfileRepository
 import com.waivera.waivera.core.data.repository.PushRegistrationRepository
 import com.waivera.waivera.core.data.repository.RealtimeStatusRepository
+import com.waivera.waivera.core.data.repository.RequestRepository
 import com.waivera.waivera.core.data.repository.SessionRepository
 import com.waivera.waivera.core.data.repository.SettingsRepository
 import com.waivera.waivera.core.data.repository.TaskRepository
@@ -81,6 +83,9 @@ interface LiveRepositoriesModule {
 
     @Binds
     fun tasks(impl: LiveTaskRepository): TaskRepository
+
+    @Binds
+    fun requests(impl: LiveRequestRepository): RequestRepository
 
     @Binds
     fun people(impl: LivePeopleRepository): PeopleRepository

@@ -65,18 +65,28 @@ import java.time.LocalTime
  * the web app until the app has a screen for it.
  */
 @Composable
-fun NoticesScreen(onBack: () -> Unit, onOpenEvent: (eventId: String) -> Unit, modifier: Modifier = Modifier) {
+fun NoticesScreen(
+    onBack: () -> Unit,
+    onOpenEvent: (eventId: String) -> Unit,
+    modifier: Modifier = Modifier,
+    onOpenRequests: () -> Unit = {},
+    onOpenTask: (taskId: Int) -> Unit = {},
+) {
     val viewModel: NoticesViewModel = hiltViewModel()
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbar = remember { SnackbarHostState() }
     val resources = LocalResources.current
     val uriHandler = LocalUriHandler.current
     val openEvent by rememberUpdatedState(onOpenEvent)
+    val openRequests by rememberUpdatedState(onOpenRequests)
+    val openTask by rememberUpdatedState(onOpenTask)
     LaunchedEffect(viewModel) {
         viewModel.effects.collect { effect ->
             when (effect) {
                 is NoticesEffect.Open -> when (val destination = effect.destination) {
                     is NoticeDestination.Event -> openEvent(destination.eventId)
+                    NoticeDestination.Requests -> openRequests()
+                    is NoticeDestination.Task -> openTask(destination.taskId)
                     is NoticeDestination.Web -> runCatching { uriHandler.openUri(destination.url) }
                     NoticeDestination.None -> Unit
                 }

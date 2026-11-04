@@ -99,3 +99,49 @@ data class GetUserNameResponseDBVM(
     val userName: String? = null,
     val type: String? = null,
 )
+
+/** `dto/Request/AuthBootstrapRequestDto.cs`. */
+@Serializable
+data class AuthBootstrapRequest(val identityTransition: Boolean)
+
+/**
+ * `dto/Response/AuthBootstrapResponseDto.cs`, only what gates what the phone offers: roles, the
+ * role policies the web checks with `hasPolicyPermissionV2`, and the ABAC actions it checks with
+ * `hasPermission`. The server re-checks every action, so these only decide what is shown.
+ */
+@Serializable
+data class AuthBootstrapResponse(
+    val roles: AuthBootstrapRoles = AuthBootstrapRoles(),
+    val permissions: List<AuthBootstrapAbacPolicy> = emptyList(),
+    val rolePolicies: List<OrganizationRolePolicy> = emptyList(),
+    val userAddedInRolePolicy: Boolean = true,
+)
+
+@Serializable
+data class AuthBootstrapRoles(
+    val isActiveOrganizationOwner: Boolean = false,
+    val employeeRoles: List<AuthBootstrapRole> = emptyList(),
+    val organizationRoles: List<AuthBootstrapOrganizationRole> = emptyList(),
+)
+
+@Serializable
+data class AuthBootstrapRole(val name: String? = null)
+
+@Serializable
+data class AuthBootstrapOrganizationRole(val name: String? = null, val systemKey: String? = null)
+
+@Serializable
+data class AuthBootstrapAbacPolicy(val action: String? = null, val condition: String? = null)
+
+/** `OrganizationRolePolicyDto`. */
+@Serializable
+data class OrganizationRolePolicy(
+    val policyPermission: PolicyPermissionKey? = null,
+    val policyPermissionScope: PolicyPermissionScope? = null,
+)
+
+@Serializable
+data class PolicyPermissionKey(val permissionKey: String? = null)
+
+@Serializable
+data class PolicyPermissionScope(val scope: String? = null)

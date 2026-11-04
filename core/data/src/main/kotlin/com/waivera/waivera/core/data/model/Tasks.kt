@@ -9,6 +9,21 @@ import java.time.LocalDate
  */
 enum class TaskWindow { DueSoon, Overdue, AllOpen }
 
+/**
+ * Whose tasks to list. [Casework] is the web's client task list, scoped on the server by role
+ * (an owner sees the agency, a coordinator their caseload); [Mine] is the person's own employee
+ * work (training, credentials), as the web's Employee tasks view.
+ */
+enum class TaskScope { Casework, Mine }
+
+/** One list request. [assignedToMe] narrows casework to the person's own tasks. */
+data class TaskQuery(
+    val scope: TaskScope,
+    val window: TaskWindow,
+    val search: String = "",
+    val assignedToMe: Boolean = false,
+)
+
 /** A task's workflow state, by its server name. Unknown names keep their text in [TaskState.Other]. */
 sealed interface TaskState {
     data object NotStarted : TaskState
@@ -47,6 +62,12 @@ data class TaskSummary(
     val state: TaskState,
     /** Who or what the task is about: a participant or, for employee tasks, an employee. */
     val about: String?,
+    val assigneeId: String? = null,
+    val assigneeName: String? = null,
+    /** A closure request waits on review. */
+    val pendingClosure: Boolean = false,
+    /** A reported delay is active. */
+    val delayed: Boolean = false,
 )
 
 data class TaskPage(val items: List<TaskSummary>, val totalCount: Int)
@@ -66,6 +87,11 @@ data class TaskDetail(
     val about: String?,
     /** The web app's page for the task, relative to the configured web base. */
     val webPath: String,
+    val assigneeName: String? = null,
+    /** A participant task; employee tasks have no extension or delay requests. */
+    val isClientTask: Boolean = true,
+    /** A change request waiting on review, if any. */
+    val pendingRequest: ChangeRequest? = null,
 ) {
     /** Completed or closed: the server refuses new activity. */
     val isFinished: Boolean get() = state == TaskState.Completed || state == TaskState.Closed

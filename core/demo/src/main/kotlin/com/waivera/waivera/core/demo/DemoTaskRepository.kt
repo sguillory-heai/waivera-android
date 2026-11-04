@@ -4,10 +4,13 @@ package com.waivera.waivera.core.demo
 
 import com.waivera.waivera.core.data.model.ActivityType
 import com.waivera.waivera.core.data.model.NewActivity
+import com.waivera.waivera.core.data.model.RequestKind
 import com.waivera.waivera.core.data.model.TaskActivity
 import com.waivera.waivera.core.data.model.TaskCounts
 import com.waivera.waivera.core.data.model.TaskDetail
 import com.waivera.waivera.core.data.model.TaskPage
+import com.waivera.waivera.core.data.model.TaskQuery
+import com.waivera.waivera.core.data.model.TaskScope
 import com.waivera.waivera.core.data.model.TaskState
 import com.waivera.waivera.core.data.model.TaskSummary
 import com.waivera.waivera.core.data.model.TaskWindow
@@ -27,10 +30,12 @@ class DemoTaskRepository @Inject constructor(private val backend: DemoBackend) :
 
     private val today: LocalDate get() = backend.now().atZone(DemoData.ZONE).toLocalDate()
 
-    override suspend fun myTasks(window: TaskWindow, search: String, page: Int): Result<TaskPage> {
+    override suspend fun tasks(query: TaskQuery, page: Int): Result<TaskPage> {
         backend.failRefreshes?.let { return Result.failure(it) }
-        val query = search.trim().lowercase()
-        val items = DemoTasks.all(today)
+        val window = query.window
+        val search = query.search.trim().lowercase()
+        val items = (if (query.scope == TaskScope.Casework) DemoTasks.casework(today) else DemoTasks.employee(today))
+            .filter { !query.assignedToMe || it.assigneeName == null }
             .filter { task ->
                 val due = task.due ?: return@filter window == TaskWindow.AllOpen
                 when (window) {
@@ -40,24 +45,30 @@ class DemoTaskRepository @Inject constructor(private val backend: DemoBackend) :
                 }
             }
             .filter {
-                query.isEmpty() ||
-                    it.title.lowercase().contains(query) ||
-                    it.key.lowercase().contains(query) ||
-                    it.about.orEmpty().lowercase().contains(query)
+                search.isEmpty() ||
+                    it.title.lowercase().contains(search) ||
+                    it.key.lowercase().contains(search) ||
+                    it.about.orEmpty().lowercase().contains(search)
             }
             .map { DemoTasks.summary(it) }
         return Result.success(TaskPage(if (page == 1) items else emptyList(), items.size))
     }
 
-    override suspend fun counts(): Result<TaskCounts> {
+    override suspend fun counts(scope: TaskScope, assignedToMe: Boolean): Result<TaskCounts> {
         backend.failRefreshes?.let { return Result.failure(it) }
-        val all = DemoTasks.all(today)
+        val all = when {
+            scope == TaskScope.Mine -> DemoTasks.employee(today)
+            assignedToMe -> DemoTasks.casework(today).filter { it.assigneeName == null }
+            else -> DemoTasks.casework(today)
+        }
         return Result.success(TaskCounts(all.size, all.count { it.due?.isBefore(today) == true }))
     }
 
     override suspend fun task(id: Int): Result<TaskDetail> {
         backend.failRefreshes?.let { return Result.failure(it) }
-        return DemoTasks.all(today).firstOrNull { it.id == id }?.let { Result.success(it) }
+        return (DemoTasks.casework(today) + DemoTasks.employee(today)).firstOrNull {
+            it.id == id
+        }?.let { Result.success(it) }
             ?: Result.failure(WaiveraError.NotFound())
     }
 
@@ -118,6 +129,24 @@ object DemoTasks {
         ),
     )
 
+    /** The agency's client tasks the demo person can see: their own and two coworkers'. */
+    fun casework(today: LocalDate): List<TaskDetail> = all(today) + listOf(
+        task(1063, "HEA-1063", "Monthly contact note", today.plusDays(3), TaskState.InProgress, "Ana Ruiz")
+            .copy(assigneeName = "Priya Raman"),
+        task(1078, "HEA-1078", "Annual plan signatures", today.minusDays(4), TaskState.NotStarted, "Sam Lee")
+            .copy(assigneeName = "Luis Ortega"),
+    )
+
+    /** The demo person's own employee tasks (training, paperwork), for My work. */
+    fun employee(today: LocalDate): List<TaskDetail> = listOf(
+        task(1102, "HEA-1102", "Complete HIPAA refresher", today.plusDays(1), TaskState.NotStarted, null)
+            .copy(isClientTask = false, type = "Training"),
+        task(1088, "HEA-1088", "Upload CPR certificate", today.minusDays(2), TaskState.InProgress, null)
+            .copy(isClientTask = false, type = "Credential"),
+        task(1110, "HEA-1110", "Sign updated handbook", today.plusDays(9), TaskState.NotStarted, null)
+            .copy(isClientTask = false, type = "Acknowledgement"),
+    )
+
     fun summary(task: TaskDetail) = TaskSummary(
         id = task.id,
         key = task.key,
@@ -125,20 +154,23 @@ object DemoTasks {
         due = task.due,
         state = task.state,
         about = task.about,
+        assigneeName = task.assigneeName,
+        pendingClosure = task.pendingRequest?.kind == RequestKind.Closure,
     )
 
     @Suppress("LongParameterList")
-    private fun task(id: Int, key: String, title: String, due: LocalDate, state: TaskState, about: String) = TaskDetail(
-        id = id,
-        key = key,
-        title = title,
-        description = "Review the current plan with the participant and note any changes in services.",
-        state = state,
-        type = "Plan review",
-        start = due.minusDays(30),
-        due = due,
-        assignedBy = "Priya Raman",
-        about = about,
-        webPath = "/task/$key",
-    )
+    private fun task(id: Int, key: String, title: String, due: LocalDate, state: TaskState, about: String?) =
+        TaskDetail(
+            id = id,
+            key = key,
+            title = title,
+            description = "Review the current plan with the participant and note any changes in services.",
+            state = state,
+            type = "Plan review",
+            start = due.minusDays(30),
+            due = due,
+            assignedBy = "Priya Raman",
+            about = about,
+            webPath = "/task/$key",
+        )
 }

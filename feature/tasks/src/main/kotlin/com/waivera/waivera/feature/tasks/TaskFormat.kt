@@ -47,6 +47,7 @@ object TaskFormat {
     private val PastSameYear get() = pattern("MMM d")
     private val Clock get() = pattern("h:mm a")
     private val Day get() = pattern("EEE, MMM d")
+    private val Month get() = pattern("MMM")
 
     fun due(due: LocalDate?, today: LocalDate): DueText = when {
         due == null -> DueText.None
@@ -64,6 +65,9 @@ object TaskFormat {
         )
         else -> DueText.On(date(due, today))
     }
+
+    /** The date tile's month, "Nov". */
+    fun tileMonth(date: LocalDate): String = date.format(Month)
 
     fun date(date: LocalDate, today: LocalDate): String =
         if (date.year == today.year) date.format(SameYear) else date.format(OtherYear)

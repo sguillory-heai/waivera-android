@@ -1,6 +1,7 @@
 package com.waivera.waivera.core.data.live
 
 import com.waivera.waivera.core.data.model.ActivityType
+import com.waivera.waivera.core.data.model.RequestStatus
 import com.waivera.waivera.core.data.model.TaskActivity
 import com.waivera.waivera.core.data.model.TaskDetail
 import com.waivera.waivera.core.data.model.TaskState
@@ -20,6 +21,8 @@ import com.waivera.waivera.core.network.time.WaiveraTime
  * Activity times are UTC instants.
  */
 object TaskMapping {
+    private const val EMPLOYEE_CONTEXT = "Employee"
+
     fun summary(dto: TaskListResponse): TaskSummary = TaskSummary(
         id = dto.id,
         key = key(dto.organization, dto.friendlyId),
@@ -27,6 +30,10 @@ object TaskMapping {
         due = WaiveraTime.parseLocalDate(dto.effectiveEndDate ?: dto.endDate),
         state = TaskState.of(dto.taskStatus?.name),
         about = about(dto.participant, dto.subjectEmployee),
+        assigneeId = dto.assignee?.id,
+        assigneeName = name(dto.assignee),
+        pendingClosure = dto.hasPendingDeletion,
+        delayed = dto.currentTaskDelay != null,
     )
 
     fun detail(dto: TaskResponse): TaskDetail {
@@ -43,6 +50,12 @@ object TaskMapping {
             assignedBy = name(dto.reporter),
             about = about(dto.participant, dto.subjectEmployee),
             webPath = "/task/$key",
+            assigneeName = name(dto.assignee),
+            isClientTask = !dto.taskContext.equals(EMPLOYEE_CONTEXT, ignoreCase = true),
+            pendingRequest = dto.administrativeTransactionRequests.orEmpty()
+                .map(RequestMapping::request)
+                .filter { it.status == RequestStatus.Pending }
+                .maxByOrNull { it.requestedAt ?: java.time.Instant.MIN },
         )
     }
 

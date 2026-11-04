@@ -20,6 +20,7 @@ import com.waivera.waivera.feature.profile.ProfileScreen
 import com.waivera.waivera.feature.settings.AppearanceScreen
 import com.waivera.waivera.feature.settings.NotificationSettingsScreen
 import com.waivera.waivera.feature.settings.SettingsScreen
+import com.waivera.waivera.feature.tasks.RequestsPage
 import com.waivera.waivera.feature.tasks.TaskDetailScreen
 import com.waivera.waivera.feature.tasks.TasksScreen
 import com.waivera.waivera.feature.today.TodayScreen
@@ -37,6 +38,7 @@ import com.waivera.waivera.navigation.NotificationSettingsRoute
 import com.waivera.waivera.navigation.PeopleRoute
 import com.waivera.waivera.navigation.PersonRoute
 import com.waivera.waivera.navigation.ProfileRoute
+import com.waivera.waivera.navigation.RequestsRoute
 import com.waivera.waivera.navigation.ScheduleRoute
 import com.waivera.waivera.navigation.SettingsRoute
 import com.waivera.waivera.navigation.TaskRoute
@@ -105,6 +107,8 @@ fun RouteContent(route: AppRoute, actions: RouteActions) {
             onOpenScheduleToday = actions.openScheduleToday,
             onOpenScheduleWeek = actions.openScheduleWeek,
             onOpenInbox = { actions.push(NoticesRoute) },
+            onOpenRequests = { actions.push(RequestsRoute) },
+            onOpenTask = { id -> actions.push(TaskRoute(id)) },
         )
         ChatListRoute -> ChatListScreen(
             onAccountClick = actions.openAccountMenu,
@@ -123,6 +127,7 @@ fun RouteContent(route: AppRoute, actions: RouteActions) {
             onOpenTask = { id -> actions.push(TaskRoute(id)) },
         )
         is TaskRoute -> TaskDetailScreen(taskId = route.taskId, onBack = actions.back)
+        RequestsRoute -> RequestsPage(onBack = actions.back, onOpenTask = { id -> actions.push(TaskRoute(id)) })
         is ConversationRoute -> ConversationScreen(
             conversationId = route.conversationId,
             highlightMessageId = route.messageId,
@@ -164,7 +169,12 @@ fun RouteContent(route: AppRoute, actions: RouteActions) {
             onOpenConversation = actions.openConversation,
         )
         BookmarksRoute -> BookmarksScreen(onBack = actions.back, onOpenMessage = actions.openMessage)
-        NoticesRoute -> NoticesScreen(onBack = actions.back, onOpenEvent = actions.openEvent)
+        NoticesRoute -> NoticesScreen(
+            onBack = actions.back,
+            onOpenEvent = actions.openEvent,
+            onOpenRequests = { actions.push(RequestsRoute) },
+            onOpenTask = { id -> actions.push(TaskRoute(id)) },
+        )
         SettingsRoute -> SettingsScreen(
             onBack = actions.back,
             onOpenNotificationSettings = { actions.push(NotificationSettingsRoute) },

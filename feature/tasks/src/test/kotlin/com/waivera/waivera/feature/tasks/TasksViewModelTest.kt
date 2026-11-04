@@ -1,14 +1,21 @@
 package com.waivera.waivera.feature.tasks
 
+import com.waivera.waivera.core.data.model.RequestAccess
+import com.waivera.waivera.core.data.model.RequestKind
+import com.waivera.waivera.core.data.model.TaskScope
 import com.waivera.waivera.core.data.model.TaskWindow
 import com.waivera.waivera.core.demo.DemoGraph
 import com.waivera.waivera.core.network.error.WaiveraError
 import com.waivera.waivera.core.testing.MainDispatcherRule
 import com.waivera.waivera.core.testing.TestClock
+import com.waivera.waivera.core.testing.TestSessionRepository
 import java.time.Instant
 import java.time.LocalDate
+import java.util.Locale
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.launch
@@ -23,8 +30,12 @@ class TasksViewModelTest {
     @get:Rule
     val main = MainDispatcherRule()
 
-    private fun TestScope.viewModel(tasks: FakeTasks, clock: TestClock = TestClock()): TasksViewModel {
-        val vm = TasksViewModel(tasks, DemoGraph(backgroundScope).calendar, clock)
+    private fun TestScope.viewModel(
+        tasks: FakeTasks,
+        clock: TestClock = TestClock(),
+        requests: FakeRequests = FakeRequests(),
+    ): TasksViewModel {
+        val vm = TasksViewModel(tasks, requests, TestSessionRepository(), DemoGraph(backgroundScope).calendar, clock)
         backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { vm.uiState.collect {} }
         return vm
     }
@@ -42,7 +53,7 @@ class TasksViewModelTest {
         tasks.listGate?.complete(Unit)
         runCurrent()
         assertEquals(TasksPhase.Content, vm.uiState.value.phase)
-        assertEquals(listOf("HEA-1"), vm.uiState.value.rows.map { it.key })
+        assertEquals(listOf("HEA-1"), vm.uiState.value.rows().map { it.key })
     }
 
     @Test
@@ -79,7 +90,7 @@ class TasksViewModelTest {
         runCurrent()
         val state = vm.uiState.value
         assertEquals(TasksPhase.Content, state.phase)
-        assertEquals(1, state.rows.size)
+        assertEquals(1, state.rowCount)
         assertTrue(state.refreshFailed)
     }
 
@@ -97,7 +108,7 @@ class TasksViewModelTest {
         assertTrue(vm.uiState.value.isLoadingMore)
         tasks.listGate?.complete(Unit)
         runCurrent()
-        assertEquals(4, vm.uiState.value.rows.size)
+        assertEquals(4, vm.uiState.value.rows().size)
         assertEquals(listOf(1, 2), tasks.listCalls.map { it.third })
     }
 
@@ -134,7 +145,7 @@ class TasksViewModelTest {
         advanceTimeBy(SEARCH_PAUSE)
         runCurrent()
         assertEquals(listOf("", "inta"), tasks.listCalls.map { it.second })
-        assertEquals(listOf("HEA-2"), vm.uiState.value.rows.map { it.key })
+        assertEquals(listOf("HEA-2"), vm.uiState.value.rows().map { it.key })
     }
 
     @Test
@@ -157,8 +168,137 @@ class TasksViewModelTest {
         }
         val vm = viewModel(tasks, clock)
         runCurrent()
-        assertEquals(DueText.Today, vm.uiState.value.rows.single().due)
+        assertEquals(DueText.Today, vm.uiState.value.rows().single().due)
     }
+
+    @Test
+    fun casework_is_the_default_list_and_assigned_to_me_narrows_it() = runTest {
+        val tasks = FakeTasks()
+        val vm = viewModel(tasks)
+        runCurrent()
+        assertEquals(TaskScope.Casework, tasks.queries.last().scope)
+        assertFalse(tasks.queries.last().assignedToMe)
+
+        vm.setAssignedToMe(true)
+        runCurrent()
+        assertTrue(tasks.queries.last().assignedToMe)
+        assertEquals(TaskScope.Casework to true, tasks.countCalls.last())
+    }
+
+    @Test
+    fun my_work_asks_for_the_persons_own_tasks_without_the_casework_chip() = runTest {
+        val tasks = FakeTasks()
+        val vm = viewModel(tasks)
+        runCurrent()
+        vm.setAssignedToMe(true)
+        vm.setSegment(TasksSegment.MyWork)
+        runCurrent()
+        assertEquals(TaskScope.Mine, tasks.queries.last().scope)
+        assertFalse(tasks.queries.last().assignedToMe)
+    }
+
+    @Test
+    fun the_requests_segment_shows_only_with_access_and_counts_what_waits_here() = runTest {
+        val requests = FakeRequests(RequestAccess(showsRequests = false, loaded = true))
+        val vm = viewModel(FakeTasks(), requests = requests)
+        runCurrent()
+        assertEquals(listOf(TasksSegment.Casework, TasksSegment.MyWork), vm.uiState.value.segments)
+
+        requests.accessFlow.value = RequestAccess(showsRequests = true, loaded = true)
+        requests.serverWaiting = listOf(
+            FakeRequests.request(1),
+            FakeRequests.request(2, RequestKind.Closure),
+            FakeRequests.request(3, RequestKind.Other),
+        )
+        requests.refreshWaiting()
+        runCurrent()
+        assertEquals(TasksSegment.entries, vm.uiState.value.segments)
+        // Time off and the rest are reviewed on the web, so they don't count here.
+        assertEquals(2, vm.uiState.value.waitingCount)
+    }
+
+    @Test
+    fun losing_requests_access_while_on_requests_falls_back_to_casework() = runTest {
+        val requests = FakeRequests()
+        val vm = viewModel(FakeTasks(), requests = requests)
+        runCurrent()
+        vm.setSegment(TasksSegment.Requests)
+        runCurrent()
+        assertEquals(TasksSegment.Requests, vm.uiState.value.segment)
+
+        requests.accessFlow.value = RequestAccess(loaded = true)
+        runCurrent()
+        assertEquals(TasksSegment.Casework, vm.uiState.value.segment)
+    }
+
+    @Test
+    fun going_to_requests_and_back_keeps_the_list_without_reloading() = runTest {
+        val tasks = FakeTasks().apply { all = listOf(FakeTasks.summary(1, "Plan review")) }
+        val vm = viewModel(tasks)
+        runCurrent()
+        val calls = tasks.queries.size
+        vm.setSegment(TasksSegment.Requests)
+        vm.setSegment(TasksSegment.Casework)
+        runCurrent()
+        assertEquals(calls, tasks.queries.size)
+        assertEquals(listOf("HEA-1"), vm.uiState.value.rows().map { it.key })
+    }
+
+    @Test
+    fun cards_group_by_due_week_and_carry_lateness_owner_and_one_flag() = runTest {
+        val clock = TestClock(Instant.parse("2026-11-04T15:00:00Z"))
+        val tasks = FakeTasks().apply {
+            pageSize = 10
+            all = listOf(
+                FakeTasks.summary(1, "Late", due = LocalDate.of(2026, 10, 30)).copy(delayed = true),
+                FakeTasks.summary(2, "Friday", due = LocalDate.of(2026, 11, 6))
+                    .copy(assigneeId = "usr_priya", assigneeName = "Priya Raman"),
+                FakeTasks.summary(3, "Next week", due = LocalDate.of(2026, 11, 10)).copy(pendingClosure = true),
+                FakeTasks.summary(4, "Undated"),
+            )
+        }
+        val vm = viewModel(tasks, clock)
+        runCurrent()
+        val sections = vm.uiState.value.sections
+        assertEquals(
+            listOf(DueGroup.Overdue, DueGroup.ThisWeek, DueGroup.NextWeek, DueGroup.NoDue),
+            sections.map { it.group },
+        )
+        val late = sections.first().rows.single()
+        assertEquals(5, late.daysLate)
+        assertEquals(RowFlag.Delayed, late.flag)
+        assertEquals("Priya Raman", sections[1].rows.single().assignee)
+        assertEquals(RowFlag.ClosureRequested, sections[2].rows.single().flag)
+        assertNull(sections[3].rows.single().tileDay)
+    }
+
+    @Test
+    fun the_persons_own_tasks_never_say_who_they_are_assigned_to() = runTest {
+        val session = TestSessionRepository()
+        val tasks = FakeTasks().apply {
+            all = listOf(
+                FakeTasks.summary(1, "Mine").copy(assigneeId = "usr_alex_rivera", assigneeName = "Alex Rivera"),
+            )
+        }
+        val vm = TasksViewModel(tasks, FakeRequests(), session, DemoGraph(backgroundScope).calendar, TestClock())
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { vm.uiState.collect {} }
+        runCurrent()
+        assertNull(vm.uiState.value.rows().single().assignee)
+    }
+
+    @Test
+    fun weeks_follow_the_locale_and_hold_across_the_fall_back_change() {
+        // Sunday Nov 1 2026 is the US fall-back day. In the US the week starts that Sunday.
+        val wednesday = LocalDate.of(2026, 11, 4)
+        assertEquals(DueGroup.ThisWeek, TasksViewModel.group(LocalDate.of(2026, 11, 7), wednesday, Locale.US))
+        assertEquals(DueGroup.NextWeek, TasksViewModel.group(LocalDate.of(2026, 11, 8), wednesday, Locale.US))
+        assertEquals(DueGroup.Later, TasksViewModel.group(LocalDate.of(2026, 11, 15), wednesday, Locale.US))
+        // Weeks start on Monday in the UK, so that Sunday still belongs to this week.
+        assertEquals(DueGroup.ThisWeek, TasksViewModel.group(LocalDate.of(2026, 11, 8), wednesday, Locale.UK))
+        assertEquals(DueGroup.Overdue, TasksViewModel.group(LocalDate.of(2026, 11, 1), wednesday, Locale.US))
+    }
+
+    private fun TasksUiState.rows(): List<TaskRow> = sections.flatMap { it.rows }
 
     private companion object {
         const val SEARCH_PAUSE = 301L

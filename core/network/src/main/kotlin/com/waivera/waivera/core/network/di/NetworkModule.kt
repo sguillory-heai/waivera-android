@@ -14,6 +14,7 @@ import com.waivera.waivera.core.network.api.EmployeeApi
 import com.waivera.waivera.core.network.api.FileApi
 import com.waivera.waivera.core.network.api.MobilePushApi
 import com.waivera.waivera.core.network.api.NotificationApi
+import com.waivera.waivera.core.network.api.RequestApi
 import com.waivera.waivera.core.network.api.TaskApi
 import com.waivera.waivera.core.network.api.TimeOffApi
 import com.waivera.waivera.core.network.api.VideoApi
@@ -97,6 +98,10 @@ object NetworkModule {
     @Provides
     @Singleton
     fun taskApi(retrofit: Retrofit): TaskApi = retrofit.create(TaskApi::class.java)
+
+    @Provides
+    @Singleton
+    fun requestApi(retrofit: Retrofit): RequestApi = retrofit.create(RequestApi::class.java)
 
     @Provides
     @Singleton

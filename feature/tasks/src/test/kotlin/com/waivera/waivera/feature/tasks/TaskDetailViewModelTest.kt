@@ -1,7 +1,13 @@
 package com.waivera.waivera.feature.tasks
 
 import com.waivera.waivera.core.data.model.ActivityType
+import com.waivera.waivera.core.data.model.ChangeReason
+import com.waivera.waivera.core.data.model.DelayPeriod
+import com.waivera.waivera.core.data.model.RequestAccess
+import com.waivera.waivera.core.data.model.RequestKind
+import com.waivera.waivera.core.data.model.RequestOutcome
 import com.waivera.waivera.core.data.model.TaskActivity
+import com.waivera.waivera.core.data.model.TaskFile
 import com.waivera.waivera.core.data.model.TaskState
 import com.waivera.waivera.core.demo.DemoGraph
 import com.waivera.waivera.core.network.NetworkConfig
@@ -17,6 +23,7 @@ import kotlin.test.assertFalse
 import kotlin.test.assertIs
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.TestScope
@@ -35,9 +42,17 @@ class TaskDetailViewModelTest {
         tasks: FakeTasks,
         clock: TestClock = TestClock(),
         config: NetworkConfig = web,
+        requests: FakeRequests = FakeRequests(),
     ): TaskDetailViewModel {
-        val vm =
-            TaskDetailViewModel(7, tasks, TestSessionRepository(), config, DemoGraph(backgroundScope).calendar, clock)
+        val vm = TaskDetailViewModel(
+            7,
+            tasks,
+            requests,
+            TestSessionRepository(),
+            config,
+            DemoGraph(backgroundScope).calendar,
+            clock,
+        )
         backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { vm.uiState.collect {} }
         return vm
     }
@@ -215,5 +230,193 @@ class TaskDetailViewModelTest {
         runCurrent()
         vm.openOnWeb()
         assertEquals(TaskDetailEffect.WebUnavailable, vm.effects.first())
+    }
+
+    @Test
+    fun ask_for_a_change_offers_only_what_the_role_and_the_task_allow() = runTest {
+        val requests = FakeRequests(RequestAccess(canAskMoreTime = false, canAskClosure = true, loaded = true))
+        val vm = viewModel(FakeTasks(), requests = requests)
+        runCurrent()
+        assertEquals(listOf(AskKind.Closure), vm.uiState.value.askChoices)
+
+        requests.accessFlow.value = RequestAccess(canAskMoreTime = true, canAskClosure = true, loaded = true)
+        runCurrent()
+        assertEquals(AskKind.entries, vm.uiState.value.askChoices)
+    }
+
+    @Test
+    fun a_pending_request_hides_ask_for_a_change() = runTest {
+        val requests = FakeRequests().apply { optionsResult = Result.success(FakeRequests.options(pending = true)) }
+        val vm = viewModel(FakeTasks(), requests = requests)
+        runCurrent()
+        assertFalse(vm.uiState.value.canAsk)
+    }
+
+    @Test
+    fun employee_tasks_offer_closure_but_not_more_time_or_a_delay() = runTest {
+        val tasks = FakeTasks().apply { detail = Result.success(FakeTasks.task().copy(isClientTask = false)) }
+        val vm = viewModel(tasks)
+        runCurrent()
+        assertEquals(listOf(AskKind.Closure), vm.uiState.value.askChoices)
+        vm.startAsk()
+        runCurrent()
+        // One choice skips the chooser.
+        assertEquals(AskKind.Closure, vm.uiState.value.ask?.kind)
+    }
+
+    @Test
+    fun more_time_needs_a_later_day_within_five_years_a_reason_and_a_justification() = runTest {
+        val requests = FakeRequests()
+        val vm = viewModel(FakeTasks(), requests = requests)
+        runCurrent()
+        vm.startAsk()
+        vm.chooseAsk(AskKind.MoreTime)
+        runCurrent()
+        vm.submitAsk()
+        val empty = vm.uiState.value.ask
+        assertTrue(empty?.showErrors == true && empty.dueMissing && empty.reasonMissing && empty.explanationMissing)
+
+        vm.setAskDue(FakeRequests.Due)
+        assertTrue(vm.uiState.value.ask?.dueTooEarly == true)
+        vm.setAskDue(FakeRequests.Due.plusYears(5).plusDays(1))
+        assertTrue(vm.uiState.value.ask?.dueTooLate == true)
+        vm.setAskDue(FakeRequests.Due.plusDays(7))
+        vm.setAskReason(1)
+        vm.setAskExplanation("x".repeat(AskForm.MAX_EXPLANATION + 1))
+        assertTrue(vm.uiState.value.ask?.explanationTooLong == true)
+        vm.submitAsk()
+        assertTrue(requests.asked.isEmpty())
+    }
+
+    @Test
+    fun a_reason_that_needs_evidence_needs_a_file_on_the_task() = runTest {
+        val requests = FakeRequests().apply {
+            reasons = Result.success(listOf(ChangeReason(2, "Hospital stay", null, requiresEvidence = true)))
+            filesResult = Result.success(listOf(TaskFile(31, "Admission notice.pdf")))
+        }
+        val vm = viewModel(FakeTasks(), requests = requests)
+        runCurrent()
+        vm.startAsk()
+        vm.chooseAsk(AskKind.MoreTime)
+        runCurrent()
+        vm.setAskDue(FakeRequests.Due.plusDays(7))
+        vm.setAskReason(2)
+        vm.setAskExplanation("Admitted Nov 3.")
+        assertTrue(vm.uiState.value.ask?.evidenceMissing == true)
+        vm.setAskEvidence(31)
+        vm.submitAsk()
+        runCurrent()
+        assertEquals(listOf("more:2026-11-13:2:31"), requests.asked)
+    }
+
+    @Test
+    fun a_sent_request_shows_as_pending_at_once_and_says_so_when_it_lands() = runTest {
+        val requests = FakeRequests().apply { askGate = CompletableDeferred() }
+        val vm = viewModel(FakeTasks(), requests = requests)
+        runCurrent()
+        fillMoreTime(vm)
+        vm.submitAsk()
+        runCurrent()
+        // Optimistic: the sheet is closed and the banner shows before the server answers.
+        assertNull(vm.uiState.value.ask)
+        assertEquals(RequestKind.MoreTime, vm.uiState.value.pending?.kind)
+        assertEquals("Fri, Nov 13", vm.uiState.value.pending?.newDue)
+        assertFalse(vm.uiState.value.canAsk)
+
+        requests.askGate?.complete(Unit)
+        runCurrent()
+        assertEquals(TaskDetailEffect.Asked(AskKind.MoreTime, inEffect = false), vm.effects.first())
+    }
+
+    @Test
+    fun an_owners_own_request_takes_effect_and_reloads_the_task() = runTest {
+        val tasks = FakeTasks()
+        val requests = FakeRequests().apply { askResult = Result.success(RequestOutcome.Approved) }
+        val vm = viewModel(tasks, requests = requests)
+        runCurrent()
+        fillMoreTime(vm)
+        tasks.detail = Result.success(FakeTasks.task(due = FakeRequests.Due.plusDays(7)))
+        vm.submitAsk()
+        runCurrent()
+        assertEquals(TaskDetailEffect.Asked(AskKind.MoreTime, inEffect = true), vm.effects.first())
+        assertNull(vm.uiState.value.pending)
+        assertEquals(FakeRequests.Due.plusDays(7), vm.uiState.value.task?.due)
+    }
+
+    @Test
+    fun a_failed_request_takes_the_banner_down_and_brings_the_form_back_filled_in() = runTest {
+        val requests = FakeRequests().apply { askResult = Result.failure(WaiveraError.Network()) }
+        val vm = viewModel(FakeTasks(), requests = requests)
+        runCurrent()
+        fillMoreTime(vm)
+        vm.submitAsk()
+        runCurrent()
+        assertNull(vm.uiState.value.pending)
+        val form = vm.uiState.value.ask
+        assertTrue(form?.failed == true)
+        assertEquals("Visiting family until Nov 9.", form?.explanation)
+        assertEquals(FakeRequests.Due.plusDays(7), form?.newDue)
+    }
+
+    @Test
+    fun a_delay_is_checked_again_before_it_is_sent() = runTest {
+        val requests = FakeRequests()
+        val vm = viewModel(FakeTasks(), requests = requests)
+        runCurrent()
+        vm.startAsk()
+        vm.chooseAsk(AskKind.Delay)
+        runCurrent()
+        vm.setAskReason(1)
+        vm.setAskExplanation("Admitted Nov 3.")
+        val moved = DelayPeriod(LocalDate.of(2026, 11, 5), LocalDate.of(2026, 11, 13), renewal = false)
+        requests.optionsResult = Result.success(FakeRequests.options(delay = moved))
+        vm.submitAsk()
+        runCurrent()
+        assertTrue(requests.asked.isEmpty())
+        val form = vm.uiState.value.ask
+        assertTrue(form?.delayChanged == true)
+        assertEquals(moved, form?.delay)
+
+        vm.submitAsk()
+        runCurrent()
+        assertEquals(listOf("delay:2026-11-05:2026-11-13:1"), requests.asked)
+    }
+
+    @Test
+    fun closing_for_other_needs_a_comment() = runTest {
+        val requests = FakeRequests()
+        val vm = viewModel(FakeTasks(), requests = requests)
+        runCurrent()
+        vm.startAsk()
+        vm.chooseAsk(AskKind.Closure)
+        runCurrent()
+        vm.setAskReason(5)
+        assertTrue(vm.uiState.value.ask?.isValid == true)
+        vm.setAskReason(6)
+        assertTrue(vm.uiState.value.ask?.explanationMissing == true)
+        vm.setAskExplanation("Duplicate of HEA-12")
+        vm.submitAsk()
+        runCurrent()
+        assertEquals(listOf("closure:6:Duplicate of HEA-12"), requests.asked)
+    }
+
+    @Test
+    fun back_from_a_form_returns_to_the_choices() = runTest {
+        val vm = viewModel(FakeTasks())
+        runCurrent()
+        vm.startAsk()
+        vm.chooseAsk(AskKind.MoreTime)
+        assertTrue(vm.backToChoices())
+        assertNull(vm.uiState.value.ask?.kind)
+        assertFalse(vm.backToChoices())
+    }
+
+    private fun TestScope.fillMoreTime(vm: TaskDetailViewModel) {
+        vm.startAsk()
+        vm.chooseAsk(AskKind.MoreTime)
+        runCurrent()
+        vm.setAskDue(FakeRequests.Due.plusDays(7))
+        vm.setAskReason(1)
+        vm.setAskExplanation("Visiting family until Nov 9.")
     }
 }

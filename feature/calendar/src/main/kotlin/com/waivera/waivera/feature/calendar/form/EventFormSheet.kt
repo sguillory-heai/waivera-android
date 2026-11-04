@@ -1,11 +1,20 @@
 package com.waivera.waivera.feature.calendar.form
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
@@ -15,23 +24,29 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.layout.layout
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.KeyboardCapitalization
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.waivera.waivera.core.data.model.AttendeeOption
 import com.waivera.waivera.core.designsystem.component.BannerTone
 import com.waivera.waivera.core.designsystem.component.WaiveraAvatar
+import com.waivera.waivera.core.designsystem.component.WaiveraAvatarColors
 import com.waivera.waivera.core.designsystem.component.WaiveraBanner
 import com.waivera.waivera.core.designsystem.component.WaiveraBottomSheet
 import com.waivera.waivera.core.designsystem.component.WaiveraButton
@@ -40,7 +55,6 @@ import com.waivera.waivera.core.designsystem.component.WaiveraButtonVariant
 import com.waivera.waivera.core.designsystem.component.WaiveraDatePickerDialog
 import com.waivera.waivera.core.designsystem.component.WaiveraIconButton
 import com.waivera.waivera.core.designsystem.component.WaiveraIconTile
-import com.waivera.waivera.core.designsystem.component.WaiveraListRow
 import com.waivera.waivera.core.designsystem.component.WaiveraPickerField
 import com.waivera.waivera.core.designsystem.component.WaiveraSheetFrame
 import com.waivera.waivera.core.designsystem.component.WaiveraSwitchRow
@@ -49,6 +63,8 @@ import com.waivera.waivera.core.designsystem.component.WaiveraTileTone
 import com.waivera.waivera.core.designsystem.component.WaiveraTimePickerDialog
 import com.waivera.waivera.core.designsystem.icon.WaiveraIcons
 import com.waivera.waivera.core.designsystem.preview.WaiveraPreviews
+import com.waivera.waivera.core.designsystem.theme.WaiveraElevation
+import com.waivera.waivera.core.designsystem.theme.WaiveraShapes
 import com.waivera.waivera.core.designsystem.theme.WaiveraSizes
 import com.waivera.waivera.core.designsystem.theme.WaiveraSpacing
 import com.waivera.waivera.core.designsystem.theme.WaiveraTextStyles
@@ -118,6 +134,7 @@ fun EventFormSheet(
                 onQuery = viewModel::setQuery,
                 onInvite = viewModel::invite,
                 onUninvite = viewModel::uninvite,
+                onNotifyParticipants = viewModel::setNotifyParticipants,
                 onRetryDirectory = viewModel::loadDirectory,
                 onVideo = viewModel::setVideo,
                 onLocation = viewModel::setLocation,
@@ -137,7 +154,8 @@ internal data class EventFormActions(
     val onEnd: (LocalTime) -> Unit = {},
     val onQuery: (String) -> Unit = {},
     val onInvite: (AttendeeOption) -> Unit = {},
-    val onUninvite: (String) -> Unit = {},
+    val onUninvite: (AttendeeOption) -> Unit = {},
+    val onNotifyParticipants: (Boolean) -> Unit = {},
     val onRetryDirectory: () -> Unit = {},
     val onVideo: (Boolean) -> Unit = {},
     val onLocation: (String) -> Unit = {},
@@ -248,6 +266,7 @@ internal fun ColumnScope.EventFormFields(state: EventFormUiState, actions: Event
             label = stringResource(R.string.feature_calendar_form_notes),
             placeholder = stringResource(R.string.feature_calendar_form_notes_placeholder),
             singleLine = false,
+            minLines = 3,
             enabled = enabled,
             keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences),
         )
@@ -363,60 +382,189 @@ private fun Invitees(state: EventFormUiState, actions: EventFormActions, enabled
                 color = WaiveraTheme.colors.textSecondary,
             )
         }
-        Column(Modifier.bleedGutter()) {
-            state.matches.forEach { person ->
-                WaiveraListRow(
-                    headline = person.name,
-                    supporting = person.email,
-                    nameHeadline = true,
-                    onClick = { actions.onInvite(person) },
-                    onClickLabel = stringResource(R.string.feature_calendar_form_invite_add, person.name),
-                    enabled = enabled,
-                    leading = {
-                        WaiveraAvatar(name = person.name, size = WaiveraSizes.AvatarSmall, contentDescription = null)
-                    },
-                    trailing = {
-                        Icon(
-                            painterResource(WaiveraIcons.Add),
-                            contentDescription = null,
-                            tint = WaiveraTheme.colors.accent,
-                        )
-                    },
-                )
-            }
+        if (state.matches.isNotEmpty()) MatchList(state.matches, enabled, actions.onInvite)
+    }
+    InviteeGroups(state.invitees, enabled, actions.onUninvite)
+    // Like a calendar's "send invitations" choice: participants are only emailed when asked.
+    AnimatedVisibility(
+        visible = state.hasParticipants,
+        enter = expandVertically(WaiveraTheme.motion.layout(), expandFrom = Alignment.Top) +
+            fadeIn(WaiveraTheme.motion.state()),
+        exit = shrinkVertically(WaiveraTheme.motion.layout(), shrinkTowards = Alignment.Top) +
+            fadeOut(WaiveraTheme.motion.state()),
+    ) {
+        WaiveraSwitchRow(
+            title = stringResource(R.string.feature_calendar_form_notify_participants),
+            subtitle = stringResource(
+                if (state.isEdit) {
+                    R.string.feature_calendar_form_notify_participants_edit
+                } else {
+                    R.string.feature_calendar_form_notify_participants_note
+                },
+            ),
+            checked = state.notifyParticipants,
+            onCheckedChange = actions.onNotifyParticipants,
+            enabled = enabled,
+            modifier = Modifier.bleedGutter(),
+        )
+    }
+}
+
+/** Search results float over the form as one card, so they read as choices, not as invitees. */
+@Composable
+private fun MatchList(matches: List<AttendeeOption>, enabled: Boolean, onInvite: (AttendeeOption) -> Unit) {
+    val colors = WaiveraTheme.colors
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .shadow(WaiveraElevation.Card, WaiveraShapes.Field, clip = false)
+            .background(colors.surface, WaiveraShapes.Field)
+            .border(WaiveraSpacing.Hairline, colors.border, WaiveraShapes.Field)
+            .padding(horizontal = WaiveraSpacing.MediumSmall, vertical = WaiveraSpacing.Small),
+        verticalArrangement = Arrangement.spacedBy(WaiveraSpacing.Small),
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(WaiveraSpacing.Small),
+        ) {
+            Icon(
+                painterResource(WaiveraIcons.Search),
+                contentDescription = null,
+                tint = colors.textSecondary,
+                modifier = Modifier.size(WaiveraSizes.FieldTileGlyph),
+            )
+            Text(
+                pluralStringResource(R.plurals.feature_calendar_form_matches, matches.size, matches.size),
+                style = WaiveraTextStyles.FieldLabel,
+                color = colors.textSecondary,
+            )
+        }
+        matches.forEach { person ->
+            InviteeRow(person, enabled, adding = true) { onInvite(person) }
         }
     }
-    if (state.invitees.isNotEmpty()) {
-        Column {
-            state.invitees.forEach { person -> InviteeRow(person, enabled) { actions.onUninvite(person.id) } }
+}
+
+/**
+ * Invited people in two groups: coworkers on a violet tint and participants on a teal one, so
+ * who is staff and who is a client reads at a glance without a tag on every row.
+ */
+@Composable
+private fun InviteeGroups(invitees: List<AttendeeOption>, enabled: Boolean, onRemove: (AttendeeOption) -> Unit) {
+    val colors = WaiveraTheme.colors
+    val (participants, coworkers) = invitees.partition { it.participant }
+    listOf(
+        Triple(R.string.feature_calendar_form_group_coworkers, coworkers, false),
+        Triple(R.string.feature_calendar_form_group_participants, participants, true),
+    ).filter { it.second.isNotEmpty() }.forEach { (title, people, isParticipant) ->
+        val tile = if (isParticipant) colors.tiles.teal else colors.tiles.brand
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .animateContentSize(WaiveraTheme.motion.layout())
+                .background(tile.container.copy(alpha = GROUP_TINT_ALPHA), WaiveraShapes.Field)
+                .padding(horizontal = WaiveraSpacing.MediumSmall, vertical = WaiveraSpacing.Small),
+        ) {
+            Row(
+                modifier = Modifier.semantics(mergeDescendants = true) {},
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(WaiveraSpacing.Small),
+            ) {
+                Icon(
+                    painterResource(if (isParticipant) WaiveraIcons.Person else WaiveraIcons.Building),
+                    contentDescription = null,
+                    tint = tile.content,
+                    modifier = Modifier.size(WaiveraSizes.FieldTileGlyph),
+                )
+                Text(
+                    stringResource(R.string.feature_calendar_form_group_count, stringResource(title), people.size),
+                    style = WaiveraTextStyles.FieldLabel,
+                    color = tile.content,
+                )
+            }
+            people.forEach { person ->
+                key(person.key) { InviteeRow(person, enabled, adding = false) { onRemove(person) } }
+            }
         }
     }
 }
 
 @Composable
-private fun InviteeRow(person: AttendeeOption, enabled: Boolean, onRemove: () -> Unit) {
+private fun InviteeRow(person: AttendeeOption, enabled: Boolean, adding: Boolean, onAction: () -> Unit) {
+    val colors = WaiveraTheme.colors
+    val teal = colors.tiles.teal
+    val large = isLargeFontScale()
+    val actionLabel = stringResource(
+        if (adding) R.string.feature_calendar_form_invite_add else R.string.feature_calendar_form_invite_remove,
+        person.name,
+    )
     Row(
-        modifier = Modifier.fillMaxWidth().padding(vertical = WaiveraSpacing.XxSmall),
-        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = if (large) WaiveraSpacing.ExtraSmall else WaiveraSpacing.XxSmall),
+        // A wrapped email at large font keeps the avatar on the name line.
+        verticalAlignment = Alignment.Top,
         horizontalArrangement = Arrangement.spacedBy(WaiveraSpacing.MediumSmall),
     ) {
-        WaiveraAvatar(name = person.name, size = WaiveraSizes.AvatarSmall, contentDescription = null)
-        Text(
-            text = person.name,
-            style = WaiveraTextStyles.FieldValue,
-            color = WaiveraTheme.colors.text,
-            modifier = Modifier.weight(1f),
+        WaiveraAvatar(
+            name = person.name,
+            size = WaiveraSizes.AvatarSmall,
+            contentDescription = null,
+            modifier = Modifier.padding(top = WaiveraSpacing.XxSmall),
+            colors = if (person.participant) {
+                WaiveraAvatarColors(
+                    teal.container,
+                    teal.content,
+                )
+            } else {
+                WaiveraAvatarColors.default()
+            },
         )
+        Column(Modifier.weight(1f)) {
+            Text(
+                text = person.name,
+                style = MaterialTheme.typography.titleSmall,
+                color = colors.text,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            if (adding) {
+                Text(
+                    stringResource(
+                        if (person.participant) {
+                            R.string.feature_calendar_form_kind_participant
+                        } else {
+                            R.string.feature_calendar_form_kind_coworker
+                        },
+                    ),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = if (person.participant) teal.content else colors.textSecondary,
+                )
+            }
+            person.email?.let { email ->
+                Text(
+                    // Break opportunities after "@" and never before a dot, so a long address wraps cleanly.
+                    email.replace("@", "@\u200B").replace(".", "\u2060."),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = colors.textSecondary,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+        }
         WaiveraIconButton(
-            icon = WaiveraIcons.Close,
-            contentDescription = stringResource(R.string.feature_calendar_form_invite_remove, person.name),
-            onClick = onRemove,
+            icon = if (adding) WaiveraIcons.Add else WaiveraIcons.Close,
+            contentDescription = actionLabel,
+            onClick = onAction,
             enabled = enabled,
+            tint = if (adding) colors.accent else colors.textSecondary,
+            modifier = Modifier.align(Alignment.CenterVertically),
         )
     }
 }
 
-/** The sheet pads its content, so full-width rows reach past it and line up with the fields. */
+private const val GROUP_TINT_ALPHA = 0.35f
+
 private fun Modifier.bleedGutter(): Modifier = layout { measurable, constraints ->
     val extra = WaiveraSpacing.Gutter.roundToPx() * 2
     val placeable = measurable.measure(

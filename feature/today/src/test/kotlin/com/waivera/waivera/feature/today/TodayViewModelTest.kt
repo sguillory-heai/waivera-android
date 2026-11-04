@@ -537,7 +537,8 @@ class TodayViewModelTest {
         val items = viewModel.ui.needsYou.items.filterIsInstance<NeedsYouItem.Notice>()
         // Activity only informs and a read one is done, so only the approval asks for the person.
         assertEquals(listOf("approve"), items.map { it.noticeId })
-        assertTrue(items.single().opensOutside)
+        // Its task has a page in the app now, so it no longer points at the web.
+        assertEquals(false, items.single().opensOutside)
         assertEquals(1, viewModel.ui.needsYou.kinds.counts[NeedsYouKind.Update])
     }
 
@@ -556,12 +557,12 @@ class TodayViewModelTest {
     }
 
     @Test
-    fun openNotice_aTaskOpensItsPageOnTheWebApp() = runTest(main.testDispatcher) {
+    fun openNotice_aTaskOpensItsPageInTheApp() = runTest(main.testDispatcher) {
         notices.state.value = Synced(NoticeFeed(listOf(notice("t1")), 1), lastSyncedAt = TEST_NOW)
         val (viewModel, effects) = start()
         viewModel.onAction(TodayAction.OpenNotice("t1"))
         runCurrent()
-        assertEquals(TodayEffect.OpenNotice(NoticeDestination.Web("https://app.example.test/task/42")), effects.last())
+        assertEquals(TodayEffect.OpenNotice(NoticeDestination.Task(42)), effects.last())
     }
 
     @Test

@@ -54,7 +54,7 @@ class NoticeRulesTest {
     }
 
     @Test
-    fun links_preferTheEventThenTheWebPathThenTheTask() {
+    fun links_preferTheEventThenTheWebPathThenTheTaskPage() {
         assertEquals(
             NoticeDestination.Event("evt_1"),
             TEST_LINKS.destination(notice("a", eventId = "evt_1").copy(webPath = "/calendar?eventId=evt_1")),
@@ -63,13 +63,23 @@ class NoticeRulesTest {
             NoticeDestination.Web("https://app.example.test/survey/launch?x=1"),
             TEST_LINKS.destination(notice("b").copy(webPath = "/survey/launch?x=1")),
         )
-        assertEquals(NoticeDestination.Web("https://app.example.test/task/42"), TEST_LINKS.destination(notice("c")))
+        assertEquals(NoticeDestination.Task(42), TEST_LINKS.destination(notice("c")))
+        assertEquals(NoticeDestination.Task(42), TEST_LINKS.destination(notice("d").copy(webPath = "/task/42")))
+        assertEquals(
+            NoticeDestination.Web("https://app.example.test/task/42/files"),
+            TEST_LINKS.destination(notice("e").copy(webPath = "/task/42/files")),
+        )
+    }
+
+    @Test
+    fun links_openRequestsInTheApp() {
+        assertEquals(NoticeDestination.Requests, TEST_LINKS.destination(notice("r").copy(opensRequests = true)))
     }
 
     @Test
     fun links_neverLeaveTheWebApp() {
         assertEquals(NoticeDestination.None, TEST_LINKS.destination(notice("a").copy(webPath = "//evil.example/x")))
         val unconfigured = NoticeLinks(NetworkConfig(apiBaseUrl = "https://api.example.test", webBaseUrl = ""))
-        assertEquals(NoticeDestination.None, unconfigured.destination(notice("b")))
+        assertEquals(NoticeDestination.None, unconfigured.destination(notice("b").copy(webPath = "/survey/launch")))
     }
 }

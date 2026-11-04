@@ -6,8 +6,11 @@ import com.waivera.waivera.core.data.model.TaskActivity
 import com.waivera.waivera.core.data.model.TaskCounts
 import com.waivera.waivera.core.data.model.TaskDetail
 import com.waivera.waivera.core.data.model.TaskPage
+import com.waivera.waivera.core.data.model.TaskQuery
+import com.waivera.waivera.core.data.model.TaskScope
 import com.waivera.waivera.core.data.model.TaskWindow
 import com.waivera.waivera.core.data.model.currentUserId
+import com.waivera.waivera.core.data.repository.RequestRepository
 import com.waivera.waivera.core.data.repository.SessionRepository
 import com.waivera.waivera.core.data.repository.TaskRepository
 import com.waivera.waivera.core.network.api.TaskApi
@@ -31,33 +34,52 @@ class LiveTaskRepository @Inject constructor(
     private val api: TaskApi,
     private val session: SessionRepository,
     private val json: Json,
+    private val requests: RequestRepository,
 ) : TaskRepository {
-    override suspend fun myTasks(window: TaskWindow, search: String, page: Int): Result<TaskPage> = catchingWaivera {
+    override suspend fun tasks(query: TaskQuery, page: Int): Result<TaskPage> = catchingWaivera {
         val me = me()
-        val response = apiCall {
-            api.getMyTasks(
-                userId = me,
-                assignee = me,
-                searchTerm = search.trim(),
-                date = window.dateFilter,
-                page = page,
-            )
-        }
+        if (query.scope == TaskScope.Casework) requests.ensureAccess()
+        val response = list(me, query.scope, query.assignedToMe, query.search.trim(), query.window.dateFilter, page)
         TaskPage(items = response.tasks.map(TaskMapping::summary), totalCount = response.totalCount)
     }
 
-    override suspend fun counts(): Result<TaskCounts> = catchingWaivera {
+    override suspend fun counts(scope: TaskScope, assignedToMe: Boolean): Result<TaskCounts> = catchingWaivera {
         val me = me()
+        if (scope == TaskScope.Casework) requests.ensureAccess()
         coroutineScope {
-            val open = async { apiCall { api.getMyTasks(userId = me, assignee = me, pageSize = 1) }.totalCount }
+            val open = async { list(me, scope, assignedToMe, "", null, 1, pageSize = 1).totalCount }
             val overdue = async {
-                apiCall {
-                    api.getMyTasks(userId = me, assignee = me, date = TaskWindow.Overdue.dateFilter, pageSize = 1)
-                }
-                    .totalCount
+                list(me, scope, assignedToMe, "", TaskWindow.Overdue.dateFilter, 1, pageSize = 1).totalCount
             }
             TaskCounts(open = open.await(), overdue = overdue.await())
         }
+    }
+
+    /**
+     * Casework is the web's client task list: the server scopes it by role, with pending approvals
+     * for the roles the web includes them for. My work is the person's own employee tasks.
+     */
+    @Suppress("LongParameterList")
+    private suspend fun list(
+        me: String,
+        scope: TaskScope,
+        assignedToMe: Boolean,
+        search: String,
+        date: List<String>?,
+        page: Int,
+        pageSize: Int = TaskApi.PAGE_SIZE,
+    ) = apiCall {
+        val casework = scope == TaskScope.Casework
+        api.getMyTasks(
+            userId = me,
+            assignee = if (casework && !assignedToMe) null else me,
+            taskContext = if (casework) CLIENT_CONTEXT else EMPLOYEE_CONTEXT,
+            includePendingApprovals = if (casework) requests.access.value.includePendingApprovals else null,
+            searchTerm = search,
+            date = date,
+            page = page,
+            pageSize = pageSize,
+        )
     }
 
     override suspend fun task(id: Int): Result<TaskDetail> = catchingWaivera {
@@ -95,6 +117,11 @@ class LiveTaskRepository @Inject constructor(
     }
 
     private fun me(): String = session.state.value.currentUserId ?: throw WaiveraError.NotSignedIn()
+
+    private companion object {
+        const val CLIENT_CONTEXT = "Client"
+        const val EMPLOYEE_CONTEXT = "Employee"
+    }
 }
 
 /** The server's `date` filter for each window; all open tasks need none. */

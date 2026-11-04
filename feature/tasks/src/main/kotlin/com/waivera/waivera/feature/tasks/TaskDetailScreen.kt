@@ -1,15 +1,18 @@
 package com.waivera.waivera.feature.tasks
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
@@ -30,8 +33,12 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.waivera.waivera.core.data.model.RequestKind
 import com.waivera.waivera.core.data.model.TaskDetail
+import com.waivera.waivera.core.designsystem.component.BannerTone
 import com.waivera.waivera.core.designsystem.component.SkeletonText
+import com.waivera.waivera.core.designsystem.component.TopBarAction
+import com.waivera.waivera.core.designsystem.component.WaiveraBanner
 import com.waivera.waivera.core.designsystem.component.WaiveraBottomActionBar
 import com.waivera.waivera.core.designsystem.component.WaiveraButton
 import com.waivera.waivera.core.designsystem.component.WaiveraButtonSize
@@ -47,6 +54,7 @@ import com.waivera.waivera.core.designsystem.component.WaiveraSnackbarHost
 import com.waivera.waivera.core.designsystem.component.WaiveraStatusBadge
 import com.waivera.waivera.core.designsystem.component.WaiveraTileTone
 import com.waivera.waivera.core.designsystem.component.WaiveraTopBar
+import com.waivera.waivera.core.designsystem.component.rememberLatestNonNull
 import com.waivera.waivera.core.designsystem.component.rememberSkeletonPulse
 import com.waivera.waivera.core.designsystem.component.rememberSkeletonVisible
 import com.waivera.waivera.core.designsystem.icon.WaiveraIcons
@@ -72,6 +80,7 @@ fun TaskDetailScreen(taskId: Int, onBack: () -> Unit, modifier: Modifier = Modif
         viewModel.effects.collect { effect ->
             when (effect) {
                 TaskDetailEffect.Logged -> snackbar.showSnackbar(resources.getString(R.string.feature_tasks_log_done))
+                is TaskDetailEffect.Asked -> snackbar.showSnackbar(resources.getString(effect.message()))
                 TaskDetailEffect.WebUnavailable ->
                     snackbar.showSnackbar(resources.getString(R.string.feature_tasks_web_unavailable))
                 is TaskDetailEffect.OpenWeb -> {
@@ -90,9 +99,29 @@ fun TaskDetailScreen(taskId: Int, onBack: () -> Unit, modifier: Modifier = Modif
             onRetryActivity = viewModel::loadActivity,
             onLog = viewModel::startLog,
             onOpenWeb = viewModel::openOnWeb,
+            onAsk = viewModel::startAsk,
         ),
         modifier = modifier,
     )
+    state.ask?.let { form ->
+        AskChangeSheet(
+            form = form,
+            task = state.task,
+            today = state.today,
+            actions = AskActions(
+                onChoose = viewModel::chooseAsk,
+                onBack = viewModel::backToChoices,
+                onDismiss = viewModel::dismissAsk,
+                onRetryReasons = viewModel::loadAskReasons,
+                onRetryFiles = viewModel::loadAskFiles,
+                onReason = viewModel::setAskReason,
+                onDue = viewModel::setAskDue,
+                onExplanation = viewModel::setAskExplanation,
+                onEvidence = viewModel::setAskEvidence,
+                onSubmit = viewModel::submitAsk,
+            ),
+        )
+    }
     state.log?.let { form ->
         LogActivitySheet(
             form = form,
@@ -116,10 +145,19 @@ internal data class TaskDetailActions(
     val onRetryActivity: () -> Unit,
     val onLog: () -> Unit,
     val onOpenWeb: () -> Unit,
+    val onAsk: () -> Unit = {},
 ) {
     companion object {
         val None = TaskDetailActions({}, {}, {}, {}, {})
     }
+}
+
+private fun TaskDetailEffect.Asked.message(): Int = when {
+    inEffect && kind == AskKind.MoreTime -> R.string.feature_tasks_asked_in_effect_more_time
+    inEffect && kind == AskKind.Delay -> R.string.feature_tasks_asked_in_effect_delay
+    kind == AskKind.MoreTime -> R.string.feature_tasks_asked_more_time
+    kind == AskKind.Delay -> R.string.feature_tasks_asked_delay
+    else -> R.string.feature_tasks_asked_closure
 }
 
 @Composable
@@ -130,12 +168,24 @@ internal fun TaskDetailContent(
     modifier: Modifier = Modifier,
 ) {
     val colors = WaiveraTheme.colors
+    val motion = WaiveraTheme.motion
     val task = state.task
     Column(modifier = modifier.fillMaxSize().background(colors.background)) {
         WaiveraTopBar(
             title = task?.title ?: stringResource(R.string.feature_tasks_title),
             subtitle = task?.key,
             onBack = actions.onBack,
+            actions = if (task != null) {
+                listOf(
+                    TopBarAction(
+                        icon = WaiveraIcons.OpenExternal,
+                        contentDescription = stringResource(R.string.feature_tasks_open_on_web),
+                        onClick = actions.onOpenWeb,
+                    ),
+                )
+            } else {
+                emptyList()
+            },
         )
         Box(Modifier.weight(1f)) {
             WaiveraLoadSwap(
@@ -178,13 +228,20 @@ internal fun TaskDetailContent(
                         color = colors.textSecondary,
                     )
                 }
-                WaiveraButton(
-                    text = stringResource(R.string.feature_tasks_open_on_web),
-                    onClick = actions.onOpenWeb,
-                    variant = WaiveraButtonVariant.Text,
-                    fullWidth = true,
-                    leadingIcon = WaiveraIcons.OpenExternal,
-                )
+                // Ask for a change leaves while a request is pending; the banner says why.
+                AnimatedVisibility(
+                    visible = state.canAsk,
+                    enter = expandVertically(motion.layout(), expandFrom = Alignment.Top) + fadeIn(motion.state()),
+                    exit = shrinkVertically(motion.layout()) + fadeOut(motion.state()),
+                ) {
+                    WaiveraButton(
+                        text = stringResource(R.string.feature_tasks_ask_change),
+                        onClick = actions.onAsk,
+                        variant = WaiveraButtonVariant.Text,
+                        fullWidth = true,
+                        size = WaiveraButtonSize.Large,
+                    )
+                }
             }
         }
     }
@@ -198,7 +255,20 @@ private fun DetailBody(state: TaskDetailUiState, task: TaskDetail, onRetryActivi
             .verticalScroll(rememberScrollState())
             .padding(bottom = WaiveraSpacing.Large),
     ) {
-        WaiveraSectionHeader(text = stringResource(R.string.feature_tasks_detail_section), first = true)
+        val motion = WaiveraTheme.motion
+        // The banner grows in when a request is sent from here, and leaves if it fails.
+        AnimatedVisibility(
+            visible = state.pending != null,
+            enter = expandVertically(motion.layout(), expandFrom = Alignment.Top) + fadeIn(motion.state()),
+            exit = shrinkVertically(motion.layout()) + fadeOut(motion.state()),
+        ) {
+            val shown = rememberLatestNonNull(state.pending)
+            shown?.let { PendingRequestBanner(it) }
+        }
+        WaiveraSectionHeader(
+            text = stringResource(R.string.feature_tasks_detail_section),
+            first = state.pending == null,
+        )
         WaiveraCardGroup {
             Column(Modifier.fillMaxWidth().padding(vertical = WaiveraSpacing.MediumSmall)) {
                 InfoRow(stringResource(R.string.feature_tasks_field_status), R.drawable.feature_tasks_ic_task) {
@@ -219,6 +289,12 @@ private fun DetailBody(state: TaskDetailUiState, task: TaskDetail, onRetryActivi
                 task.type?.let {
                     InfoDivider()
                     InfoRow(stringResource(R.string.feature_tasks_field_type), WaiveraIcons.Hash) { InfoValue(it) }
+                }
+                task.assigneeName?.let {
+                    InfoDivider()
+                    InfoRow(stringResource(R.string.feature_tasks_field_assigned_to), WaiveraIcons.People) {
+                        InfoValue(it)
+                    }
                 }
                 task.assignedBy?.let {
                     InfoDivider()
@@ -303,42 +379,6 @@ private fun ActivityItem(row: ActivityRow) {
 }
 
 @Composable
-private fun InfoRow(label: String, icon: Int, value: @Composable () -> Unit) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .heightIn(min = WaiveraSpacing.MinTouchTarget)
-            .padding(horizontal = WaiveraSpacing.Medium, vertical = WaiveraSpacing.Small),
-        horizontalArrangement = Arrangement.spacedBy(WaiveraSizes.FieldTileGap),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        WaiveraIconTile(
-            icon = icon,
-            tone = WaiveraTileTone.Brand,
-            size = WaiveraSizes.FieldTile,
-            iconSize = WaiveraSizes.FieldTileGlyph,
-        )
-        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(WaiveraSpacing.XxSmall)) {
-            Text(text = label, style = WaiveraTextStyles.FieldLabel, color = WaiveraTheme.colors.textSecondary)
-            value()
-        }
-    }
-}
-
-@Composable
-private fun InfoValue(text: String) {
-    Text(text = text, style = WaiveraTextStyles.FieldValue, color = WaiveraTheme.colors.text)
-}
-
-@Composable
-private fun InfoDivider() {
-    WaiveraInsetDivider(
-        inset = WaiveraSpacing.Medium + WaiveraSizes.FieldDividerInset,
-        modifier = Modifier.padding(end = WaiveraSpacing.Medium),
-    )
-}
-
-@Composable
 private fun DetailSkeleton() {
     val pulse = rememberSkeletonPulse()
     val loading = stringResource(R.string.feature_tasks_loading)
@@ -363,6 +403,40 @@ private fun DetailSkeleton() {
             }
         }
     }
+}
+
+@Composable
+private fun PendingRequestBanner(pending: PendingBanner) {
+    val (title, message) = when (pending.kind) {
+        RequestKind.MoreTime -> stringResource(R.string.feature_tasks_pending_more_time_title) to (
+            pending.newDue?.let { stringResource(R.string.feature_tasks_pending_more_time, it) }
+                ?: stringResource(R.string.feature_tasks_pending_more_time_short)
+            )
+        RequestKind.Delay -> {
+            val start = pending.delayStart
+            val end = pending.delayEnd
+            stringResource(R.string.feature_tasks_pending_delay_title) to (
+                if (start != null && end != null) {
+                    stringResource(R.string.feature_tasks_pending_delay, start, end)
+                } else {
+                    stringResource(R.string.feature_tasks_pending_delay_short)
+                }
+                )
+        }
+        RequestKind.Closure ->
+            stringResource(R.string.feature_tasks_pending_closure_title) to
+                stringResource(R.string.feature_tasks_pending_closure)
+        RequestKind.Other ->
+            stringResource(R.string.feature_tasks_pending_other_title) to
+                stringResource(R.string.feature_tasks_pending_other)
+    }
+    WaiveraBanner(
+        title = title,
+        message = message,
+        tone = BannerTone.Warning,
+        icon = pending.kind.icon(),
+        modifier = Modifier.padding(top = WaiveraSpacing.Small, bottom = WaiveraSpacing.ExtraSmall),
+    )
 }
 
 private const val SEPARATOR = " · "

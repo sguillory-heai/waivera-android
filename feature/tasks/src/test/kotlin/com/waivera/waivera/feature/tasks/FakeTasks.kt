@@ -6,6 +6,8 @@ import com.waivera.waivera.core.data.model.TaskActivity
 import com.waivera.waivera.core.data.model.TaskCounts
 import com.waivera.waivera.core.data.model.TaskDetail
 import com.waivera.waivera.core.data.model.TaskPage
+import com.waivera.waivera.core.data.model.TaskQuery
+import com.waivera.waivera.core.data.model.TaskScope
 import com.waivera.waivera.core.data.model.TaskState
 import com.waivera.waivera.core.data.model.TaskSummary
 import com.waivera.waivera.core.data.model.TaskWindow
@@ -21,6 +23,8 @@ internal class FakeTasks : TaskRepository {
     var failList: WaiveraError? = null
     var listGate: CompletableDeferred<Unit>? = null
     val listCalls = mutableListOf<Triple<TaskWindow, String, Int>>()
+    val queries = mutableListOf<TaskQuery>()
+    val countCalls = mutableListOf<Pair<TaskScope, Boolean>>()
 
     var detail: Result<TaskDetail> = Result.success(task())
     var activity: Result<List<TaskActivity>> = Result.success(emptyList())
@@ -28,15 +32,20 @@ internal class FakeTasks : TaskRepository {
     var logResult: Result<Unit> = Result.success(Unit)
     val logged = mutableListOf<NewActivity>()
 
-    override suspend fun myTasks(window: TaskWindow, search: String, page: Int): Result<TaskPage> {
-        listCalls += Triple(window, search, page)
+    override suspend fun tasks(query: TaskQuery, page: Int): Result<TaskPage> {
+        val search = query.search
+        queries += query
+        listCalls += Triple(query.window, search, page)
         listGate?.await()
         failList?.let { return Result.failure(it) }
         val matches = all.filter { search.isBlank() || it.title.contains(search, ignoreCase = true) }
         return Result.success(TaskPage(matches.drop((page - 1) * pageSize).take(pageSize), matches.size))
     }
 
-    override suspend fun counts(): Result<TaskCounts> = Result.success(TaskCounts(all.size, 0))
+    override suspend fun counts(scope: TaskScope, assignedToMe: Boolean): Result<TaskCounts> {
+        countCalls += scope to assignedToMe
+        return Result.success(TaskCounts(all.size, 0))
+    }
 
     override suspend fun task(id: Int): Result<TaskDetail> = detail
 

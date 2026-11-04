@@ -40,6 +40,8 @@ fun TodayScreen(
     onOpenScheduleToday: () -> Unit = onOpenSchedule,
     onOpenScheduleWeek: () -> Unit = onOpenSchedule,
     onOpenInbox: () -> Unit = {},
+    onOpenRequests: () -> Unit = {},
+    onOpenTask: (taskId: Int) -> Unit = {},
 ) {
     val viewModel: TodayViewModel = hiltViewModel()
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -47,11 +49,15 @@ fun TodayScreen(
     val openMessage by rememberUpdatedState(onOpenMessage)
     val openConversation by rememberUpdatedState(onOpenConversation)
     val openEvent by rememberUpdatedState(onOpenEvent)
+    val openRequests by rememberUpdatedState(onOpenRequests)
+    val openTask by rememberUpdatedState(onOpenTask)
     TodayEffects(
         viewModel,
         snackbarHostState,
         onOpenConversation = { id -> openConversation(id) },
         onOpenEvent = { id -> openEvent(id) },
+        onOpenRequests = { openRequests() },
+        onOpenTask = { id -> openTask(id) },
     )
     val callbacks = remember(
         viewModel,
@@ -86,6 +92,8 @@ private fun TodayEffects(
     snackbarHostState: SnackbarHostState,
     onOpenConversation: (Long) -> Unit,
     onOpenEvent: (String) -> Unit,
+    onOpenRequests: () -> Unit,
+    onOpenTask: (Int) -> Unit,
 ) {
     val uriHandler = LocalUriHandler.current
     val messages = TodayMessages(
@@ -108,6 +116,8 @@ private fun TodayEffects(
                 is TodayEffect.OpenConversation -> openConversation(effect.conversationId)
                 is TodayEffect.OpenNotice -> when (val destination = effect.destination) {
                     is NoticeDestination.Event -> onOpenEvent(destination.eventId)
+                    NoticeDestination.Requests -> onOpenRequests()
+                    is NoticeDestination.Task -> onOpenTask(destination.taskId)
                     // A phone without a browser cannot open it; nothing else to do.
                     is NoticeDestination.Web -> runCatching { uriHandler.openUri(destination.url) }
                     NoticeDestination.None -> snackbarHostState.showSnackbar(currentMessages.nothingToOpen)

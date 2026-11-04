@@ -20,6 +20,8 @@ data class Notice(
     val eventId: String? = null,
     /** A web path (`/…`) for everything the app has no screen for, opened in the browser. */
     val webPath: String? = null,
+    /** A change request waiting on this person's review; opens Requests. */
+    val opensRequests: Boolean = false,
 ) {
     /** Asks the person to do something, so an unread one also shows in Today's Needs you. */
     val asksForAction: Boolean get() = kind in NoticeKind.ActionKinds

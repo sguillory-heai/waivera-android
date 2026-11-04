@@ -19,15 +19,19 @@ import retrofit2.http.Query
  */
 interface TaskApi {
     /**
-     * The tasks assigned to [assignee] (the person themself). Finished tasks are left out unless
-     * a status is asked for; [excludeStatus] also drops closed ones. [date] is `overdue`,
-     * `today`, `week` or `month`, judged on the server in the employee's saved zone.
+     * Tasks the server lets [userId] see. With [assignee] (the person themself) it is their own
+     * work; without it and with [taskContext] `Client` it is the casework the web lists, scoped
+     * on the server by the person's role. Finished tasks are left out unless a status is asked
+     * for; [excludeStatus] also drops closed ones. [date] is `overdue`, `today`, `week` or
+     * `month`, judged on the server in the employee's saved zone.
      */
     @Suppress("LongParameterList")
     @GET("api/tasks/user/{userId}")
     suspend fun getMyTasks(
         @Path("userId") userId: String,
-        @Query("assignee") assignee: String,
+        @Query("assignee") assignee: String?,
+        @Query("taskContext") taskContext: String? = null,
+        @Query("includePendingApprovals") includePendingApprovals: Boolean? = null,
         @Query("searchTerm") searchTerm: String = "",
         @Query("date") date: List<String>? = null,
         @Query("excludeStatus") excludeStatus: List<String>? = listOf(CLOSED),

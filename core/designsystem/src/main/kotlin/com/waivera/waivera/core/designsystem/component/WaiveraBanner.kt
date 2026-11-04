@@ -104,6 +104,7 @@ fun WaiveraBanner(
     compact: Boolean = false,
     gutter: Boolean = true,
     detail: String? = null,
+    @DrawableRes icon: Int? = null,
 ) {
     val style = tone.style(WaiveraTheme.colors)
     val action = if (actionLabel != null && onAction != null) BannerActionModel(actionLabel, onAction) else null
@@ -153,7 +154,7 @@ fun WaiveraBanner(
                 verticalAlignment = if (collapsible) Alignment.CenterVertically else Alignment.Top,
             ) {
                 BannerIcon(
-                    icon = style.icon,
+                    icon = icon ?: style.icon,
                     color = style.content,
                     firstLineStyle = if (title != null) {
                         MaterialTheme.typography.titleSmall

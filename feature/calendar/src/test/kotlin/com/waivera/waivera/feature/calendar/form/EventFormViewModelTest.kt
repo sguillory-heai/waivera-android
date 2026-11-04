@@ -109,6 +109,39 @@ class EventFormViewModelTest {
     }
 
     @Test
+    fun participants_are_emailed_only_when_the_person_turns_it_on() = runTest {
+        val (vm, _) = form(EventFormRequest(date = LocalDate.of(2026, 11, 9)))
+        vm.setTitle("Check-in")
+        val sam = AttendeeOption("42", "Sam Ortiz", "sam@example.com", participant = true)
+        vm.invite(sam)
+        assertTrue(vm.uiState.value.hasParticipants)
+        assertFalse(vm.uiState.value.notifyParticipants)
+        vm.save()
+        runCurrent()
+        assertEquals(listOf("42"), calendar.created.single().participantIds)
+        assertFalse(calendar.created.single().notifyParticipants)
+
+        vm.setNotifyParticipants(true)
+        vm.save()
+        runCurrent()
+        assertTrue(calendar.created.last().notifyParticipants)
+    }
+
+    @Test
+    fun the_email_choice_is_not_sent_once_no_participant_is_left() = runTest {
+        val (vm, _) = form(EventFormRequest(date = LocalDate.of(2026, 11, 9)))
+        vm.setTitle("Check-in")
+        val sam = AttendeeOption("42", "Sam Ortiz", "sam@example.com", participant = true)
+        vm.invite(sam)
+        vm.setNotifyParticipants(true)
+        vm.uninvite(sam)
+        assertFalse(vm.uiState.value.hasParticipants)
+        vm.save()
+        runCurrent()
+        assertFalse(calendar.created.single().notifyParticipants)
+    }
+
+    @Test
     fun a_failed_save_keeps_the_form_and_shows_why() = runTest {
         calendar.saveResult = Result.failure(WaiveraError.Network())
         val gate = CompletableDeferred<Unit>()

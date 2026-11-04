@@ -3,6 +3,7 @@ package com.waivera.waivera.core.designsystem.component
 import androidx.annotation.DrawableRes
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.horizontalScroll
@@ -25,12 +26,17 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
@@ -162,17 +168,36 @@ fun WaiveraSegmentedControl(
     selectedIndex: Int,
     onSelect: (Int) -> Unit,
     modifier: Modifier = Modifier,
+    counts: List<Int?> = emptyList(),
 ) {
     val colors = WaiveraTheme.colors
     BoxWithConstraints(modifier = modifier.fillMaxWidth()) {
-        val fit = rememberSegmentFit(options, constraints.maxWidth)
+        // A counted segment is measured with room for its badge, so a count never squeezes its label.
+        val measured = options.mapIndexed { i, o -> if ((counts.getOrNull(i) ?: 0) > 0) "$o$COUNT_ROOM" else o }
+        val fit = rememberSegmentFit(measured, constraints.maxWidth)
         val scrolls = fit is SegmentFit.Scroll
+        val scroll = rememberScrollState()
+        // Counted tabs (new in Tasks) bring the chosen segment into view when the track scrolls.
+        LaunchedEffect(scrolls, selectedIndex, scroll.maxValue) {
+            if (scrolls && counts.isNotEmpty()) {
+                scroll.scrollTo(scroll.maxValue * selectedIndex / options.lastIndex.coerceAtLeast(1))
+            }
+        }
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .clip(WaiveraShapes.SegmentTrack)
                 .background(colors.surfaceMuted)
-                .then(if (scrolls) Modifier.horizontalScroll(rememberScrollState()) else Modifier)
+                .then(
+                    if (scrolls) {
+                        Modifier.segmentEdgeFade(
+                            scroll,
+                            colors.surfaceMuted,
+                        ).horizontalScroll(scroll)
+                    } else {
+                        Modifier
+                    },
+                )
                 .padding(WaiveraSpacing.ExtraSmall)
                 .selectableGroup(),
             horizontalArrangement = Arrangement.spacedBy(WaiveraSpacing.ExtraSmall),
@@ -180,6 +205,7 @@ fun WaiveraSegmentedControl(
             options.forEachIndexed { index, option ->
                 Segment(
                     label = option,
+                    count = counts.getOrNull(index),
                     selected = index == selectedIndex,
                     onSelect = { onSelect(index) },
                     modifier = when (fit) {
@@ -194,7 +220,13 @@ fun WaiveraSegmentedControl(
 }
 
 @Composable
-private fun Segment(label: String, selected: Boolean, onSelect: () -> Unit, modifier: Modifier = Modifier) {
+private fun Segment(
+    label: String,
+    selected: Boolean,
+    onSelect: () -> Unit,
+    modifier: Modifier = Modifier,
+    count: Int? = null,
+) {
     val colors = WaiveraTheme.colors
     val pill by animateFloatAsState(
         targetValue = if (selected) 1f else 0f,
@@ -223,15 +255,22 @@ private fun Segment(label: String, selected: Boolean, onSelect: () -> Unit, modi
             .padding(horizontal = WaiveraSpacing.Small, vertical = WaiveraSpacing.Small),
         contentAlignment = Alignment.Center,
     ) {
-        Text(
-            text = label,
-            style = MaterialTheme.typography.labelLarge,
-            fontWeight = if (selected) FontWeight.ExtraBold else FontWeight.SemiBold,
-            color = if (selected) colors.onSelectedFill else colors.textSecondary,
-            textAlign = TextAlign.Center,
-            maxLines = 1,
-            softWrap = false,
-        )
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(WaiveraSpacing.ExtraSmall + WaiveraSpacing.XxSmall),
+        ) {
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = if (selected) FontWeight.ExtraBold else FontWeight.SemiBold,
+                color = if (selected) colors.onSelectedFill else colors.textSecondary,
+                textAlign = TextAlign.Center,
+                maxLines = 1,
+                softWrap = false,
+            )
+            // A segment's count asks for attention, so it leaves once that segment is open.
+            if (count != null && count > 0 && !selected) WaiveraCountBadge(count = count)
+        }
     }
 }
 
@@ -291,3 +330,29 @@ private fun WaiveraChipsPreview() {
         }
     }
 }
+
+/** A scrolling track fades at an edge that has more segments past it, so a cut segment reads as "more". */
+private fun Modifier.segmentEdgeFade(scroll: ScrollState, track: Color): Modifier = drawWithContent {
+    drawContent()
+    val width = WaiveraSpacing.Large.toPx()
+    if (scroll.value > 0) {
+        drawRect(
+            brush = Brush.horizontalGradient(listOf(track, track.copy(alpha = 0f)), startX = 0f, endX = width),
+            size = Size(width, size.height),
+        )
+    }
+    if (scroll.value < scroll.maxValue) {
+        drawRect(
+            brush = Brush.horizontalGradient(
+                listOf(track.copy(alpha = 0f), track),
+                startX = size.width - width,
+                endX = size.width,
+            ),
+            topLeft = Offset(size.width - width, 0f),
+            size = Size(width, size.height),
+        )
+    }
+}
+
+/** Stands in for a two-digit count badge when segments are measured. */
+private const val COUNT_ROOM = " 00"
