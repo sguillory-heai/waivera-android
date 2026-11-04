@@ -16,6 +16,8 @@ import com.waivera.waivera.core.data.model.DelayPeriod
 import com.waivera.waivera.core.data.model.EmployeeFilePage
 import com.waivera.waivera.core.data.model.EmployeeProfile
 import com.waivera.waivera.core.data.model.EventDraft
+import com.waivera.waivera.core.data.model.LinkedFaq
+import com.waivera.waivera.core.data.model.LinkedResource
 import com.waivera.waivera.core.data.model.Message
 import com.waivera.waivera.core.data.model.MessageThread
 import com.waivera.waivera.core.data.model.MessageTimeline
@@ -36,6 +38,7 @@ import com.waivera.waivera.core.data.model.ScheduleFeed
 import com.waivera.waivera.core.data.model.SessionState
 import com.waivera.waivera.core.data.model.Synced
 import com.waivera.waivera.core.data.model.TaskActivity
+import com.waivera.waivera.core.data.model.TaskAttachment
 import com.waivera.waivera.core.data.model.TaskCounts
 import com.waivera.waivera.core.data.model.TaskDetail
 import com.waivera.waivera.core.data.model.TaskFile
@@ -278,12 +281,40 @@ interface TaskRepository {
 
     suspend fun task(id: Int): Result<TaskDetail>
 
-    /** Newest first. */
+    /** Oldest first. */
     suspend fun activity(taskId: Int): Result<List<TaskActivity>>
 
     suspend fun activityTypes(): Result<List<ActivityType>>
 
     suspend fun logActivity(activity: NewActivity): Result<Unit>
+
+    /** The task's files, newest first. */
+    suspend fun attachments(taskId: Int): Result<List<TaskAttachment>>
+}
+
+/**
+ * What Waivera links in chat messages point at, for their previews. Each read carries the
+ * reader's own access: a task in another agency, a draft resource or an FAQ the reader can't see
+ * fails with [com.waivera.waivera.core.network.error.WaiveraError.NotFound] or `Forbidden`.
+ */
+interface LinkLookupRepository {
+    /** The task people call by [number] in the reader's agency. */
+    suspend fun task(number: Int): Result<TaskDetail>
+
+    suspend fun resource(id: String): Result<LinkedResource>
+
+    /** Every published FAQ article the reader may open. */
+    suspend fun faqs(): Result<List<LinkedFaq>>
+}
+
+/**
+ * Reads task files for the viewer. A file lives in the app's private cache only while it is
+ * open: [close] deletes it, and sign-out empties the cache.
+ */
+interface TaskFileRepository {
+    suspend fun open(taskId: Int, file: TaskAttachment): Result<java.io.File>
+
+    fun close(file: java.io.File)
 }
 
 /**

@@ -30,6 +30,14 @@ fun interface LiveConversationMonitor {
     fun isLiveOnScreen(conversationId: Long): Boolean
 }
 
+/**
+ * The sender's profile photo for a chat notification, or null when they have none or it takes
+ * too long: the notification never waits more than a moment for a picture.
+ */
+fun interface SenderPhotoSource {
+    suspend fun photo(userId: String): ByteArray?
+}
+
 /** Cached conversation facts used to title and categorize chat notifications. */
 data class ConversationNotificationInfo(val title: String?, val isGroup: Boolean)
 

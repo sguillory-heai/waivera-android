@@ -18,11 +18,17 @@ enum class RichMark { Bold, Italic, Strike, Underline, Code }
 
 @Immutable
 sealed interface RichInline {
-    /** [href] is set only for a link whose target passed [SafeLinks.isAllowed]. */
+    /**
+     * [href] is set only for a web link that passed [SafeLinks.isAllowed], or a link within the
+     * web app written as a site path (`/resources/…`), which opens against the web base.
+     */
     data class Text(val text: String, val marks: Set<RichMark> = emptySet(), val href: String? = null) : RichInline
 
-    /** `@label`, falling back to the id, then "mention". */
-    data class Mention(val label: String) : RichInline
+    /**
+     * `@label`, falling back to the id, then "mention". A `#` task mention carries the task's
+     * page as [href], as the web reads it, so it gets a preview like a task link.
+     */
+    data class Mention(val label: String, val href: String? = null) : RichInline
 
     data object HardBreak : RichInline
 }
@@ -151,7 +157,7 @@ object TipTapParser {
                         listOf(RichInline.Text(text, marks, href))
                     }
                 }
-                "mention" -> listOf(RichInline.Mention(mentionLabel(node)))
+                "mention" -> listOf(RichInline.Mention(mentionLabel(node), taskMentionHref(node)))
                 "hardBreak" -> listOf(RichInline.HardBreak)
                 else -> inlines(node.children(), inherited, inheritedHref)
             }
@@ -171,7 +177,7 @@ object TipTapParser {
                 "strike" -> result += RichMark.Strike
                 "underline" -> result += RichMark.Underline
                 "code" -> result += RichMark.Code
-                "link" -> href = mark.attrs()?.string("href")?.takeIf(SafeLinks::isAllowed)
+                "link" -> href = mark.attrs()?.string("href")?.takeIf { SafeLinks.isAllowed(it) || isSitePath(it) }
             }
         }
         return result to href
@@ -201,6 +207,17 @@ private fun safeJsonParse(value: String): JsonElement? {
         clean = clean.substring(1, clean.length - 1).replace("\\\"", "\"")
     }
     return runCatching { lenientJson.parseToJsonElement(clean) }.getOrNull()
+}
+
+/** A path on the web app itself, never a protocol-relative `//host` address. */
+private fun isSitePath(href: String): Boolean = href.startsWith("/") && !href.startsWith("//")
+
+/** `/task/{id}` for a `#` mention, as the web's link previews read it. */
+private fun taskMentionHref(node: JsonObject): String? {
+    val attrs = node.attrs() ?: return null
+    if (attrs.string("mentionSuggestionChar") != "#") return null
+    val id = (attrs["id"] as? JsonPrimitive)?.contentOrNull?.takeIf(String::isNotBlank) ?: return null
+    return "/task/" + java.net.URLEncoder.encode(id, Charsets.UTF_8.name()).replace("+", "%20")
 }
 
 /** A mention's label, else its id, else the word "mention". */

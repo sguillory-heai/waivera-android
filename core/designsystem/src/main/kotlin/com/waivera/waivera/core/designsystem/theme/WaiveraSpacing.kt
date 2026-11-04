@@ -52,6 +52,9 @@ object WaiveraSizes {
     val FieldTile: Dp = 36.dp
     val FieldTileGlyph: Dp = 18.dp
     val FieldTileGap: Dp = 14.dp
+
+    /** A short word (PDF, DOC) on a [FieldTile]: fixed in dp so it never outgrows the tile at large font sizes. */
+    val TileWord: Dp = 11.dp
     val FieldDividerInset: Dp = FieldTile + FieldTileGap
 
     /** A quiet inline tile, such as a section's "didn't load" line, and the glyph inside it. */

@@ -104,6 +104,7 @@ fun ThreadScreen(
     highlightMessageId: Long?,
     onBack: () -> Unit,
     onOpenPerson: (userId: String) -> Unit,
+    onOpenTask: (taskId: Int) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val viewModel =
@@ -138,6 +139,7 @@ fun ThreadScreen(
         listState = listState,
         onSetDraft = { draft = it },
         onOpenThread = {},
+        onOpenTask = onOpenTask,
         onPickSaveLocation = { name -> saveFile.launch(name) },
         onUndoBookmark = viewModel::undoBookmark,
         onFocusComposer = { runCatching { focusRequester.requestFocus() } },

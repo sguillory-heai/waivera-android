@@ -22,6 +22,7 @@ import com.waivera.waivera.core.data.live.LiveAttachmentRepository
 import com.waivera.waivera.core.data.live.LivePeopleRepository
 import com.waivera.waivera.core.data.live.PushUnregisterScheduler
 import com.waivera.waivera.core.data.live.SignOutCleaner
+import com.waivera.waivera.core.data.live.TaskFileCacheDirectory
 import com.waivera.waivera.core.data.live.WorkManagerPushUnregisterScheduler
 import com.waivera.waivera.core.data.outbox.OutboxDirectory
 import com.waivera.waivera.core.data.outbox.OutboxScheduler
@@ -39,6 +40,7 @@ import com.waivera.waivera.core.data.repository.ConversationRepository
 import com.waivera.waivera.core.data.repository.DataLayerStarter
 import com.waivera.waivera.core.data.repository.DurableMessageSender
 import com.waivera.waivera.core.data.repository.HandledTodayRepository
+import com.waivera.waivera.core.data.repository.LinkLookupRepository
 import com.waivera.waivera.core.data.repository.MessageRepository
 import com.waivera.waivera.core.data.repository.NoticeRepository
 import com.waivera.waivera.core.data.repository.PeopleRepository
@@ -48,6 +50,7 @@ import com.waivera.waivera.core.data.repository.RealtimeStatusRepository
 import com.waivera.waivera.core.data.repository.RequestRepository
 import com.waivera.waivera.core.data.repository.SessionRepository
 import com.waivera.waivera.core.data.repository.SettingsRepository
+import com.waivera.waivera.core.data.repository.TaskFileRepository
 import com.waivera.waivera.core.data.repository.TaskRepository
 import com.waivera.waivera.core.data.repository.ThreadRepository
 import com.waivera.waivera.core.data.store.DataStoreSettingsStore
@@ -59,6 +62,7 @@ import com.waivera.waivera.core.demo.DemoAttachmentRepository
 import com.waivera.waivera.core.demo.DemoBackend
 import com.waivera.waivera.core.demo.DemoBookmarkRepository
 import com.waivera.waivera.core.demo.DemoConversationRepository
+import com.waivera.waivera.core.demo.DemoLinkLookupRepository
 import com.waivera.waivera.core.demo.DemoMessageRepository
 import com.waivera.waivera.core.demo.DemoNoticeRepository
 import com.waivera.waivera.core.demo.DemoPeopleRepository
@@ -68,6 +72,7 @@ import com.waivera.waivera.core.demo.DemoRealtimeClient
 import com.waivera.waivera.core.demo.DemoRealtimeStatusRepository
 import com.waivera.waivera.core.demo.DemoRequestRepository
 import com.waivera.waivera.core.demo.DemoSettingsRepository
+import com.waivera.waivera.core.demo.DemoTaskFileRepository
 import com.waivera.waivera.core.demo.DemoTaskRepository
 import com.waivera.waivera.core.demo.DemoThreadRepository
 import com.waivera.waivera.core.demo.di.DemoSwitchModule
@@ -139,6 +144,12 @@ abstract class TourRepositoriesModule {
 
     @Binds
     abstract fun tasks(impl: DemoTaskRepository): TaskRepository
+
+    @Binds
+    abstract fun taskFiles(impl: DemoTaskFileRepository): TaskFileRepository
+
+    @Binds
+    abstract fun links(impl: DemoLinkLookupRepository): LinkLookupRepository
 
     @Binds
     abstract fun requests(impl: DemoRequestRepository): RequestRepository
@@ -253,6 +264,10 @@ abstract class TourInfrastructureModule {
         @Provides
         @AttachmentCacheDirectory
         fun attachmentDirectory(@ApplicationContext context: Context): File = File(context.cacheDir, "attachments")
+
+        @Provides
+        @TaskFileCacheDirectory
+        fun taskFileDirectory(@ApplicationContext context: Context): File = File(context.cacheDir, "task-files")
 
         @Provides
         @IntoSet

@@ -14,6 +14,7 @@ import com.waivera.waivera.core.notifications.presentation.PresenceSnapshot
 import com.waivera.waivera.core.notifications.presentation.PresentationDecision
 import com.waivera.waivera.core.notifications.presentation.PushSessionGate
 import com.waivera.waivera.core.notifications.presentation.ReadSyncSink
+import com.waivera.waivera.core.notifications.presentation.SenderPhotoSource
 import com.waivera.waivera.core.notifications.presentation.ThreadRootLookup
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -33,6 +34,7 @@ class PushMessageHandler @Inject constructor(
     private val threads: ThreadRootLookup,
     private val trace: PushTrace,
     private val reads: ReadSyncSink,
+    private val photos: SenderPhotoSource,
 ) {
     /** @return what was decided, for tests and debug tooling; null when the payload was unusable. */
     suspend fun handle(
@@ -67,7 +69,10 @@ class PushMessageHandler @Inject constructor(
         when {
             decision is PresentationDecision.Suppress -> trace.note(PushStep.Hidden, decision.reason.name)
             !notifier.canPost() -> trace.note(PushStep.CannotPost, null)
-            decision is PresentationDecision.Show -> show(message, decision.channel, conversation)
+            decision is PresentationDecision.Show -> {
+                val photo = chat?.senderId?.let { photos.photo(it) }
+                show(message, decision.channel, conversation, photo)
+            }
         }
         return decision
     }
@@ -106,9 +111,14 @@ class PushMessageHandler @Inject constructor(
 
     // Noted and rethrown: the scope's handler keeps the process alive but logs only to logcat.
     @Suppress("TooGenericExceptionCaught")
-    private fun show(message: PushMessage, channel: WaiveraChannel, conversation: ConversationNotificationInfo?) {
+    private fun show(
+        message: PushMessage,
+        channel: WaiveraChannel,
+        conversation: ConversationNotificationInfo?,
+        photo: ByteArray?,
+    ) {
         try {
-            notifier.show(message, channel, conversation)
+            notifier.show(message, channel, conversation, photo)
         } catch (error: RuntimeException) {
             trace.note(PushStep.Failed, error.javaClass.simpleName)
             throw error

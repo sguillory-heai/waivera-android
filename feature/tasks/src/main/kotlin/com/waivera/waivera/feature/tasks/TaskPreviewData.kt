@@ -6,6 +6,7 @@ import com.waivera.waivera.core.data.model.ActivityType
 import com.waivera.waivera.core.data.model.ChangeReason
 import com.waivera.waivera.core.data.model.ChangeRequest
 import com.waivera.waivera.core.data.model.DelayPeriod
+import com.waivera.waivera.core.data.model.FileKind
 import com.waivera.waivera.core.data.model.RequestKind
 import com.waivera.waivera.core.data.model.RequestStatus
 import com.waivera.waivera.core.data.model.TaskDetail
@@ -35,6 +36,57 @@ internal object TaskPreviewData {
         webPath = "/task/HEA-1042",
     )
 
+    /** Oldest first: one from last year, yours and a coworker's, and a long note that is cut. */
+    val activity: List<ActivityRow> = listOf(
+        ActivityRow(
+            id = 1,
+            type = "Plan review",
+            moment = TaskFormat.moment(Now.minusSeconds(DAY * 330), Zone, Today),
+            byMe = false,
+            author = "Priya Raman",
+            description = "Reviewed last year's plan with the team.",
+        ),
+        ActivityRow(
+            id = 2,
+            type = "Home visit",
+            moment = TaskFormat.moment(Now.minusSeconds(DAY * 9), Zone, Today),
+            byMe = true,
+            author = "Sam Carter",
+            description = null,
+        ),
+        ActivityRow(
+            id = 3,
+            type = "Documentation",
+            moment = TaskFormat.moment(Now.minusSeconds(DAY * 7), Zone, Today),
+            byMe = false,
+            author = "Priya Raman",
+            description = "Drafted the goals section.",
+        ),
+        ActivityRow(
+            id = 4,
+            type = "Phone call",
+            moment = TaskFormat.moment(Now.minusSeconds(DAY * 2), Zone, Today),
+            byMe = true,
+            author = "Sam Carter",
+            description = "Called Jordan's mother to confirm Thursday's visit. She asked to move it to the " +
+                "afternoon because of a school pickup, so I moved it to 2:30 PM and updated the calendar. " +
+                "She also mentioned the new wheelchair is due next week and asked whether we can help " +
+                "arrange transport for the fitting appointment at the clinic.",
+        ),
+    )
+
+    /** A long-running task's log: enough entries for "Jump to latest". */
+    fun longActivity(): List<ActivityRow> = (1..8).map { n ->
+        ActivityRow(
+            id = 100 + n,
+            type = if (n % 2 == 0) "Phone call" else "Documentation",
+            moment = TaskFormat.moment(Now.minusSeconds(DAY * (400 - n * 48L)), Zone, Today),
+            byMe = n % 3 == 0,
+            author = if (n % 3 == 0) "Sam Carter" else "Priya Raman",
+            description = "Checked in on progress toward the monthly goals and noted next steps.",
+        )
+    } + activity.last().copy(id = 200)
+
     fun detailState(state: TaskState = TaskState.NotStarted): TaskDetailUiState {
         val task = task(state)
         return TaskDetailUiState(
@@ -42,28 +94,8 @@ internal object TaskPreviewData {
             task = task,
             due = TaskFormat.due(task.due, Today),
             dueDate = task.due?.let { TaskFormat.date(it, Today) },
-            activity = Loadable.Ready(
-                listOf(
-                    ActivityRow(
-                        1,
-                        "Phone call",
-                        20,
-                        TaskFormat.moment(Now.minusSeconds(DAY * 2), Zone, Today),
-                        true,
-                        "You",
-                        null,
-                    ),
-                    ActivityRow(
-                        2,
-                        "Documentation",
-                        30,
-                        TaskFormat.moment(Now.minusSeconds(DAY * 7), Zone, Today),
-                        false,
-                        "Priya Raman",
-                        "Drafted the goals section.",
-                    ),
-                ),
-            ),
+            activity = Loadable.Ready(activity),
+            files = Loadable.Ready(files.take(3)),
         )
     }
 
@@ -145,6 +177,28 @@ internal object TaskPreviewData {
         evidenceId = 7,
         currentDue = Today.plusDays(2),
         delay = DelayPeriod(Today.minusDays(3), Today.plusDays(4), renewal = false),
+    )
+
+    val files = listOf(
+        FileRow(41, "Care plan 2026.pdf", FileKind.Pdf, 482_000, "Oct 30", "Dana Ortiz", viewable = true),
+        FileRow(40, "Home photo.png", FileKind.Image, 1_240_000, "Oct 28", "You", viewable = true),
+        FileRow(39, "Visit notes.txt", FileKind.Text, 3_100, "Oct 21", "Sam Reyes", viewable = true),
+        FileRow(38, "Intake packet.docx", FileKind.Word, 26_400_000, "Sep 12", "Dana Ortiz", viewable = false),
+        FileRow(37, "Budget.xlsx", FileKind.Other, 88_000, "Sep 2", "Sam Reyes", viewable = false),
+    )
+
+    /** Worst-case names: a long file name and a long double-barrelled author. */
+    val longFiles = listOf(
+        FileRow(
+            50,
+            "2026 Individual Support Plan - Jordan Lee - signed by guardian and case manager (final v3).pdf",
+            FileKind.Pdf,
+            2_310_000,
+            "Oct 30",
+            "Maria Fernanda Castellanos-Villanueva",
+            viewable = true,
+        ),
+        FileRow(49, "IMG_20261028_143215.jpg", FileKind.Image, 3_400_000, "Oct 28", "You", viewable = true),
     )
 
     val today: LocalDate get() = Today

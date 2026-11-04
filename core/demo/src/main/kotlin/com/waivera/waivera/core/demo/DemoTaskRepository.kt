@@ -4,9 +4,11 @@ package com.waivera.waivera.core.demo
 
 import com.waivera.waivera.core.data.model.ActivityType
 import com.waivera.waivera.core.data.model.DelayFilter
+import com.waivera.waivera.core.data.model.FileKind
 import com.waivera.waivera.core.data.model.NewActivity
 import com.waivera.waivera.core.data.model.RequestKind
 import com.waivera.waivera.core.data.model.TaskActivity
+import com.waivera.waivera.core.data.model.TaskAttachment
 import com.waivera.waivera.core.data.model.TaskCounts
 import com.waivera.waivera.core.data.model.TaskDelay
 import com.waivera.waivera.core.data.model.TaskDetail
@@ -89,11 +91,36 @@ class DemoTaskRepository @Inject constructor(private val backend: DemoBackend) :
         backend.failRefreshes?.let { return Result.failure(it) }
         val now = backend.now()
         val earlier = listOf(
-            TaskActivity(1, "Phone call", 20, now.minusSeconds(DAY * 2), "demo-priya", "Priya Raman", null),
             TaskActivity(2, "Documentation", 30, now.minusSeconds(DAY * 6), DemoData.ME, "You", null),
+            TaskActivity(1, "Phone call", 20, now.minusSeconds(DAY * 2), "demo-priya", "Priya Raman", null),
         )
-        return Result.success(logged.value[taskId].orEmpty() + earlier)
+        // Oldest first, as the live list reads; new entries were kept newest first.
+        return Result.success(earlier + logged.value[taskId].orEmpty().reversed())
     }
+
+    override suspend fun attachments(taskId: Int): Result<List<TaskAttachment>> {
+        backend.failRefreshes?.let { return Result.failure(it) }
+        val now = backend.now()
+        return Result.success(
+            listOf(
+                demoFile(1, "Care plan 2026.pdf", 182_000, now.minusSeconds(DAY), "Priya Raman"),
+                demoFile(2, "Visit notes.txt", 2_400, now.minusSeconds(DAY * 3), "You"),
+                demoFile(3, "Home photo.png", 640_000, now.minusSeconds(DAY * 4), "Priya Raman"),
+                demoFile(4, "Intake packet.docx", 26_000_000, now.minusSeconds(DAY * 30), "Jordan Lee"),
+            ),
+        )
+    }
+
+    private fun demoFile(id: Int, name: String, size: Long, at: java.time.Instant, by: String) = TaskAttachment(
+        attachmentId = id,
+        fileId = "demo-file-$id",
+        name = name,
+        sizeBytes = size,
+        addedAt = at,
+        addedBy = by,
+        employeeFile = false,
+        kind = FileKind.of(name, null),
+    )
 
     override suspend fun activityTypes(): Result<List<ActivityType>> = Result.success(
         listOf(

@@ -10,6 +10,9 @@ android {
 }
 
 dependencies {
+    // The fallback picture matches the in-app avatar tile, so both read its one definition.
+    implementation(projects.core.designsystem)
+    implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.core.ktx)
     implementation(platform(libs.firebase.bom))
     implementation(libs.firebase.messaging)

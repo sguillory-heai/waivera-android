@@ -1,4 +1,5 @@
 [versions]
+mammoth = "1.13.0"
 # AGP, Kotlin, KSP and Hilt move together; bump them in one PR.
 androidGradlePlugin = "9.3.1"
 kotlin = "2.4.20"
@@ -42,6 +43,7 @@ roborazzi = "1.77.0"
 turbine = "1.2.1"
 
 [libraries]
+mammoth = { module = "org.zwobble.mammoth:mammoth", version.ref = "mammoth" }
 android-desugarJdkLibs = { module = "com.android.tools:desugar_jdk_libs", version.ref = "desugarJdkLibs" }
 androidx-activity-compose = { module = "androidx.activity:activity-compose", version.ref = "androidxActivityCompose" }
 androidx-browser = { module = "androidx.browser:browser", version.ref = "androidxBrowser" }

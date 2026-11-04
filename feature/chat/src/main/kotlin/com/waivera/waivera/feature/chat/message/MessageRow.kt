@@ -30,6 +30,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.painter.BitmapPainter
@@ -325,7 +326,8 @@ private fun Bubble(
             .then(if (anchors != null) Modifier.onPlaced { anchor.coordinates = it } else Modifier)
             .semantics { contentDescription = description },
     ) {
-        Box(Modifier.background(color = fill, shape = shape)) {
+        // Clipped so attached link previews follow the bubble's corners.
+        Box(Modifier.clip(shape).background(color = fill, shape = shape)) {
             // A live arrival's wash fades in a layer of its own, read in the layer, so the fade
             // never recomposes or redraws the bubble (M1-08). At rest it is fully transparent.
             if (row.isLiveArrival) {
@@ -376,7 +378,19 @@ private fun BubbleContent(row: TimelineItem.MessageRow, callbacks: MessageRowCal
         horizontalAlignment = if (row.isMine) Alignment.End else Alignment.Start,
         verticalArrangement = Arrangement.spacedBy(WaiveraSpacing.ExtraSmall + WaiveraSpacing.XxSmall),
     ) {
-        BubbleBody(row, callbacks)
+        val links = row.links.takeIf { !message.isDeleted }.orEmpty()
+        if (links.isNotEmpty()) {
+            BodyWithAttachedLinks(
+                links,
+                onOpen = callbacks.onLink,
+                bleed = WaiveraSpacing.MediumSmall - WaiveraSpacing.Hairline,
+                bottomBleed = WaiveraSpacing.Small,
+            ) {
+                BubbleBody(row, callbacks)
+            }
+        } else {
+            BubbleBody(row, callbacks)
+        }
         message.attachment?.let {
             MessageAttachmentView(
                 message,

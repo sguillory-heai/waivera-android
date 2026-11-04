@@ -41,7 +41,9 @@ class PushMessageHandlerTest {
         threads = { messageId -> threadRoots[messageId] },
         trace = { step, detail -> notes += step to detail },
         reads = reads,
+        photos = { userId -> photos[userId] },
     )
+    private val photos = mutableMapOf<String, ByteArray>()
     private val chatData = PushFixtures.load("chat-message.json").data
 
     @Test
@@ -93,6 +95,18 @@ class PushMessageHandlerTest {
             assertIs<PresentationDecision.Suppress>(decision).reason,
         )
         assertTrue(notifier.shown.isEmpty())
+    }
+
+    @Test
+    fun `a chat push that names its sender shows their photo`() = runTest {
+        val photo = byteArrayOf(1, 2, 3)
+        photos["usr_42"] = photo
+        handler.handle(chatData + ("senderId" to "usr_42"))
+        handler.handle(chatData + mapOf("senderId" to "usr_7", "messageId" to "991"))
+        handler.handle(chatData + mapOf("senderId" to "../bad id", "messageId" to "992"))
+
+        assertEquals(listOf("usr_42", "usr_7", null), notifier.shown.map { (it.first as PushMessage.Chat).senderId })
+        assertEquals(listOf(photo, null, null), notifier.shownPhotos)
     }
 
     @Test
@@ -242,9 +256,17 @@ private class FakeNotifier : Notifier {
 
     override fun canPost(): Boolean = allowed
 
-    override fun show(message: PushMessage, channel: WaiveraChannel, conversation: ConversationNotificationInfo?) {
+    val shownPhotos = mutableListOf<ByteArray?>()
+
+    override fun show(
+        message: PushMessage,
+        channel: WaiveraChannel,
+        conversation: ConversationNotificationInfo?,
+        senderPhoto: ByteArray?,
+    ) {
         shown += message to channel
         shownConversations += conversation
+        shownPhotos += senderPhoto
     }
 
     override fun showReplySent(conversationId: Long, threadRootMessageId: Long?, text: String) = Unit

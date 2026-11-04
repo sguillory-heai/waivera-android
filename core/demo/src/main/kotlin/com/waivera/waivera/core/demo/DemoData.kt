@@ -62,6 +62,14 @@ object DemoData {
     const val JORDAN = "usr_jordan_lee"
     const val DM_PRIYA = 7L
     const val GROUP = 11L
+
+    /** The resource and FAQ article the demo's link previews know. */
+    const val RESOURCE_ID = "3f2b8c1e-5d47-4a9b-9c61-2e8f0a7d4b13"
+    const val FAQ_ID = "b5e0c9d2-7a14-4f3e-8b26-91c4d7e2a058"
+
+    /** The demo task's text file. */
+    const val TASK_NOTE_TEXT = "Visit notes\n\nJordan was in good spirits. We reviewed the morning routine " +
+        "and agreed to try the new schedule for two weeks.\n\nNext visit: Thursday, 2:30 PM."
     const val BOT = 14L
     const val CHANNEL = 41L
     private const val CHANNEL_EVENT_MESSAGE = 9360L

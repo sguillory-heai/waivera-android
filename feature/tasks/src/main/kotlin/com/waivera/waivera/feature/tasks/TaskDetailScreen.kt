@@ -15,6 +15,8 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.relocation.BringIntoViewRequester
+import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
@@ -23,11 +25,14 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.platform.LocalUriHandler
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -44,15 +49,14 @@ import com.waivera.waivera.core.designsystem.component.WaiveraButton
 import com.waivera.waivera.core.designsystem.component.WaiveraButtonSize
 import com.waivera.waivera.core.designsystem.component.WaiveraButtonVariant
 import com.waivera.waivera.core.designsystem.component.WaiveraCardGroup
+import com.waivera.waivera.core.designsystem.component.WaiveraCountTone
 import com.waivera.waivera.core.designsystem.component.WaiveraErrorState
-import com.waivera.waivera.core.designsystem.component.WaiveraIconTile
 import com.waivera.waivera.core.designsystem.component.WaiveraInsetDivider
-import com.waivera.waivera.core.designsystem.component.WaiveraListRow
 import com.waivera.waivera.core.designsystem.component.WaiveraLoadSwap
+import com.waivera.waivera.core.designsystem.component.WaiveraSectionAction
 import com.waivera.waivera.core.designsystem.component.WaiveraSectionHeader
 import com.waivera.waivera.core.designsystem.component.WaiveraSnackbarHost
 import com.waivera.waivera.core.designsystem.component.WaiveraStatusBadge
-import com.waivera.waivera.core.designsystem.component.WaiveraTileTone
 import com.waivera.waivera.core.designsystem.component.WaiveraTopBar
 import com.waivera.waivera.core.designsystem.component.rememberLatestNonNull
 import com.waivera.waivera.core.designsystem.component.rememberSkeletonPulse
@@ -64,10 +68,17 @@ import com.waivera.waivera.core.designsystem.theme.WaiveraSizes
 import com.waivera.waivera.core.designsystem.theme.WaiveraSpacing
 import com.waivera.waivera.core.designsystem.theme.WaiveraTextStyles
 import com.waivera.waivera.core.designsystem.theme.WaiveraTheme
+import com.waivera.waivera.core.designsystem.theme.isLargeFontScale
+import kotlinx.coroutines.launch
 
 /** One task: its details, recent activity and Log activity. Owned by `:feature:tasks`; routed by `:app`. */
 @Composable
-fun TaskDetailScreen(taskId: Int, onBack: () -> Unit, modifier: Modifier = Modifier) {
+fun TaskDetailScreen(
+    taskId: Int,
+    onBack: () -> Unit,
+    onOpenFile: (taskId: Int, attachmentId: Int) -> Unit,
+    modifier: Modifier = Modifier,
+) {
     val viewModel = hiltViewModel<TaskDetailViewModel, TaskDetailViewModel.Factory>(
         key = "task-$taskId",
         creationCallback = { factory -> factory.create(taskId) },
@@ -83,6 +94,7 @@ fun TaskDetailScreen(taskId: Int, onBack: () -> Unit, modifier: Modifier = Modif
                 is TaskDetailEffect.Asked -> snackbar.showSnackbar(resources.getString(effect.message()))
                 TaskDetailEffect.WebUnavailable ->
                     snackbar.showSnackbar(resources.getString(R.string.feature_tasks_web_unavailable))
+                is TaskDetailEffect.OpenFile -> onOpenFile(effect.taskId, effect.attachmentId)
                 is TaskDetailEffect.OpenWeb -> {
                     val opened = runCatching { uriHandler.openUri(effect.url) }.isSuccess
                     if (!opened) snackbar.showSnackbar(resources.getString(R.string.feature_tasks_web_failed))
@@ -97,6 +109,8 @@ fun TaskDetailScreen(taskId: Int, onBack: () -> Unit, modifier: Modifier = Modif
             onBack = onBack,
             onRetry = viewModel::load,
             onRetryActivity = viewModel::loadActivity,
+            onOpenFile = viewModel::openFile,
+            onRetryFiles = viewModel::loadFiles,
             onLog = viewModel::startLog,
             onOpenWeb = viewModel::openOnWeb,
             onAsk = viewModel::startAsk,
@@ -146,6 +160,8 @@ internal data class TaskDetailActions(
     val onLog: () -> Unit,
     val onOpenWeb: () -> Unit,
     val onAsk: () -> Unit = {},
+    val onOpenFile: (Int) -> Unit = {},
+    val onRetryFiles: () -> Unit = {},
 ) {
     companion object {
         val None = TaskDetailActions({}, {}, {}, {}, {})
@@ -200,7 +216,7 @@ internal fun TaskDetailContent(
                         onRetry = actions.onRetry,
                         modifier = Modifier.padding(top = WaiveraSpacing.Large),
                     )
-                    else -> DetailBody(state, task, actions.onRetryActivity)
+                    else -> DetailBody(state, task, actions)
                 }
             }
             // Above the action bar, so a confirmation never covers Log activity.
@@ -248,7 +264,7 @@ internal fun TaskDetailContent(
 }
 
 @Composable
-private fun DetailBody(state: TaskDetailUiState, task: TaskDetail, onRetryActivity: () -> Unit) {
+private fun DetailBody(state: TaskDetailUiState, task: TaskDetail, actions: TaskDetailActions) {
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -316,13 +332,52 @@ private fun DetailBody(state: TaskDetailUiState, task: TaskDetail, onRetryActivi
                 )
             }
         }
-        WaiveraSectionHeader(text = stringResource(R.string.feature_tasks_activity_section))
-        ActivitySection(state.activity, onRetryActivity)
+        FilesSection(state.files, onOpen = actions.onOpenFile, onRetry = actions.onRetryFiles)
+        ActivitySection(state.activity, actions.onRetryActivity)
     }
 }
 
+/**
+ * The activity, oldest first so new work lands at the bottom. A long log gets "Jump to latest" on
+ * its header, and an entry just logged here scrolls itself into view.
+ */
 @Composable
 private fun ActivitySection(activity: Loadable<List<ActivityRow>>, onRetry: () -> Unit) {
+    val rows = (activity as? Loadable.Ready)?.value.orEmpty()
+    val latest = remember { BringIntoViewRequester() }
+    val scope = rememberCoroutineScope()
+    val count = rows.size
+    // At large font the title and the link don't fit on one line, so the link gets its own row.
+    val large = isLargeFontScale()
+    WaiveraSectionHeader(
+        title = stringResource(R.string.feature_tasks_activity_section),
+        count = count.takeIf { it > 0 },
+        countDescription = pluralStringResource(R.plurals.feature_tasks_activity_count, count, count),
+        countTone = WaiveraCountTone.Info,
+        action = if (count > JUMP_AFTER && !large) {
+            WaiveraSectionAction(
+                label = stringResource(R.string.feature_tasks_activity_jump),
+                onClick = { scope.launch { latest.bringIntoView() } },
+            )
+        } else {
+            null
+        },
+        modifier = Modifier.padding(
+            start = WaiveraSpacing.Gutter + WaiveraSpacing.ExtraSmall,
+            end = WaiveraSpacing.Gutter,
+            top = WaiveraSpacing.MediumLarge,
+            bottom = WaiveraSpacing.Small + WaiveraSizes.SectionActionOverhang,
+        ),
+    )
+    if (count > JUMP_AFTER && large) {
+        WaiveraButton(
+            text = stringResource(R.string.feature_tasks_activity_jump),
+            onClick = { scope.launch { latest.bringIntoView() } },
+            variant = WaiveraButtonVariant.Text,
+            size = WaiveraButtonSize.Compact,
+            modifier = Modifier.padding(start = WaiveraSpacing.Small, bottom = WaiveraSpacing.Small),
+        )
+    }
     WaiveraCardGroup {
         when (activity) {
             Loadable.Loading -> Column(
@@ -342,7 +397,7 @@ private fun ActivitySection(activity: Loadable<List<ActivityRow>>, onRetry: () -
                 onRetry = onRetry,
                 dense = true,
             )
-            is Loadable.Ready -> if (activity.value.isEmpty()) {
+            is Loadable.Ready -> if (rows.isEmpty()) {
                 Text(
                     text = stringResource(R.string.feature_tasks_activity_empty),
                     style = MaterialTheme.typography.bodyMedium,
@@ -350,33 +405,24 @@ private fun ActivitySection(activity: Loadable<List<ActivityRow>>, onRetry: () -
                     modifier = Modifier.padding(WaiveraSpacing.Medium),
                 )
             } else {
-                activity.value.forEachIndexed { index, row ->
-                    if (index > 0) WaiveraInsetDivider()
-                    ActivityItem(row)
+                rows.forEachIndexed { index, row ->
+                    key(row.id) {
+                        if (index > 0) WaiveraInsetDivider()
+                        ActivityItem(
+                            row = row,
+                            modifier = if (index ==
+                                rows.lastIndex
+                            ) {
+                                Modifier.bringIntoViewRequester(latest)
+                            } else {
+                                Modifier
+                            },
+                        )
+                    }
                 }
             }
         }
     }
-}
-
-@Composable
-private fun ActivityItem(row: ActivityRow) {
-    val who = if (row.byMe) stringResource(R.string.feature_tasks_activity_by_you) else row.author
-    val whenText = row.moment?.text()
-    val supporting = listOfNotNull(whenText, who).joinToString(SEPARATOR)
-    WaiveraListRow(
-        headline = stringResource(R.string.feature_tasks_activity_row, row.type, durationText(row.minutes)),
-        supporting = listOfNotNull(supporting.ifBlank { null }, row.description?.ifBlank { null }).joinToString("\n")
-            .ifBlank { null },
-        leading = {
-            WaiveraIconTile(
-                icon = R.drawable.feature_tasks_ic_activity,
-                tone = if (row.isNew) WaiveraTileTone.Teal else WaiveraTileTone.Brand,
-                size = WaiveraSizes.FieldTile,
-                iconSize = WaiveraSizes.FieldTileGlyph,
-            )
-        },
-    )
 }
 
 @Composable
@@ -462,8 +508,10 @@ private fun DelayBanner(delay: DelayNote) {
     )
 }
 
-private const val SEPARATOR = " · "
 private const val SKELETON_ROWS = 3
+
+/** More entries than this get a shortcut to the newest. */
+private const val JUMP_AFTER = 5
 private const val SKELETON_WIDE = 0.7f
 private const val SKELETON_NARROW = 0.4f
 

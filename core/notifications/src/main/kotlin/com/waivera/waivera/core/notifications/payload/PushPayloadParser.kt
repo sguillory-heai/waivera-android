@@ -88,6 +88,7 @@ object PushPayloadParser {
             threadRootMessageId = DeepLinkUris.positiveId(fields["threadRootMessageId"]),
             title = title,
             body = body,
+            senderId = fields["senderId"]?.takeIf(OpaqueId::matches),
         )
     }
 

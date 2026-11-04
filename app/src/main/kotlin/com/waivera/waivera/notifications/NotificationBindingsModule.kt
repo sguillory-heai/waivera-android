@@ -12,6 +12,7 @@ import com.waivera.waivera.core.notifications.presentation.NotificationPreferenc
 import com.waivera.waivera.core.notifications.presentation.Notifier
 import com.waivera.waivera.core.notifications.presentation.PushSessionGate
 import com.waivera.waivera.core.notifications.presentation.ReadSyncSink
+import com.waivera.waivera.core.notifications.presentation.SenderPhotoSource
 import com.waivera.waivera.core.notifications.presentation.ThreadRootLookup
 import com.waivera.waivera.core.notifications.token.PushTokenSink
 import dagger.Binds
@@ -48,6 +49,9 @@ abstract class NotificationBindingsModule {
 
     @Binds
     abstract fun readSync(impl: DataLayerReadSync): ReadSyncSink
+
+    @Binds
+    abstract fun senderPhotos(impl: CachedSenderPhotos): SenderPhotoSource
 
     companion object {
         /** Foreground suppression asks the data layer: hub connected and that conversation on screen. */

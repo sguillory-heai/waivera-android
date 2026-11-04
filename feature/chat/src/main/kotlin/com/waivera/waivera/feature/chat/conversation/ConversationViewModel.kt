@@ -27,6 +27,7 @@ import com.waivera.waivera.feature.chat.message.ChatActions
 import com.waivera.waivera.feature.chat.message.ChatClock
 import com.waivera.waivera.feature.chat.message.ChatComputeDispatcher
 import com.waivera.waivera.feature.chat.message.ChatEffect
+import com.waivera.waivera.feature.chat.message.ChatLinkResolver
 import com.waivera.waivera.feature.chat.message.ConnectionUi
 import com.waivera.waivera.feature.chat.message.MessageInteractions
 import com.waivera.waivera.feature.chat.message.ReadOnlyReason
@@ -85,6 +86,7 @@ class ConversationViewModel @AssistedInject constructor(
     private val clock: ChatClock,
     @ChatComputeDispatcher private val computeDispatcher: CoroutineDispatcher,
     private val titles: ConversationTitleText,
+    private val links: ChatLinkResolver,
 ) : ViewModel() {
     @AssistedFactory
     interface Factory {
@@ -176,12 +178,16 @@ class ConversationViewModel @AssistedInject constructor(
             prepare(timeline, saved, me, bot)
         }.shareIn(viewModelScope, SharingStarted.Eagerly, replay = 1)
         viewModelScope.launch {
-            combine(prepared, liveArrivals) { input, live ->
+            val built = combine(prepared, liveArrivals) { input, live ->
                 input to
                     TimelineBuilder.build(input.messages, input.myUserId, clock.zone, input.isBot, liveArrivals = live)
             }
+            combine(built, links.previews) { (input, items), previews -> input to links.decorate(items, previews) }
                 .flowOn(computeDispatcher)
-                .collect { (input, items) -> onTimeline(input, items) }
+                .collect { (input, decorated) ->
+                    links.request(decorated.targets, viewModelScope, ::today)
+                    onTimeline(input, decorated.items)
+                }
         }
     }
 
@@ -537,7 +543,11 @@ class ConversationViewModel @AssistedInject constructor(
 
     fun shareAttachment(message: Message) = interactions.shareAttachment(message)
 
-    fun openLink(url: String) = interactions.openLink(url)
+    fun openLink(url: String) {
+        links.effectFor(url)?.let(::emit) ?: interactions.openLink(url)
+    }
+
+    private fun today() = clock.now().atZone(clock.zone).toLocalDate()
 
     /** Reply from the action sheet, or the thread chip: replies live in the thread (04 §1). */
     fun openThread(message: Message) {

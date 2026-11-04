@@ -39,6 +39,8 @@ sealed interface TimelineItem {
          * the footer drops its time and keeps only "Sent" or "Edited" (UI3-04).
          */
         val timeShownAbove: Boolean = false,
+        /** Waivera task, resource and FAQ links in the text, resolved for the reader. */
+        val links: List<MessageLink> = emptyList(),
     ) : TimelineItem
 
     /** A plain system line (not a call): centred, italic, never grouped or long-pressable. */

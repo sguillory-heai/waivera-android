@@ -10,6 +10,7 @@ import com.waivera.waivera.core.data.model.ConversationTitles
 import com.waivera.waivera.core.data.model.Message
 import com.waivera.waivera.core.data.model.Reaction
 import com.waivera.waivera.core.data.model.SendState
+import com.waivera.waivera.core.data.model.TaskState
 import com.waivera.waivera.core.demo.DemoData
 import com.waivera.waivera.core.designsystem.component.ConnectionBannerState
 import com.waivera.waivera.core.designsystem.component.LocalSignedInAccount
@@ -27,8 +28,12 @@ import com.waivera.waivera.feature.chat.conversation.ConversationContent
 import com.waivera.waivera.feature.chat.conversation.ConversationUiState
 import com.waivera.waivera.feature.chat.message.ChatActions
 import com.waivera.waivera.feature.chat.message.ConnectionUi
+import com.waivera.waivera.feature.chat.message.FakeLinkLookups
 import com.waivera.waivera.feature.chat.message.FileActionsContent
 import com.waivera.waivera.feature.chat.message.FocusOverlayFixtures
+import com.waivera.waivera.feature.chat.message.LinkKind
+import com.waivera.waivera.feature.chat.message.LinkPreview
+import com.waivera.waivera.feature.chat.message.LinkTarget
 import com.waivera.waivera.feature.chat.message.MessageFocusActions
 import com.waivera.waivera.feature.chat.message.MessageFocusLayer
 import com.waivera.waivera.feature.chat.message.ReactionDetailsContent
@@ -42,6 +47,11 @@ import com.waivera.waivera.feature.chat.message.TimelineBuilder
 import com.waivera.waivera.feature.chat.message.TimelineItem
 import com.waivera.waivera.feature.chat.thread.ThreadContent
 import com.waivera.waivera.feature.chat.thread.ThreadUiState
+import kotlinx.serialization.json.addJsonObject
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.put
+import kotlinx.serialization.json.putJsonArray
+import kotlinx.serialization.json.putJsonObject
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
@@ -218,6 +228,127 @@ class ConversationScreenshotTest {
         val group = messages.filter { it.conversationId == DemoData.GROUP && !it.isThreadReply } + mine
         val items = TimelineBuilder.build(group, DemoData.ME, DemoData.ZONE, botConversation = false)
         ConversationView(state(DemoData.GROUP).copy(items = items))
+    }
+
+    /**
+     * Waivera links resolved into previews attached under the text: a task, a resource and an
+     * FAQ article, plus a link still being checked and one the reader can't open. The rows go
+     * through the same link rules the app uses ([ChatLinkResolver.decorate]).
+     */
+    @Test
+    fun linkPreviews() = captureScreenshots("conversation_link_previews", heightDp = 1600) {
+        ConversationView(state(DemoData.GROUP).copy(items = linkPreviewRows()))
+    }
+
+    /**
+     * A link at the end of a message leaves the text; addresses inside a sentence turn into the
+     * short names of what they point at, in the same order as the previews. Long titles and
+     * details stop at one line.
+     */
+    private fun linkPreviewRows(): List<TimelineItem> {
+        val group = messages.filter { it.conversationId == DemoData.GROUP && !it.isThreadReply }
+        val base = group.first { it.authorId != DemoData.ME }
+        val from = { author: String -> group.firstOrNull { it.authorId == author } ?: base.copy(authorId = author) }
+        val lines = linkLines()
+        val sent = lines.mapIndexed { index, (author, parts) ->
+            val text = parts.joinToString("") { it.first }
+            from(author).copy(
+                id = LINK_RUN_FIRST_ID + index,
+                clientMessageId = null,
+                text = text,
+                doc = linkDoc(parts),
+                attachment = null,
+                plainText = text,
+                reactions = emptyList(),
+                threadReplyCount = 0,
+                sendState = SendState.SENT,
+                sendFailure = null,
+                createdAt = DemoData.NOW.minusSeconds((lines.size - index) * SECONDS_PER_MINUTE * 7),
+            )
+        }
+        val items = TimelineBuilder.build(group.takeLast(2) + sent, DemoData.ME, DemoData.ZONE, botConversation = false)
+        return FakeLinkLookups.resolver().decorate(items, linkPreviewData()).items
+    }
+
+    /** Each message as text parts; a part with an address is a link. */
+    private fun linkLines(): List<Pair<String, List<Pair<String, String?>>>> {
+        val web = FakeLinkLookups.WEB
+        return listOf(
+            DemoData.PRIYA to
+                listOf("Can you take a look before Friday? " to null, "$web/task/HEA-1042" to "$web/task/HEA-1042"),
+            DemoData.ME to listOf(
+                "Here's the transport provider we used last time." to null,
+                "Accessible Rides Co-op" to "/resources/$RIDES",
+            ),
+            DemoData.JORDAN to listOf(
+                "Start with " to null,
+                "$web/task/HEA-1077" to "$web/task/HEA-1077",
+                ", then read " to null,
+                "$web/faqs/article/$MILEAGE" to "$web/faqs/article/$MILEAGE",
+                " before you log the trip, and call " to null,
+                "$web/resources/$CO_OP" to "$web/resources/$CO_OP",
+                " for the pickup." to null,
+            ),
+            DemoData.PRIYA to listOf(
+                "Also these two: " to null,
+                "$web/task/1100" to "$web/task/1100",
+                " and " to null,
+                "$web/task/HEA-999" to "$web/task/HEA-999",
+            ),
+        )
+    }
+
+    private fun linkPreviewData(): Map<LinkTarget, LinkPreview> {
+        val day = java.time.LocalDate.of(2026, 11, 6)
+        return mapOf(
+            LinkTarget.Task(1042, "HEA") to
+                LinkPreview.Task(1042, "HEA-1042", "Annual plan review", TaskState.InProgress, day),
+            LinkTarget.Resource(RIDES) to LinkPreview.Resource("Accessible Rides Co-op", "Metro Paratransit", "Austin"),
+            LinkTarget.Task(1077, "HEA") to LinkPreview.Task(
+                1077,
+                "HEA-1077",
+                "Quarterly support plan review with guardian and case manager",
+                TaskState.NotStarted,
+                day.plusDays(3),
+            ),
+            LinkTarget.Faq(MILEAGE, null) to LinkPreview.Faq(
+                "How do I submit mileage across two pay periods?",
+                "Log each leg on the day you drove it. Trips over 50 miles need a supervisor's note.",
+            ),
+            LinkTarget.Resource(CO_OP) to LinkPreview.Resource(
+                "Accessible Rides Co-op of Central Texas",
+                "Metro Paratransit and Capital Area Rural Transportation",
+                "Austin, Round Rock and Georgetown",
+            ),
+            LinkTarget.Task(1100, null) to LinkPreview.Loading(LinkKind.Task),
+            LinkTarget.Task(999, "HEA") to LinkPreview.Unavailable(LinkKind.Task),
+        )
+    }
+
+    /** A TipTap document of one paragraph; parts with an address carry a link mark. */
+    private fun linkDoc(parts: List<Pair<String, String?>>) = buildJsonObject {
+        put("type", "doc")
+        putJsonArray("content") {
+            addJsonObject {
+                put("type", "paragraph")
+                putJsonArray("content") {
+                    parts.forEach { (text, href) ->
+                        addJsonObject {
+                            put("type", "text")
+                            put("text", text)
+                            if (href != null) {
+                                putJsonArray("marks") {
+                                    addJsonObject {
+                                        put("type", "link")
+                                        putJsonObject("attrs") { put("href", href) }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
 
     @Test
@@ -465,6 +596,10 @@ class ConversationScreenshotTest {
         const val INCOMING_RUN_FIRST_ID = 99_001L
         const val INCOMING_RUN_SIZE = 3
         const val MINE_REACTED_ID = 99_101L
+        const val LINK_RUN_FIRST_ID = 99_201L
+        const val RIDES = "6a1d3e52-8f07-4c2b-a9d4-17e0b6c35f81"
+        const val CO_OP = "0c94f7a2-3b58-4e1d-8a6f-d2b5e9c71034"
+        const val MILEAGE = "e7b21c48-95d3-4a06-b8f1-3c6d0a2e9f57"
     }
 }
 

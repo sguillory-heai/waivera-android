@@ -39,6 +39,10 @@ data object RequestsRoute : AppRoute
 @Serializable
 data class TaskRoute(val taskId: Int) : AppRoute
 
+/** One of a task's files in the read-only viewer; [attachmentId] is the task attachment's id. */
+@Serializable
+data class TaskFileRoute(val taskId: Int, val attachmentId: Int) : AppRoute
+
 /** [messageId] scrolls to and highlights one message (push, search, bookmark). */
 @Serializable
 data class ConversationRoute(val conversationId: Long, val messageId: Long? = null) : AppRoute

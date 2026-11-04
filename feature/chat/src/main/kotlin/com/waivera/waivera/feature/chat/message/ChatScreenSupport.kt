@@ -70,6 +70,7 @@ fun ChatEffectsHandler(
     listState: LazyListState,
     onSetDraft: (String) -> Unit,
     onOpenThread: (Long) -> Unit,
+    onOpenTask: (Int) -> Unit,
     onPickSaveLocation: (fileName: String) -> Unit,
     onUndoBookmark: (Long) -> Unit,
     onFocusComposer: () -> Unit,
@@ -84,6 +85,7 @@ fun ChatEffectsHandler(
     val haptics = rememberHaptics()
     val scope = rememberCoroutineScope()
     val latestOpenThread = rememberUpdatedState(onOpenThread)
+    val latestOpenTask = rememberUpdatedState(onOpenTask)
     val latestSetDraft = rememberUpdatedState(onSetDraft)
     val latestPickSave = rememberUpdatedState(onPickSaveLocation)
     val latestUndo = rememberUpdatedState(onUndoBookmark)
@@ -135,6 +137,7 @@ fun ChatEffectsHandler(
                     if (!opened) showSnackbar(ChatEffect.Snackbar(R.string.feature_chat_link_failed))
                 }
                 is ChatEffect.OpenThread -> latestOpenThread.value(effect.rootMessageId)
+                is ChatEffect.OpenTask -> latestOpenTask.value(effect.taskId)
                 is ChatEffect.Share -> {
                     val send = Intent(Intent.ACTION_SEND).apply {
                         type = effect.mimeType

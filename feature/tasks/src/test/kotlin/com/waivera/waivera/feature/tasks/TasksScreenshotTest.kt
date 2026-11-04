@@ -1,12 +1,16 @@
 package com.waivera.waivera.feature.tasks
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.remember
 import com.waivera.waivera.core.data.model.DelayFilter
 import com.waivera.waivera.core.data.model.RequestKind
 import com.waivera.waivera.core.data.model.TaskState
+import com.waivera.waivera.core.designsystem.component.WaiveraCardGroup
+import com.waivera.waivera.core.designsystem.component.WaiveraInsetDivider
+import com.waivera.waivera.core.designsystem.component.WaiveraSectionHeader
 import com.waivera.waivera.core.designsystem.component.WaiveraSheetFrame
 import com.waivera.waivera.core.designsystem.theme.WaiveraSpacing
 import com.waivera.waivera.core.designsystem.theme.WaiveraTheme
@@ -40,6 +44,53 @@ class TasksScreenshotTest {
             snackbar = remember { SnackbarHostState() },
             actions = TaskDetailActions.None,
         )
+    }
+
+    @Test
+    fun taskDetailLongActivity() = captureScreenshots("task_detail_long_activity", heightDp = 2000) {
+        TaskDetailContent(
+            state = TaskPreviewData.detailState().copy(activity = Loadable.Ready(TaskPreviewData.longActivity())),
+            snackbar = remember { SnackbarHostState() },
+            actions = TaskDetailActions.None,
+        )
+    }
+
+    /** A long note cut at three lines, then the same note opened. */
+    @Test
+    fun activityNoteStates() = captureScreenshots("activity_note_states") {
+        val long = TaskPreviewData.activity.first { (it.description?.length ?: 0) > LONG_NOTE }
+        WaiveraCardGroup {
+            ActivityItem(long)
+            WaiveraInsetDivider()
+            ActivityItem(long.copy(id = long.id + 1, byMe = true), startExpanded = true)
+        }
+    }
+
+    @Test
+    fun taskFiles() = captureScreenshots("task_files") {
+        Column { FilesSection(Loadable.Ready(TaskPreviewData.files), onOpen = {}, onRetry = {}) }
+    }
+
+    /** Worst-case names in both lists: they wrap or ellipsize without pushing the date off. */
+    @Test
+    fun longNames() = captureScreenshots("task_long_names") {
+        val base = TaskPreviewData.activity.first()
+        Column {
+            FilesSection(Loadable.Ready(TaskPreviewData.longFiles), onOpen = {}, onRetry = {})
+            WaiveraSectionHeader(text = "Activity")
+            WaiveraCardGroup {
+                ActivityItem(
+                    base.copy(
+                        type = "Monthly face-to-face contact with participant, guardian and support coordinator team",
+                        author = "Maria Fernanda Castellanos-Villanueva",
+                    ),
+                )
+                WaiveraInsetDivider()
+                ActivityItem(
+                    base.copy(id = base.id + 1, type = "Monthly face-to-face contact with participant", byMe = true),
+                )
+            }
+        }
     }
 
     @Test
@@ -187,3 +238,5 @@ class TasksScreenshotTest {
         onPickFile = {},
     )
 }
+
+private const val LONG_NOTE = 200

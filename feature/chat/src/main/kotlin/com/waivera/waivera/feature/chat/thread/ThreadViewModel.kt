@@ -31,8 +31,11 @@ import com.waivera.waivera.feature.chat.message.ChatActions
 import com.waivera.waivera.feature.chat.message.ChatClock
 import com.waivera.waivera.feature.chat.message.ChatComputeDispatcher
 import com.waivera.waivera.feature.chat.message.ChatEffect
+import com.waivera.waivera.feature.chat.message.ChatLinkResolver
 import com.waivera.waivera.feature.chat.message.ChatSheet
 import com.waivera.waivera.feature.chat.message.ConnectionUi
+import com.waivera.waivera.feature.chat.message.LinkPreview
+import com.waivera.waivera.feature.chat.message.LinkTarget
 import com.waivera.waivera.feature.chat.message.MessageInteractions
 import com.waivera.waivera.feature.chat.message.ReadOnlyReason
 import com.waivera.waivera.feature.chat.message.RowTime
@@ -126,6 +129,7 @@ class ThreadViewModel @AssistedInject constructor(
     private val clock: ChatClock,
     @ChatComputeDispatcher private val computeDispatcher: CoroutineDispatcher,
     private val titles: ConversationTitleText,
+    private val links: ChatLinkResolver,
 ) : ViewModel() {
     @AssistedFactory
     interface Factory {
@@ -199,9 +203,13 @@ class ThreadViewModel @AssistedInject constructor(
         ) { thread, saved, me, bot -> prepare(thread, saved, me, bot) }
             .shareIn(viewModelScope, SharingStarted.Eagerly, replay = 1)
         viewModelScope.launch {
-            combine(prepared, liveArrivals) { input, live -> input to build(input, live) }
+            val built = combine(prepared, liveArrivals) { input, live -> input to build(input, live) }
+            combine(built, links.previews) { (input, thread), previews -> input to decorate(thread, previews) }
                 .flowOn(computeDispatcher)
-                .collect { (input, built) -> onThread(input, built) }
+                .collect { (input, decorated) ->
+                    links.request(decorated.second, viewModelScope, ::today)
+                    onThread(input, decorated.first)
+                }
         }
     }
 
@@ -252,6 +260,15 @@ class ThreadViewModel @AssistedInject constructor(
         val replies = TimelineBuilder.build(input.replies, input.myUserId, zone, input.isBot, liveArrivals = live)
         return Built(root, replies)
     }
+
+    private fun decorate(thread: Built, previews: Map<LinkTarget, LinkPreview>): Pair<Built, Set<LinkTarget>> {
+        val replies = links.decorate(thread.replies, previews)
+        val wanted = replies.targets.toMutableSet()
+        val root = thread.root?.let { links.decorate(it, previews, wanted) }
+        return Built(root, replies.items) to wanted
+    }
+
+    private fun today() = clock.now().atZone(clock.zone).toLocalDate()
 
     private fun onThread(input: Prepared, built: Built) {
         val synced = input.synced
@@ -486,7 +503,9 @@ class ThreadViewModel @AssistedInject constructor(
 
     fun shareAttachment(message: Message) = interactions.shareAttachment(message)
 
-    fun openLink(url: String) = interactions.openLink(url)
+    fun openLink(url: String) {
+        links.effectFor(url)?.let(::emit) ?: interactions.openLink(url)
+    }
 
     fun retry(clientMessageId: String) {
         sendTracker.markRetried(clientMessageId)

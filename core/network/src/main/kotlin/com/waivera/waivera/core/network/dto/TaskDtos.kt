@@ -28,6 +28,8 @@ data class TaskListResponse(
     val participant: TaskParticipantResponse? = null,
     val subjectEmployee: TaskUserResponse? = null,
     val assignee: TaskUserResponse? = null,
+    /** Who the task is assigned to; the server fills this, not [assignee], on list endpoints. */
+    val assignees: List<TaskAssignmentResponse>? = null,
     val taskContext: String? = null,
     val lastActivityDate: String? = null,
     val hasPendingDeletion: Boolean = false,
@@ -64,6 +66,7 @@ data class TaskResponse(
     val participant: TaskParticipantResponse? = null,
     val reporter: TaskUserResponse? = null,
     val assignee: TaskUserResponse? = null,
+    val assignees: List<TaskAssignmentResponse>? = null,
     val subjectEmployee: TaskUserResponse? = null,
     val taskContext: String? = null,
     /** Change requests on the task; a pending one shows on the task page. */
@@ -88,6 +91,14 @@ data class TaskUserResponse(
     val firstName: String? = null,
     val lastName: String? = null,
     val displayName: String? = null,
+)
+
+/** `dto/Response/TaskAssignmentReponse.cs`: one person on a task, and in what role. */
+@Serializable
+data class TaskAssignmentResponse(
+    val user: TaskUserResponse? = null,
+    val isReporter: Boolean = false,
+    val isCoAssignee: Boolean = false,
 )
 
 /** `TaskActionResponse` from `GET api/tasks/{taskId}/actions`, oldest first. */

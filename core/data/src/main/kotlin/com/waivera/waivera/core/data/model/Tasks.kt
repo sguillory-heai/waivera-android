@@ -139,3 +139,57 @@ data class NewActivity(
     val completedAt: Instant,
     val description: String,
 )
+
+/** How a task file can be shown on the phone; [Other] opens on the web. */
+enum class FileKind {
+    Pdf,
+    Image,
+    Text,
+    Word,
+    Other,
+    ;
+
+    companion object {
+        private val images = setOf("jpg", "jpeg", "png", "gif", "webp", "bmp", "heic", "heif")
+        private val texts = setOf("txt", "text", "log", "md")
+
+        /** The name's extension decides, as on the web; the type only fills in for a bare name. */
+        fun of(name: String, mimeType: String?): FileKind {
+            val ext = name.substringAfterLast('.', "").lowercase()
+            val mime = mimeType.orEmpty().lowercase()
+            return when {
+                ext == "pdf" -> Pdf
+                ext in images -> Image
+                ext in texts -> Text
+                ext == "docx" -> Word
+                ext.isNotEmpty() -> Other
+                mime == "application/pdf" -> Pdf
+                mime.startsWith("image/") -> Image
+                mime == "text/plain" -> Text
+                mime == "application/vnd.openxmlformats-officedocument.wordprocessingml.document" -> Word
+                else -> Other
+            }
+        }
+    }
+}
+
+/** A file on a task. Opening it reads it on the phone, never saving or sharing it. */
+data class TaskAttachment(
+    val attachmentId: Int,
+    val fileId: String,
+    val name: String,
+    val sizeBytes: Long,
+    val addedAt: Instant?,
+    val addedBy: String?,
+    /** Served through the employee-file route, checked against the task. */
+    val employeeFile: Boolean,
+    val kind: FileKind,
+) {
+    /** Shown here when the phone can draw it and it is small enough, as the web's preview limit. */
+    val viewable: Boolean get() = kind != FileKind.Other && sizeBytes <= MAX_VIEW_BYTES
+
+    companion object {
+        /** The web previews Word files up to 20 MB; the phone uses the same limit for every type. */
+        const val MAX_VIEW_BYTES = 20L * 1024 * 1024
+    }
+}

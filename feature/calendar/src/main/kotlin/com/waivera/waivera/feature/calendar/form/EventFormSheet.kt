@@ -511,6 +511,8 @@ private fun InviteeRow(person: AttendeeOption, enabled: Boolean, adding: Boolean
             size = WaiveraSizes.AvatarSmall,
             contentDescription = null,
             modifier = Modifier.padding(top = WaiveraSpacing.XxSmall),
+            // The picker colours people by kind (teal participants, violet coworkers), so here
+            // the per-person tile would blur the two groups.
             colors = if (person.participant) {
                 WaiveraAvatarColors(
                     teal.container,

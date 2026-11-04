@@ -23,6 +23,7 @@ import com.waivera.waivera.feature.settings.SettingsScreen
 import com.waivera.waivera.feature.tasks.RequestsPage
 import com.waivera.waivera.feature.tasks.TaskDetailScreen
 import com.waivera.waivera.feature.tasks.TasksScreen
+import com.waivera.waivera.feature.tasks.files.TaskFileScreen
 import com.waivera.waivera.feature.today.TodayScreen
 import com.waivera.waivera.feature.today.notices.NoticesScreen
 import com.waivera.waivera.navigation.AppRoute
@@ -41,6 +42,7 @@ import com.waivera.waivera.navigation.ProfileRoute
 import com.waivera.waivera.navigation.RequestsRoute
 import com.waivera.waivera.navigation.ScheduleRoute
 import com.waivera.waivera.navigation.SettingsRoute
+import com.waivera.waivera.navigation.TaskFileRoute
 import com.waivera.waivera.navigation.TaskRoute
 import com.waivera.waivera.navigation.TasksRoute
 import com.waivera.waivera.navigation.ThreadRoute
@@ -126,7 +128,16 @@ fun RouteContent(route: AppRoute, actions: RouteActions) {
             onAccountClick = actions.openAccountMenu,
             onOpenTask = { id -> actions.push(TaskRoute(id)) },
         )
-        is TaskRoute -> TaskDetailScreen(taskId = route.taskId, onBack = actions.back)
+        is TaskRoute -> TaskDetailScreen(
+            taskId = route.taskId,
+            onBack = actions.back,
+            onOpenFile = { task, attachment -> actions.push(TaskFileRoute(task, attachment)) },
+        )
+        is TaskFileRoute -> TaskFileScreen(
+            taskId = route.taskId,
+            attachmentId = route.attachmentId,
+            onBack = actions.back,
+        )
         RequestsRoute -> RequestsPage(onBack = actions.back, onOpenTask = { id -> actions.push(TaskRoute(id)) })
         is ConversationRoute -> ConversationScreen(
             conversationId = route.conversationId,
@@ -135,6 +146,7 @@ fun RouteContent(route: AppRoute, actions: RouteActions) {
             onOpenThread = actions.openThread(route.conversationId),
             onOpenPerson = actions.openPerson,
             onOpenEvent = actions.openEvent,
+            onOpenTask = { id -> actions.push(TaskRoute(id)) },
             onOpenMembers = { actions.push(GroupMembersRoute(route.conversationId)) },
         )
         // Person pages and direct chats are other features' screens, so the routes stay here.
@@ -150,6 +162,7 @@ fun RouteContent(route: AppRoute, actions: RouteActions) {
             highlightMessageId = route.messageId,
             onBack = actions.back,
             onOpenPerson = actions.openPerson,
+            onOpenTask = { id -> actions.push(TaskRoute(id)) },
         )
         is CalendarEventRoute -> CalendarEventScreen(
             eventId = route.eventId,

@@ -124,6 +124,7 @@ fun ConversationScreen(
     onOpenThread: (rootMessageId: Long) -> Unit,
     onOpenPerson: (userId: String) -> Unit,
     onOpenEvent: (eventId: String) -> Unit,
+    onOpenTask: (taskId: Int) -> Unit,
     modifier: Modifier = Modifier,
     onOpenMembers: () -> Unit = {},
 ) {
@@ -161,6 +162,7 @@ fun ConversationScreen(
         listState = listState,
         onSetDraft = { draft = it },
         onOpenThread = onOpenThread,
+        onOpenTask = onOpenTask,
         onPickSaveLocation = { name -> saveFile.launch(name) },
         onUndoBookmark = viewModel::undoBookmark,
         onFocusComposer = {},

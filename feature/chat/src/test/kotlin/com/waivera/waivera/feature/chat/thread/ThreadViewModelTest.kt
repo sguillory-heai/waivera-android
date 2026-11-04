@@ -20,6 +20,7 @@ import com.waivera.waivera.feature.chat.ThrowingSends
 import com.waivera.waivera.feature.chat.message.AttachmentDownloads
 import com.waivera.waivera.feature.chat.message.ChatEffect
 import com.waivera.waivera.feature.chat.message.ChatSheet
+import com.waivera.waivera.feature.chat.message.FakeLinkLookups
 import com.waivera.waivera.feature.chat.message.ReadOnlyReason
 import com.waivera.waivera.feature.chat.message.SendErrorKind
 import com.waivera.waivera.feature.chat.message.TimelineItem
@@ -68,6 +69,7 @@ class ThreadViewModelTest {
             clock = testChatClock(),
             computeDispatcher = main.testDispatcher,
             titles = EnglishConversationTitles,
+            links = FakeLinkLookups.resolver(),
         )
         runCurrent()
         return Subject(viewModel, graph, threads)

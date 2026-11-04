@@ -6,6 +6,7 @@ import com.waivera.waivera.core.data.live.LiveAttachmentRepository
 import com.waivera.waivera.core.data.live.LiveBookmarkRepository
 import com.waivera.waivera.core.data.live.LiveCalendarRepository
 import com.waivera.waivera.core.data.live.LiveConversationRepository
+import com.waivera.waivera.core.data.live.LiveLinkLookupRepository
 import com.waivera.waivera.core.data.live.LiveMessageRepository
 import com.waivera.waivera.core.data.live.LiveNoticeRepository
 import com.waivera.waivera.core.data.live.LivePeopleRepository
@@ -15,6 +16,7 @@ import com.waivera.waivera.core.data.live.LiveRealtimeStatusRepository
 import com.waivera.waivera.core.data.live.LiveRequestRepository
 import com.waivera.waivera.core.data.live.LiveSessionRepository
 import com.waivera.waivera.core.data.live.LiveSettingsRepository
+import com.waivera.waivera.core.data.live.LiveTaskFileRepository
 import com.waivera.waivera.core.data.live.LiveTaskRepository
 import com.waivera.waivera.core.data.live.LiveThreadRepository
 import com.waivera.waivera.core.data.repository.ActivityRepository
@@ -24,6 +26,7 @@ import com.waivera.waivera.core.data.repository.CalendarRepository
 import com.waivera.waivera.core.data.repository.ConversationRepository
 import com.waivera.waivera.core.data.repository.DataLayerStarter
 import com.waivera.waivera.core.data.repository.DurableMessageSender
+import com.waivera.waivera.core.data.repository.LinkLookupRepository
 import com.waivera.waivera.core.data.repository.MessageRepository
 import com.waivera.waivera.core.data.repository.NoticeRepository
 import com.waivera.waivera.core.data.repository.PeopleRepository
@@ -33,6 +36,7 @@ import com.waivera.waivera.core.data.repository.RealtimeStatusRepository
 import com.waivera.waivera.core.data.repository.RequestRepository
 import com.waivera.waivera.core.data.repository.SessionRepository
 import com.waivera.waivera.core.data.repository.SettingsRepository
+import com.waivera.waivera.core.data.repository.TaskFileRepository
 import com.waivera.waivera.core.data.repository.TaskRepository
 import com.waivera.waivera.core.data.repository.ThreadRepository
 import com.waivera.waivera.core.data.sync.LiveDataLayerStarter
@@ -43,6 +47,7 @@ import com.waivera.waivera.core.demo.DemoBookmarkRepository
 import com.waivera.waivera.core.demo.DemoCalendarRepository
 import com.waivera.waivera.core.demo.DemoConversationRepository
 import com.waivera.waivera.core.demo.DemoHub
+import com.waivera.waivera.core.demo.DemoLinkLookupRepository
 import com.waivera.waivera.core.demo.DemoMessageRepository
 import com.waivera.waivera.core.demo.DemoMode
 import com.waivera.waivera.core.demo.DemoNoticeRepository
@@ -54,6 +59,7 @@ import com.waivera.waivera.core.demo.DemoRealtimeStatusRepository
 import com.waivera.waivera.core.demo.DemoRequestRepository
 import com.waivera.waivera.core.demo.DemoSessionRepository
 import com.waivera.waivera.core.demo.DemoSettingsRepository
+import com.waivera.waivera.core.demo.DemoTaskFileRepository
 import com.waivera.waivera.core.demo.DemoTaskRepository
 import com.waivera.waivera.core.demo.DemoThreadRepository
 import com.waivera.waivera.core.network.AuthTokenProvider
@@ -149,6 +155,20 @@ object DemoSwitchModule {
     @Provides
     fun tasks(mode: DemoMode, live: Provider<LiveTaskRepository>, demo: Provider<DemoTaskRepository>): TaskRepository =
         pick(mode, live, demo)
+
+    @Provides
+    fun taskFiles(
+        mode: DemoMode,
+        live: Provider<LiveTaskFileRepository>,
+        demo: Provider<DemoTaskFileRepository>,
+    ): TaskFileRepository = pick(mode, live, demo)
+
+    @Provides
+    fun links(
+        mode: DemoMode,
+        live: Provider<LiveLinkLookupRepository>,
+        demo: Provider<DemoLinkLookupRepository>,
+    ): LinkLookupRepository = pick(mode, live, demo)
 
     @Provides
     fun requests(

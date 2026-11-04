@@ -24,6 +24,9 @@ sealed interface ChatEffect {
 
     data class OpenThread(val rootMessageId: Long) : ChatEffect
 
+    /** A task link whose preview loaded: the task opens in the app. */
+    data class OpenTask(val taskId: Int) : ChatEffect
+
     data class Share(val uri: String, val mimeType: String, val fileName: String) : ChatEffect
 
     data class PickSaveLocation(val fileName: String, val mimeType: String) : ChatEffect

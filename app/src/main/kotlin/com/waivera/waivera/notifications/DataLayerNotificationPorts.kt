@@ -11,6 +11,7 @@ import com.waivera.waivera.core.data.model.currentUserId
 import com.waivera.waivera.core.data.repository.ConversationRepository
 import com.waivera.waivera.core.data.repository.DurableMessageSender
 import com.waivera.waivera.core.data.repository.NoticeRepository
+import com.waivera.waivera.core.data.repository.PeopleRepository
 import com.waivera.waivera.core.data.repository.PushRegistrationRepository
 import com.waivera.waivera.core.data.repository.SessionRepository
 import com.waivera.waivera.core.data.repository.SettingsRepository
@@ -24,12 +25,14 @@ import com.waivera.waivera.core.notifications.presentation.ConversationNotificat
 import com.waivera.waivera.core.notifications.presentation.NotificationPreferencesSource
 import com.waivera.waivera.core.notifications.presentation.PushSessionGate
 import com.waivera.waivera.core.notifications.presentation.ReadSyncSink
+import com.waivera.waivera.core.notifications.presentation.SenderPhotoSource
 import com.waivera.waivera.core.notifications.presentation.ThreadRootLookup
 import com.waivera.waivera.core.notifications.token.PushTokenProvider
 import com.waivera.waivera.core.notifications.token.PushTokenSink
 import java.time.Instant
 import javax.inject.Inject
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.withTimeoutOrNull
 
 /**
  * Inline Reply and Mark read go through the outbox and the read pipeline like in-app actions.
@@ -75,6 +78,18 @@ internal fun NotificationPreferences.toClient(): ClientNotificationPreferences =
         category == null || categories[category] != false
     },
 )
+
+/**
+ * The sender's photo through the people cache, the same one the app's avatars use; a slow
+ * download gives up after [WAIT_MILLIS] so the notification shows the sender's tile instead.
+ */
+class CachedSenderPhotos @Inject constructor(private val people: PeopleRepository) : SenderPhotoSource {
+    override suspend fun photo(userId: String): ByteArray? = withTimeoutOrNull(WAIT_MILLIS) { people.avatar(userId) }
+
+    private companion object {
+        const val WAIT_MILLIS = 3_000L
+    }
+}
 
 /** Titles and DM/group from the local store, so a push never waits on the network. */
 class CachedConversationInfo @Inject constructor(

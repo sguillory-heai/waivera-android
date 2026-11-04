@@ -15,6 +15,7 @@ import com.waivera.waivera.core.data.db.TransactionRunner
 import com.waivera.waivera.core.data.db.WaiveraDatabase
 import com.waivera.waivera.core.data.live.AttachmentCacheDirectory
 import com.waivera.waivera.core.data.live.PushUnregisterScheduler
+import com.waivera.waivera.core.data.live.TaskFileCacheDirectory
 import com.waivera.waivera.core.data.live.WorkManagerPushUnregisterScheduler
 import com.waivera.waivera.core.data.outbox.OutboxDirectory
 import com.waivera.waivera.core.data.outbox.OutboxScheduler
@@ -112,5 +113,9 @@ abstract class DataInfrastructureModule {
         @Provides
         @AttachmentCacheDirectory
         fun attachmentDirectory(@ApplicationContext context: Context): File = File(context.cacheDir, "attachments")
+
+        @Provides
+        @TaskFileCacheDirectory
+        fun taskFileDirectory(@ApplicationContext context: Context): File = File(context.cacheDir, "task-files")
     }
 }

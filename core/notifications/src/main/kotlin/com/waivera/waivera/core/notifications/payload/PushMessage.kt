@@ -13,7 +13,8 @@ sealed interface PushMessage {
 
     /**
      * The modern chat push (`data.type == "chat"`), the only push employees receive today.
-     * [threadRootMessageId] is not sent yet (gap G-07 follow-up); it is read when present.
+     * [threadRootMessageId] is set for a thread reply. [senderId] picks the sender's photo; older
+     * servers leave it out and the notification shows the sender's tile.
      */
     data class Chat(
         val conversationId: Long,
@@ -21,6 +22,7 @@ sealed interface PushMessage {
         val threadRootMessageId: Long?,
         override val title: String?,
         override val body: String?,
+        val senderId: String? = null,
     ) : PushMessage {
         override val target: DeepLinkTarget
             get() = if (threadRootMessageId != null) {

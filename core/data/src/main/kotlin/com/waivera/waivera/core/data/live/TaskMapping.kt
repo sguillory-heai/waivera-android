@@ -1,8 +1,10 @@
 package com.waivera.waivera.core.data.live
 
 import com.waivera.waivera.core.data.model.ActivityType
+import com.waivera.waivera.core.data.model.FileKind
 import com.waivera.waivera.core.data.model.RequestStatus
 import com.waivera.waivera.core.data.model.TaskActivity
+import com.waivera.waivera.core.data.model.TaskAttachment
 import com.waivera.waivera.core.data.model.TaskDelay
 import com.waivera.waivera.core.data.model.TaskDetail
 import com.waivera.waivera.core.data.model.TaskState
@@ -10,34 +12,51 @@ import com.waivera.waivera.core.data.model.TaskSummary
 import com.waivera.waivera.core.network.dto.ActionSubTypeResponse
 import com.waivera.waivera.core.network.dto.OrganizationResponse
 import com.waivera.waivera.core.network.dto.TaskActionResponse
+import com.waivera.waivera.core.network.dto.TaskAssignmentResponse
+import com.waivera.waivera.core.network.dto.TaskAttachmentResponse
 import com.waivera.waivera.core.network.dto.TaskDelaySummaryResponse
 import com.waivera.waivera.core.network.dto.TaskListResponse
 import com.waivera.waivera.core.network.dto.TaskParticipantResponse
 import com.waivera.waivera.core.network.dto.TaskResponse
 import com.waivera.waivera.core.network.dto.TaskUserResponse
 import com.waivera.waivera.core.network.time.WaiveraTime
+import java.time.Instant
 
 /**
  * Turns the server's task shapes into the phone's. Due and start dates are literal calendar
  * dates: only their `YYYY-MM-DD` part is read, so no zone ever moves a task to another day.
  * Activity times are UTC instants.
  */
+@Suppress("TooManyFunctions") // One mapper per task DTO, kept together with their shared helpers.
 object TaskMapping {
     private const val EMPLOYEE_CONTEXT = "Employee"
+    private const val EMPLOYEE_FILE = "employeeFile"
 
-    fun summary(dto: TaskListResponse): TaskSummary = TaskSummary(
+    fun summary(dto: TaskListResponse): TaskSummary {
+        val assignee = assignee(dto.assignee, dto.assignees)
+        return summaryOf(dto, assignee)
+    }
+
+    private fun summaryOf(dto: TaskListResponse, assignee: TaskUserResponse?) = TaskSummary(
         id = dto.id,
         key = key(dto.organization, dto.friendlyId),
         title = dto.title?.trim().orEmpty(),
         due = WaiveraTime.parseLocalDate(dto.effectiveEndDate ?: dto.endDate),
         state = TaskState.of(dto.taskStatus?.name),
         about = about(dto.participant, dto.subjectEmployee),
-        assigneeId = dto.assignee?.id,
-        assigneeName = name(dto.assignee),
+        assigneeId = assignee?.id,
+        assigneeName = name(assignee),
         pendingClosure = dto.hasPendingDeletion,
         delayed = dto.currentTaskDelay != null,
         delayedThrough = WaiveraTime.parseLocalDate(dto.currentTaskDelay?.delayEndDate),
     )
+
+    /**
+     * The main assignee, as the server picks it: the first assignment that is neither the
+     * reporter nor a co-assignee. Task endpoints send the list, not the single field.
+     */
+    private fun assignee(single: TaskUserResponse?, list: List<TaskAssignmentResponse>?): TaskUserResponse? =
+        single ?: list.orEmpty().firstOrNull { !it.isReporter && !it.isCoAssignee }?.user
 
     fun detail(dto: TaskResponse): TaskDetail {
         val key = key(dto.organization, dto.friendlyId)
@@ -53,12 +72,12 @@ object TaskMapping {
             assignedBy = name(dto.reporter),
             about = about(dto.participant, dto.subjectEmployee),
             webPath = "/task/$key",
-            assigneeName = name(dto.assignee),
+            assigneeName = name(assignee(dto.assignee, dto.assignees)),
             isClientTask = !dto.taskContext.equals(EMPLOYEE_CONTEXT, ignoreCase = true),
             pendingRequest = dto.administrativeTransactionRequests.orEmpty()
                 .map(RequestMapping::request)
                 .filter { it.status == RequestStatus.Pending }
-                .maxByOrNull { it.requestedAt ?: java.time.Instant.MIN },
+                .maxByOrNull { it.requestedAt ?: Instant.MIN },
             delay = dto.currentTaskDelay?.let(::delay),
         )
     }
@@ -70,7 +89,10 @@ object TaskMapping {
         through = WaiveraTime.parseLocalDate(dto.delayEndDate),
     )
 
-    /** Replies in an activity's thread and removed activity are not shown. */
+    /**
+     * Oldest first, so new work lands at the bottom as in a conversation. Replies in an
+     * activity's thread and removed activity are not shown.
+     */
     fun activity(items: List<TaskActionResponse>): List<TaskActivity> = items
         .filter { !it.deleted && it.parentTaskActionId == null }
         .map { dto ->
@@ -84,7 +106,31 @@ object TaskMapping {
                 description = dto.description?.trim()?.takeIf(String::isNotEmpty),
             )
         }
-        .sortedWith(compareByDescending<TaskActivity> { it.at }.thenByDescending { it.id })
+        .sortedWith(compareBy<TaskActivity, Instant?>(nullsFirst()) { it.at }.thenBy { it.id })
+
+    /** Files with no id or one an employee-file deletion removed are left out; newest first. */
+    fun attachments(items: List<TaskAttachmentResponse>): List<TaskAttachment> = items
+        .filter { !it.employeeFileDeleted }
+        .mapNotNull { dto ->
+            val file = dto.file ?: return@mapNotNull null
+            val fileId = file.id?.trim()?.takeIf(String::isNotEmpty) ?: return@mapNotNull null
+            val name = file.fileName?.trim()?.takeIf(String::isNotEmpty) ?: fileId
+            TaskAttachment(
+                attachmentId = dto.id,
+                fileId = fileId,
+                name = name,
+                sizeBytes = file.size.coerceAtLeast(0),
+                addedAt = WaiveraTime.parseInstant(file.createDate),
+                addedBy = name(file.author),
+                employeeFile = dto.fileStorageKind.equals(EMPLOYEE_FILE, ignoreCase = true),
+                kind = FileKind.of(name, file.mimeType),
+            )
+        }
+        .sortedWith(
+            compareByDescending<TaskAttachment, Instant?>(nullsFirst()) {
+                it.addedAt
+            }.thenByDescending { it.attachmentId },
+        )
 
     /** Types that need a file go to the web, which has the file picker the server checks. */
     fun activityTypes(items: List<ActionSubTypeResponse>): List<ActivityType> = items

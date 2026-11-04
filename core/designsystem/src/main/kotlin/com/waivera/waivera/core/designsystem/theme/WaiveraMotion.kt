@@ -91,6 +91,7 @@ enum class PressDepth(val scale: Float, val longPressScale: Float) {
  * effects become a short cross-fade, so nothing moves and nothing blocks input.
  */
 @Immutable
+@Suppress("TooManyFunctions") // One spec per kind of movement, all in one scheme.
 class WaiveraMotionScheme internal constructor(val reduced: Boolean) {
 
     /** Target scale while a [PressDepth.Button] control is pressed; see [pressScaleFor]. */
@@ -115,6 +116,19 @@ class WaiveraMotionScheme internal constructor(val reduced: Boolean) {
 
     fun <T> layout(): FiniteAnimationSpec<T> =
         if (reduced) snap() else spring(dampingRatio = SPATIAL_DAMPING, stiffness = DEFAULT_SPATIAL_STIFFNESS)
+
+    /**
+     * Expand or collapse in place over [distanceDp], timed by the distance: a few lines open in
+     * about a fifth of a second, a very long block takes longer but is capped, so a big note
+     * still reads as one motion rather than a jump. Reduced motion snaps.
+     */
+    fun expand(distanceDp: Float): FiniteAnimationSpec<Float> {
+        if (reduced) return snap()
+        val millis = (EXPAND_BASE_MILLIS + distanceDp * EXPAND_MILLIS_PER_DP)
+            .roundToInt()
+            .coerceIn(EXPAND_BASE_MILLIS, EXPAND_MAX_MILLIS)
+        return tween(durationMillis = millis, easing = FastOutSlowInEasing)
+    }
 
     fun <T> navigate(): FiniteAnimationSpec<T> =
         if (reduced) reducedFade() else spring(dampingRatio = SPATIAL_DAMPING, stiffness = DEFAULT_SPATIAL_STIFFNESS)
@@ -293,6 +307,11 @@ class WaiveraMotionScheme internal constructor(val reduced: Boolean) {
         const val REMOVAL_HELD_MILLIS = 1_000L
 
         const val REDUCED_FADE_MILLIS = 150
+
+        /** [expand]: 180ms floor, plus 0.5ms per dp travelled, capped at 480ms. */
+        const val EXPAND_BASE_MILLIS = 180
+        const val EXPAND_MILLIS_PER_DP = 0.5f
+        const val EXPAND_MAX_MILLIS = 480
         internal const val SPATIAL_DAMPING = 0.9f
         internal const val FAST_SPATIAL_STIFFNESS = 1400f
         internal const val DEFAULT_SPATIAL_STIFFNESS = 700f

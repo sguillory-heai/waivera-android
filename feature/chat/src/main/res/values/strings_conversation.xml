@@ -228,4 +228,15 @@
 
     <!-- Composer placeholder while editing -->
     <string name="feature_chat_composer_edit_placeholder">Edit your message…</string>
+    <string name="feature_chat_link_task">Task</string>
+    <string name="feature_chat_link_resource">Resource</string>
+    <string name="feature_chat_link_faq">FAQ</string>
+    <string name="feature_chat_link_unavailable">You don’t have access, or it was removed.</string>
+    <string name="feature_chat_link_unavailable_short">Not available to you</string>
+    <string name="feature_chat_link_due">Due %1$s</string>
+    <string name="feature_chat_link_state_not_started">Not started</string>
+    <string name="feature_chat_link_state_in_progress">In progress</string>
+    <string name="feature_chat_link_state_in_review">In review</string>
+    <string name="feature_chat_link_state_completed">Completed</string>
+    <string name="feature_chat_link_state_closed">Closed</string>
 </resources>

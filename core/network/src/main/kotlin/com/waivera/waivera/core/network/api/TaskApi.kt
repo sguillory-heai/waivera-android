@@ -3,15 +3,18 @@ package com.waivera.waivera.core.network.api
 import com.waivera.waivera.core.network.dto.ActionSubTypeResponse
 import com.waivera.waivera.core.network.dto.TaskActionRequest
 import com.waivera.waivera.core.network.dto.TaskActionResponse
+import com.waivera.waivera.core.network.dto.TaskAttachmentResponse
 import com.waivera.waivera.core.network.dto.TaskPageResponse
 import com.waivera.waivera.core.network.dto.TaskResponse
 import kotlinx.serialization.json.JsonElement
+import okhttp3.ResponseBody
 import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.GET
 import retrofit2.http.POST
 import retrofit2.http.Path
 import retrofit2.http.Query
+import retrofit2.http.Streaming
 
 /**
  * `Controllers/Tasks/TaskController.cs` (`api/tasks`) and `Controllers/TaskActionController.cs`
@@ -44,6 +47,10 @@ interface TaskApi {
     @GET("api/tasks/{id}")
     suspend fun getTask(@Path("id") id: Int): Response<TaskResponse>
 
+    /** A task by the number people see, in the caller's agency, with the same access checks. */
+    @GET("api/tasks/lookup/{friendlyId}")
+    suspend fun lookupTask(@Path("friendlyId") friendlyId: Int): Response<TaskResponse>
+
     @GET("api/tasks/{id}/actions")
     suspend fun getActivity(@Path("id") id: Int): Response<List<TaskActionResponse>>
 
@@ -53,6 +60,23 @@ interface TaskApi {
     /** Enveloped `ApiResponse<int?>` with the new activity's id. */
     @POST("api/taskActions/new")
     suspend fun logActivity(@Body request: TaskActionRequest): Response<JsonElement>
+
+    /** The task's files, as the web's attachment list shows them; access is checked per task. */
+    @GET("api/tasks/attachments/{taskId}")
+    suspend fun getAttachments(@Path("taskId") taskId: Int): Response<List<TaskAttachmentResponse>>
+
+    /** A case file's bytes; the server checks the reader's access to this file on every call. */
+    @Streaming
+    @GET("api/file/download/{fileId}")
+    suspend fun downloadCaseFile(@Path("fileId") fileId: String): Response<ResponseBody>
+
+    /** An employee file attached to an employee task, checked against that task. */
+    @Streaming
+    @GET("api/employee-file/task-view/{taskId}/{fileId}")
+    suspend fun downloadEmployeeTaskFile(
+        @Path("taskId") taskId: Int,
+        @Path("fileId") fileId: String,
+    ): Response<ResponseBody>
 
     companion object {
         const val PAGE_SIZE = 25

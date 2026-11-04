@@ -48,9 +48,14 @@ class AndroidNotifier @Inject constructor(
 
     override fun canPost(): Boolean = manager.areNotificationsEnabled() && hasPostPermission()
 
-    override fun show(message: PushMessage, channel: WaiveraChannel, conversation: ConversationNotificationInfo?) {
+    override fun show(
+        message: PushMessage,
+        channel: WaiveraChannel,
+        conversation: ConversationNotificationInfo?,
+        senderPhoto: ByteArray?,
+    ) {
         when (message) {
-            is PushMessage.Chat -> showChat(message, channel, conversation)
+            is PushMessage.Chat -> showChat(message, channel, conversation, senderPhoto)
             else -> showGeneric(message, channel)
         }
     }
@@ -126,6 +131,7 @@ class AndroidNotifier @Inject constructor(
         message: PushMessage.Chat,
         channel: WaiveraChannel,
         conversation: ConversationNotificationInfo?,
+        senderPhoto: ByteArray?,
     ) {
         val threadRoot = message.threadRootMessageId
         val existing = activeChat(message.conversationId, threadRoot)
@@ -147,7 +153,7 @@ class AndroidNotifier @Inject constructor(
         val sender = Person.Builder()
             .setName(shownName)
             .setKey("sender:$senderName")
-            .setIcon(runCatching { InitialsAvatar.icon(context, senderName) }.getOrNull())
+            .setIcon(runCatching { InitialsAvatar.icon(context, senderName, senderPhoto) }.getOrNull())
             .build()
         val text = message.body ?: context.getString(R.string.core_notifications_new_message)
         style.addMessage(NotificationCompat.MessagingStyle.Message(text, System.currentTimeMillis(), sender))

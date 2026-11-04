@@ -62,11 +62,20 @@
     <string name="feature_tasks_field_type">Type</string>
     <string name="feature_tasks_field_assigned_by">Assigned by</string>
     <string name="feature_tasks_description_section">Description</string>
-    <string name="feature_tasks_activity_section">Recent activity</string>
+    <string name="feature_tasks_activity_section">Activity</string>
+    <string name="feature_tasks_activity_jump">Jump to latest</string>
+    <plurals name="feature_tasks_activity_count">
+        <item quantity="one">%d entry</item>
+        <item quantity="other">%d entries</item>
+    </plurals>
     <string name="feature_tasks_activity_empty">No activity logged yet.</string>
     <string name="feature_tasks_activity_error">Couldn\'t load the activity.</string>
     <string name="feature_tasks_activity_row">%1$s · %2$s</string>
     <string name="feature_tasks_activity_by_you">You</string>
+    <string name="feature_tasks_activity_show_more">Show more</string>
+    <string name="feature_tasks_activity_show_less">Show less</string>
+    <string name="feature_tasks_activity_expanded">Showing the full note</string>
+    <string name="feature_tasks_activity_collapsed">Note shortened</string>
     <string name="feature_tasks_activity_when_by">%1$s · %2$s</string>
     <string name="feature_tasks_detail_error_title">Couldn\'t load this task</string>
     <string name="feature_tasks_finished_note">This task is finished, so activity can\'t be added.</string>
@@ -282,4 +291,30 @@
     <string name="feature_tasks_pending_other">A change to this task is waiting for approval.</string>
     <string name="feature_tasks_field_assigned_to">Assigned to</string>
     <string name="feature_tasks_back_to_choices">Back to choices</string>
+    <string name="feature_tasks_files_section">Files</string>
+    <string name="feature_tasks_file_added_by">Added by %1$s</string>
+    <plurals name="feature_tasks_files_count">
+        <item quantity="one">%d file</item>
+        <item quantity="other">%d files</item>
+    </plurals>
+    <string name="feature_tasks_files_error">Couldn\'t load the files.</string>
+    <string name="feature_tasks_file_opens_on_web">Opens on the web</string>
+    <string name="feature_tasks_file_too_large">Too large to view here. Opens on the web</string>
+    <string name="feature_tasks_file_open">View file</string>
+    <string name="feature_tasks_file_open_web">Open on the web</string>
+    <string name="feature_tasks_file_short_pdf">PDF</string>
+    <string name="feature_tasks_file_short_image">IMG</string>
+    <string name="feature_tasks_file_short_word">DOC</string>
+    <string name="feature_tasks_file_short_text">TXT</string>
+    <string name="feature_tasks_file_short_other">FILE</string>
+    <string name="feature_tasks_file_kind_pdf">PDF</string>
+    <string name="feature_tasks_file_kind_image">Image</string>
+    <string name="feature_tasks_file_kind_word">Word</string>
+    <string name="feature_tasks_file_kind_text">Text</string>
+    <string name="feature_tasks_file_kind_other">File</string>
+    <string name="feature_tasks_file_viewer">File</string>
+    <string name="feature_tasks_file_failed">Couldn\'t open this file. Check your connection and try again.</string>
+    <string name="feature_tasks_file_loading">Opening the file</string>
+    <string name="feature_tasks_file_text_cut">This file is long, so only the start is shown. Open the task on the web to see all of it.</string>
+    <string name="feature_tasks_file_page">Page %1$d of %2$d</string>
 </resources>

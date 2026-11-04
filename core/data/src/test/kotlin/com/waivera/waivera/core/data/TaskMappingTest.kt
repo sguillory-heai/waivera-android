@@ -6,10 +6,12 @@ import com.waivera.waivera.core.data.model.TaskState
 import com.waivera.waivera.core.network.WaiveraJson
 import com.waivera.waivera.core.network.dto.ActionSubTypeResponse
 import com.waivera.waivera.core.network.dto.TaskActionResponse
+import com.waivera.waivera.core.network.dto.TaskAttachmentResponse
 import com.waivera.waivera.core.network.dto.TaskListResponse
 import com.waivera.waivera.core.network.dto.TaskResponse
 import java.time.Instant
 import java.time.LocalDate
+import java.time.ZoneId
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -34,6 +36,22 @@ class TaskMappingTest {
         assertEquals(LocalDate.of(2026, 11, 8), task.due)
         assertEquals(TaskState.InProgress, task.state)
         assertEquals("Jordan Lee", task.about)
+    }
+
+    @Test
+    fun the_assignee_comes_from_the_assignment_list_skipping_reporter_and_co_assignee() {
+        val dto = WaiveraJson.decodeFromString<TaskListResponse>(
+            """
+            {"id":12,"friendlyId":1042,"assignee":null,"assignees":[
+              {"user":{"id":"r","firstName":"Rae","lastName":"Boss"},"isReporter":true,"isCoAssignee":false},
+              {"user":{"id":"c","firstName":"Cole","lastName":"Helper"},"isReporter":false,"isCoAssignee":true},
+              {"user":{"id":"m","firstName":"Maria","lastName":"Castellanos"},"isReporter":false,"isCoAssignee":false}
+            ]}
+            """.trimIndent(),
+        )
+        val task = TaskMapping.summary(dto)
+        assertEquals("m", task.assigneeId)
+        assertEquals("Maria Castellanos", task.assigneeName)
     }
 
     @Test
@@ -79,17 +97,20 @@ class TaskMappingTest {
     }
 
     @Test
-    fun activity_hides_replies_and_deleted_rows_and_reads_utc_times_newest_first() {
+    fun activity_hides_replies_and_deleted_rows_and_reads_utc_times_oldest_first() {
         val rows = TaskMapping.activity(
             listOf(
                 TaskActionResponse(id = 1, completionTime = "2026-11-01T06:30:00", durationInMinutes = 20),
                 TaskActionResponse(id = 2, completionTime = "2026-11-02T15:00:00Z"),
                 TaskActionResponse(id = 3, deleted = true),
                 TaskActionResponse(id = 4, parentTaskActionId = 1),
+                // Last year's work sorts by its year, ahead of this year's, whatever its month.
+                TaskActionResponse(id = 5, completionTime = "2025-12-20T18:00:00Z"),
+                TaskActionResponse(id = 6, completionTime = "2025-05-03T14:00:00Z"),
             ),
         )
-        assertEquals(listOf(2, 1), rows.map { it.id })
-        assertEquals(Instant.parse("2026-11-01T06:30:00Z"), rows.last().at)
+        assertEquals(listOf(6, 5, 1, 2), rows.map { it.id })
+        assertEquals(Instant.parse("2026-11-01T06:30:00Z"), rows[2].at)
     }
 
     @Test
@@ -102,5 +123,26 @@ class TaskMappingTest {
             ),
         )
         assertEquals(listOf("Phone call"), types.map { it.name })
+    }
+
+    @Test
+    fun a_file_added_without_a_zone_suffix_is_utc_and_lands_on_its_day_across_the_dst_change() {
+        val files = TaskMapping.attachments(
+            WaiveraJson.decodeFromString<List<TaskAttachmentResponse>>(
+                """[{"id": 1, "file": {"id": "f1", "fileName": "Plan.pdf", "size": 10,
+                    "createDate": "2026-11-01T06:30:00"}},
+                   {"id": 2, "file": {"id": "f2", "fileName": "Notes.txt", "size": 10,
+                    "createDate": "2026-11-01T08:30:00Z"}}]""",
+            ),
+        )
+        val chicago = ZoneId.of("America/Chicago")
+
+        // 06:30 UTC is 01:30 CDT, still Nov 1; 08:30 UTC is 02:30 CST after clocks fell back.
+        assertEquals(listOf(2, 1), files.map { it.attachmentId })
+        assertEquals(Instant.parse("2026-11-01T06:30:00Z"), files[1].addedAt)
+        assertEquals(LocalDate.of(2026, 11, 1), files[1].addedAt?.atZone(chicago)?.toLocalDate())
+        assertEquals(LocalDate.of(2026, 11, 1), files[0].addedAt?.atZone(chicago)?.toLocalDate())
+        assertEquals(1, files[1].addedAt?.atZone(chicago)?.hour)
+        assertEquals(2, files[0].addedAt?.atZone(chicago)?.hour)
     }
 }

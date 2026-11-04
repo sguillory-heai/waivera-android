@@ -4,6 +4,7 @@ import com.waivera.waivera.core.data.model.ActivityType
 import com.waivera.waivera.core.data.model.DelayFilter
 import com.waivera.waivera.core.data.model.NewActivity
 import com.waivera.waivera.core.data.model.TaskActivity
+import com.waivera.waivera.core.data.model.TaskAttachment
 import com.waivera.waivera.core.data.model.TaskCounts
 import com.waivera.waivera.core.data.model.TaskDetail
 import com.waivera.waivera.core.data.model.TaskPage
@@ -110,6 +111,10 @@ class LiveTaskRepository @Inject constructor(
 
     override suspend fun activity(taskId: Int): Result<List<TaskActivity>> = catchingWaivera {
         TaskMapping.activity(apiCall { api.getActivity(taskId) })
+    }
+
+    override suspend fun attachments(taskId: Int): Result<List<TaskAttachment>> = catchingWaivera {
+        TaskMapping.attachments(apiCall { api.getAttachments(taskId) })
     }
 
     override suspend fun activityTypes(): Result<List<ActivityType>> = catchingWaivera {

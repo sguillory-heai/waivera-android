@@ -7,11 +7,13 @@ import androidx.lifecycle.viewModelScope
 import com.waivera.waivera.core.data.model.ActivityType
 import com.waivera.waivera.core.data.model.ChangeOptions
 import com.waivera.waivera.core.data.model.DelayPeriod
+import com.waivera.waivera.core.data.model.FileKind
 import com.waivera.waivera.core.data.model.NewActivity
 import com.waivera.waivera.core.data.model.RequestAccess
 import com.waivera.waivera.core.data.model.RequestKind
 import com.waivera.waivera.core.data.model.RequestOutcome
 import com.waivera.waivera.core.data.model.TaskActivity
+import com.waivera.waivera.core.data.model.TaskAttachment
 import com.waivera.waivera.core.data.model.TaskDetail
 import com.waivera.waivera.core.data.model.currentUserId
 import com.waivera.waivera.core.data.repository.CalendarRepository
@@ -57,13 +59,25 @@ sealed interface Loadable<out T> {
 data class ActivityRow(
     val id: Int,
     val type: String,
-    val minutes: Int,
     val moment: TaskFormat.Moment?,
     val byMe: Boolean,
     val author: String?,
     val description: String?,
     /** Just logged here, so it lands with the arrival motion. */
     val isNew: Boolean = false,
+)
+
+/** A task file as its row reads: "PDF · 180 KB · Nov 3 · Priya Raman". */
+@Immutable
+data class FileRow(
+    val attachmentId: Int,
+    val name: String,
+    val kind: FileKind,
+    val sizeBytes: Long,
+    val added: String?,
+    val addedBy: String?,
+    /** False when it opens on the web: a type the phone can't show, or too large. */
+    val viewable: Boolean,
 )
 
 @Immutable
@@ -73,6 +87,7 @@ data class TaskDetailUiState(
     val due: DueText = DueText.None,
     val dueDate: String? = null,
     val activity: Loadable<List<ActivityRow>> = Loadable.Loading,
+    val files: Loadable<List<FileRow>> = Loadable.Loading,
     val log: LogForm? = null,
     @StringRes val errorMessage: Int? = null,
     /** A change request waiting on review, from the server or just sent from here. */
@@ -149,6 +164,9 @@ sealed interface TaskDetailEffect {
     data class OpenWeb(val url: String) : TaskDetailEffect
 
     data object WebUnavailable : TaskDetailEffect
+
+    /** Opens the read-only viewer for a file on this task. */
+    data class OpenFile(val taskId: Int, val attachmentId: Int) : TaskDetailEffect
 }
 
 @HiltViewModel(assistedFactory = TaskDetailViewModel.Factory::class)
@@ -180,6 +198,11 @@ class TaskDetailViewModel @AssistedInject constructor(
                 Loadable.Loading -> Loadable.Loading
                 Loadable.Failed -> Loadable.Failed
                 is Loadable.Ready -> Loadable.Ready(a.value.map { activityRow(it, zone, today, me, it.id in l.newIds) })
+            },
+            files = when (val f = l.files) {
+                Loadable.Loading -> Loadable.Loading
+                Loadable.Failed -> Loadable.Failed
+                is Loadable.Ready -> Loadable.Ready(f.value.map { fileRow(it, zone, today) })
             },
             log = l.log?.let { form ->
                 form.copy(
@@ -233,7 +256,33 @@ class TaskDetailViewModel @AssistedInject constructor(
             }
         }
         loadActivity()
+        loadFiles()
         loadOptions()
+    }
+
+    fun loadFiles() {
+        viewModelScope.launch {
+            val result = tasks.attachments(taskId)
+            local.update { current ->
+                result.fold(
+                    onSuccess = { current.copy(files = Loadable.Ready(it)) },
+                    onFailure = {
+                        if (current.files is Loadable.Ready) current else current.copy(files = Loadable.Failed)
+                    },
+                )
+            }
+        }
+    }
+
+    /** The phone shows what it can draw; anything else opens the task on the web, where it can be downloaded. */
+    fun openFile(attachmentId: Int) {
+        val file =
+            (local.value.files as? Loadable.Ready)?.value?.firstOrNull { it.attachmentId == attachmentId } ?: return
+        if (file.viewable) {
+            viewModelScope.launch { effectChannel.send(TaskDetailEffect.OpenFile(taskId, attachmentId)) }
+        } else {
+            openOnWeb()
+        }
     }
 
     /** What may be asked for here, from the same role policies and eligibility check the web uses. */
@@ -572,11 +621,20 @@ class TaskDetailViewModel @AssistedInject constructor(
             ?: l
     }
 
+    private fun fileRow(file: TaskAttachment, zone: ZoneId, today: LocalDate) = FileRow(
+        attachmentId = file.attachmentId,
+        name = file.name,
+        kind = file.kind,
+        sizeBytes = file.sizeBytes,
+        added = file.addedAt?.let { TaskFormat.shortDate(it.atZone(zone).toLocalDate(), today) },
+        addedBy = file.addedBy,
+        viewable = file.viewable,
+    )
+
     private fun activityRow(item: TaskActivity, zone: ZoneId, today: LocalDate, me: String?, isNew: Boolean) =
         ActivityRow(
             id = item.id,
             type = item.type,
-            minutes = item.minutes,
             moment = item.at?.let { TaskFormat.moment(it, zone, today) },
             byMe = me != null && item.authorId == me,
             author = item.authorName,
@@ -588,6 +646,7 @@ class TaskDetailViewModel @AssistedInject constructor(
         val phase: DetailPhase = DetailPhase.Loading,
         val task: TaskDetail? = null,
         val activity: Loadable<List<TaskActivity>> = Loadable.Loading,
+        val files: Loadable<List<TaskAttachment>> = Loadable.Loading,
         val newIds: Set<Int> = emptySet(),
         val log: LogForm? = null,
         @StringRes val errorMessage: Int? = null,

@@ -3,6 +3,7 @@ package com.waivera.waivera.feature.tasks
 import com.waivera.waivera.core.data.model.ActivityType
 import com.waivera.waivera.core.data.model.NewActivity
 import com.waivera.waivera.core.data.model.TaskActivity
+import com.waivera.waivera.core.data.model.TaskAttachment
 import com.waivera.waivera.core.data.model.TaskCounts
 import com.waivera.waivera.core.data.model.TaskDetail
 import com.waivera.waivera.core.data.model.TaskPage
@@ -31,6 +32,7 @@ internal class FakeTasks : TaskRepository {
     var types: Result<List<ActivityType>> = Result.success(listOf(ActivityType(1, "Home visit", null, null)))
     var logResult: Result<Unit> = Result.success(Unit)
     val logged = mutableListOf<NewActivity>()
+    var attachments: Result<List<TaskAttachment>> = Result.success(emptyList())
 
     override suspend fun tasks(query: TaskQuery, page: Int): Result<TaskPage> {
         val search = query.search
@@ -52,6 +54,8 @@ internal class FakeTasks : TaskRepository {
     override suspend fun activity(taskId: Int): Result<List<TaskActivity>> = activity
 
     override suspend fun activityTypes(): Result<List<ActivityType>> = types
+
+    override suspend fun attachments(taskId: Int): Result<List<TaskAttachment>> = attachments
 
     override suspend fun logActivity(activity: NewActivity): Result<Unit> {
         logged += activity

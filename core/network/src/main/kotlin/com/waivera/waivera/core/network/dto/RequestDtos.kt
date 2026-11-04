@@ -121,13 +121,26 @@ data class TaskClosureRequest(
     val statusId: String = "PENDING",
 )
 
-/** `AttachmentResponse` from `GET api/tasks/attachments/{taskId}`: the files a request can cite. */
+/**
+ * `AttachmentResponse` from `GET api/tasks/attachments/{taskId}`: the files a request can cite
+ * and the task's files the viewer opens.
+ */
 @Serializable
 data class TaskAttachmentResponse(
     val id: Int = 0,
     val file: TaskAttachmentFileResponse? = null,
     val employeeFileDeleted: Boolean = false,
+    /** "caseFile" or "employeeFile": which download route serves it. */
+    val fileStorageKind: String? = null,
 )
 
+/** `CaseFileResponse` (the fields read here). */
 @Serializable
-data class TaskAttachmentFileResponse(val id: String? = null, val fileName: String? = null)
+data class TaskAttachmentFileResponse(
+    val id: String? = null,
+    val fileName: String? = null,
+    val mimeType: String? = null,
+    val size: Long = 0,
+    val createDate: String? = null,
+    val author: TaskUserResponse? = null,
+)

@@ -5,6 +5,7 @@ import com.waivera.waivera.core.data.live.ChatCache
 import com.waivera.waivera.core.data.live.LiveAttachmentRepository
 import com.waivera.waivera.core.data.live.LiveNoticeRepository
 import com.waivera.waivera.core.data.live.LivePeopleRepository
+import com.waivera.waivera.core.data.live.LiveTaskFileRepository
 import com.waivera.waivera.core.data.live.SignOutCleaner
 import com.waivera.waivera.core.data.outbox.OutboxDirectory
 import com.waivera.waivera.core.data.outbox.OutboxStore
@@ -31,6 +32,10 @@ abstract class SignOutCleanersModule {
     @Binds
     @IntoSet
     abstract fun attachmentCleaner(repository: LiveAttachmentRepository): SignOutCleaner
+
+    @Binds
+    @IntoSet
+    abstract fun taskFileCleaner(repository: LiveTaskFileRepository): SignOutCleaner
 
     @Binds
     @IntoSet

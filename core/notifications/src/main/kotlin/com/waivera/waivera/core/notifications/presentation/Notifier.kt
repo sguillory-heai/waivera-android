@@ -8,7 +8,13 @@ interface Notifier {
     /** Whether the app may post at all (runtime permission and app-level switch). */
     fun canPost(): Boolean
 
-    fun show(message: PushMessage, channel: WaiveraChannel, conversation: ConversationNotificationInfo?)
+    /** [senderPhoto] is the chat sender's picture as image bytes; without one their tile shows. */
+    fun show(
+        message: PushMessage,
+        channel: WaiveraChannel,
+        conversation: ConversationNotificationInfo?,
+        senderPhoto: ByteArray? = null,
+    )
 
     /** Adds the person's own inline reply to the conversation's notification. */
     fun showReplySent(conversationId: Long, threadRootMessageId: Long?, text: String)
