@@ -30,7 +30,10 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.runTest
@@ -282,6 +285,63 @@ class TaskUploadsTest {
         assertTrue(File(file.path).exists())
         repository.discard(file)
         assertFalse(File(file.path).exists())
+    }
+
+    @Test
+    fun a_file_that_timed_out_and_is_then_already_there_counts_as_uploaded() = runTest {
+        val repository = repository()
+        repository.add(42, listOf("file:///picked/a.pdf"), UploadTarget())
+        val id = store.snapshot().single().id
+        // The first send timed out after the server may have saved it.
+        store.update(id) { it.copy(mayHaveLanded = true) }
+        server.json(
+            "POST /api/file/upload",
+            """{"statusCode":409,"message":"x","errorCode":"FILE_ALREADY_UPLOADED"}""",
+            code = 409,
+        )
+        processor.process()
+        assertEquals(UploadState.Done, repository.uploads(42).first().single().state)
+    }
+
+    @Test
+    fun a_send_stopped_midway_goes_back_in_line() = runTest {
+        server.json("POST /api/file/upload", """{"fileId":"f-1","fileName":"a.pdf"}""")
+        val repository = repository()
+        repository.add(42, listOf("file:///picked/a.pdf"), UploadTarget())
+        val job = launch(Dispatchers.IO) { processor.process() }
+        job.cancel()
+        job.join()
+        val state = store.snapshot().single().state
+        assertTrue(state == UploadState.Queued || state == UploadState.Done, "stuck in $state")
+    }
+
+    @Test
+    fun files_still_copying_at_sign_out_are_not_queued() = runTest {
+        var signOut: suspend () -> Unit = {}
+        val slowStager = object : UploadStager {
+            override fun stage(uri: String, directory: File): Result<StagedUpload> {
+                // Sign-out lands while this file is being copied.
+                if ("second" in uri) runBlocking { signOut() }
+                directory.mkdirs()
+                val copy = File(directory, uri.substringAfterLast('/')).apply { writeText("%PDF-1.7 demo") }
+                return Result.success(StagedUpload(copy, copy.name, "application/pdf"))
+            }
+        }
+        val signingOut = LiveTaskUploadRepository(
+            server.service<TaskApi>(),
+            store,
+            slowStager,
+            TaskUploadScheduler { scheduled++ },
+            clock,
+            // Inline, so the sign-out inside the copy can finish without the test scheduler.
+            Dispatchers.Unconfined,
+            backgroundScope,
+        )
+        signOut = { signingOut.clear() }
+        signingOut.add(42, listOf("file:///picked/first.pdf", "file:///picked/second.pdf"), UploadTarget())
+        // The first was queued before the sign-out wiped the queue; the second never is.
+        assertTrue(store.snapshot().isEmpty())
+        assertEquals(0, scheduled)
     }
 
     @Test

@@ -1,5 +1,6 @@
 package com.waivera.waivera.feature.tasks.files
 
+import androidx.lifecycle.SavedStateHandle
 import app.cash.turbine.test
 import com.waivera.waivera.core.data.model.DocumentCategory
 import com.waivera.waivera.core.data.model.FileKind
@@ -32,7 +33,7 @@ class TaskUploadsViewModelTest {
     @Test
     fun required_files_load_and_an_empty_list_reads_as_ready() = runTest {
         repository.required = Result.success(emptyList())
-        val viewModel = TaskUploadsViewModel(TASK, repository)
+        val viewModel = TaskUploadsViewModel(TASK, repository, SavedStateHandle())
         viewModel.uiState.test {
             assertEquals(Loadable.Ready(emptyList()), awaitReady().required)
         }
@@ -41,7 +42,7 @@ class TaskUploadsViewModelTest {
     @Test
     fun a_failed_load_shows_an_error_and_retry_recovers() = runTest {
         repository.required = Result.failure(WaiveraError.Network(null))
-        val viewModel = TaskUploadsViewModel(TASK, repository)
+        val viewModel = TaskUploadsViewModel(TASK, repository, SavedStateHandle())
         viewModel.uiState.test {
             assertEquals(Loadable.Failed, expectMostRecentItem().required)
             repository.required = Result.success(listOf(PLAN))
@@ -53,7 +54,7 @@ class TaskUploadsViewModelTest {
     @Test
     fun a_reload_failure_keeps_the_list_already_shown() = runTest {
         repository.required = Result.success(listOf(PLAN))
-        val viewModel = TaskUploadsViewModel(TASK, repository)
+        val viewModel = TaskUploadsViewModel(TASK, repository, SavedStateHandle())
         viewModel.uiState.test {
             awaitReady()
             repository.required = Result.failure(WaiveraError.Network(null))
@@ -67,7 +68,7 @@ class TaskUploadsViewModelTest {
     @Test
     fun a_required_file_takes_one_file_under_its_name_and_forms_open_no_sheet() = runTest {
         repository.required = Result.success(listOf(PLAN, FORM))
-        val viewModel = TaskUploadsViewModel(TASK, repository)
+        val viewModel = TaskUploadsViewModel(TASK, repository, SavedStateHandle())
         viewModel.uiState.test {
             awaitReady()
             viewModel.startRequired(FORM.id)
@@ -90,9 +91,9 @@ class TaskUploadsViewModelTest {
     @Test
     fun an_extra_file_on_an_employee_task_waits_for_a_category() = runTest {
         repository.required = Result.success(emptyList())
-        val viewModel = TaskUploadsViewModel(TASK, repository).apply { employeeTask = true }
+        val viewModel = TaskUploadsViewModel(TASK, repository, SavedStateHandle())
         viewModel.uiState.test {
-            viewModel.startExtra()
+            viewModel.startExtra(employeeTask = true)
             runCurrent()
             val sheet = expectMostRecentItem().sheet
             assertEquals(Loadable.Ready(CATEGORIES), sheet?.categories)
@@ -115,9 +116,9 @@ class TaskUploadsViewModelTest {
     @Test
     fun backing_out_of_the_picker_keeps_the_sheet() = runTest {
         repository.required = Result.success(emptyList())
-        val viewModel = TaskUploadsViewModel(TASK, repository)
+        val viewModel = TaskUploadsViewModel(TASK, repository, SavedStateHandle())
         viewModel.uiState.test {
-            viewModel.startExtra()
+            viewModel.startExtra(employeeTask = false)
             viewModel.picked(emptyList())
             runCurrent()
             assertTrue(expectMostRecentItem().sheet != null)
@@ -129,7 +130,7 @@ class TaskUploadsViewModelTest {
     fun a_required_files_upload_shows_on_its_row_and_moves_out_once_the_requirement_is_gone() = runTest {
         repository.required = Result.success(listOf(PLAN))
         repository.uploads.value = listOf(upload("u1", requirementId = PLAN.id, state = UploadState.Uploading))
-        val viewModel = TaskUploadsViewModel(TASK, repository)
+        val viewModel = TaskUploadsViewModel(TASK, repository, SavedStateHandle())
         viewModel.uiState.test {
             val ready = awaitReady()
             assertEquals("u1", (ready.required as Loadable.Ready).value.single().upload?.id)
@@ -145,7 +146,7 @@ class TaskUploadsViewModelTest {
     @Test
     fun a_finished_upload_shows_as_done_then_reloads_the_lists_and_leaves() = runTest {
         repository.required = Result.success(listOf(PLAN))
-        val viewModel = TaskUploadsViewModel(TASK, repository)
+        val viewModel = TaskUploadsViewModel(TASK, repository, SavedStateHandle())
         viewModel.effects.test {
             runCurrent()
             val loadsBefore = repository.requiredLoads
@@ -167,7 +168,7 @@ class TaskUploadsViewModelTest {
     @Test
     fun a_requirement_filled_elsewhere_reloads_the_required_files_once() = runTest {
         repository.required = Result.success(listOf(PLAN))
-        val viewModel = TaskUploadsViewModel(TASK, repository)
+        val viewModel = TaskUploadsViewModel(TASK, repository, SavedStateHandle())
         viewModel.uiState.test {
             awaitReady()
             val loadsBefore = repository.requiredLoads
@@ -182,9 +183,32 @@ class TaskUploadsViewModelTest {
     }
 
     @Test
+    fun a_photo_taken_after_the_app_was_stopped_still_goes_to_its_requirement() = runTest {
+        repository.required = Result.success(listOf(PLAN))
+        val saved = SavedStateHandle()
+        val before = TaskUploadsViewModel(TASK, repository, saved)
+        before.uiState.test {
+            awaitReady()
+            before.startRequired(PLAN.id)
+            runCurrent()
+            cancelAndIgnoreRemainingEvents()
+        }
+        before.launching()
+
+        // The system stopped the app while the camera was open; a new view model gets the photo.
+        val after = TaskUploadsViewModel(TASK, repository, saved)
+        after.picked(listOf("file:///camera/photo.jpg", "file:///camera/extra.jpg"))
+        runCurrent()
+
+        val (uris, target) = repository.added.single()
+        assertEquals(listOf("file:///camera/photo.jpg"), uris)
+        assertEquals(PLAN.id, target.requirementId)
+    }
+
+    @Test
     fun retry_and_dismiss_go_to_the_repository() = runTest {
         repository.required = Result.success(emptyList())
-        val viewModel = TaskUploadsViewModel(TASK, repository)
+        val viewModel = TaskUploadsViewModel(TASK, repository, SavedStateHandle())
         viewModel.retry("u1")
         viewModel.dismiss("u2")
         assertEquals(listOf("u1"), repository.retried)

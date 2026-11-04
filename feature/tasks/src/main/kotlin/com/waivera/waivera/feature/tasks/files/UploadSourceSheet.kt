@@ -66,8 +66,14 @@ internal data class UploadSheetActions(
  * one photo, so the app holds no camera permission either. [onPicked] gets the chosen uris.
  */
 @Composable
-internal fun UploadSourceHost(sheet: UploadSheet?, actions: UploadSheetActions, onPicked: (List<String>) -> Unit) {
-    val pick = rememberUploadPicker(single = sheet?.single == true, onPicked = onPicked)
+internal fun UploadSourceHost(
+    sheet: UploadSheet?,
+    actions: UploadSheetActions,
+    onPicked: (List<String>) -> Unit,
+    onLaunch: () -> Unit = {},
+) {
+    // Registered even with no sheet, so a result that arrives after the app was stopped still lands.
+    val pick = rememberUploadPicker(single = sheet?.single == true, onPicked = onPicked, onLaunch = onLaunch)
     sheet ?: return
     WaiveraBottomSheet(
         onDismissRequest = actions.onDismiss,
@@ -83,7 +89,11 @@ internal fun UploadSourceHost(sheet: UploadSheet?, actions: UploadSheetActions, 
  * uris, or an empty list when the person backs out. [single] asks each picker for one file.
  */
 @Composable
-internal fun rememberUploadPicker(single: Boolean, onPicked: (List<String>) -> Unit): (UploadSource) -> Unit {
+internal fun rememberUploadPicker(
+    single: Boolean,
+    onPicked: (List<String>) -> Unit,
+    onLaunch: () -> Unit = {},
+): (UploadSource) -> Unit {
     val context = LocalContext.current
     val latest by rememberUpdatedState(onPicked)
     var cameraFile by rememberSaveable { mutableStateOf<String?>(null) }
@@ -105,6 +115,7 @@ internal fun rememberUploadPicker(single: Boolean, onPicked: (List<String>) -> U
         latest(uris.map(Uri::toString))
     }
     return { source ->
+        onLaunch()
         when (source) {
             UploadSource.Camera -> {
                 val (file, uri) = cameraTarget(context)

@@ -25,6 +25,7 @@
     <string name="feature_tasks_upload_photos_detail">From your gallery</string>
     <string name="feature_tasks_upload_files">Choose a file</string>
     <string name="feature_tasks_upload_files_detail">PDFs and images from Files, Drive and more</string>
+    <string name="feature_tasks_upload_unnamed">Unnamed file</string>
     <string name="feature_tasks_upload_waiting">Waiting to upload</string>
     <string name="feature_tasks_upload_starting">Uploading…</string>
     <string name="feature_tasks_upload_progress">Uploading… %1$d%% of %2$s</string>

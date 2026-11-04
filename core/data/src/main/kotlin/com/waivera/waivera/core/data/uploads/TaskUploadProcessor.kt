@@ -9,8 +9,11 @@ import com.waivera.waivera.core.network.error.apiCall
 import java.io.File
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlin.coroutines.cancellation.CancellationException
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.withContext
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.MultipartBody
 
@@ -55,13 +58,29 @@ class TaskUploadProcessor @Inject constructor(private val api: TaskApi, private 
         } catch (error: WaiveraError) {
             store.setProgress(entry.id, null)
             settleFailure(entry, error)
+        } catch (cancelled: CancellationException) {
+            // The worker was stopped mid-send (network lost, system limits): back in line for its next run.
+            withContext(NonCancellable) {
+                store.setProgress(entry.id, null)
+                store.update(entry.id) { it.copy(state = UploadState.Queued) }
+            }
+            throw cancelled
         }
     }
 
     /** A dropped connection puts the file back in line (false); anything else fails it with a reason. */
     private suspend fun settleFailure(entry: UploadEntry, error: WaiveraError): Boolean {
         val offline = error is WaiveraError.Network || error is WaiveraError.Timeout
-        if (offline) store.update(entry.id) { it.copy(state = UploadState.Queued) } else fail(entry, problem(error))
+        val problem = problem(error)
+        when {
+            offline -> store.update(entry.id) {
+                // A timeout can come after the server saved the file; the resend then says so.
+                it.copy(state = UploadState.Queued, mayHaveLanded = it.mayHaveLanded || error is WaiveraError.Timeout)
+            }
+            problem == UploadProblem.AlreadyFilled && entry.mayHaveLanded ->
+                store.update(entry.id) { it.copy(state = UploadState.Done) }
+            else -> fail(entry, problem)
+        }
         return !offline
     }
 

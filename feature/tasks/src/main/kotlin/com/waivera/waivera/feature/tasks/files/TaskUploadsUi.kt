@@ -181,6 +181,7 @@ internal fun UploadRows(uploads: List<UploadRow>, actions: UploadActions) {
 private fun UploadRowItem(row: UploadRow, actions: UploadActions) {
     val colors = WaiveraTheme.colors
     val note = uploadNote(row)
+    val name = row.name.ifEmpty { stringResource(R.string.feature_tasks_upload_unnamed) }
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -192,7 +193,7 @@ private fun UploadRowItem(row: UploadRow, actions: UploadActions) {
         KindTile(row.kind, Modifier.align(Alignment.Top))
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(WaiveraSpacing.XxSmall)) {
             Text(
-                text = row.name,
+                text = name,
                 style = MaterialTheme.typography.titleSmall,
                 color = colors.text,
                 maxLines = 2,
@@ -205,7 +206,7 @@ private fun UploadRowItem(row: UploadRow, actions: UploadActions) {
         if (row.state == UploadState.Failed && row.problem?.canRetry != true) {
             WaiveraIconButton(
                 icon = WaiveraIcons.Close,
-                contentDescription = stringResource(R.string.feature_tasks_upload_dismiss, row.name),
+                contentDescription = stringResource(R.string.feature_tasks_upload_dismiss, name),
                 onClick = { actions.onDismissUpload(row.id) },
             )
         }

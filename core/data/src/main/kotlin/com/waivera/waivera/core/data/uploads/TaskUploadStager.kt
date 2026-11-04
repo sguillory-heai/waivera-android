@@ -46,12 +46,16 @@ class AndroidUploadStager @Inject constructor(@ApplicationContext private val co
         val type = UploadChecks.sniff(header)
         directory.mkdirs()
         val target = File(directory, UUID.randomUUID().toString())
-        // Some providers report no size; the copy's length is the truth either way.
-        val size = reportedSize ?: copy(parsed, target).also { target.delete() }
+        // Some providers report no size: copy once and measure the copy, which is kept for sending.
+        val copied = reportedSize == null
+        val size = reportedSize ?: copy(parsed, target)
         return when (val plan = UploadChecks.plan(type, size)) {
-            is UploadChecks.Plan.Refuse -> throw UploadRefused(plan.problem)
+            is UploadChecks.Plan.Refuse -> {
+                target.delete()
+                throw UploadRefused(plan.problem)
+            }
             UploadChecks.Plan.Send -> {
-                copy(parsed, target)
+                if (!copied) copy(parsed, target)
                 val problem = when {
                     target.length() <= 0L -> UploadProblem.Empty
                     target.length() > UploadChecks.MAX_BYTES -> UploadProblem.TooLarge

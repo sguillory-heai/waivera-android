@@ -1,6 +1,7 @@
 package com.waivera.waivera.feature.tasks.files
 
 import androidx.compose.runtime.Immutable
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.waivera.waivera.core.data.model.DocumentCategory
@@ -11,6 +12,7 @@ import com.waivera.waivera.core.data.model.UploadProblem
 import com.waivera.waivera.core.data.model.UploadState
 import com.waivera.waivera.core.data.model.UploadTarget
 import com.waivera.waivera.core.data.repository.TaskUploadRepository
+import com.waivera.waivera.core.network.WaiveraJson
 import com.waivera.waivera.feature.tasks.Loadable
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedFactory
@@ -88,10 +90,8 @@ sealed interface TaskUploadsEffect {
 class TaskUploadsViewModel @AssistedInject constructor(
     @Assisted private val taskId: Int,
     private val repository: TaskUploadRepository,
+    private val saved: SavedStateHandle,
 ) : ViewModel() {
-    /** Set once the task loads: an extra file on an employee task needs a category. */
-    var employeeTask: Boolean = false
-
     private val required = MutableStateFlow<Loadable<List<RequiredFile>>>(Loadable.Loading)
     private val sheet = MutableStateFlow<UploadSheet?>(null)
     private val settling = mutableSetOf<String>()
@@ -152,7 +152,8 @@ class TaskUploadsViewModel @AssistedInject constructor(
         )
     }
 
-    fun startExtra() {
+    /** An extra file on an employee task is filed under a category first. */
+    fun startExtra(employeeTask: Boolean) {
         sheet.value = UploadSheet(target = UploadTarget(), title = null, needsCategory = employeeTask, single = false)
         if (employeeTask) loadCategories()
     }
@@ -173,13 +174,30 @@ class TaskUploadsViewModel @AssistedInject constructor(
         sheet.value = null
     }
 
+    /**
+     * About to open a picker or the camera: remember where its files go, since the app can be
+     * stopped while the camera or picker is in front and the sheet's state is gone on return.
+     */
+    fun launching() {
+        val current = sheet.value ?: return
+        saved[PENDING_TARGET] = WaiveraJson.encodeToString(UploadTarget.serializer(), current.target)
+        saved[PENDING_SINGLE] = current.single
+    }
+
     /** The picker's result; an empty list means the person backed out, and the sheet stays. */
     fun picked(uris: List<String>) {
-        val current = sheet.value ?: return
-        if (uris.isEmpty() || !current.ready) return
+        val current = sheet.value
+        val target = current?.target ?: pendingTarget() ?: return
+        val single = current?.single ?: saved.get<Boolean>(PENDING_SINGLE) ?: true
+        if (uris.isEmpty() || current?.ready == false) return
         sheet.value = null
-        val chosen = if (current.single) uris.take(1) else uris
-        viewModelScope.launch { repository.add(taskId, chosen, current.target) }
+        saved.remove<String>(PENDING_TARGET)
+        val chosen = if (single) uris.take(1) else uris
+        viewModelScope.launch { repository.add(taskId, chosen, target) }
+    }
+
+    private fun pendingTarget(): UploadTarget? = saved.get<String>(PENDING_TARGET)?.let {
+        runCatching { WaiveraJson.decodeFromString(UploadTarget.serializer(), it) }.getOrNull()
     }
 
     fun retry(id: String) = repository.retry(id)
@@ -219,6 +237,8 @@ class TaskUploadsViewModel @AssistedInject constructor(
 
     private companion object {
         const val STOP_TIMEOUT_MILLIS = 5_000L
+        const val PENDING_TARGET = "upload_pending_target"
+        const val PENDING_SINGLE = "upload_pending_single"
 
         /** sprout_web shows the checkmark, then reloads the list after 2.5 s. */
         const val SETTLE_MILLIS = 2_500L

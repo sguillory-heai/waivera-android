@@ -38,6 +38,7 @@ import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
 import java.time.temporal.ChronoUnit
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -220,6 +221,7 @@ class TaskDetailViewModel @AssistedInject constructor(
     private val clock: Clock,
 ) : ViewModel() {
     private val local = MutableStateFlow(Local())
+    private var preparing: Job? = null
     private val effectChannel = Channel<TaskDetailEffect>(Channel.BUFFERED)
     val effects: Flow<TaskDetailEffect> = effectChannel.receiveAsFlow()
     private val zone = calendar.zone.distinctUntilChanged()
@@ -381,6 +383,7 @@ class TaskDetailViewModel @AssistedInject constructor(
     fun dismissLog() {
         val form = local.value.log ?: return
         if (form.isSaving) return
+        preparing?.cancel()
         local.update { it.copy(log = null) }
         form.file?.let { viewModelScope.launch { uploads.discard(it) } }
     }
@@ -409,7 +412,9 @@ class TaskDetailViewModel @AssistedInject constructor(
         val form = local.value.log ?: return
         if (form.isSaving || form.sentAs != null) return
         updateLog { it.copy(fileChecking = true, fileProblem = null, file = null, failed = false) }
-        viewModelScope.launch {
+        // A newer pick wins; the repository keeps only the latest prepared file anyway.
+        preparing?.cancel()
+        preparing = viewModelScope.launch {
             val result = uploads.prepare(uri)
             updateLog {
                 it.copy(

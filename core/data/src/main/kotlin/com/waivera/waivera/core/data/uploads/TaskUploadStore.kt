@@ -36,6 +36,8 @@ data class UploadEntry(
     val problem: UploadProblem? = null,
     val savedName: String? = null,
     val createdAtMillis: Long = 0,
+    /** An earlier send timed out, so the server may already hold this file. */
+    val mayHaveLanded: Boolean = false,
 )
 
 /**
@@ -63,6 +65,13 @@ class TaskUploadStore @Inject constructor(@TaskUploadDirectory private val direc
     suspend fun snapshot(): List<UploadEntry> = load()
 
     suspend fun put(entry: UploadEntry) = edit { list -> list.filterNot { it.id == entry.id } + entry }
+
+    /** Adds [entry] unless [stale] says, under the lock, that the queue was cleared meanwhile. */
+    suspend fun putUnless(entry: UploadEntry, stale: () -> Boolean): Boolean = mutex.withLock {
+        if (stale()) return@withLock false
+        saveLocked(loadLocked().filterNot { it.id == entry.id } + entry)
+        true
+    }
 
     suspend fun update(id: String, change: (UploadEntry) -> UploadEntry) =
         edit { list -> list.map { if (it.id == id) change(it) else it } }

@@ -119,9 +119,6 @@ fun TaskDetailScreen(
         creationCallback = { factory -> factory.create(taskId) },
     )
     val uploads by uploadsViewModel.uiState.collectAsStateWithLifecycle()
-    LaunchedEffect(state.task?.isClientTask) {
-        state.task?.let { uploadsViewModel.employeeTask = !it.isClientTask }
-    }
     LaunchedEffect(uploadsViewModel) {
         uploadsViewModel.effects.collect { effect ->
             when (effect) {
@@ -136,7 +133,8 @@ fun TaskDetailScreen(
             onUploadRequired = uploadsViewModel::startRequired,
             onOpenForm = viewModel::openOnWeb,
             onRetryRequired = uploadsViewModel::loadRequired,
-            onAddFile = uploadsViewModel::startExtra,
+            // The footer shows only once the task has loaded, so its kind is known here.
+            onAddFile = { state.task?.let { uploadsViewModel.startExtra(employeeTask = !it.isClientTask) } },
             onRetryUpload = uploadsViewModel::retry,
             onDismissUpload = uploadsViewModel::dismiss,
         ),
@@ -161,6 +159,7 @@ fun TaskDetailScreen(
             onRetryCategories = uploadsViewModel::loadCategories,
         ),
         onPicked = uploadsViewModel::picked,
+        onLaunch = uploadsViewModel::launching,
     )
     state.ask?.let { form ->
         AskChangeSheet(

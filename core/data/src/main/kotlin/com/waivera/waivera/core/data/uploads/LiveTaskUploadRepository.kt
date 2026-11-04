@@ -36,6 +36,7 @@ import java.io.File
 import java.time.Clock
 import java.util.UUID
 import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicInteger
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.CoroutineDispatcher
@@ -109,6 +110,7 @@ class LiveTaskUploadRepository @Inject constructor(
     SignOutCleaner {
     @Volatile
     private var resumed = false
+    private val generation = AtomicInteger()
 
     override fun uploads(taskId: Int): Flow<List<TaskUpload>> = flow {
         resumeOnce()
@@ -141,42 +143,54 @@ class LiveTaskUploadRepository @Inject constructor(
         }
     }
 
+    /**
+     * Copies and queues on the app scope, so leaving the screen mid-copy still queues every file.
+     * A sign-out meanwhile ([clear]) moves the generation on and the rest are dropped, not queued.
+     */
     override suspend fun add(taskId: Int, uris: List<String>, target: UploadTarget) {
-        withContext(io) {
-            uris.take(UploadChecks.MAX_FILES).forEach { uri ->
-                val id = UUID.randomUUID().toString()
-                val now = clock.millis()
-                val entry = stager.stage(uri, store.stagingDirectory).fold(
-                    onSuccess = { staged ->
-                        UploadEntry(
-                            id = id,
-                            taskId = taskId,
-                            localPath = staged.file.path,
-                            fileName = staged.fileName,
-                            mimeType = staged.mimeType,
-                            sizeBytes = staged.file.length(),
-                            target = target,
-                            createdAtMillis = now,
-                        )
-                    },
-                    onFailure = { error ->
-                        UploadEntry(
-                            id = id,
-                            taskId = taskId,
-                            fileName = (error as? UploadRefused)?.pickedName?.substringAfterLast('/')
-                                ?: target.requirementName ?: FALLBACK_NAME,
-                            mimeType = "",
-                            target = target,
-                            state = UploadState.Failed,
-                            problem = (error as? UploadRefused)?.problem ?: UploadProblem.Unreadable,
-                            createdAtMillis = now,
-                        )
-                    },
-                )
-                store.put(entry)
+        val started = generation.get()
+        scope.launch(io) {
+            stageAll(taskId, uris, target, started)
+            if (generation.get() == started) scheduler.schedule()
+        }.join()
+    }
+
+    private suspend fun stageAll(taskId: Int, uris: List<String>, target: UploadTarget, started: Int) {
+        uris.take(UploadChecks.MAX_FILES).forEach { uri ->
+            val id = UUID.randomUUID().toString()
+            val now = clock.millis()
+            val entry = stager.stage(uri, store.stagingDirectory).fold(
+                onSuccess = { staged ->
+                    UploadEntry(
+                        id = id,
+                        taskId = taskId,
+                        localPath = staged.file.path,
+                        fileName = staged.fileName,
+                        mimeType = staged.mimeType,
+                        sizeBytes = staged.file.length(),
+                        target = target,
+                        createdAtMillis = now,
+                    )
+                },
+                onFailure = { error ->
+                    UploadEntry(
+                        id = id,
+                        taskId = taskId,
+                        fileName = (error as? UploadRefused)?.pickedName?.substringAfterLast('/')
+                            ?: target.requirementName ?: FALLBACK_NAME,
+                        mimeType = "",
+                        target = target,
+                        state = UploadState.Failed,
+                        problem = (error as? UploadRefused)?.problem ?: UploadProblem.Unreadable,
+                        createdAtMillis = now,
+                    )
+                },
+            )
+            if (!store.putUnless(entry) { generation.get() != started }) {
+                entry.localPath?.let { File(it).delete() }
+                return
             }
         }
-        scheduler.schedule()
     }
 
     override fun retry(id: String) {
@@ -233,6 +247,7 @@ class LiveTaskUploadRepository @Inject constructor(
     }
 
     override suspend fun clear() {
+        generation.incrementAndGet()
         scheduler.cancel()
         withContext(io) { store.clear() }
     }
@@ -258,6 +273,7 @@ class LiveTaskUploadRepository @Inject constructor(
     )
 
     private companion object {
-        const val FALLBACK_NAME = "File"
+        /** No usable name: the row shows the app's own word for it. */
+        const val FALLBACK_NAME = ""
     }
 }
