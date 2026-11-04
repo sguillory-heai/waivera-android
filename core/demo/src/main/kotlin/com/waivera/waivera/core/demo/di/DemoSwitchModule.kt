@@ -14,6 +14,7 @@ import com.waivera.waivera.core.data.live.LivePushRegistrationRepository
 import com.waivera.waivera.core.data.live.LiveRealtimeStatusRepository
 import com.waivera.waivera.core.data.live.LiveSessionRepository
 import com.waivera.waivera.core.data.live.LiveSettingsRepository
+import com.waivera.waivera.core.data.live.LiveTaskRepository
 import com.waivera.waivera.core.data.live.LiveThreadRepository
 import com.waivera.waivera.core.data.repository.ActivityRepository
 import com.waivera.waivera.core.data.repository.AttachmentRepository
@@ -30,6 +31,7 @@ import com.waivera.waivera.core.data.repository.PushRegistrationRepository
 import com.waivera.waivera.core.data.repository.RealtimeStatusRepository
 import com.waivera.waivera.core.data.repository.SessionRepository
 import com.waivera.waivera.core.data.repository.SettingsRepository
+import com.waivera.waivera.core.data.repository.TaskRepository
 import com.waivera.waivera.core.data.repository.ThreadRepository
 import com.waivera.waivera.core.data.sync.LiveDataLayerStarter
 import com.waivera.waivera.core.demo.DemoActivityRepository
@@ -49,6 +51,7 @@ import com.waivera.waivera.core.demo.DemoRealtimeClient
 import com.waivera.waivera.core.demo.DemoRealtimeStatusRepository
 import com.waivera.waivera.core.demo.DemoSessionRepository
 import com.waivera.waivera.core.demo.DemoSettingsRepository
+import com.waivera.waivera.core.demo.DemoTaskRepository
 import com.waivera.waivera.core.demo.DemoThreadRepository
 import com.waivera.waivera.core.network.AuthTokenProvider
 import com.waivera.waivera.core.realtime.DefaultRealtimeClient
@@ -139,6 +142,10 @@ object DemoSwitchModule {
         live: Provider<LiveNoticeRepository>,
         demo: Provider<DemoNoticeRepository>,
     ): NoticeRepository = pick(mode, live, demo)
+
+    @Provides
+    fun tasks(mode: DemoMode, live: Provider<LiveTaskRepository>, demo: Provider<DemoTaskRepository>): TaskRepository =
+        pick(mode, live, demo)
 
     @Provides
     fun people(

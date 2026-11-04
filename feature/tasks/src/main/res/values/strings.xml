@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="feature_tasks_title">Tasks</string>
+    <string name="feature_tasks_tab">Tasks</string>
+    <string name="feature_tasks_search">Search by task, number or person</string>
+    <string name="feature_tasks_search_clear">Clear search</string>
+    <string name="feature_tasks_window_due_soon">Due soon</string>
+    <string name="feature_tasks_window_overdue">Overdue</string>
+    <string name="feature_tasks_window_all">All open</string>
+    <plurals name="feature_tasks_meta_open">
+        <item quantity="one">%d open</item>
+        <item quantity="other">%d open</item>
+    </plurals>
+    <plurals name="feature_tasks_meta_overdue">
+        <item quantity="one">%d overdue</item>
+        <item quantity="other">%d overdue</item>
+    </plurals>
+    <string name="feature_tasks_meta_separator">%1$s · %2$s</string>
+    <plurals name="feature_tasks_meta_matches">
+        <item quantity="one">%d match</item>
+        <item quantity="other">%d matches</item>
+    </plurals>
+    <string name="feature_tasks_refresh">Refresh tasks</string>
+    <string name="feature_tasks_refresh_failed">Couldn\'t refresh your tasks.</string>
+    <string name="feature_tasks_try_again">Try again</string>
+    <string name="feature_tasks_error_title">Couldn\'t load your tasks</string>
+    <string name="feature_tasks_empty_due_soon_title">Nothing due soon</string>
+    <string name="feature_tasks_empty_due_soon_message">No open tasks are due in the next month.</string>
+    <string name="feature_tasks_empty_overdue_title">Nothing overdue</string>
+    <string name="feature_tasks_empty_overdue_message">You\'re on top of every deadline.</string>
+    <string name="feature_tasks_empty_all_title">No open tasks</string>
+    <string name="feature_tasks_empty_all_message">Tasks assigned to you show up here.</string>
+    <string name="feature_tasks_no_match_title">No tasks match</string>
+    <string name="feature_tasks_no_match_message">Try another name, title or task number.</string>
+    <string name="feature_tasks_clear_search">Clear search</string>
+    <string name="feature_tasks_open_task">Open task</string>
+    <string name="feature_tasks_loading">Loading tasks</string>
+    <string name="feature_tasks_loading_more">Loading more tasks</string>
+
+    <string name="feature_tasks_due_today">Due today</string>
+    <string name="feature_tasks_due_tomorrow">Due tomorrow</string>
+    <string name="feature_tasks_due_on">Due %1$s</string>
+    <string name="feature_tasks_was_due_yesterday">Was due yesterday</string>
+    <string name="feature_tasks_was_due_on">Was due %1$s</string>
+    <string name="feature_tasks_no_due">No due date</string>
+
+    <string name="feature_tasks_state_not_started">Not started</string>
+    <string name="feature_tasks_state_in_progress">In progress</string>
+    <string name="feature_tasks_state_in_review">In review</string>
+    <string name="feature_tasks_state_completed">Completed</string>
+    <string name="feature_tasks_state_closed">Closed</string>
+
+    <string name="feature_tasks_detail_section">Details</string>
+    <string name="feature_tasks_field_status">Status</string>
+    <string name="feature_tasks_field_due">Due</string>
+    <string name="feature_tasks_field_about">About</string>
+    <string name="feature_tasks_field_type">Type</string>
+    <string name="feature_tasks_field_assigned_by">Assigned by</string>
+    <string name="feature_tasks_description_section">Description</string>
+    <string name="feature_tasks_activity_section">Recent activity</string>
+    <string name="feature_tasks_activity_empty">No activity logged yet.</string>
+    <string name="feature_tasks_activity_error">Couldn\'t load the activity.</string>
+    <string name="feature_tasks_activity_row">%1$s · %2$s</string>
+    <string name="feature_tasks_activity_by_you">You</string>
+    <string name="feature_tasks_activity_when_by">%1$s · %2$s</string>
+    <string name="feature_tasks_detail_error_title">Couldn\'t load this task</string>
+    <string name="feature_tasks_finished_note">This task is finished, so activity can\'t be added.</string>
+    <string name="feature_tasks_log_activity">Log activity</string>
+    <string name="feature_tasks_open_on_web">Open on web</string>
+    <string name="feature_tasks_web_unavailable">The web app isn\'t set up in this build.</string>
+    <string name="feature_tasks_web_failed">Couldn\'t open the web app.</string>
+
+    <string name="feature_tasks_log_title">Log activity</string>
+    <string name="feature_tasks_log_type">Activity type</string>
+    <string name="feature_tasks_log_type_placeholder">Choose a type</string>
+    <string name="feature_tasks_log_type_required">Choose an activity type</string>
+    <string name="feature_tasks_log_types_error">Couldn\'t load activity types.</string>
+    <string name="feature_tasks_log_time">Time spent</string>
+    <string name="feature_tasks_log_less">15 minutes less</string>
+    <string name="feature_tasks_log_more">15 minutes more</string>
+    <string name="feature_tasks_log_time_set_by_type">Set by this activity type</string>
+    <string name="feature_tasks_log_when">When</string>
+    <string name="feature_tasks_log_when_placeholder">Pick a time</string>
+    <string name="feature_tasks_log_when_future">Pick a time that has already happened</string>
+    <string name="feature_tasks_log_what">What was done</string>
+    <string name="feature_tasks_log_what_placeholder">Describe the work completed or progress made</string>
+    <string name="feature_tasks_log_what_required">Describe what was done</string>
+    <string name="feature_tasks_log_submit">Log activity</string>
+    <string name="feature_tasks_log_saving">Logging activity</string>
+    <string name="feature_tasks_log_failed">Couldn\'t log the activity. Try again.</string>
+    <string name="feature_tasks_log_done">Activity logged</string>
+    <string name="feature_tasks_log_file_types_on_web">Activity types that need a file are on the web.</string>
+    <string name="feature_tasks_pick_time_ok">Done</string>
+    <string name="feature_tasks_pick_cancel">Cancel</string>
+    <string name="feature_tasks_today_at">Today, %1$s</string>
+    <string name="feature_tasks_yesterday_at">Yesterday, %1$s</string>
+    <string name="feature_tasks_day_at">%1$s, %2$s</string>
+
+    <plurals name="feature_tasks_hours">
+        <item quantity="one">%d hr</item>
+        <item quantity="other">%d hr</item>
+    </plurals>
+    <plurals name="feature_tasks_minutes">
+        <item quantity="one">%d min</item>
+        <item quantity="other">%d min</item>
+    </plurals>
+    <string name="feature_tasks_hours_minutes">%1$s %2$s</string>
+</resources>

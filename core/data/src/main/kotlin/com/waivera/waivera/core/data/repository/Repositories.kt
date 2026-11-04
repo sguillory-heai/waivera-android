@@ -1,6 +1,7 @@
 package com.waivera.waivera.core.data.repository
 
 import com.waivera.waivera.core.data.model.ActivityFeed
+import com.waivera.waivera.core.data.model.ActivityType
 import com.waivera.waivera.core.data.model.AppSettings
 import com.waivera.waivera.core.data.model.AttachmentSource
 import com.waivera.waivera.core.data.model.Bookmark
@@ -12,6 +13,7 @@ import com.waivera.waivera.core.data.model.Message
 import com.waivera.waivera.core.data.model.MessageThread
 import com.waivera.waivera.core.data.model.MessageTimeline
 import com.waivera.waivera.core.data.model.Milestone
+import com.waivera.waivera.core.data.model.NewActivity
 import com.waivera.waivera.core.data.model.Notice
 import com.waivera.waivera.core.data.model.NoticeFeed
 import com.waivera.waivera.core.data.model.NotificationCategory
@@ -24,6 +26,11 @@ import com.waivera.waivera.core.data.model.ScheduleEvent
 import com.waivera.waivera.core.data.model.ScheduleFeed
 import com.waivera.waivera.core.data.model.SessionState
 import com.waivera.waivera.core.data.model.Synced
+import com.waivera.waivera.core.data.model.TaskActivity
+import com.waivera.waivera.core.data.model.TaskCounts
+import com.waivera.waivera.core.data.model.TaskDetail
+import com.waivera.waivera.core.data.model.TaskPage
+import com.waivera.waivera.core.data.model.TaskWindow
 import com.waivera.waivera.core.data.model.ThemePreference
 import com.waivera.waivera.core.data.model.TimeOffSummary
 import com.waivera.waivera.core.data.model.currentUserId
@@ -245,6 +252,26 @@ interface NoticeRepository {
      * reads as read here. Nothing is sent; the server already has it.
      */
     suspend fun onReadElsewhere(notificationId: String?) = Unit
+}
+
+/**
+ * The person's own tasks, read straight from the server each time: the list is small, changes
+ * on the web, and the server is authoritative. Logging activity is the only write.
+ */
+interface TaskRepository {
+    suspend fun myTasks(window: TaskWindow, search: String, page: Int): Result<TaskPage>
+
+    /** How many open tasks the person has, and how many of them are overdue. */
+    suspend fun counts(): Result<TaskCounts>
+
+    suspend fun task(id: Int): Result<TaskDetail>
+
+    /** Newest first. */
+    suspend fun activity(taskId: Int): Result<List<TaskActivity>>
+
+    suspend fun activityTypes(): Result<List<ActivityType>>
+
+    suspend fun logActivity(activity: NewActivity): Result<Unit>
 }
 
 interface PeopleRepository {

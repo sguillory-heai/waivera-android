@@ -20,6 +20,8 @@ import com.waivera.waivera.feature.profile.ProfileScreen
 import com.waivera.waivera.feature.settings.AppearanceScreen
 import com.waivera.waivera.feature.settings.NotificationSettingsScreen
 import com.waivera.waivera.feature.settings.SettingsScreen
+import com.waivera.waivera.feature.tasks.TaskDetailScreen
+import com.waivera.waivera.feature.tasks.TasksScreen
 import com.waivera.waivera.feature.today.TodayScreen
 import com.waivera.waivera.feature.today.notices.NoticesScreen
 import com.waivera.waivera.navigation.AppRoute
@@ -37,6 +39,8 @@ import com.waivera.waivera.navigation.PersonRoute
 import com.waivera.waivera.navigation.ProfileRoute
 import com.waivera.waivera.navigation.ScheduleRoute
 import com.waivera.waivera.navigation.SettingsRoute
+import com.waivera.waivera.navigation.TaskRoute
+import com.waivera.waivera.navigation.TasksRoute
 import com.waivera.waivera.navigation.ThreadRoute
 import com.waivera.waivera.navigation.TodayRoute
 import com.waivera.waivera.navigation.TopLevelTab
@@ -114,6 +118,11 @@ fun RouteContent(route: AppRoute, actions: RouteActions) {
             focus = actions.scheduleFocus,
             onFocusHandled = actions.scheduleFocusHandled,
         )
+        TasksRoute -> TasksScreen(
+            onAccountClick = actions.openAccountMenu,
+            onOpenTask = { id -> actions.push(TaskRoute(id)) },
+        )
+        is TaskRoute -> TaskDetailScreen(taskId = route.taskId, onBack = actions.back)
         is ConversationRoute -> ConversationScreen(
             conversationId = route.conversationId,
             highlightMessageId = route.messageId,

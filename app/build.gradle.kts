@@ -41,6 +41,7 @@ dependencies {
     implementation(projects.feature.chat)
     implementation(projects.feature.profile)
     implementation(projects.feature.settings)
+    implementation(projects.feature.tasks)
     implementation(projects.feature.today)
 
     implementation(libs.androidx.activity.compose)

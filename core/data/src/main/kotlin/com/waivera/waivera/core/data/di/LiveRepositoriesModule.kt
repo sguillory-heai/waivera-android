@@ -14,6 +14,7 @@ import com.waivera.waivera.core.data.live.LivePushRegistrationRepository
 import com.waivera.waivera.core.data.live.LiveRealtimeStatusRepository
 import com.waivera.waivera.core.data.live.LiveSessionRepository
 import com.waivera.waivera.core.data.live.LiveSettingsRepository
+import com.waivera.waivera.core.data.live.LiveTaskRepository
 import com.waivera.waivera.core.data.live.LiveThreadRepository
 import com.waivera.waivera.core.data.repository.ActivityRepository
 import com.waivera.waivera.core.data.repository.AttachmentRepository
@@ -30,6 +31,7 @@ import com.waivera.waivera.core.data.repository.PushRegistrationRepository
 import com.waivera.waivera.core.data.repository.RealtimeStatusRepository
 import com.waivera.waivera.core.data.repository.SessionRepository
 import com.waivera.waivera.core.data.repository.SettingsRepository
+import com.waivera.waivera.core.data.repository.TaskRepository
 import com.waivera.waivera.core.data.repository.ThreadRepository
 import com.waivera.waivera.core.data.sync.LiveDataLayerStarter
 import com.waivera.waivera.core.network.AuthTokenProvider
@@ -76,6 +78,9 @@ interface LiveRepositoriesModule {
 
     @Binds
     fun notices(impl: LiveNoticeRepository): NoticeRepository
+
+    @Binds
+    fun tasks(impl: LiveTaskRepository): TaskRepository
 
     @Binds
     fun people(impl: LivePeopleRepository): PeopleRepository

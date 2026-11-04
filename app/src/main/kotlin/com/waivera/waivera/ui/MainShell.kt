@@ -43,6 +43,7 @@ import com.waivera.waivera.core.designsystem.component.WaiveraNavigationBar
 import com.waivera.waivera.core.designsystem.component.WaiveraSnackbarHost
 import com.waivera.waivera.core.designsystem.icon.WaiveraIcons
 import com.waivera.waivera.core.designsystem.theme.WaiveraTheme
+import com.waivera.waivera.feature.tasks.R as TasksR
 import com.waivera.waivera.navigation.ShellEntry
 import com.waivera.waivera.navigation.ShellUiState
 import com.waivera.waivera.navigation.TopLevelTab
@@ -202,5 +203,10 @@ private fun tabItems(unreadTotal: Int): List<NavigationBarItemModel> = listOf(
         key = TopLevelTab.Schedule.name,
         label = stringResource(R.string.shell_tab_schedule),
         icon = WaiveraIcons.Calendar,
+    ),
+    NavigationBarItemModel(
+        key = TopLevelTab.Tasks.name,
+        label = stringResource(TasksR.string.feature_tasks_tab),
+        icon = TasksR.drawable.feature_tasks_ic_task,
     ),
 )

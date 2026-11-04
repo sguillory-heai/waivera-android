@@ -10,12 +10,13 @@ import kotlinx.serialization.Serializable
 @Serializable
 sealed interface AppRoute : NavKey
 
-/** The three bottom tabs, in display order. */
+/** The bottom tabs, in display order. */
 @Serializable
 enum class TopLevelTab(val root: AppRoute) {
     Today(TodayRoute),
     Chat(ChatListRoute),
     Schedule(ScheduleRoute),
+    Tasks(TasksRoute),
 }
 
 @Serializable
@@ -26,6 +27,13 @@ data object ChatListRoute : AppRoute
 
 @Serializable
 data object ScheduleRoute : AppRoute
+
+@Serializable
+data object TasksRoute : AppRoute
+
+/** [taskId] is the server's numeric task id, not the "ORG-123" key. */
+@Serializable
+data class TaskRoute(val taskId: Int) : AppRoute
 
 /** [messageId] scrolls to and highlights one message (push, search, bookmark). */
 @Serializable
@@ -75,7 +83,7 @@ data object ChangePasswordRoute : AppRoute
 @Serializable
 data object AppearanceRoute : AppRoute
 
-/** True for the three tab roots, where the bottom bar shows. */
+/** True for the tab roots, where the bottom bar shows. */
 val AppRoute.isTabRoot: Boolean
     get() = TopLevelTab.entries.any { it.root == this }
 
@@ -106,5 +114,6 @@ val AppRoute.contentKey: String
         is GroupMembersRoute -> "members:$conversationId"
         is CalendarEventRoute -> "event:$eventId"
         is PersonRoute -> "person:$userId"
+        is TaskRoute -> "task:$taskId"
         else -> toString()
     }
