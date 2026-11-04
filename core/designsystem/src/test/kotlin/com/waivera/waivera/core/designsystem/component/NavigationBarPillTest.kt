@@ -2,6 +2,7 @@ package com.waivera.waivera.core.designsystem.component
 
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toPixelMap
@@ -10,6 +11,7 @@ import androidx.compose.ui.test.getBoundsInRoot
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onRoot
+import androidx.compose.ui.test.performClick
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.waivera.waivera.core.designsystem.icon.WaiveraIcons
@@ -151,6 +153,71 @@ class NavigationBarPillTest {
         assertTrue("the pill did not land full size", abs((landed.last - landed.first) - restWidth) <= 2)
     }
 
+    /**
+     * A tapped tab's screen is asked for only once the pill is well on its way, so building the
+     * screen cannot freeze the pill at the old tab; with animations removed it is asked for at once.
+     */
+    @Test
+    fun a_tapped_tab_opens_once_the_pill_is_under_way() {
+        val picked = mutableListOf<String>()
+        compose.mainClock.autoAdvance = false
+        compose.setContent {
+            var selected by remember { mutableStateOf("today") }
+            WaiveraTheme(darkTheme = false, motion = WaiveraMotionScheme.Standard, hapticsEnabled = false) {
+                WaiveraNavigationBar(
+                    items = listOf(
+                        NavigationBarItemModel(key = "today", label = "Today", icon = WaiveraIcons.Today),
+                        NavigationBarItemModel(key = "chat", label = "Chat", icon = WaiveraIcons.Chat),
+                    ),
+                    selectedKey = selected,
+                    onSelect = {
+                        picked += it
+                        selected = it
+                    },
+                )
+            }
+        }
+        compose.mainClock.advanceTimeBy(SETTLE_MILLIS)
+        val icons = compose.onAllNodesWithTag(NAV_ICON_TEST_TAG, useUnmergedTree = true)
+        val y = with(compose.density) { icons[0].getBoundsInRoot().let { (it.top + it.bottom) / 2 }.roundToPx() }
+        val startX = with(compose.density) { icons[0].getBoundsInRoot().let { (it.left + it.right) / 2 }.toPx() }
+
+        icons[1].performClick()
+        compose.mainClock.advanceTimeBy(FRAME_MILLIS)
+        assertTrue("the screen was asked for before the pill moved", picked.isEmpty())
+
+        var frames = 0
+        while (picked.isEmpty() && frames < MAX_SWAP_FRAMES) {
+            compose.mainClock.advanceTimeBy(FRAME_MILLIS)
+            frames++
+        }
+        assertTrue("the tapped tab never opened", picked == listOf("chat"))
+        val span = pillSpan(y)
+        assertTrue(
+            "the pill had not left the old tab when the screen opened",
+            (span.first + span.last) / 2f > startX + 4,
+        )
+    }
+
+    @Test
+    fun with_animations_removed_a_tapped_tab_opens_at_once() {
+        val picked = mutableListOf<String>()
+        compose.setContent {
+            WaiveraTheme(darkTheme = false, motion = WaiveraMotionScheme.Reduced, hapticsEnabled = false) {
+                WaiveraNavigationBar(
+                    items = listOf(
+                        NavigationBarItemModel(key = "today", label = "Today", icon = WaiveraIcons.Today),
+                        NavigationBarItemModel(key = "chat", label = "Chat", icon = WaiveraIcons.Chat),
+                    ),
+                    selectedKey = "today",
+                    onSelect = { picked += it },
+                )
+            }
+        }
+        compose.onAllNodesWithTag(NAV_ICON_TEST_TAG, useUnmergedTree = true)[1].performClick()
+        assertTrue(picked == listOf("chat"))
+    }
+
     /** The pixels along row [y] drawn in the selected fill, first to last. */
     private fun pillSpan(y: Int): IntRange {
         val pixels = compose.onRoot().captureToImage().toPixelMap()
@@ -172,5 +239,6 @@ class NavigationBarPillTest {
         const val SETTLE_MILLIS = 1_500L
         const val MID_GLIDE_MILLIS = 160L
         const val FRAME_MILLIS = 16L
+        const val MAX_SWAP_FRAMES = 20
     }
 }

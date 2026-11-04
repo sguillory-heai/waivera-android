@@ -27,6 +27,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
@@ -61,11 +62,13 @@ import com.waivera.waivera.core.designsystem.theme.WaiveraTextStyles
 import com.waivera.waivera.core.designsystem.theme.WaiveraTheme
 import com.waivera.waivera.core.designsystem.theme.glide
 import kotlin.math.abs
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeoutOrNull
 
 /** One bottom tab. [key] is the caller's stable id for the tab. */
 @Immutable
@@ -90,6 +93,10 @@ data class NavigationBarItemModel(
  * then the bar's one pill glides across to the tab just picked and its glyph pops. One pill moves
  * rather than one fading out and another in, so the bar never shows two half pills (M1-11). A tab
  * switch has no haptic (the feedback map keeps taps silent).
+ *
+ * The new tab's screen is asked for once the pill is most of the way there. Building a screen can
+ * hold the main thread for a few frames, and asked for at once it froze the pill where it started,
+ * so it seemed to reappear on the new tab instead of travelling. The new tab is highlighted at once.
  */
 @Composable
 fun WaiveraNavigationBar(
@@ -112,7 +119,27 @@ fun WaiveraNavigationBar(
         val scale = navLabelTextScale(fontScale) / fontScale
         style.copy(fontSize = style.fontSize * scale, lineHeight = style.lineHeight * scale)
     }
-    val pill = rememberTabPill(selectedKey)
+    val motion = WaiveraTheme.motion
+    val scope = rememberCoroutineScope()
+    // The tab picked whose screen has not been asked for yet; it leads the bar until then.
+    var pendingKey by remember { mutableStateOf<String?>(null) }
+    var swap by remember { mutableStateOf<Job?>(null) }
+    val shownKey = pendingKey ?: selectedKey
+    val pill = rememberTabPill(shownKey)
+    val pick: (String) -> Unit = { key ->
+        swap?.cancel()
+        if (motion.reduced || key == shownKey) {
+            pendingKey = null
+            onSelect(key)
+        } else {
+            pendingKey = key
+            swap = scope.launch {
+                pill.awaitApproach(key)
+                pendingKey = null
+                onSelect(key)
+            }
+        }
+    }
     NavigationBar(
         modifier = modifier
             .testTag(NAV_BAR_TEST_TAG)
@@ -137,7 +164,7 @@ fun WaiveraNavigationBar(
         windowInsets = insets,
     ) {
         items.forEach { item ->
-            val selected = item.key == selectedKey
+            val selected = item.key == shownKey
             val interactionSource = remember { MutableInteractionSource() }
             val press = rememberPressFeedback(interactionSource, depth = PressDepth.Compact)
             pill.presses[item.key] = press
@@ -145,7 +172,7 @@ fun WaiveraNavigationBar(
             val pop = rememberPopScale(key = selected, enabled = selected)
             NavigationBarItem(
                 selected = selected,
-                onClick = { onSelect(item.key) },
+                onClick = { pick(item.key) },
                 modifier = Modifier.pressTracking(press),
                 interactionSource = interactionSource,
                 icon = {
@@ -209,6 +236,16 @@ private class TabPill(val x: Animatable<Float, *>, val y: Animatable<Float, *>, 
         val center = bar.localPositionOf(glyph, glyph.size.center.toOffset())
         if (centers[key] != center) centers[key] = center
     }
+
+    /** Returns once the pill is [TAB_SWAP_AT] of the way to [key]'s glyph, or after [TAB_SWAP_MAX_MILLIS]. */
+    suspend fun awaitApproach(key: String) {
+        withTimeoutOrNull(TAB_SWAP_MAX_MILLIS) {
+            val target = snapshotFlow { centers[key] }.filterNotNull().first()
+            val start = x.value
+            if (abs(target.x - start) < 1f) return@withTimeoutOrNull
+            snapshotFlow { (x.value - start) / (target.x - start) }.first { it >= TAB_SWAP_AT }
+        }
+    }
 }
 
 @Composable
@@ -258,6 +295,12 @@ private const val TAB_PILL_GLIDE_SCALE = 0.72f
 
 /** How far along its glide the pill starts swelling back to full size. */
 private const val TAB_PILL_SWELL_AT = 0.7f
+
+/** How far along its glide the pill is when the new tab's screen is asked for. */
+private const val TAB_SWAP_AT = 0.6f
+
+/** The longest a tab's screen waits on the pill, so a stalled glide never strands the tap. */
+private const val TAB_SWAP_MAX_MILLIS = 220L
 
 /**
  * Draws the shared pill, solid [fill], centred on its gliding centre. It shrinks with the
