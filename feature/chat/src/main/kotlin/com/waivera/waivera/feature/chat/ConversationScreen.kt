@@ -536,6 +536,15 @@ private fun MessageList(
             listState.firstVisibleItemScrollOffset <= stickThresholdPx
         ) {
             listState.animateScrollToItem(0)
+            // Once the landing has grown, put a list still resting at the bottom back on the
+            // newest row: a send occasionally ended up just below the fold, unseen until a scroll.
+            delay(LANDING_REPIN_MILLIS)
+            if (listState.firstVisibleItemIndex <= 1 &&
+                listState.firstVisibleItemScrollOffset <= stickThresholdPx &&
+                !listState.isScrollInProgress
+            ) {
+                listState.requestScrollToItem(0)
+            }
         }
     }
     // Ask for the next older page a few rows before the top.
@@ -606,6 +615,9 @@ private fun MessageList(
 }
 
 private const val OLDER_KEY = "older"
+
+/** After a send lands: the landing spring has settled to under a pixel by then. */
+private const val LANDING_REPIN_MILLIS = 700L
 
 /** The newest row the list last saw, so a send is pinned once, when it first lands. */
 private class PinnedKey(var value: String?)

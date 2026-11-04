@@ -8,7 +8,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.State
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.graphicsLayer
@@ -90,14 +93,25 @@ fun Modifier.bubbleArrival(progress: State<Float>, mine: Boolean, offset: Dp): M
  * together grow from 0 to their full height on the layout token instead, so the conversation is
  * pushed up smoothly while the bubble pops. Whether a row grows is decided on its first
  * composition and kept, so the growth is never cut off; reduced motion never grows. Draw it with
- * [landingGrow].
+ * [landingGrow]. Once grown it returns null, so the row recomposes without the growth and is laid
+ * out at its full height for certain: a landed send sometimes stayed a pixel tall until the list
+ * next laid out (a scroll or a keystroke), which looked like the message vanishing.
  */
 @Composable
 fun rememberLandingGrow(grows: Boolean): State<Float>? {
     val motion = WaiveraTheme.motion
-    val height = remember { if (grows && !motion.reduced) Animatable(0f) else null } ?: return null
-    LaunchedEffect(height) { height.animateTo(1f, motion.landing()) }
-    return height.asState()
+    val height = remember { if (grows && !motion.reduced) Animatable(0f) else null }
+    var grown by remember { mutableStateOf(height == null) }
+    if (height != null && !grown) {
+        LaunchedEffect(height) {
+            try {
+                height.animateTo(1f, motion.landing())
+            } finally {
+                grown = true
+            }
+        }
+    }
+    return if (grown) null else height?.asState()
 }
 
 /**
