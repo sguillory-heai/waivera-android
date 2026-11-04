@@ -7,7 +7,7 @@
             feature_tasks_share cache folder is exposed, and only through a granted read uri.
         -->
         <provider
-            android:name="androidx.core.content.FileProvider"
+            android:name="com.waivera.waivera.feature.tasks.files.TaskFileProvider"
             android:authorities="${applicationId}.feature.tasks.files"
             android:exported="false"
             android:grantUriPermissions="true">

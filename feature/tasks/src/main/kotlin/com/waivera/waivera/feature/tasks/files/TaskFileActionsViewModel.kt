@@ -41,7 +41,7 @@ sealed interface FileActionEffect {
     /** Show it: the viewer when the phone can draw it, otherwise the task on the web. */
     data class Open(val attachmentId: Int) : FileActionEffect
 
-    /** Ask the system file picker where to save [fileName]; the answer comes back to [TaskFileActionsViewModel.saveTo]. */
+    /** Ask the system file picker where to save [fileName]; the answer goes to [TaskFileActionsViewModel.saveTo]. */
     data class PickSaveLocation(val fileName: String) : FileActionEffect
 
     data class Share(val uri: String, val mimeType: String, val fileName: String) : FileActionEffect
