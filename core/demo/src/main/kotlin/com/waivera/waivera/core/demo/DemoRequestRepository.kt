@@ -6,14 +6,21 @@ import com.waivera.waivera.core.data.model.ChangeOptions
 import com.waivera.waivera.core.data.model.ChangeReason
 import com.waivera.waivera.core.data.model.ChangeRequest
 import com.waivera.waivera.core.data.model.DelayPeriod
+import com.waivera.waivera.core.data.model.LeaveBalance
+import com.waivera.waivera.core.data.model.LeaveImpact
+import com.waivera.waivera.core.data.model.ProfileField
 import com.waivera.waivera.core.data.model.RequestAccess
 import com.waivera.waivera.core.data.model.RequestKind
 import com.waivera.waivera.core.data.model.RequestOutcome
 import com.waivera.waivera.core.data.model.RequestStatus
 import com.waivera.waivera.core.data.model.TaskFile
+import com.waivera.waivera.core.data.model.TimeOffReview
+import com.waivera.waivera.core.data.model.TrainingCredit
+import com.waivera.waivera.core.data.model.TrainingDecision
 import com.waivera.waivera.core.data.repository.RequestRepository
 import java.time.Duration
 import java.time.LocalDate
+import java.time.ZoneId
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -51,11 +58,35 @@ class DemoRequestRepository @Inject constructor(private val backend: DemoBackend
         return Result.success(asked.value + sampleMine())
     }
 
-    override suspend fun decide(request: ChangeRequest, approve: Boolean): Result<Unit> {
+    override suspend fun decide(request: ChangeRequest, approve: Boolean, training: TrainingDecision?): Result<Unit> {
         backend.failRefreshes?.let { return Result.failure(it) }
         _waiting.update { list -> list?.filterNot { it.id == request.id } }
         return Result.success(Unit)
     }
+
+    override suspend fun leaveBalance(employeeId: String, leaveTypeId: Int): Result<LeaveBalance?> =
+        Result.success(LeaveBalance(leaveTypeId, tracksBalance = true, availableMinutes = 16 * 60))
+
+    override suspend fun leaveZone(): ZoneId = DemoData.ZONE
+
+    override suspend fun trainingCredit(requestId: Int): Result<TrainingCredit> = Result.success(
+        TrainingCredit(
+            requestId = requestId,
+            course = "CPR recertification",
+            employeeName = "Jordan Lee",
+            trainer = "Alicia Brooks",
+            provider = "American Red Cross",
+            completed = today.minusDays(9),
+            hours = 2.0,
+            pending = true,
+            revision = 1,
+            canApprove = true,
+            needsApproveReason = false,
+            uploadedBy = null,
+            blocked = null,
+            reviewOnWeb = false,
+        ),
+    )
 
     override suspend fun options(taskId: Int): Result<ChangeOptions> {
         backend.failRefreshes?.let { return Result.failure(it) }
@@ -152,6 +183,43 @@ class DemoRequestRepository @Inject constructor(private val backend: DemoBackend
                 approverName = null, requestedAt = now.minus(Duration.ofHours(20)), decidedAt = null,
                 taskId = 1078, taskTitle = "Annual plan signatures", reason = "Duplicate task",
                 explanation = "The signatures were collected on the renewal task.",
+            ),
+            ChangeRequest(
+                id = 6_103, kind = RequestKind.TimeOff, typeName = "Time-Off Request",
+                status = RequestStatus.Pending, requesterId = "demo-maya", requesterName = "Maya Thompson",
+                approverName = null, requestedAt = now.minus(Duration.ofHours(2)), decidedAt = null,
+                taskId = null, taskTitle = null, reason = null, explanation = null,
+                timeOff = TimeOffReview(
+                    leaveType = "Vacation", leaveTypeId = 1, partialDay = false,
+                    startDate = today.plusDays(20), endDate = today.plusDays(22), start = null, end = null,
+                    minutes = 24 * 60, note = "Family trip. Dana's visit is moved to the week before.",
+                    impact = LeaveImpact(dueBefore = 0, dueDuring = 2, shortNotice = false, notices = emptyList()),
+                    impactChanged = false, acknowledged = false,
+                ),
+            ),
+            ChangeRequest(
+                id = 6_104, kind = RequestKind.ProfileChange, typeName = "Profile Change Request",
+                status = RequestStatus.Pending, requesterId = "demo-priya", requesterName = "Priya Raman",
+                approverName = null, requestedAt = now.minus(Duration.ofDays(1)), decidedAt = null,
+                taskId = null, taskTitle = null, reason = null, explanation = null,
+                profile = listOf(
+                    ProfileField(ProfileField.Field.FirstName, "Luis", "Luis", changed = false),
+                    ProfileField(ProfileField.Field.LastName, "Ortega", "Ortega", changed = false),
+                    ProfileField(ProfileField.Field.Mobile, "(337) 555-0142", "(337) 555-0199", changed = true),
+                    ProfileField(ProfileField.Field.Waiver, "NOW", "ROW", changed = true),
+                    ProfileField(
+                        ProfileField.Field.CpocEnd,
+                        today.plusDays(80).toString(),
+                        today.plusDays(140).toString(),
+                        changed = true,
+                    ),
+                ),
+            ),
+            ChangeRequest(
+                id = 6_105, kind = RequestKind.TrainingCredit, typeName = "External Training Credit",
+                status = RequestStatus.Pending, requesterId = "demo-jordan", requesterName = "Jordan Lee",
+                approverName = null, requestedAt = now.minus(Duration.ofDays(4)), decidedAt = null,
+                taskId = 1090, taskTitle = "CPR recertification", reason = null, explanation = null,
             ),
         )
     }

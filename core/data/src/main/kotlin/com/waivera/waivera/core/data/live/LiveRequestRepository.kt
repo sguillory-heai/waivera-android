@@ -4,10 +4,14 @@ import com.waivera.waivera.core.data.model.ChangeOptions
 import com.waivera.waivera.core.data.model.ChangeReason
 import com.waivera.waivera.core.data.model.ChangeRequest
 import com.waivera.waivera.core.data.model.DelayPeriod
+import com.waivera.waivera.core.data.model.LeaveBalance
 import com.waivera.waivera.core.data.model.RequestAccess
+import com.waivera.waivera.core.data.model.RequestKind
 import com.waivera.waivera.core.data.model.RequestOutcome
 import com.waivera.waivera.core.data.model.SessionState
 import com.waivera.waivera.core.data.model.TaskFile
+import com.waivera.waivera.core.data.model.TrainingCredit
+import com.waivera.waivera.core.data.model.TrainingDecision
 import com.waivera.waivera.core.data.model.currentUserId
 import com.waivera.waivera.core.data.realtime.AppForegroundMonitor
 import com.waivera.waivera.core.data.repository.RequestRepository
@@ -16,14 +20,18 @@ import com.waivera.waivera.core.network.api.AuthenticationApi
 import com.waivera.waivera.core.network.api.RequestApi
 import com.waivera.waivera.core.network.di.ApplicationScope
 import com.waivera.waivera.core.network.dto.ApiResponse
+import com.waivera.waivera.core.network.dto.RequestActionBody
 import com.waivera.waivera.core.network.dto.TaskClosureRequest
 import com.waivera.waivera.core.network.dto.TaskDelayRequest
 import com.waivera.waivera.core.network.dto.TaskExtensionRequest
+import com.waivera.waivera.core.network.dto.TrainingDecisionBody
 import com.waivera.waivera.core.network.error.WaiveraError
 import com.waivera.waivera.core.network.error.apiCall
 import com.waivera.waivera.core.network.error.catchingWaivera
 import com.waivera.waivera.core.network.error.requireData
+import com.waivera.waivera.core.network.time.WaiveraTime
 import java.time.LocalDate
+import java.time.ZoneId
 import java.time.ZoneOffset
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -116,15 +124,12 @@ class LiveRequestRepository @Inject constructor(
         apiCall { api.mine() }.requireData().items.map(RequestMapping::request)
     }
 
-    override suspend fun decide(request: ChangeRequest, approve: Boolean): Result<Unit> {
+    override suspend fun decide(request: ChangeRequest, approve: Boolean, training: TrainingDecision?): Result<Unit> {
         val before = _waiting.value
         deciding.update { it + request.id }
         _waiting.update { list -> list?.filterNot { it.id == request.id } }
         val result = try {
-            catchingWaivera {
-                val body = apiCall { if (approve) api.approve(request.id) else api.reject(request.id) }
-                if (!succeeded(body)) throw WaiveraError.Unexpected()
-            }
+            catchingWaivera { send(request, approve, training) }
         } finally {
             // Also when the screen leaves mid-call: the next refresh shows the server's answer.
             deciding.update { it - request.id }
@@ -144,6 +149,46 @@ class LiveRequestRepository @Inject constructor(
             }
         }
         return result
+    }
+
+    /** sprout_web `AdminRequestsPanel.handleApproveReject` and `ExternalTrainingReview.decide`. */
+    private suspend fun send(request: ChangeRequest, approve: Boolean, training: TrainingDecision?) {
+        val action = RequestActionBody(
+            action = if (approve) "approve" else "reject",
+            // The web's fixed wording; it asks the reviewer for no reason on these.
+            reason = if (approve) "Approved via Admin Panel" else "Rejected via Admin Panel",
+        )
+        val body = when (request.kind) {
+            RequestKind.TimeOff, RequestKind.TimeOffCancellation -> apiCall { api.decideTimeOff(request.id, action) }
+            RequestKind.ProfileChange -> apiCall { api.decideProfileChange(request.id, action) }
+            // A training decision needs the credit's revision; the web's Other requests stay on the web.
+            RequestKind.TrainingCredit -> training?.let { decision ->
+                apiCall {
+                    api.decideTrainingCredit(
+                        request.id,
+                        TrainingDecisionBody(decision.revision, approve, decision.reason.trim()),
+                    )
+                }
+            }
+            RequestKind.Other -> null
+            else -> apiCall { if (approve) api.approve(request.id) else api.reject(request.id) }
+        }
+        if (body == null || !succeeded(body)) throw WaiveraError.Unexpected()
+    }
+
+    override suspend fun leaveBalance(employeeId: String, leaveTypeId: Int): Result<LeaveBalance?> = catchingWaivera {
+        // Balances are for leave administrators; other reviewers decide without them, as on the web.
+        val summary = runCatching { apiCall { api.leaveBalances(employeeId) }.requireData() }
+            .getOrElse { error -> if (error is WaiveraError.Forbidden) return@catchingWaivera null else throw error }
+        summary.balances.firstOrNull { it.id == leaveTypeId }?.let(ApprovalMapping::balance)
+    }
+
+    override suspend fun leaveZone(): ZoneId? = catchingWaivera {
+        WaiveraTime.zoneOrNull(apiCall { api.leaveSettings() }.requireData().timeZone)
+    }.getOrNull()
+
+    override suspend fun trainingCredit(requestId: Int): Result<TrainingCredit> = catchingWaivera {
+        ApprovalMapping.training(requestId, apiCall { api.trainingCredit(requestId) })
     }
 
     override suspend fun options(taskId: Int): Result<ChangeOptions> = catchingWaivera {

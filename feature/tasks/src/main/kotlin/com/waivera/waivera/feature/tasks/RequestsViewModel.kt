@@ -4,18 +4,25 @@ import androidx.compose.runtime.Immutable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.waivera.waivera.core.data.model.ChangeRequest
+import com.waivera.waivera.core.data.model.ProfileField
 import com.waivera.waivera.core.data.model.RequestKind
+import com.waivera.waivera.core.data.model.TimeOffReview
+import com.waivera.waivera.core.data.model.TrainingCredit
+import com.waivera.waivera.core.data.model.TrainingDecision
 import com.waivera.waivera.core.data.repository.CalendarRepository
 import com.waivera.waivera.core.data.repository.RequestRepository
+import com.waivera.waivera.core.data.repository.TaskFileRepository
 import com.waivera.waivera.core.network.NetworkConfig
 import com.waivera.waivera.core.network.error.WaiveraError
 import com.waivera.waivera.core.network.time.WaiveraTime
+import com.waivera.waivera.feature.tasks.files.TaskFileExport
 import dagger.hilt.android.lifecycle.HiltViewModel
 import java.time.Clock
 import java.time.LocalDate
 import java.time.ZoneId
 import java.time.temporal.ChronoUnit
 import javax.inject.Inject
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -40,9 +47,39 @@ sealed interface RequestChange {
     /** Closure: the task closes without being completed. */
     data object Closure : RequestChange
 
-    /** Time off, profile changes and the rest, which the web reviews. */
+    /** Time off asked for, or handed back by a cancellation. */
+    data class TimeOff(
+        val leaveType: String,
+        val dates: String,
+        /** "9:00 AM – 1:00 PM" for a partial day, in the agency's leave zone. */
+        val times: String?,
+        val minutes: Int,
+        val cancellation: Boolean,
+    ) : RequestChange
+
+    /** A participant's new details, changed fields first. */
+    data class Profile(val changed: List<ProfileRow>, val unchanged: List<ProfileRow>) : RequestChange
+
+    /** A closed task opens again. */
+    data object Reopen : RequestChange
+
+    /** A required file stops being required. */
+    data object RemoveFile : RequestChange
+
+    /** External training credit; its details load when the review opens. */
+    data object Training : RequestChange
+
+    /** A kind newer than this app, reviewed on the web. */
     data object Other : RequestChange
 }
+
+/** One compared profile field, with dates already worded. */
+@Immutable
+data class ProfileRow(val field: ProfileField.Field, val previous: String?, val requested: String?)
+
+/** The requester's balance around this time off, in minutes; [after] may go below zero. */
+@Immutable
+data class BalanceChange(val before: Int, val after: Int)
 
 @Immutable
 data class RequestItem(
@@ -67,7 +104,15 @@ data class RequestsUiState(
     val reviewing: RequestItem? = null,
     val confirming: Decision? = null,
     val isRefreshing: Boolean = false,
+    /** Time off under review: the balance, or null when this reviewer may not see balances. */
+    val balance: Loadable<BalanceChange?> = Loadable.Loading,
+    /** Training credit under review. */
+    val training: Loadable<TrainingCredit> = Loadable.Loading,
+    /** What the reviewer writes on a training decision. */
+    val reason: String = "",
 )
+
+const val REASON_MAX_LENGTH = 2_000
 
 sealed interface RequestsEffect {
     data class Decided(val approve: Boolean, val requester: String) : RequestsEffect
@@ -81,6 +126,11 @@ sealed interface RequestsEffect {
     data class OpenWeb(val url: String) : RequestsEffect
 
     data object WebUnavailable : RequestsEffect
+
+    /** The certificate is on the phone; open it in the person's PDF app. */
+    data class OpenCertificate(val uri: String) : RequestsEffect
+
+    data object CertificateFailed : RequestsEffect
 }
 
 /**
@@ -94,16 +144,22 @@ class RequestsViewModel @Inject constructor(
     private val config: NetworkConfig,
     calendar: CalendarRepository,
     private val clock: Clock,
+    private val files: TaskFileRepository,
+    private val export: TaskFileExport,
 ) : ViewModel() {
     private val local = MutableStateFlow(Local())
     private val effectChannel = Channel<RequestsEffect>(Channel.BUFFERED)
     val effects: Flow<RequestsEffect> = effectChannel.receiveAsFlow()
+    private var details: Job? = null
     private val zone = calendar.zone.distinctUntilChanged()
         .stateIn(viewModelScope, SharingStarted.Eagerly, WaiveraTime.FallbackZone)
 
     val uiState: StateFlow<RequestsUiState> = combine(local, requests.waiting, zone) { l, waiting, zone ->
         val today = clock.instant().atZone(zone).toLocalDate()
-        val items = waiting?.map { item(it, zone, today) }
+        // Partial days are told in the agency's leave zone, as on the web; the person's own zone
+        // stands in when the leave settings can't be read.
+        val leaveZone = l.leaveZone ?: zone
+        val items = waiting?.map { item(it, zone, leaveZone, today) }
         RequestsUiState(
             waiting = when {
                 items != null -> Loadable.Ready(items)
@@ -113,7 +169,7 @@ class RequestsViewModel @Inject constructor(
             mine = when (val mine = l.mine) {
                 Loadable.Loading -> Loadable.Loading
                 Loadable.Failed -> Loadable.Failed
-                is Loadable.Ready -> Loadable.Ready(mine.value.map { item(it, zone, today) })
+                is Loadable.Ready -> Loadable.Ready(mine.value.map { item(it, zone, leaveZone, today) })
             },
             // A request decided elsewhere closes its sheet instead of offering a stale review.
             reviewing = l.reviewingId?.let { id -> items?.firstOrNull { it.id == id } },
@@ -121,6 +177,9 @@ class RequestsViewModel @Inject constructor(
                 items?.firstOrNull { it.id == id }?.let { Decision(it, approve) }
             },
             isRefreshing = l.isRefreshing,
+            balance = l.balance,
+            training = l.training,
+            reason = l.reason,
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS), RequestsUiState())
 
@@ -142,24 +201,65 @@ class RequestsViewModel @Inject constructor(
             openWeb()
             return
         }
-        local.update { it.copy(reviewingId = item.id) }
+        local.update {
+            it.copy(reviewingId = item.id, balance = Loadable.Loading, training = Loadable.Loading, reason = "")
+        }
+        details?.cancel()
+        details = viewModelScope.launch { loadDetails(item.request) }
     }
 
-    fun closeReview() = local.update { it.copy(reviewingId = null, confirming = null) }
+    fun retryDetails() {
+        val request = uiState.value.reviewing?.request ?: return
+        local.update { it.copy(balance = Loadable.Loading, training = Loadable.Loading) }
+        details?.cancel()
+        details = viewModelScope.launch { loadDetails(request) }
+    }
+
+    fun closeReview() {
+        details?.cancel()
+        local.update { it.copy(reviewingId = null, confirming = null, reason = "") }
+    }
 
     fun ask(approve: Boolean) {
         val id = local.value.reviewingId ?: return
-        local.update { it.copy(confirming = id to approve) }
+        local.update { it.copy(confirming = id to approve, reason = "") }
     }
 
     fun cancelConfirm() = local.update { it.copy(confirming = null) }
 
+    fun setReason(text: String) = local.update { it.copy(reason = text.take(REASON_MAX_LENGTH)) }
+
+    /** Whether the confirm button can send: a training decision may need a written reason first. */
+    fun canConfirm(state: RequestsUiState = uiState.value): Boolean {
+        val decision = state.confirming ?: return false
+        if (decision.item.request.kind != RequestKind.TrainingCredit) return true
+        val credit = (state.training as? Loadable.Ready)?.value ?: return false
+        val reasonNeeded = !decision.approve || credit.needsApproveReason
+        return credit.decidable && (!reasonNeeded || state.reason.isNotBlank())
+    }
+
+    fun openCertificate() {
+        val request = uiState.value.reviewing?.request ?: return
+        viewModelScope.launch {
+            val downloaded = files.certificate(request.id).getOrNull()
+            val uri = downloaded?.let { file ->
+                export.shareableUri(file, CERTIFICATE_NAME).also { files.close(file) }.getOrNull()
+            }
+            effectChannel.send(uri?.let(RequestsEffect::OpenCertificate) ?: RequestsEffect.CertificateFailed)
+        }
+    }
+
     /** Sends the confirmed decision. Both sheets close at once; the list already shows the result. */
     fun confirm() {
-        val decision = uiState.value.confirming ?: return
-        local.update { it.copy(reviewingId = null, confirming = null) }
+        val state = uiState.value
+        val decision = state.confirming ?: return
+        if (!canConfirm(state)) return
+        val training = (state.training as? Loadable.Ready)?.value
+            ?.takeIf { decision.item.request.kind == RequestKind.TrainingCredit }
+            ?.let { credit -> credit.revision?.let { TrainingDecision(it, state.reason.trim()) } }
+        local.update { it.copy(reviewingId = null, confirming = null, reason = "") }
         viewModelScope.launch {
-            val result = requests.decide(decision.item.request, decision.approve)
+            val result = requests.decide(decision.item.request, decision.approve, training)
             val effect = result.fold(
                 onSuccess = { RequestsEffect.Decided(decision.approve, decision.item.request.requesterName) },
                 onFailure = {
@@ -180,6 +280,39 @@ class RequestsViewModel @Inject constructor(
         val url = base?.resolve(WEB_REQUESTS_PATH)?.takeIf { it.host == base.host && it.scheme == base.scheme }
         viewModelScope.launch {
             effectChannel.send(url?.let { RequestsEffect.OpenWeb(it.toString()) } ?: RequestsEffect.WebUnavailable)
+        }
+    }
+
+    private suspend fun loadDetails(request: ChangeRequest) {
+        when {
+            request.kind == RequestKind.TrainingCredit -> {
+                val credit = requests.trainingCredit(request.id)
+                local.update { it.copy(training = credit.fold({ Loadable.Ready(it) }, { Loadable.Failed })) }
+            }
+            request.kind.isTimeOff -> {
+                val timeOff = request.timeOff
+                val employee = request.requesterId
+                if (local.value.leaveZone == null) {
+                    requests.leaveZone()?.let { zone -> local.update { it.copy(leaveZone = zone) } }
+                }
+                if (timeOff == null || employee == null) {
+                    local.update { it.copy(balance = Loadable.Ready(null)) }
+                    return
+                }
+                val result = requests.leaveBalance(employee, timeOff.leaveTypeId)
+                val change = result.map { balance ->
+                    balance?.takeIf { it.tracksBalance }?.let {
+                        val cancelling = request.kind == RequestKind.TimeOffCancellation
+                        // sprout_web renderTimeOffDetails: a pending request already holds its minutes.
+                        BalanceChange(
+                            before = if (cancelling) it.availableMinutes else it.availableMinutes + timeOff.minutes,
+                            after = if (cancelling) it.availableMinutes + timeOff.minutes else it.availableMinutes,
+                        )
+                    }
+                }
+                local.update { it.copy(balance = change.fold({ Loadable.Ready(it) }, { Loadable.Ready(null) })) }
+            }
+            else -> Unit
         }
     }
 
@@ -204,32 +337,77 @@ class RequestsViewModel @Inject constructor(
         }
     }
 
-    private fun item(request: ChangeRequest, zone: ZoneId, today: LocalDate) = RequestItem(
+    private fun item(request: ChangeRequest, zone: ZoneId, leaveZone: ZoneId, today: LocalDate) = RequestItem(
         request = request,
         asked = request.requestedAt?.let { TaskFormat.moment(it, zone, today) },
-        change = change(request, today),
+        change = change(request, leaveZone, today),
         due = TaskFormat.due(request.currentDue, today),
     )
 
-    private fun change(request: ChangeRequest, today: LocalDate): RequestChange = when (request.kind) {
-        RequestKind.MoreTime -> request.requestedDue?.let { to ->
-            RequestChange.DueMove(
-                from = request.currentDue?.let { TaskFormat.date(it, today) },
-                to = TaskFormat.date(to, today),
-                daysLater = request.currentDue?.let { ChronoUnit.DAYS.between(it, to).toInt() }?.takeIf { it > 0 },
-            )
-        } ?: RequestChange.Other
-        RequestKind.Delay -> {
-            val start = request.delayStart
-            val end = request.delayEnd
-            if (start != null && end != null) {
-                RequestChange.DelayWindow(TaskFormat.date(start, today), TaskFormat.date(end, today))
-            } else {
-                RequestChange.Other
-            }
+    private fun change(request: ChangeRequest, leaveZone: ZoneId, today: LocalDate): RequestChange =
+        when (request.kind) {
+            RequestKind.MoreTime -> dueMove(request, today)
+            RequestKind.Delay -> delayWindow(request, today)
+            RequestKind.Closure -> RequestChange.Closure
+            RequestKind.TimeOff, RequestKind.TimeOffCancellation ->
+                request.timeOff?.let { timeOff(it, request.kind, leaveZone, today) } ?: RequestChange.Other
+            RequestKind.ProfileChange -> profile(request)
+            RequestKind.Reactivation -> RequestChange.Reopen
+            RequestKind.AttachmentRemoval -> RequestChange.RemoveFile
+            RequestKind.TrainingCredit -> RequestChange.Training
+            RequestKind.Other -> RequestChange.Other
         }
-        RequestKind.Closure -> RequestChange.Closure
-        RequestKind.Other -> RequestChange.Other
+
+    private fun dueMove(request: ChangeRequest, today: LocalDate): RequestChange {
+        val to = request.requestedDue ?: return RequestChange.Other
+        return RequestChange.DueMove(
+            from = request.currentDue?.let { TaskFormat.date(it, today) },
+            to = TaskFormat.date(to, today),
+            daysLater = request.currentDue?.let { ChronoUnit.DAYS.between(it, to).toInt() }?.takeIf { it > 0 },
+        )
+    }
+
+    private fun delayWindow(request: ChangeRequest, today: LocalDate): RequestChange {
+        val start = request.delayStart ?: return RequestChange.Other
+        val end = request.delayEnd ?: return RequestChange.Other
+        return RequestChange.DelayWindow(TaskFormat.date(start, today), TaskFormat.date(end, today))
+    }
+
+    private fun profile(request: ChangeRequest): RequestChange {
+        val rows = request.profile.map { field ->
+            val format = { value: String? ->
+                if (field.field in DateFields) {
+                    value?.let { runCatching { TaskFormat.fullDate(LocalDate.parse(it)) }.getOrDefault(it) }
+                } else {
+                    value
+                }
+            }
+            field.changed to ProfileRow(field.field, format(field.previous), format(field.requested))
+        }
+        return RequestChange.Profile(
+            changed = rows.filter { it.first }.map { it.second },
+            unchanged = rows.filterNot { it.first }.map { it.second },
+        )
+    }
+
+    private fun timeOff(time: TimeOffReview, kind: RequestKind, zone: ZoneId, today: LocalDate): RequestChange {
+        val start = time.start
+        val end = time.end
+        val partial = time.partialDay && start != null && end != null
+        val startDay = if (partial) start.atZone(zone).toLocalDate() else time.startDate
+        val endDay = if (partial) end.atZone(zone).toLocalDate() else time.endDate
+        val dates = when {
+            startDay == null -> null
+            endDay == null || endDay == startDay -> TaskFormat.date(startDay, today)
+            else -> "${TaskFormat.date(startDay, today)} – ${TaskFormat.date(endDay, today)}"
+        } ?: return RequestChange.Other
+        return RequestChange.TimeOff(
+            leaveType = time.leaveType,
+            dates = dates,
+            times = if (partial) "${TaskFormat.clock(start, zone)} – ${TaskFormat.clock(end, zone)}" else null,
+            minutes = time.minutes,
+            cancellation = kind == RequestKind.TimeOffCancellation,
+        )
     }
 
     private data class Local(
@@ -238,10 +416,21 @@ class RequestsViewModel @Inject constructor(
         val reviewingId: Int? = null,
         val confirming: Pair<Int, Boolean>? = null,
         val isRefreshing: Boolean = false,
+        val balance: Loadable<BalanceChange?> = Loadable.Loading,
+        val training: Loadable<TrainingCredit> = Loadable.Loading,
+        val reason: String = "",
+        val leaveZone: ZoneId? = null,
     )
 
     private companion object {
         const val STOP_TIMEOUT_MILLIS = 5_000L
         const val WEB_REQUESTS_PATH = "/admin-requests"
+        const val CERTIFICATE_NAME = "Training certificate.pdf"
+        val DateFields = setOf(
+            ProfileField.Field.DateOfBirth,
+            ProfileField.Field.Certification,
+            ProfileField.Field.CpocStart,
+            ProfileField.Field.CpocEnd,
+        )
     }
 }

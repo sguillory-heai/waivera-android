@@ -16,6 +16,7 @@ import com.waivera.waivera.core.data.model.DelayPeriod
 import com.waivera.waivera.core.data.model.EmployeeFilePage
 import com.waivera.waivera.core.data.model.EmployeeProfile
 import com.waivera.waivera.core.data.model.EventDraft
+import com.waivera.waivera.core.data.model.LeaveBalance
 import com.waivera.waivera.core.data.model.LinkedFaq
 import com.waivera.waivera.core.data.model.LinkedResource
 import com.waivera.waivera.core.data.model.Message
@@ -47,6 +48,8 @@ import com.waivera.waivera.core.data.model.TaskQuery
 import com.waivera.waivera.core.data.model.TaskScope
 import com.waivera.waivera.core.data.model.ThemePreference
 import com.waivera.waivera.core.data.model.TimeOffSummary
+import com.waivera.waivera.core.data.model.TrainingCredit
+import com.waivera.waivera.core.data.model.TrainingDecision
 import com.waivera.waivera.core.data.model.currentUserId
 import java.io.File
 import java.time.LocalDate
@@ -320,6 +323,9 @@ interface TaskFileRepository {
      */
     suspend fun export(taskId: Int, file: TaskAttachment): Result<java.io.File>
 
+    /** An external training certificate (a PDF) under review; closed with [close]. */
+    suspend fun certificate(requestId: Int): Result<java.io.File>
+
     fun close(file: java.io.File)
 }
 
@@ -346,8 +352,19 @@ interface RequestRepository {
     /** The person's own requests, newest first. */
     suspend fun mine(): Result<List<ChangeRequest>>
 
-    /** Removes the request from [waiting] at once and puts it back if the server says no. */
-    suspend fun decide(request: ChangeRequest, approve: Boolean): Result<Unit>
+    /**
+     * Removes the request from [waiting] at once and puts it back if the server says no. Each kind
+     * goes to the route the web uses for it; a training credit also needs [training].
+     */
+    suspend fun decide(request: ChangeRequest, approve: Boolean, training: TrainingDecision? = null): Result<Unit>
+
+    /** The requester's balance for one leave type; null when the reviewer may not see balances. */
+    suspend fun leaveBalance(employeeId: String, leaveTypeId: Int): Result<LeaveBalance?>
+
+    /** The agency's leave zone, which partial days are told in; null when it can't be read. */
+    suspend fun leaveZone(): ZoneId?
+
+    suspend fun trainingCredit(requestId: Int): Result<TrainingCredit>
 
     suspend fun options(taskId: Int): Result<ChangeOptions>
 

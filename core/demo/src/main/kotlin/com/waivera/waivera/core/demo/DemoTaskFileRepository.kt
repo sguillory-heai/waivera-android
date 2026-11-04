@@ -33,6 +33,11 @@ class DemoTaskFileRepository @Inject constructor(@TaskFileCacheDirectory private
 
     override suspend fun export(taskId: Int, file: TaskAttachment): Result<File> = open(taskId, file)
 
+    override suspend fun certificate(requestId: Int): Result<File> = runCatching {
+        directory.mkdirs()
+        File(directory, UUID.randomUUID().toString()).also(::writePdf)
+    }
+
     override fun close(file: File) {
         if (file.parentFile == directory) file.delete()
     }

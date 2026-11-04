@@ -61,6 +61,10 @@ object RequestMapping {
             delayStart = WaiveraTime.parseLocalDate(dto.delayStartDate),
             delayEnd = WaiveraTime.parseLocalDate(dto.delayEndDate),
             isTrainingTask = dto.isTrainingTask,
+            timeOff = dto.timeOffDetails?.takeIf { kind.isTimeOff }?.let(ApprovalMapping::timeOff),
+            profile = dto.participantRequest?.takeIf {
+                kind == RequestKind.ProfileChange
+            }?.let(ApprovalMapping::profile).orEmpty(),
         )
     }
 

@@ -159,6 +159,8 @@ class TaskFileActionsViewModelTest {
             return result
         }
 
+        override suspend fun certificate(requestId: Int): Result<File> = result
+
         override fun close(file: File) {
             closed += file
         }

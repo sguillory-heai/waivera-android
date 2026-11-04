@@ -1,5 +1,7 @@
 package com.waivera.waivera.feature.tasks
 
+import android.content.ActivityNotFoundException
+import android.content.Intent
 import androidx.annotation.DrawableRes
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -8,17 +10,13 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarHostState
@@ -30,6 +28,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.painterResource
@@ -43,6 +42,7 @@ import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
+import androidx.core.net.toUri
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.waivera.waivera.core.data.model.RequestKind
@@ -53,7 +53,6 @@ import com.waivera.waivera.core.designsystem.component.SkeletonText
 import com.waivera.waivera.core.designsystem.component.WaiveraAvatar
 import com.waivera.waivera.core.designsystem.component.WaiveraBottomSheet
 import com.waivera.waivera.core.designsystem.component.WaiveraButton
-import com.waivera.waivera.core.designsystem.component.WaiveraButtonSize
 import com.waivera.waivera.core.designsystem.component.WaiveraButtonVariant
 import com.waivera.waivera.core.designsystem.component.WaiveraConfirmationSheet
 import com.waivera.waivera.core.designsystem.component.WaiveraErrorState
@@ -86,6 +85,7 @@ fun RequestsScreen(onOpenTask: (Int) -> Unit, modifier: Modifier = Modifier) {
     val snackbar = remember { SnackbarHostState() }
     val resources = LocalResources.current
     val uriHandler = LocalUriHandler.current
+    val context = LocalContext.current
     LaunchedEffect(viewModel) {
         viewModel.effects.collect { effect ->
             val message = when (effect) {
@@ -106,6 +106,22 @@ fun RequestsScreen(onOpenTask: (Int) -> Unit, modifier: Modifier = Modifier) {
                 )
                 RequestsEffect.AlreadyDecided -> resources.getString(R.string.feature_tasks_already_decided)
                 RequestsEffect.WebUnavailable -> resources.getString(R.string.feature_tasks_web_unavailable)
+                RequestsEffect.CertificateFailed -> resources.getString(
+                    R.string.feature_tasks_review_certificate_failed,
+                )
+                is RequestsEffect.OpenCertificate -> {
+                    val view = Intent(Intent.ACTION_VIEW).apply {
+                        setDataAndType(effect.uri.toUri(), PDF_MIME_TYPE)
+                        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                    }
+                    val opened = try {
+                        context.startActivity(view)
+                        true
+                    } catch (_: ActivityNotFoundException) {
+                        false
+                    }
+                    if (opened) null else resources.getString(R.string.feature_tasks_review_certificate_failed)
+                }
                 is RequestsEffect.OpenWeb -> {
                     val opened = runCatching { uriHandler.openUri(effect.url) }.isSuccess
                     if (opened) null else resources.getString(R.string.feature_tasks_web_failed)
@@ -131,30 +147,51 @@ fun RequestsScreen(onOpenTask: (Int) -> Unit, modifier: Modifier = Modifier) {
         WaiveraBottomSheet(onDismissRequest = viewModel::closeReview, title = item.reviewTitle()) {
             ReviewFields(
                 item = item,
-                onApprove = { viewModel.ask(approve = true) },
-                onReject = { viewModel.ask(approve = false) },
-                onOpenTask = item.request.taskId?.let { id ->
-                    {
-                        viewModel.closeReview()
-                        onOpenTask(id)
-                    }
-                },
+                extras = ReviewExtras(balance = state.balance, training = state.training),
+                actions = ReviewActions(
+                    onApprove = { viewModel.ask(approve = true) },
+                    onReject = { viewModel.ask(approve = false) },
+                    onOpenTask = item.request.taskId?.let { id ->
+                        {
+                            viewModel.closeReview()
+                            onOpenTask(id)
+                        }
+                    },
+                    onRetry = viewModel::retryDetails,
+                    onOpenCertificate = viewModel::openCertificate,
+                    onOpenWeb = viewModel::openWeb,
+                ),
             )
         }
     }
     state.confirming?.let { decision ->
         val copy = decision.confirmCopy()
-        WaiveraConfirmationSheet(
-            title = copy.title,
-            message = copy.message,
-            confirmLabel = stringResource(
-                if (decision.approve) R.string.feature_tasks_approve else R.string.feature_tasks_reject,
-            ),
-            onConfirm = viewModel::confirm,
-            onDismiss = viewModel::cancelConfirm,
-            destructive = !decision.approve,
-            icon = if (decision.approve) WaiveraIcons.Check else WaiveraIcons.Close,
-        )
+        val credit = (state.training as? Loadable.Ready)?.value
+        if (decision.item.request.kind == RequestKind.TrainingCredit && credit != null) {
+            TrainingDecisionSheet(
+                title = copy.title,
+                message = copy.message,
+                approve = decision.approve,
+                credit = credit,
+                reason = state.reason,
+                canConfirm = viewModel.canConfirm(state),
+                onReason = viewModel::setReason,
+                onConfirm = viewModel::confirm,
+                onDismiss = viewModel::cancelConfirm,
+            )
+        } else {
+            WaiveraConfirmationSheet(
+                title = copy.title,
+                message = copy.message,
+                confirmLabel = stringResource(
+                    if (decision.approve) R.string.feature_tasks_approve else R.string.feature_tasks_reject,
+                ),
+                onConfirm = viewModel::confirm,
+                onDismiss = viewModel::cancelConfirm,
+                destructive = !decision.approve,
+                icon = if (decision.approve) WaiveraIcons.Check else WaiveraIcons.Close,
+            )
+        }
     }
 }
 
@@ -419,110 +456,6 @@ private fun RequestCard(item: RequestItem, waiting: Boolean, onClick: () -> Unit
     }
 }
 
-/** The review: who asked and when, what changes, why, the task, then Approve and Reject. */
-@Composable
-internal fun ReviewFields(item: RequestItem, onApprove: () -> Unit, onReject: () -> Unit, onOpenTask: (() -> Unit)?) {
-    val colors = WaiveraTheme.colors
-    val request = item.request
-    Column(
-        modifier = Modifier.verticalScroll(rememberScrollState()),
-        verticalArrangement = Arrangement.spacedBy(WaiveraSpacing.MediumSmall),
-    ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(WaiveraSpacing.MediumSmall),
-        ) {
-            WaiveraAvatar(name = request.requesterName, size = WaiveraSizes.AvatarMedium, contentDescription = null)
-            Column(Modifier.weight(1f)) {
-                Text(request.requesterName, style = MaterialTheme.typography.titleSmall, color = colors.text)
-                item.asked?.let {
-                    Text(
-                        text = stringResource(R.string.feature_tasks_review_requested, it.text().lowercaseFirstWord()),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = colors.textSecondary,
-                    )
-                }
-            }
-        }
-        SheetGroup {
-            ChangeRow(item)
-            request.reason?.takeIf { it.isNotBlank() }?.let { reason ->
-                InfoDivider()
-                InfoRow(stringResource(request.kind.reasonLabel()), WaiveraIcons.Hash) { InfoValue(reason) }
-            }
-            request.explanation?.takeIf { it.isNotBlank() }?.let { note ->
-                InfoDivider()
-                InfoRow(stringResource(R.string.feature_tasks_review_note), WaiveraIcons.Chat) {
-                    Text(note, style = MaterialTheme.typography.bodyMedium, color = colors.text)
-                }
-            }
-        }
-        request.taskTitle?.let { title ->
-            SheetGroup {
-                InfoRow(
-                    label = stringResource(R.string.feature_tasks_review_task),
-                    icon = R.drawable.feature_tasks_ic_task,
-                    onClick = onOpenTask,
-                    onClickLabel = stringResource(R.string.feature_tasks_open_task),
-                ) {
-                    InfoValue(title)
-                    if (item.due != DueText.None) InfoNote(item.due.text())
-                    if (request.isTrainingTask) InfoNote(stringResource(R.string.feature_tasks_review_training))
-                }
-            }
-        }
-        Spacer(Modifier.height(WaiveraSpacing.ExtraSmall))
-        WaiveraButton(
-            text = stringResource(R.string.feature_tasks_approve),
-            onClick = onApprove,
-            leadingIcon = WaiveraIcons.Check,
-            fullWidth = true,
-            size = WaiveraButtonSize.Large,
-        )
-        WaiveraButton(
-            text = stringResource(R.string.feature_tasks_reject),
-            onClick = onReject,
-            leadingIcon = WaiveraIcons.Close,
-            variant = WaiveraButtonVariant.DestructiveOutline,
-            fullWidth = true,
-            size = WaiveraButtonSize.Large,
-        )
-    }
-}
-
-@Composable
-private fun ChangeRow(item: RequestItem) {
-    val colors = WaiveraTheme.colors
-    when (val change = item.change) {
-        is RequestChange.DueMove -> InfoRow(
-            stringResource(R.string.feature_tasks_review_due_change),
-            WaiveraIcons.Schedule,
-        ) {
-            InfoValue(change.text().orEmpty())
-            change.daysLater?.let {
-                Text(
-                    text = pluralStringResource(R.plurals.feature_tasks_days_later, it, it),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = colors.warningText,
-                )
-            }
-        }
-        is RequestChange.DelayWindow -> InfoRow(
-            stringResource(R.string.feature_tasks_review_delay_window),
-            WaiveraIcons.Warning,
-            tone = WaiveraTileTone.Amber,
-        ) {
-            InfoValue(change.text().orEmpty())
-        }
-        RequestChange.Closure -> InfoRow(stringResource(R.string.feature_tasks_review_closure), WaiveraIcons.Archive) {
-            InfoValue(stringResource(R.string.feature_tasks_change_closure))
-        }
-        RequestChange.Other -> InfoRow(item.request.kindLabel(), item.request.kind.icon()) {
-            InfoValue(item.request.typeName)
-        }
-    }
-}
-
 private data class ConfirmCopy(val title: String, val message: String)
 
 @Composable
@@ -569,6 +502,72 @@ private fun Decision.confirmCopy(): ConfirmCopy {
                 },
             )
         }
+        RequestKind.TimeOff, RequestKind.TimeOffCancellation -> timeOffCopy()
+        RequestKind.ProfileChange -> ConfirmCopy(
+            title = stringResource(
+                if (approve) {
+                    R.string.feature_tasks_confirm_approve_title_profile
+                } else {
+                    R.string.feature_tasks_confirm_reject_title_profile
+                },
+            ),
+            message = if (approve) {
+                val count = (item.change as? RequestChange.Profile)?.changed?.size ?: 0
+                pluralStringResource(R.plurals.feature_tasks_confirm_approve_profile, count, count)
+            } else {
+                stringResource(R.string.feature_tasks_confirm_reject_profile, name)
+            },
+        )
+        RequestKind.Reactivation -> ConfirmCopy(
+            title = stringResource(
+                if (approve) {
+                    R.string.feature_tasks_confirm_approve_title_reopen
+                } else {
+                    R.string.feature_tasks_confirm_reject_title_reopen
+                },
+            ),
+            message = stringResource(
+                if (approve) {
+                    R.string.feature_tasks_confirm_approve_reopen
+                } else {
+                    R.string.feature_tasks_confirm_reject_reopen
+                },
+                task,
+                name,
+            ),
+        )
+        RequestKind.AttachmentRemoval -> ConfirmCopy(
+            title = stringResource(
+                if (approve) {
+                    R.string.feature_tasks_confirm_approve_title_remove_file
+                } else {
+                    R.string.feature_tasks_confirm_reject_title_remove_file
+                },
+            ),
+            message = stringResource(
+                if (approve) {
+                    R.string.feature_tasks_confirm_approve_remove_file
+                } else {
+                    R.string.feature_tasks_confirm_reject_remove_file
+                },
+                task,
+                name,
+            ),
+        )
+        RequestKind.TrainingCredit -> ConfirmCopy(
+            title = stringResource(
+                if (approve) {
+                    R.string.feature_tasks_confirm_approve_title_training
+                } else {
+                    R.string.feature_tasks_confirm_reject_title_training
+                },
+            ),
+            message = if (approve) {
+                stringResource(R.string.feature_tasks_confirm_approve_training, name)
+            } else {
+                stringResource(R.string.feature_tasks_confirm_reject_training)
+            },
+        )
         RequestKind.Closure, RequestKind.Other -> ConfirmCopy(
             title = stringResource(
                 if (approve) {
@@ -591,19 +590,52 @@ private fun Decision.confirmCopy(): ConfirmCopy {
 }
 
 @Composable
-private fun RequestItem.reviewTitle(): String = stringResource(
-    when (request.kind) {
-        RequestKind.MoreTime -> R.string.feature_tasks_review_title_more_time
-        RequestKind.Delay -> R.string.feature_tasks_review_title_delay
-        RequestKind.Closure, RequestKind.Other -> R.string.feature_tasks_review_title_closure
-    },
-)
+private fun Decision.timeOffCopy(): ConfirmCopy {
+    val change = item.change as? RequestChange.TimeOff
+    val name = item.request.requesterName
+    val dates = change?.dates.orEmpty()
+    val cancel = item.request.kind == RequestKind.TimeOffCancellation
+    return ConfirmCopy(
+        title = stringResource(
+            when {
+                cancel && approve -> R.string.feature_tasks_confirm_approve_title_cancel
+                cancel -> R.string.feature_tasks_confirm_reject_title_cancel
+                approve -> R.string.feature_tasks_confirm_approve_title_time_off
+                else -> R.string.feature_tasks_confirm_reject_title_time_off
+            },
+        ),
+        message = stringResource(
+            when {
+                cancel && approve -> R.string.feature_tasks_confirm_approve_cancel
+                cancel -> R.string.feature_tasks_confirm_reject_cancel
+                approve -> R.string.feature_tasks_confirm_approve_time_off
+                else -> R.string.feature_tasks_confirm_reject_time_off
+            },
+            name,
+            dates,
+        ),
+    )
+}
+
+@Composable
+private fun RequestItem.reviewTitle(): String = when (request.kind) {
+    RequestKind.MoreTime -> stringResource(R.string.feature_tasks_review_title_more_time)
+    RequestKind.Delay -> stringResource(R.string.feature_tasks_review_title_delay)
+    RequestKind.Closure -> stringResource(R.string.feature_tasks_review_title_closure)
+    else -> request.kindLabel()
+}
 
 @Composable
 internal fun com.waivera.waivera.core.data.model.ChangeRequest.kindLabel(): String = when (kind) {
     RequestKind.MoreTime -> stringResource(R.string.feature_tasks_kind_more_time)
     RequestKind.Delay -> stringResource(R.string.feature_tasks_kind_delay)
     RequestKind.Closure -> stringResource(R.string.feature_tasks_kind_closure)
+    RequestKind.TimeOff -> stringResource(R.string.feature_tasks_kind_time_off)
+    RequestKind.TimeOffCancellation -> stringResource(R.string.feature_tasks_kind_time_off_cancel)
+    RequestKind.ProfileChange -> stringResource(R.string.feature_tasks_kind_profile)
+    RequestKind.Reactivation -> stringResource(R.string.feature_tasks_kind_reopen)
+    RequestKind.AttachmentRemoval -> stringResource(R.string.feature_tasks_kind_remove_file)
+    RequestKind.TrainingCredit -> stringResource(R.string.feature_tasks_kind_training)
     RequestKind.Other -> typeName
 }
 
@@ -612,13 +644,11 @@ internal fun RequestKind.icon(): Int = when (this) {
     RequestKind.MoreTime -> WaiveraIcons.Schedule
     RequestKind.Delay -> WaiveraIcons.Warning
     RequestKind.Closure -> WaiveraIcons.Archive
-    RequestKind.Other -> WaiveraIcons.Calendar
-}
-
-private fun RequestKind.reasonLabel(): Int = when (this) {
-    RequestKind.Delay -> R.string.feature_tasks_review_delay_reason
-    RequestKind.Closure -> R.string.feature_tasks_review_closure_reason
-    RequestKind.MoreTime, RequestKind.Other -> R.string.feature_tasks_review_reason_code
+    RequestKind.TimeOff, RequestKind.TimeOffCancellation, RequestKind.Other -> WaiveraIcons.Calendar
+    RequestKind.ProfileChange -> WaiveraIcons.Person
+    RequestKind.Reactivation -> WaiveraIcons.Refresh
+    RequestKind.AttachmentRemoval -> WaiveraIcons.Attachment
+    RequestKind.TrainingCredit -> WaiveraIcons.Award
 }
 
 @Composable
@@ -637,11 +667,20 @@ internal fun RequestChange.text(): String? = when (this) {
     }
     is RequestChange.DelayWindow -> stringResource(R.string.feature_tasks_change_delay, start, end)
     RequestChange.Closure -> stringResource(R.string.feature_tasks_change_closure)
-    RequestChange.Other -> null
+    is RequestChange.TimeOff -> if (leaveType.isEmpty()) {
+        dates
+    } else {
+        stringResource(R.string.feature_tasks_change_time_off, leaveType, dates)
+    }
+    is RequestChange.Profile -> if (changed.isEmpty()) {
+        null
+    } else {
+        pluralStringResource(R.plurals.feature_tasks_review_changed, changed.size, changed.size)
+    }
+    RequestChange.Reopen -> stringResource(R.string.feature_tasks_change_reopen)
+    RequestChange.RemoveFile -> stringResource(R.string.feature_tasks_change_remove_file)
+    RequestChange.Training, RequestChange.Other -> null
 }
-
-/** "Today, 9:12 AM" reads "today, 9:12 AM" after "Requested". */
-private fun String.lowercaseFirstWord(): String = replaceFirstChar { it.lowercaseChar() }
 
 @Composable
 private fun RequestCardSkeleton() {
@@ -680,3 +719,5 @@ private const val LARGE_TASK_LINES = 3
 private const val SKELETON_CARDS = 3
 private const val SKELETON_KICKER = 0.4f
 private const val SKELETON_TITLE = 0.7f
+
+private const val PDF_MIME_TYPE = "application/pdf"

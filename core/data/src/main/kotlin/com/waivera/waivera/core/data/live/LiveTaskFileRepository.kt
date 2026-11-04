@@ -2,6 +2,7 @@ package com.waivera.waivera.core.data.live
 
 import com.waivera.waivera.core.data.model.TaskAttachment
 import com.waivera.waivera.core.data.repository.TaskFileRepository
+import com.waivera.waivera.core.network.api.RequestApi
 import com.waivera.waivera.core.network.api.TaskApi
 import com.waivera.waivera.core.network.di.IoDispatcher
 import com.waivera.waivera.core.network.error.WaiveraError
@@ -20,6 +21,8 @@ import kotlinx.coroutines.job
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
+import okhttp3.ResponseBody
+import retrofit2.Response
 
 @Qualifier
 @Retention(AnnotationRetention.BINARY)
@@ -35,6 +38,7 @@ annotation class TaskFileCacheDirectory
 @Singleton
 class LiveTaskFileRepository @Inject constructor(
     private val api: TaskApi,
+    private val requests: RequestApi,
     @TaskFileCacheDirectory private val directory: File,
     @IoDispatcher private val io: CoroutineDispatcher,
 ) : TaskFileRepository,
@@ -54,13 +58,21 @@ class LiveTaskFileRepository @Inject constructor(
         download(taskId, file, TaskAttachment.MAX_EXPORT_BYTES)
     }
 
-    private suspend fun download(taskId: Int, file: TaskAttachment, limit: Long): File {
+    override suspend fun certificate(requestId: Int): Result<File> = catchingWaivera {
+        download(TaskAttachment.MAX_EXPORT_BYTES) { requests.trainingCertificate(requestId) }
+    }
+
+    private suspend fun download(taskId: Int, file: TaskAttachment, limit: Long): File = download(limit) {
+        if (file.employeeFile) api.downloadEmployeeTaskFile(taskId, file.fileId) else api.downloadCaseFile(file.fileId)
+    }
+
+    private suspend fun download(limit: Long, call: suspend () -> Response<ResponseBody>): File {
         val started = generation
         return withContext(io) {
             val job = coroutineContext.job
             running += job
             try {
-                fetch(taskId, file, started, limit)
+                fetch(call, started, limit)
             } finally {
                 running -= job
             }
@@ -69,13 +81,9 @@ class LiveTaskFileRepository @Inject constructor(
 
     // Each throw is a distinct failure the viewer explains differently.
     @Suppress("ThrowsCount")
-    private suspend fun fetch(taskId: Int, file: TaskAttachment, started: Long, limit: Long): File {
+    private suspend fun fetch(call: suspend () -> Response<ResponseBody>, started: Long, limit: Long): File {
         directory.mkdirs()
-        val response = if (file.employeeFile) {
-            api.downloadEmployeeTaskFile(taskId, file.fileId)
-        } else {
-            api.downloadCaseFile(file.fileId)
-        }
+        val response = call()
         if (!response.isSuccessful) throw response.toWaiveraError()
         val target = File(directory, UUID.randomUUID().toString())
         val partial = File(directory, "${target.name}.part")

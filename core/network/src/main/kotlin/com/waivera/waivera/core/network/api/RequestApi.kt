@@ -4,15 +4,21 @@ import com.waivera.waivera.core.network.dto.AdminRequestResponse
 import com.waivera.waivera.core.network.dto.ApiResponse
 import com.waivera.waivera.core.network.dto.ComplianceEligibilityResponse
 import com.waivera.waivera.core.network.dto.ComplianceReasonResponse
+import com.waivera.waivera.core.network.dto.LeaveBalancesResponse
+import com.waivera.waivera.core.network.dto.LeaveSettingsResponse
 import com.waivera.waivera.core.network.dto.PagedResults
+import com.waivera.waivera.core.network.dto.RequestActionBody
 import com.waivera.waivera.core.network.dto.TaskAttachmentResponse
 import com.waivera.waivera.core.network.dto.TaskClosureRequest
 import com.waivera.waivera.core.network.dto.TaskDelayRequest
 import com.waivera.waivera.core.network.dto.TaskDelayResult
 import com.waivera.waivera.core.network.dto.TaskExtensionRequest
 import com.waivera.waivera.core.network.dto.TaskExtensionResult
+import com.waivera.waivera.core.network.dto.TrainingCreditResponse
+import com.waivera.waivera.core.network.dto.TrainingDecisionBody
 import com.waivera.waivera.core.network.dto.TransactionReasonResponse
 import kotlinx.serialization.json.JsonElement
+import okhttp3.ResponseBody
 import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.GET
@@ -20,6 +26,7 @@ import retrofit2.http.POST
 import retrofit2.http.PUT
 import retrofit2.http.Path
 import retrofit2.http.Query
+import retrofit2.http.Streaming
 
 /**
  * Change requests on tasks and their review: `Controllers/AdmininistrativeTransactionController.cs`,
@@ -50,6 +57,29 @@ interface RequestApi {
 
     @PUT("api/admin/request/reject/{id}")
     suspend fun reject(@Path("id") id: Int): Response<JsonElement>
+
+    @POST("api/TimeOff/approve-reject/{id}")
+    suspend fun decideTimeOff(@Path("id") id: Int, @Body body: RequestActionBody): Response<JsonElement>
+
+    /** Profile changes: the server applies the stored requested values itself. */
+    @POST("api/admin/request/approve-reject/{id}")
+    suspend fun decideProfileChange(@Path("id") id: Int, @Body body: RequestActionBody): Response<JsonElement>
+
+    @GET("api/leave-management/employees/{employeeId}/balances")
+    suspend fun leaveBalances(@Path("employeeId") employeeId: String): Response<ApiResponse<LeaveBalancesResponse>>
+
+    @GET("api/leave-management/settings")
+    suspend fun leaveSettings(): Response<ApiResponse<LeaveSettingsResponse>>
+
+    @GET("api/training/external/requests/{id}")
+    suspend fun trainingCredit(@Path("id") id: Int): Response<TrainingCreditResponse>
+
+    @POST("api/training/external/requests/{id}/decision")
+    suspend fun decideTrainingCredit(@Path("id") id: Int, @Body body: TrainingDecisionBody): Response<JsonElement>
+
+    @Streaming
+    @GET("api/training/external/requests/{id}/certificate")
+    suspend fun trainingCertificate(@Path("id") id: Int): Response<ResponseBody>
 
     @GET("api/tasks/{taskId}/compliance-request-eligibility")
     suspend fun eligibility(@Path("taskId") taskId: Int): Response<ComplianceEligibilityResponse>

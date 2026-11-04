@@ -475,7 +475,7 @@ private fun PendingRequestBanner(pending: PendingBanner) {
         RequestKind.Closure ->
             stringResource(R.string.feature_tasks_pending_closure_title) to
                 stringResource(R.string.feature_tasks_pending_closure)
-        RequestKind.Other ->
+        else ->
             stringResource(R.string.feature_tasks_pending_other_title) to
                 stringResource(R.string.feature_tasks_pending_other)
     }

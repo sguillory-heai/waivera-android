@@ -182,7 +182,13 @@ private class HeadlineLines {
  * closing animate the height, timed by how far it moves ([WaiveraMotionScheme.expand]).
  */
 @Composable
-private fun ActivityNote(text: String, startExpanded: Boolean, modifier: Modifier = Modifier) {
+internal fun ActivityNote(
+    text: String,
+    startExpanded: Boolean,
+    modifier: Modifier = Modifier,
+    lines: Int = ACTIVITY_LINES,
+    style: TextStyle = MaterialTheme.typography.bodySmall,
+) {
     val colors = WaiveraTheme.colors
     var expanded by rememberSaveable(text) { mutableStateOf(startExpanded) }
     var cut by rememberSaveable(text) { mutableStateOf(startExpanded) }
@@ -209,16 +215,16 @@ private fun ActivityNote(text: String, startExpanded: Boolean, modifier: Modifie
     ) {
         Text(
             text = text,
-            style = MaterialTheme.typography.bodySmall,
+            style = style,
             color = colors.text,
             // While it closes the whole note stays laid out and the clip shrinks over it; the
             // three-line ellipsis comes back once the height has settled.
-            maxLines = if (reveal.showsAll) Int.MAX_VALUE else ACTIVITY_LINES,
+            maxLines = if (reveal.showsAll) Int.MAX_VALUE else lines,
             overflow = TextOverflow.Ellipsis,
             onTextLayout = { layout ->
                 if (layout.lineCount > 0) {
                     // The closed height is the bottom of the third line, known from either layout.
-                    val last = minOf(ACTIVITY_LINES, layout.lineCount) - 1
+                    val last = minOf(lines, layout.lineCount) - 1
                     reveal.collapsedHeight = layout.getLineBottom(last).roundToInt()
                     if (!reveal.showsAll) cut = layout.isLineEllipsized(layout.lineCount - 1)
                 }

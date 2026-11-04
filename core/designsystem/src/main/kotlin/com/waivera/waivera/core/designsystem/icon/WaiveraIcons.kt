@@ -134,6 +134,7 @@ object WaiveraIcons {
 
     /** Hand a file to another app. */
     @DrawableRes val Share: Int = R.drawable.core_designsystem_ic_share
+
     @DrawableRes val View: Int = R.drawable.core_designsystem_ic_view
 
     /** Photos from the gallery. */

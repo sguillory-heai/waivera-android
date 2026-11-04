@@ -73,6 +73,12 @@ object TaskFormat {
     /** The date tile's month, "Nov". */
     fun tileMonth(date: LocalDate): String = date.format(Month)
 
+    /** "Nov 24, 2026": a date read on its own, such as a profile field. */
+    fun fullDate(date: LocalDate): String = date.format(OtherYear)
+
+    /** "2:30 PM" in [zone]. */
+    fun clock(at: Instant, zone: ZoneId): String = at.atZone(zone).format(Clock)
+
     fun date(date: LocalDate, today: LocalDate): String =
         if (date.year == today.year) date.format(SameYear) else date.format(OtherYear)
 

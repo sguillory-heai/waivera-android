@@ -21,8 +21,11 @@ data class AdminRequestResponse(
     val requestTime: String? = null,
     val completionTime: String? = null,
     val taskId: Int? = null,
+    val taskFriendlyId: Int? = null,
+    val requiredAttachmentId: Int? = null,
     val taskTitle: String? = null,
     val transactionReasonText: String? = null,
+    val participantRequest: ParticipantChangeResponse? = null,
     val extensionReason: String? = null,
     val extensionOriginalDueDate: String? = null,
     val extensionRequestedDueDate: String? = null,
@@ -34,13 +37,107 @@ data class AdminRequestResponse(
     val isTrainingTask: Boolean = false,
 )
 
-/** `EmployeeTimeOffResponseDto`, only the period. */
+/** `EmployeeTimeOffResponseDto`, the fields a reviewer sees. Times are UTC, sometimes without a suffix. */
 @Serializable
 data class TimeOffDetailsResponse(
+    val id: Int = 0,
     val timeOffStartDate: String? = null,
     val timeOffEndDate: String? = null,
     val typeOfLeave: String? = null,
+    val typeOfLeaveId: Int = 0,
+    val comment: String? = null,
+    /** `FULL_DAY` or `PARTIAL_DAY`. */
+    val requestType: String? = null,
+    val durationMinutes: Int = 0,
+    val intelligenceSnapshotJson: String? = null,
+    val currentIntelligenceJson: String? = null,
+    val reviewRevision: Int = 0,
+    val impactAcknowledgedRevision: Int? = null,
+    val impactAcknowledgedAt: String? = null,
 )
+
+/** sprout_web `LeaveIntelligencePreview`, stored as JSON text on the time-off request. */
+@Serializable
+data class LeaveIntelligenceResponse(
+    val overdueCount: Int = 0,
+    val dueDuringLeaveCount: Int = 0,
+    val warnings: List<LeaveWarningResponse> = emptyList(),
+)
+
+@Serializable
+data class LeaveWarningResponse(val code: String? = null, val message: String? = null)
+
+/** `VIewParticipantRequest`; the server's spelling of the two profiles is kept. */
+@Serializable
+data class ParticipantChangeResponse(
+    val id: Int = 0,
+    val participantId: Int = 0,
+    val newProfileChanegs: ParticipantProfileResponse? = null,
+    val orignalProfile: ParticipantProfileResponse? = null,
+)
+
+/** `NewProfileChanegsDto` / `OrignalProfileDto`: the fields the web compares. */
+@Serializable
+data class ParticipantProfileResponse(
+    val dateOfBirth: String? = null,
+    val firstName: String? = null,
+    val lastName: String? = null,
+    val email: String? = null,
+    val mobileNumber: String? = null,
+    val waiverName: String? = null,
+    val waiverId: Int? = null,
+    val participantSsnLast4: String? = null,
+    val certificationDate: String? = null,
+    val cpocDate: String? = null,
+    val cpocEndDate: String? = null,
+)
+
+/** `TimeOffActionDto` for both `TimeOff/approve-reject` and the profile change route. */
+@Serializable
+data class RequestActionBody(val action: String, val reason: String)
+
+/** `EmployeeLeaveSummary` from `leave-management/employees/{id}/balances` (balances only). */
+@Serializable
+data class LeaveBalancesResponse(val balances: List<LeaveBalanceResponse> = emptyList())
+
+@Serializable
+data class LeaveBalanceResponse(
+    val id: Int = 0,
+    val name: String? = null,
+    val tracksBalance: Boolean = false,
+    val availableMinutes: Int = 0,
+)
+
+/** `leave-management/settings`, the zone partial days are told in. */
+@Serializable
+data class LeaveSettingsResponse(val timeZone: String? = null)
+
+/**
+ * `TrainingExternalService.RequestDetailsAsync` (or the standalone credit's), a bare object.
+ * [standaloneCreditId] marks a credit reviewed on the web's training page instead.
+ */
+@Serializable
+data class TrainingCreditResponse(
+    val courseTitle: String? = null,
+    val employeeName: String? = null,
+    val trainerName: String? = null,
+    val provider: String? = null,
+    val completedDate: String? = null,
+    val hours: Double = 0.0,
+    val fileName: String? = null,
+    val status: String? = null,
+    val revision: Int? = null,
+    val canApprove: Boolean = false,
+    val requiresOverrideReason: Boolean = false,
+    val approvalBlockedReason: String? = null,
+    val uploadedForEmployee: Boolean = false,
+    val submittedByName: String? = null,
+    val standaloneCreditId: Int? = null,
+)
+
+/** `TrainingCreditDecision`. */
+@Serializable
+data class TrainingDecisionBody(val revision: Int, val approve: Boolean, val reason: String)
 
 /** `PagedResults<T>` inside an `ApiResponse`. */
 @Serializable

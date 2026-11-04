@@ -4,14 +4,18 @@ import com.waivera.waivera.core.data.model.ChangeOptions
 import com.waivera.waivera.core.data.model.ChangeReason
 import com.waivera.waivera.core.data.model.ChangeRequest
 import com.waivera.waivera.core.data.model.DelayPeriod
+import com.waivera.waivera.core.data.model.LeaveBalance
 import com.waivera.waivera.core.data.model.RequestAccess
 import com.waivera.waivera.core.data.model.RequestKind
 import com.waivera.waivera.core.data.model.RequestOutcome
 import com.waivera.waivera.core.data.model.RequestStatus
 import com.waivera.waivera.core.data.model.TaskFile
+import com.waivera.waivera.core.data.model.TrainingCredit
+import com.waivera.waivera.core.data.model.TrainingDecision
 import com.waivera.waivera.core.data.repository.RequestRepository
 import java.time.Instant
 import java.time.LocalDate
+import java.time.ZoneId
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -38,6 +42,10 @@ internal class FakeRequests(
     var decideResult: Result<Unit> = Result.success(Unit)
     var decideGate: CompletableDeferred<Unit>? = null
     val decisions = mutableListOf<Pair<Int, Boolean>>()
+    val trainingDecisions = mutableListOf<TrainingDecision?>()
+    var balance: Result<LeaveBalance?> = Result.success(null)
+    var leaveZone: ZoneId? = null
+    var training: Result<TrainingCredit> = Result.failure(IllegalStateException("no training credit"))
 
     var optionsResult: Result<ChangeOptions> = Result.success(options())
     var reasons: Result<List<ChangeReason>> =
@@ -63,14 +71,21 @@ internal class FakeRequests(
 
     override suspend fun mine(): Result<List<ChangeRequest>> = mineResult
 
-    override suspend fun decide(request: ChangeRequest, approve: Boolean): Result<Unit> {
+    override suspend fun decide(request: ChangeRequest, approve: Boolean, training: TrainingDecision?): Result<Unit> {
         val before = waitingFlow.value
         decisions += request.id to approve
+        trainingDecisions += training
         waitingFlow.value = before?.filterNot { it.id == request.id }
         decideGate?.await()
         decideResult.onFailure { waitingFlow.value = before }
         return decideResult
     }
+
+    override suspend fun leaveBalance(employeeId: String, leaveTypeId: Int): Result<LeaveBalance?> = balance
+
+    override suspend fun leaveZone(): ZoneId? = leaveZone
+
+    override suspend fun trainingCredit(requestId: Int): Result<TrainingCredit> = training
 
     override suspend fun options(taskId: Int): Result<ChangeOptions> = optionsResult
 
@@ -139,7 +154,8 @@ internal class FakeRequests(
                 RequestKind.MoreTime -> "Task Extension Request"
                 RequestKind.Delay -> "Task Delay Request"
                 RequestKind.Closure -> "Task Deletion Request"
-                RequestKind.Other -> "Time Off Request"
+                RequestKind.Other -> "Exception Period Request"
+                else -> kind.name
             },
             status = status,
             requesterId = "usr_priya",

@@ -7,16 +7,22 @@ import com.waivera.waivera.core.data.model.ChangeReason
 import com.waivera.waivera.core.data.model.ChangeRequest
 import com.waivera.waivera.core.data.model.DelayPeriod
 import com.waivera.waivera.core.data.model.FileKind
+import com.waivera.waivera.core.data.model.LeaveImpact
+import com.waivera.waivera.core.data.model.ProfileField
 import com.waivera.waivera.core.data.model.RequestKind
 import com.waivera.waivera.core.data.model.RequestStatus
 import com.waivera.waivera.core.data.model.TaskDetail
 import com.waivera.waivera.core.data.model.TaskFile
 import com.waivera.waivera.core.data.model.TaskState
+import com.waivera.waivera.core.data.model.TimeOffReview
+import com.waivera.waivera.core.data.model.TrainingBlock
+import com.waivera.waivera.core.data.model.TrainingCredit
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
 
 /** Fixed content for previews and screenshot tests. */
+@Suppress("TooManyFunctions")
 internal object TaskPreviewData {
     private val Zone: ZoneId = ZoneId.of("America/Chicago")
     private val Today: LocalDate = LocalDate.of(2026, 11, 4)
@@ -142,12 +148,74 @@ internal object TaskPreviewData {
             RequestKind.MoreTime -> RequestChange.DueMove("Thu, Nov 5", "Thu, Nov 19", 14)
             RequestKind.Delay -> RequestChange.DelayWindow("Sun, Nov 1", "Sun, Nov 8")
             RequestKind.Closure -> RequestChange.Closure
-            RequestKind.Other -> RequestChange.Other
+            else -> RequestChange.Other
         },
         due = TaskFormat.due(request.currentDue, Today),
     )
 
     fun waitingRequest() = item(request(1, RequestKind.MoreTime))
+
+    fun timeOffReview(): RequestItem {
+        val request = request(5, RequestKind.TimeOff, who = "Maya Thompson").copy(
+            taskId = null,
+            taskTitle = null,
+            timeOff = TimeOffReview(
+                leaveType = "Vacation",
+                leaveTypeId = 7,
+                partialDay = false,
+                startDate = Today.plusDays(20),
+                endDate = Today.plusDays(22),
+                start = null,
+                end = null,
+                minutes = 1440,
+                note = "Family trip for Thanksgiving. Dana's visit is moved to Nov 20, and Luis has agreed to " +
+                    "cover the Tuesday check-in calls while I'm away. I'll be reachable by text for anything urgent.",
+                impact = LeaveImpact(dueBefore = 1, dueDuring = 2, shortNotice = false, notices = emptyList()),
+                impactChanged = false,
+                acknowledged = false,
+            ),
+        )
+        return item(request).copy(
+            change = RequestChange.TimeOff("Vacation", "Tue, Nov 24 – Thu, Nov 26", null, 1440, false),
+        )
+    }
+
+    fun profileReview(): RequestItem = item(request(6, RequestKind.ProfileChange).copy(taskId = null, taskTitle = null))
+        .copy(
+            change = RequestChange.Profile(
+                changed = listOf(
+                    ProfileRow(ProfileField.Field.Mobile, "(337) 555-0142", "(337) 555-0199"),
+                    ProfileRow(ProfileField.Field.Email, "luis.ortega@example.com", "l.ortega.family@example.org"),
+                    ProfileRow(ProfileField.Field.CpocEnd, "Jan 31, 2027", "Mar 31, 2027"),
+                ),
+                unchanged = listOf(
+                    ProfileRow(ProfileField.Field.FirstName, "Luis", "Luis"),
+                    ProfileRow(ProfileField.Field.LastName, "Ortega", "Ortega"),
+                    ProfileRow(ProfileField.Field.Ssn, "••••", "••••"),
+                ),
+            ),
+        )
+
+    fun trainingReview(): RequestItem =
+        item(request(7, RequestKind.TrainingCredit, who = "Jordan Lee").copy(taskTitle = "CPR recertification"))
+            .copy(change = RequestChange.Training)
+
+    fun trainingCredit(canApprove: Boolean = true, uploadedBy: String? = null) = TrainingCredit(
+        requestId = 7,
+        course = "CPR recertification",
+        employeeName = "Jordan Lee",
+        trainer = "Alicia Brooks",
+        provider = "American Red Cross",
+        completed = Today.minusDays(9),
+        hours = 2.0,
+        pending = true,
+        revision = 3,
+        canApprove = canApprove,
+        needsApproveReason = uploadedBy != null,
+        uploadedBy = uploadedBy,
+        blocked = if (canApprove) null else TrainingBlock.OwnCredit,
+        reviewOnWeb = false,
+    )
 
     fun requestsState() = RequestsUiState(
         waiting = Loadable.Ready(

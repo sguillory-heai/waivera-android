@@ -1,0 +1,122 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Request kinds -->
+    <string name="feature_tasks_kind_time_off">Time off</string>
+    <string name="feature_tasks_kind_time_off_cancel">Time off cancellation</string>
+    <string name="feature_tasks_kind_profile">Profile change</string>
+    <string name="feature_tasks_kind_reopen">Reopen task</string>
+    <string name="feature_tasks_kind_remove_file">Required file</string>
+    <string name="feature_tasks_kind_training">Training credit</string>
+
+    <!-- What a request changes, on its card -->
+    <string name="feature_tasks_change_time_off">%1$s · %2$s</string>
+    <string name="feature_tasks_change_reopen">Reopen the task</string>
+    <string name="feature_tasks_change_remove_file">Stop requiring a file</string>
+
+    <!-- Time off review -->
+    <string name="feature_tasks_review_dates">Dates</string>
+    <string name="feature_tasks_review_full_days">Full days · %1$s</string>
+    <string name="feature_tasks_review_partial_day">%1$s · %2$s</string>
+    <string name="feature_tasks_review_leave_type">Leave type</string>
+    <string name="feature_tasks_review_balance">Balance</string>
+    <string name="feature_tasks_review_balance_after">After this request</string>
+    <string name="feature_tasks_review_balance_after_cancel">After the hours go back</string>
+    <plurals name="feature_tasks_review_hours">
+        <item quantity="one">%1$s hr</item>
+        <item quantity="other">%1$s hrs</item>
+    </plurals>
+    <plurals name="feature_tasks_review_impact_tasks">
+        <item quantity="one">%1$d task is due before or while %2$s is out</item>
+        <item quantity="other">%1$d tasks are due before or while %2$s is out</item>
+    </plurals>
+    <string name="feature_tasks_review_impact_counts">Due before the leave: %1$d. Due during it: %2$d.</string>
+    <string name="feature_tasks_review_impact_none">No open tasks assigned to them are due before or during this leave.</string>
+    <string name="feature_tasks_review_impact_changed">This has changed since they asked.</string>
+    <string name="feature_tasks_review_impact_acknowledged">They have seen this review.</string>
+    <string name="feature_tasks_review_impact_not_acknowledged">They haven\'t confirmed this review yet. You can still approve.</string>
+    <string name="feature_tasks_review_impact_unavailable">The task review isn\'t available right now. Pull to refresh before you decide.</string>
+    <string name="feature_tasks_review_short_notice_title">Less than two weeks\' notice</string>
+    <string name="feature_tasks_review_short_notice">This vacation starts in fewer than 14 days. You can still approve it.</string>
+
+    <!-- Profile change review -->
+    <plurals name="feature_tasks_review_changed">
+        <item quantity="one">%1$d change</item>
+        <item quantity="other">%1$d changes</item>
+    </plurals>
+    <plurals name="feature_tasks_review_unchanged">
+        <item quantity="one">%1$d unchanged</item>
+        <item quantity="other">%1$d unchanged</item>
+    </plurals>
+    <string name="feature_tasks_review_previous">Previous</string>
+    <string name="feature_tasks_review_requested_value">Requested</string>
+    <string name="feature_tasks_review_none">None</string>
+    <string name="feature_tasks_review_unchanged_fields">Unchanged fields</string>
+    <string name="feature_tasks_review_field_value">%1$s: %2$s</string>
+    <string name="feature_tasks_review_profile_empty">No profile details to compare</string>
+    <string name="feature_tasks_field_birth">Date of birth</string>
+    <string name="feature_tasks_field_first_name">First name</string>
+    <string name="feature_tasks_field_last_name">Last name</string>
+    <string name="feature_tasks_field_email">Email</string>
+    <string name="feature_tasks_field_mobile">Mobile number</string>
+    <string name="feature_tasks_field_waiver">Waiver</string>
+    <string name="feature_tasks_field_waiver_id">Waiver ID</string>
+    <string name="feature_tasks_field_ssn">SSN (last 4)</string>
+    <string name="feature_tasks_field_certification">Certification date</string>
+    <string name="feature_tasks_field_cpoc_start">CPOC start date</string>
+    <string name="feature_tasks_field_cpoc_end">CPOC end date</string>
+
+    <!-- Reopen and required file reviews -->
+    <string name="feature_tasks_review_reopen_note">The task opens again so work can continue.</string>
+    <string name="feature_tasks_review_remove_file_note">The task can be submitted without this file.</string>
+
+    <!-- Training credit review -->
+    <string name="feature_tasks_review_course">Course</string>
+    <string name="feature_tasks_review_completed">%1$s · completed %2$s</string>
+    <string name="feature_tasks_review_trainer">Trainer</string>
+    <string name="feature_tasks_review_provider">Training provider</string>
+    <string name="feature_tasks_review_not_recorded">Not recorded</string>
+    <string name="feature_tasks_review_uploaded_by">Uploaded by</string>
+    <string name="feature_tasks_review_certificate">Certificate</string>
+    <string name="feature_tasks_review_view_certificate">View certificate PDF</string>
+    <string name="feature_tasks_review_certificate_failed">Couldn\'t open the certificate. Try again.</string>
+    <string name="feature_tasks_review_training_failed">Couldn\'t load this training credit.</string>
+    <string name="feature_tasks_review_approve_credit">Approve credit</string>
+    <string name="feature_tasks_review_reject_submission">Reject submission</string>
+    <string name="feature_tasks_review_on_web">Review on the web</string>
+    <string name="feature_tasks_review_uploaded_yourself">You uploaded this certificate for %1$s, so your reason is kept in the review history.</string>
+    <string name="feature_tasks_review_blocked_own">Someone else needs to review your own training credit.</string>
+    <string name="feature_tasks_review_blocked_no_reviewer">No one is set up to review this yet. An organization owner can add a reviewer.</string>
+    <string name="feature_tasks_review_blocked_not_reviewer">An approved reviewer needs to check this certificate.</string>
+    <string name="feature_tasks_review_reason_required">Reason</string>
+    <string name="feature_tasks_review_reason_optional">Review notes (optional)</string>
+    <string name="feature_tasks_review_reason_placeholder">Explain your decision</string>
+
+    <!-- Confirmations -->
+    <string name="feature_tasks_confirm_approve_title_time_off">Approve time off?</string>
+    <string name="feature_tasks_confirm_reject_title_time_off">Reject time off?</string>
+    <string name="feature_tasks_confirm_approve_time_off">%1$s\'s time off on %2$s will be approved.</string>
+    <string name="feature_tasks_confirm_reject_time_off">%1$s will be told their time off on %2$s wasn\'t approved.</string>
+    <string name="feature_tasks_confirm_approve_title_cancel">Approve the cancellation?</string>
+    <string name="feature_tasks_confirm_reject_title_cancel">Reject the cancellation?</string>
+    <string name="feature_tasks_confirm_approve_cancel">%1$s\'s time off on %2$s will be cancelled and the hours go back to their balance.</string>
+    <string name="feature_tasks_confirm_reject_cancel">%1$s\'s time off on %2$s stays approved.</string>
+    <string name="feature_tasks_confirm_approve_title_profile">Approve profile change?</string>
+    <string name="feature_tasks_confirm_reject_title_profile">Reject profile change?</string>
+    <plurals name="feature_tasks_confirm_approve_profile">
+        <item quantity="one">The participant\'s profile will be updated with %1$d change.</item>
+        <item quantity="other">The participant\'s profile will be updated with %1$d changes.</item>
+    </plurals>
+    <string name="feature_tasks_confirm_reject_profile">The participant\'s profile stays as it is, and %1$s will be told.</string>
+    <string name="feature_tasks_confirm_approve_title_reopen">Reopen this task?</string>
+    <string name="feature_tasks_confirm_reject_title_reopen">Keep this task closed?</string>
+    <string name="feature_tasks_confirm_approve_reopen">%1$s will open again for %2$s.</string>
+    <string name="feature_tasks_confirm_reject_reopen">%1$s stays closed, and %2$s will be told.</string>
+    <string name="feature_tasks_confirm_approve_title_remove_file">Stop requiring this file?</string>
+    <string name="feature_tasks_confirm_reject_title_remove_file">Keep the file required?</string>
+    <string name="feature_tasks_confirm_approve_remove_file">%1$s can be submitted without this file. %2$s will be told.</string>
+    <string name="feature_tasks_confirm_reject_remove_file">%1$s still needs this file, and %2$s will be told.</string>
+    <string name="feature_tasks_confirm_approve_title_training">Approve external training credit?</string>
+    <string name="feature_tasks_confirm_reject_title_training">Reject external training evidence?</string>
+    <string name="feature_tasks_confirm_approve_training">This approves the hours for %1$s and completes the linked training task.</string>
+    <string name="feature_tasks_confirm_reject_training">Explain what needs to be corrected so they can send a new certificate.</string>
+</resources>

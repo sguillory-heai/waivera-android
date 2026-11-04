@@ -135,6 +135,68 @@ class TasksScreenshotTest {
     }
 
     @Test
+    fun reviewTimeOff() = captureScreenshots("tasks_review_time_off", heightDp = 1300) {
+        WaiveraSheetFrame(title = "Time off") {
+            ReviewFields(
+                item = TaskPreviewData.timeOffReview(),
+                extras = ReviewExtras(balance = Loadable.Ready(BalanceChange(before = 2400, after = 960))),
+                actions = ReviewActions({}, {}),
+            )
+        }
+    }
+
+    @Test
+    fun reviewProfile() = captureScreenshots("tasks_review_profile", heightDp = 1500) {
+        WaiveraSheetFrame(title = "Profile change") {
+            ReviewFields(
+                item = TaskPreviewData.profileReview(),
+                extras = ReviewExtras(),
+                actions = ReviewActions({
+                }, {}),
+            )
+        }
+    }
+
+    @Test
+    fun reviewTraining() = captureScreenshots("tasks_review_training", heightDp = 1300) {
+        WaiveraSheetFrame(title = "Training credit") {
+            ReviewFields(
+                item = TaskPreviewData.trainingReview(),
+                extras = ReviewExtras(training = Loadable.Ready(TaskPreviewData.trainingCredit())),
+                actions = ReviewActions({}, {}),
+            )
+        }
+    }
+
+    @Test
+    fun reviewTrainingOwn() = captureScreenshots("tasks_review_training_own", heightDp = 1100) {
+        WaiveraSheetFrame(title = "Training credit") {
+            ReviewFields(
+                item = TaskPreviewData.trainingReview(),
+                extras = ReviewExtras(training = Loadable.Ready(TaskPreviewData.trainingCredit(canApprove = false))),
+                actions = ReviewActions({}, {}),
+            )
+        }
+    }
+
+    @Test
+    fun trainingReject() = captureScreenshots("tasks_training_reject", heightDp = 900) {
+        WaiveraSheetFrame(title = null) {
+            TrainingDecisionContent(
+                title = "Reject external training evidence?",
+                message = "Explain what needs to be corrected so they can send a new certificate.",
+                approve = false,
+                credit = TaskPreviewData.trainingCredit(uploadedBy = "Sheldon Guillory"),
+                reason = "",
+                canConfirm = false,
+                onReason = {},
+                onConfirm = {},
+                onDismiss = {},
+            )
+        }
+    }
+
+    @Test
     fun fileActions() = captureScreenshots("task_file_actions") {
         WaiveraSheetFrame(title = null) {
             FileSheetContent(
