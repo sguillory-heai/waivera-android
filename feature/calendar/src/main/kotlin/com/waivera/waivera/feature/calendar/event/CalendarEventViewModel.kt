@@ -10,6 +10,7 @@ import com.waivera.waivera.core.data.model.currentUserId
 import com.waivera.waivera.core.data.repository.CalendarRepository
 import com.waivera.waivera.core.data.repository.ConversationRepository
 import com.waivera.waivera.core.data.repository.SessionRepository
+import com.waivera.waivera.core.network.NetworkConfig
 import com.waivera.waivera.core.network.di.ApplicationScope
 import com.waivera.waivera.core.network.error.WaiveraError
 import com.waivera.waivera.feature.calendar.data.DeviceZone
@@ -30,6 +31,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.distinctUntilChangedBy
@@ -53,6 +55,7 @@ class CalendarEventViewModel @AssistedInject constructor(
     private val session: SessionRepository,
     private val clock: Clock,
     private val deviceZone: DeviceZone,
+    private val config: NetworkConfig,
     @ApplicationScope private val appScope: CoroutineScope,
 ) : ViewModel() {
     @AssistedFactory
@@ -67,6 +70,10 @@ class CalendarEventViewModel @AssistedInject constructor(
     private val joinError = MutableStateFlow<JoinError?>(null)
     private val chatBusy = MutableStateFlow(false)
     private val effectChannel = Channel<EventEffect>(Channel.BUFFERED)
+    private val cancelling = MutableStateFlow(false)
+
+    /** True while Cancel event is saving, for the confirmation sheet's busy button. */
+    val cancelBusy: StateFlow<Boolean> = cancelling.asStateFlow()
     private var commitJob: Job? = null
     private var undoToken = 0L
 
@@ -212,6 +219,23 @@ class CalendarEventViewModel @AssistedInject constructor(
         }
     }
 
+    /** Cancels your own one-off event; the screen closes once the server agrees. */
+    fun cancelEvent() {
+        if (cancelling.value || currentDetails()?.manage != ManageMode.Edit) return
+        cancelling.value = true
+        viewModelScope.launch {
+            val result = calendar.cancelEvent(eventId)
+            cancelling.value = false
+            effectChannel.trySend(if (result.isSuccess) EventEffect.Cancelled else EventEffect.CancelFailed)
+        }
+    }
+
+    /** Repeating and task meetings are changed in the web calendar. */
+    fun editOnWeb() {
+        val url = config.webBase?.resolve(WEB_CALENDAR_PATH)?.toString()
+        effectChannel.trySend(url?.let(EventEffect::OpenUrl) ?: EventEffect.WebUnavailable)
+    }
+
     override fun onCleared() {
         // An answer still inside its undo window is the person's decision: send it anyway.
         val pending = optimistic.value?.takeIf { it.phase == ResponsePhase.UNDO_WINDOW }
@@ -242,5 +266,6 @@ class CalendarEventViewModel @AssistedInject constructor(
         /** Matches `SnackbarDuration.Long`, so the Undo action is offered for the whole window. */
         const val UNDO_WINDOW_MILLIS = 10_000L
         private const val STOP_TIMEOUT_MILLIS = 5_000L
+        private const val WEB_CALENDAR_PATH = "/calendar"
     }
 }

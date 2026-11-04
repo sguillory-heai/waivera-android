@@ -40,7 +40,12 @@ data class EventDetails(
     val isRefreshing: Boolean,
     /** A refresh failed; cached details are shown with a quiet banner. */
     val refreshError: WaiveraError?,
+    /** What the organizer can change here; null for everyone else. */
+    val manage: ManageMode? = null,
 )
+
+/** The organizer's tools: one-off events change on the phone; repeating and task meetings on the web. */
+enum class ManageMode { Edit, WebOnly }
 
 /** The organizer block: tapping opens their profile when they are a known employee. */
 @Immutable
@@ -129,6 +134,12 @@ sealed interface EventEffect {
     data class ResponseSaved(val accept: Boolean) : EventEffect
 
     data object ResponseFailed : EventEffect
+
+    data object Cancelled : EventEffect
+
+    data object CancelFailed : EventEffect
+
+    data object WebUnavailable : EventEffect
 
     data class ChatFailed(val error: WaiveraError) : EventEffect
 }

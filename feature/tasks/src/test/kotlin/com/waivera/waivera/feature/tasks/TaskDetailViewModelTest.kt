@@ -36,7 +36,8 @@ class TaskDetailViewModelTest {
         clock: TestClock = TestClock(),
         config: NetworkConfig = web,
     ): TaskDetailViewModel {
-        val vm = TaskDetailViewModel(7, tasks, TestSessionRepository(), config, DemoGraph(backgroundScope).calendar, clock)
+        val vm =
+            TaskDetailViewModel(7, tasks, TestSessionRepository(), config, DemoGraph(backgroundScope).calendar, clock)
         backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { vm.uiState.collect {} }
         return vm
     }
@@ -112,7 +113,12 @@ class TaskDetailViewModelTest {
     @Test
     fun a_type_with_a_set_time_and_text_locks_them() = runTest {
         val tasks = FakeTasks().apply {
-            types = Result.success(listOf(ActivityType(3, "Monthly contact", recommendedMinutes = 30, fixedDescription = "Monthly call")))
+            types =
+                Result.success(
+                    listOf(
+                        ActivityType(3, "Monthly contact", recommendedMinutes = 30, fixedDescription = "Monthly call"),
+                    ),
+                )
         }
         val vm = viewModel(tasks)
         runCurrent()

@@ -1,5 +1,7 @@
 package com.waivera.waivera.feature.calendar.event
 
+import kotlin.test.assertFalse
+import com.waivera.waivera.core.network.NetworkConfig
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.ViewModelStore
@@ -73,6 +75,7 @@ class CalendarEventViewModelTest {
             session = session,
             clock = clock,
             deviceZone = DeviceZone { ZoneId.of("America/Chicago") },
+            config = NetworkConfig(apiBaseUrl = "https://api.example.com", webBaseUrl = "https://app.example.com"),
             appScope = appScope,
         )
         val effects = mutableListOf<EventEffect>()
@@ -325,5 +328,44 @@ class CalendarEventViewModelTest {
             lastSyncedAt = clock.instant(),
         )
         assertNotNull(h.details().organizer?.celebration)
+    }
+
+    private val mine = invite.copy(id = "mine", ownerUserId = me, ownerName = "Alex Rivera", myInvitation = MyInvitation.ORGANIZER)
+
+    @Test
+    fun myOneOffEventCanBeEditedAndCancelledHere() = runTest {
+        val h = open(event = mine)
+        assertEquals(ManageMode.Edit, h.details().manage)
+        h.vm.cancelEvent()
+        runCurrent()
+        assertEquals(listOf("mine"), calendar.cancelled)
+        assertEquals(EventEffect.Cancelled, h.effects.last())
+    }
+
+    @Test
+    fun aFailedCancelSaysSoAndKeepsTheEvent() = runTest {
+        calendar.saveResult = Result.failure(WaiveraError.Network())
+        val h = open(event = mine)
+        h.vm.cancelEvent()
+        runCurrent()
+        assertEquals(EventEffect.CancelFailed, h.effects.last())
+        assertFalse(h.vm.cancelBusy.value)
+    }
+
+    @Test
+    fun repeatingAndTaskMeetingsAreEditedOnTheWeb() = runTest {
+        val h = open(event = mine.copy(recurrenceRule = "FREQ=WEEKLY"))
+        assertEquals(ManageMode.WebOnly, h.details().manage)
+        h.vm.cancelEvent()
+        runCurrent()
+        assertTrue(calendar.cancelled.isEmpty())
+        h.vm.editOnWeb()
+        assertEquals(EventEffect.OpenUrl("https://app.example.com/calendar"), h.effects.last())
+    }
+
+    @Test
+    fun someoneElsesEventOffersNoOrganizerTools() = runTest {
+        val h = open()
+        assertNull(h.details().manage)
     }
 }

@@ -103,7 +103,10 @@ class TasksViewModelTest {
 
     @Test
     fun search_waits_for_typing_to_pause_then_starts_over() = runTest {
-        val tasks = FakeTasks().apply { all = listOf(FakeTasks.summary(1, "Plan review"), FakeTasks.summary(2, "Intake")) }
+        val tasks = FakeTasks().apply {
+            all =
+                listOf(FakeTasks.summary(1, "Plan review"), FakeTasks.summary(2, "Intake"))
+        }
         val vm = viewModel(tasks)
         runCurrent()
 

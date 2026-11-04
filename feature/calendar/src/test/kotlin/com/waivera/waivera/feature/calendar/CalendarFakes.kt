@@ -1,7 +1,9 @@
 package com.waivera.waivera.feature.calendar
 
+import com.waivera.waivera.core.data.model.AttendeeOption
 import com.waivera.waivera.core.data.model.Conversation
 import com.waivera.waivera.core.data.model.DateRange
+import com.waivera.waivera.core.data.model.EventDraft
 import com.waivera.waivera.core.data.model.Milestone
 import com.waivera.waivera.core.data.model.MyInvitation
 import com.waivera.waivera.core.data.model.Person
@@ -138,6 +140,33 @@ class FakeCalendarRepository(private val clock: Clock, zone: ZoneId = ZoneId.of(
     override suspend fun meetingLobbyUrl(eventId: String): Result<String> {
         lobbyRequests += eventId
         return lobbyResult
+    }
+
+    var attendeeOptions: Result<List<AttendeeOption>> = Result.success(emptyList())
+    var saveResult: Result<Unit> = Result.success(Unit)
+    var saveGate: CompletableDeferred<Unit>? = null
+    val created = mutableListOf<EventDraft>()
+    val updated = mutableListOf<Pair<String, EventDraft>>()
+    val cancelled = mutableListOf<String>()
+
+    override suspend fun attendeeOptions(eventId: String?): Result<List<AttendeeOption>> = attendeeOptions
+
+    override suspend fun createEvent(draft: EventDraft): Result<Unit> {
+        created += draft
+        saveGate?.await()
+        return saveResult
+    }
+
+    override suspend fun updateEvent(event: ScheduleEvent, draft: EventDraft): Result<Unit> {
+        updated += event.id to draft
+        saveGate?.await()
+        return saveResult
+    }
+
+    override suspend fun cancelEvent(eventId: String): Result<Unit> {
+        cancelled += eventId
+        saveGate?.await()
+        return saveResult
     }
 }
 

@@ -1,11 +1,15 @@
 package com.waivera.waivera.core.demo
 
 import com.waivera.waivera.core.data.calendar.CalendarMath
+import com.waivera.waivera.core.data.calendar.EventPayload
 import com.waivera.waivera.core.data.model.ActivityFeed
 import com.waivera.waivera.core.data.model.AppSettings
+import com.waivera.waivera.core.data.model.Attendee
+import com.waivera.waivera.core.data.model.AttendeeOption
 import com.waivera.waivera.core.data.model.DateRange
 import com.waivera.waivera.core.data.model.EmployeeFilePage
 import com.waivera.waivera.core.data.model.EmployeeProfile
+import com.waivera.waivera.core.data.model.EventDraft
 import com.waivera.waivera.core.data.model.Milestone
 import com.waivera.waivera.core.data.model.MyInvitation
 import com.waivera.waivera.core.data.model.NotificationCategory
@@ -29,6 +33,7 @@ import com.waivera.waivera.core.data.repository.RealtimeStatusRepository
 import com.waivera.waivera.core.data.repository.SessionRepository
 import com.waivera.waivera.core.data.repository.SettingsRepository
 import com.waivera.waivera.core.network.di.ApplicationScope
+import com.waivera.waivera.core.network.dto.AttendeeType
 import com.waivera.waivera.core.network.error.WaiveraError
 import com.waivera.waivera.core.realtime.ConnectionState
 import java.time.ZoneId
@@ -180,6 +185,62 @@ class DemoCalendarRepository @Inject constructor(private val backend: DemoBacken
 
     override suspend fun meetingLobbyUrl(eventId: String): Result<String> =
         Result.failure(WaiveraError.Configuration(listOf("waivera.webBaseUrl")))
+
+    override suspend fun attendeeOptions(eventId: String?): Result<List<AttendeeOption>> = Result.success(
+        backend.people.value
+            .filter { it.id != backend.myUserId }
+            .map { AttendeeOption(it.id, it.name, it.email) }
+            .sortedBy { it.name.lowercase() },
+    )
+
+    override suspend fun createEvent(draft: EventDraft): Result<Unit> {
+        backend.refresh().onFailure { return Result.failure(it) }
+        val me = backend.me()
+        val event = draft.toEvent("demo-event-${backend.nextMessageId()}", me?.id, me?.name)
+        backend.events.update { it + event }
+        return Result.success(Unit)
+    }
+
+    override suspend fun updateEvent(event: ScheduleEvent, draft: EventDraft): Result<Unit> {
+        backend.refresh().onFailure { return Result.failure(it) }
+        val updated = draft.toEvent(event.id, event.ownerUserId, event.ownerName)
+        backend.events.update { list -> list.map { if (it.id == event.id) updated else it } }
+        return Result.success(Unit)
+    }
+
+    override suspend fun cancelEvent(eventId: String): Result<Unit> {
+        backend.refresh().onFailure { return Result.failure(it) }
+        backend.events.update { list -> list.filter { it.id != eventId } }
+        return Result.success(Unit)
+    }
+
+    private fun EventDraft.toEvent(id: String, ownerId: String?, ownerName: String?): ScheduleEvent {
+        val zone = DemoData.ZONE
+        val people = backend.people.value.associateBy { it.id }
+        return ScheduleEvent(
+            id = id,
+            title = title.trim(),
+            description = description?.trim()?.ifEmpty { null },
+            location = if (waiveraVideo) EventPayload.WAIVERA_LOCATION else location?.trim()?.ifEmpty { null },
+            startAt = if (allDay) null else date.atTime(start).atZone(zone).toInstant(),
+            endAt = if (allDay) null else date.atTime(end).atZone(zone).toInstant(),
+            allDayStart = if (allDay) date else null,
+            allDayEndExclusive = if (allDay) date.plusDays(1) else null,
+            ownerUserId = ownerId,
+            ownerName = ownerName,
+            attendees = inviteeIds.map { uid ->
+                Attendee(
+                    id = "att-$id-$uid",
+                    type = AttendeeType.EMPLOYEE,
+                    userId = uid,
+                    displayName = people[uid]?.name,
+                )
+            },
+            online = true,
+            isSprout = !waiveraVideo,
+            myInvitation = MyInvitation.ORGANIZER,
+        )
+    }
 }
 
 @Singleton

@@ -95,6 +95,9 @@ class EventActions(
     val onOpenPerson: (String) -> Unit = {},
     /** An in-person address: opens it in the maps app. */
     val onOpenLocation: (String) -> Unit = {},
+    val onEdit: () -> Unit = {},
+    val onCancelEvent: () -> Unit = {},
+    val onEditOnWeb: () -> Unit = {},
 )
 
 /**
@@ -166,7 +169,7 @@ internal fun EventBody(
         }
         details.organizer?.let { organizer ->
             item(key = "organizer") {
-                OrganizerBlock(organizer, details.isOrganizer, actions, modifier = sectionModifier)
+                OrganizerBlock(organizer, details.isOrganizer, details.manage, actions, modifier = sectionModifier)
             }
         }
         event.description?.takeIf(String::isNotBlank)?.let { description ->
@@ -532,15 +535,23 @@ private fun responseText(response: MyInvitation): String = when (response) {
  * when there is someone to open. The tinted card before it looked like a tonal button (UI3-15).
  */
 @Composable
-private fun OrganizerBlock(organizer: PersonRow, isMine: Boolean, actions: EventActions, modifier: Modifier) {
+private fun OrganizerBlock(
+    organizer: PersonRow,
+    isMine: Boolean,
+    manage: ManageMode?,
+    actions: EventActions,
+    modifier: Modifier,
+) {
     val colors = WaiveraTheme.colors
     if (isMine) {
-        Text(
-            text = stringResource(R.string.feature_calendar_event_you_organize),
-            style = MaterialTheme.typography.bodyMedium,
-            color = colors.textSecondary,
-            modifier = modifier,
-        )
+        Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(WaiveraSpacing.MediumSmall)) {
+            Text(
+                text = stringResource(R.string.feature_calendar_event_you_organize),
+                style = MaterialTheme.typography.bodyMedium,
+                color = colors.textSecondary,
+            )
+            OrganizerTools(manage, actions)
+        }
         return
     }
     val name = organizer.name?.takeIf(String::isNotBlank) ?: stringResource(R.string.feature_calendar_event_guest)
@@ -557,6 +568,59 @@ private fun OrganizerBlock(organizer: PersonRow, isMine: Boolean, actions: Event
                 leading = {
                     MilestoneAvatar(name, organizer.celebration, CalendarSizes.OrganizerAvatar, userId = userId)
                 },
+            )
+        }
+    }
+}
+
+/** Edit and Cancel event for your own one-off event; Edit on web for the rest. */
+@Composable
+private fun OrganizerTools(manage: ManageMode?, actions: EventActions) {
+    when (manage) {
+        null -> Unit
+        ManageMode.Edit -> {
+            val edit = @Composable { modifier: Modifier ->
+                WaiveraButton(
+                    text = stringResource(R.string.feature_calendar_event_edit),
+                    onClick = actions.onEdit,
+                    variant = WaiveraButtonVariant.Secondary,
+                    fullWidth = true,
+                    modifier = modifier,
+                )
+            }
+            val cancel = @Composable { modifier: Modifier ->
+                WaiveraButton(
+                    text = stringResource(R.string.feature_calendar_event_cancel),
+                    onClick = actions.onCancelEvent,
+                    variant = WaiveraButtonVariant.DestructiveOutline,
+                    fullWidth = true,
+                    modifier = modifier,
+                )
+            }
+            if (isLargeFontScale()) {
+                Column(verticalArrangement = Arrangement.spacedBy(WaiveraSpacing.Small)) {
+                    edit(Modifier)
+                    cancel(Modifier)
+                }
+            } else {
+                Row(horizontalArrangement = Arrangement.spacedBy(WaiveraSpacing.Small)) {
+                    edit(Modifier.weight(1f))
+                    cancel(Modifier.weight(1f))
+                }
+            }
+        }
+        ManageMode.WebOnly -> Column(verticalArrangement = Arrangement.spacedBy(WaiveraSpacing.ExtraSmall)) {
+            WaiveraButton(
+                text = stringResource(R.string.feature_calendar_event_edit_on_web),
+                onClick = actions.onEditOnWeb,
+                variant = WaiveraButtonVariant.Secondary,
+                leadingIcon = WaiveraIcons.OpenExternal,
+                fullWidth = true,
+            )
+            Text(
+                text = stringResource(R.string.feature_calendar_event_edit_on_web_note),
+                style = MaterialTheme.typography.bodySmall,
+                color = WaiveraTheme.colors.textSecondary,
             )
         }
     }

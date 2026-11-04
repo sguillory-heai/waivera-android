@@ -1,7 +1,10 @@
 package com.waivera.waivera.core.data.live
 
 import com.waivera.waivera.core.data.calendar.CalendarMath
+import com.waivera.waivera.core.data.calendar.EventPayload
+import com.waivera.waivera.core.data.model.AttendeeOption
 import com.waivera.waivera.core.data.model.DateRange
+import com.waivera.waivera.core.data.model.EventDraft
 import com.waivera.waivera.core.data.model.Milestone
 import com.waivera.waivera.core.data.model.MyInvitation
 import com.waivera.waivera.core.data.model.ScheduleEvent
@@ -15,6 +18,7 @@ import com.waivera.waivera.core.network.NetworkConfig
 import com.waivera.waivera.core.network.api.CalendarApi
 import com.waivera.waivera.core.network.api.VideoApi
 import com.waivera.waivera.core.network.di.ApplicationScope
+import com.waivera.waivera.core.network.dto.AttendeeType
 import com.waivera.waivera.core.network.dto.CreateMeetingRoomRequest
 import com.waivera.waivera.core.network.dto.InternalInvitationResponseReq
 import com.waivera.waivera.core.network.dto.InviteStatus
@@ -40,6 +44,10 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.builtins.ListSerializer
+import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.booleanOrNull
 
 /**
  * Schedule feed (07-calendar.md). Ranges are whole days in the employee's saved zone (dates.md
@@ -194,6 +202,68 @@ class LiveCalendarRepository @Inject constructor(
             MeetingHandoff.State(calenderEventId = eventId, isPublisher = meeting.isPublisher, isOneToOneCall = false),
         )
     }
+
+    override suspend fun attendeeOptions(eventId: String?): Result<List<AttendeeOption>> = catchingWaivera {
+        val me = session.state.value.currentUserId
+        apiCall { calendarApi.getAttendeeOptions(if (eventId == null) "create" else "edit", eventId) }
+            .requireData()
+            .people
+            .filter {
+                it.type.equals(AttendeeType.EMPLOYEE.name, ignoreCase = true) && it.id.isNotBlank() && it.id != me
+            }
+            .map { AttendeeOption(it.id, it.name.trim().ifEmpty { it.email.orEmpty() }, it.email) }
+            .distinctBy { it.id }
+            .sortedBy { it.name.lowercase() }
+    }
+
+    override suspend fun createEvent(draft: EventDraft): Result<Unit> = catchingWaivera {
+        val me = session.state.value.currentUserId ?: throw WaiveraError.NotSignedIn()
+        val body = apiCall { calendarApi.createEvent(EventPayload.build(draft, currentZone(), me)) }
+        if (!succeeded(body)) throw WaiveraError.Unexpected()
+        refreshOpenRanges()
+    }
+
+    override suspend fun updateEvent(event: ScheduleEvent, draft: EventDraft): Result<Unit> = catchingWaivera {
+        val owner = event.ownerUserId ?: session.state.value.currentUserId ?: throw WaiveraError.NotSignedIn()
+        val body = apiCall {
+            calendarApi.updateEvent(
+                event.id,
+                scope = null,
+                event = EventPayload.build(draft, currentZone(), owner, event),
+            )
+        }
+        if (!succeeded(body)) throw WaiveraError.Unexpected()
+        refreshEvent(event.id)
+        refreshOpenRanges()
+    }
+
+    override suspend fun cancelEvent(eventId: String): Result<Unit> = catchingWaivera {
+        val body = apiCall { calendarApi.deleteEvent(eventId) }
+        if (!succeeded(body)) throw WaiveraError.Unexpected()
+        writtenFeeds.value.forEach { key ->
+            val feed = cache.document(key, ScheduleFeed.serializer()) ?: return@forEach
+            if (feed.events.none { it.id == eventId }) return@forEach
+            cache.putDocument(
+                key,
+                ScheduleFeed.serializer(),
+                feed.copy(
+                    events = feed.events.filter {
+                        it.id != eventId
+                    },
+                ),
+            )
+        }
+        cache.putDocument(eventKey(eventId), CachedEvent.serializer(), CachedEvent(null))
+        refreshOpenRanges()
+    }
+
+    private fun refreshOpenRanges() {
+        activeRanges.forEach { range -> scope.launch { refresh(range) } }
+    }
+
+    /** A 2xx can still carry `success: false` in the envelope; its message is never shown. */
+    private fun succeeded(body: JsonElement): Boolean =
+        ((body as? JsonObject)?.get("success") as? JsonPrimitive)?.booleanOrNull != false
 
     private fun feedKey(range: DateRange) = "calendar:${currentZone().id}:${range.key}"
 

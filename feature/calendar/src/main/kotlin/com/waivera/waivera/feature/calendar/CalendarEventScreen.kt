@@ -1,5 +1,11 @@
 package com.waivera.waivera.feature.calendar
 
+import com.waivera.waivera.feature.calendar.form.EventFormSheet
+import com.waivera.waivera.feature.calendar.form.EventFormRequest
+import com.waivera.waivera.core.designsystem.component.WaiveraConfirmationSheet
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -72,6 +78,13 @@ fun CalendarEventScreen(
     val undoLabel = stringResource(DesignR.string.core_designsystem_undo)
     val chatFailed = stringResource(R.string.feature_calendar_chat_failed)
     val mapsFailed = stringResource(R.string.feature_calendar_location_no_maps)
+    val cancelFailed = stringResource(R.string.feature_calendar_cancel_failed)
+    val savedMessage = stringResource(R.string.feature_calendar_event_saved)
+    val webUnavailable = stringResource(R.string.feature_calendar_web_unavailable)
+    val back by rememberUpdatedState(onBack)
+    var editing by rememberSaveable { mutableStateOf(false) }
+    var confirmingCancel by rememberSaveable { mutableStateOf(false) }
+    val cancelBusy by viewModel.cancelBusy.collectAsStateWithLifecycle()
 
     LifecycleResumeEffect(viewModel) {
         viewModel.tick()
@@ -111,6 +124,15 @@ fun CalendarEventScreen(
                 // The response row shows both outcomes; neither vibrates (haptics policy).
                 is EventEffect.ResponseSaved, EventEffect.ResponseFailed -> Unit
                 is EventEffect.ChatFailed -> scope.launch { snackbarHost.showSnackbar(chatFailed) }
+                EventEffect.Cancelled -> {
+                    confirmingCancel = false
+                    back()
+                }
+                EventEffect.CancelFailed -> {
+                    confirmingCancel = false
+                    scope.launch { snackbarHost.showSnackbar(cancelFailed) }
+                }
+                EventEffect.WebUnavailable -> scope.launch { snackbarHost.showSnackbar(webUnavailable) }
             }
         }
     }
@@ -134,10 +156,37 @@ fun CalendarEventScreen(
                     scope.launch { snackbarHost.showSnackbar(mapsFailed) }
                 }
             },
+            onEdit = { editing = true },
+            onCancelEvent = { confirmingCancel = true },
+            onEditOnWeb = viewModel::editOnWeb,
         ),
         snackbarHost = snackbarHost,
         modifier = modifier,
     )
+    if (editing) {
+        EventFormSheet(
+            request = EventFormRequest(eventId = eventId),
+            onDismiss = { editing = false },
+            onSaved = {
+                editing = false
+                scope.launch { snackbarHost.showSnackbar(savedMessage) }
+            },
+            onWebUnavailable = { scope.launch { snackbarHost.showSnackbar(webUnavailable) } },
+        )
+    }
+    if (confirmingCancel) {
+        WaiveraConfirmationSheet(
+            title = stringResource(R.string.feature_calendar_cancel_title),
+            message = stringResource(R.string.feature_calendar_cancel_message),
+            confirmLabel = stringResource(R.string.feature_calendar_cancel_confirm),
+            dismissLabel = stringResource(R.string.feature_calendar_cancel_keep),
+            onConfirm = viewModel::cancelEvent,
+            onDismiss = { if (!cancelBusy) confirmingCancel = false },
+            destructive = true,
+            confirmInProgress = cancelBusy,
+            confirmInProgressLabel = stringResource(R.string.feature_calendar_cancel_working),
+        )
+    }
 }
 
 /** Stateless event screen, for previews and screenshot tests. */

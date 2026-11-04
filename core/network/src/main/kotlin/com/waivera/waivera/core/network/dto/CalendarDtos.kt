@@ -124,3 +124,15 @@ data class InternalInvitationResponseReq(
 /** Body of `POST /api/public/invitation/respond` (external attendees, token based). */
 @Serializable
 data class PublicInvitationResponseReq(val token: String, val action: String)
+
+/** `dto/Response/Calendar/CalendarDirectoryOptionsDto.cs` from `GET api/CalendarEvent/attendee-options`. */
+@Serializable
+data class CalendarDirectoryOptionsDto(val people: List<CalendarDirectoryPersonDto> = emptyList())
+
+@Serializable
+data class CalendarDirectoryPersonDto(
+    val id: String = "",
+    val name: String = "",
+    val email: String? = null,
+    val type: String = "",
+)

@@ -36,6 +36,7 @@ data class EventInteraction(
  */
 object EventRules {
     private val JOIN_LEAD: Duration = Duration.ofMinutes(30)
+    private const val EVENT_ID_LENGTH = 36
 
     /** Answers an invited attendee can give; organizers and unknowns never see buttons. */
     private val ANSWERABLE = setOf(
@@ -78,7 +79,22 @@ object EventRules {
             chat = chat(event, myUserId, interaction.chatBusy),
             isRefreshing = isRefreshing,
             refreshError = refreshError,
+            manage = manage(event, myUserId),
         )
+    }
+
+    /**
+     * Your own one-off event is edited and cancelled here. Repeating events, single occurrences
+     * (their ids carry the occurrence time after the 36-character event id) and task meetings
+     * need choices the phone does not offer, so they go to the web.
+     */
+    fun manage(event: ScheduleEvent, myUserId: String?): ManageMode? {
+        if (!isOrganizer(event, myUserId)) return null
+        val oneOff = event.recurrenceRule.isNullOrBlank() &&
+            event.parentEventId.isNullOrBlank() &&
+            event.taskId == null &&
+            event.id.length <= EVENT_ID_LENGTH
+        return if (oneOff) ManageMode.Edit else ManageMode.WebOnly
     }
 
     fun isOrganizer(event: ScheduleEvent, myUserId: String?): Boolean =

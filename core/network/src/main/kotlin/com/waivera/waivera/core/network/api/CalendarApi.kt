@@ -1,6 +1,7 @@
 package com.waivera.waivera.core.network.api
 
 import com.waivera.waivera.core.network.dto.ApiResponse
+import com.waivera.waivera.core.network.dto.CalendarDirectoryOptionsDto
 import com.waivera.waivera.core.network.dto.CalendarEmployeeMilestoneResponseDto
 import com.waivera.waivera.core.network.dto.CalendarEventResponseDto
 import com.waivera.waivera.core.network.dto.CalendarFeedResponseDto
@@ -72,7 +73,10 @@ interface CalendarApi {
     suspend fun getVisibilityOptions(): Response<JsonElement>
 
     @GET("api/CalendarEvent/attendee-options")
-    suspend fun getAttendeeOptions(): Response<JsonElement>
+    suspend fun getAttendeeOptions(
+        @Query("mode") mode: String = "create",
+        @Query("eventId") eventId: String? = null,
+    ): Response<ApiResponse<CalendarDirectoryOptionsDto>>
 
     @GET("api/CalendarEvent/GetAllLeaves")
     suspend fun getAllLeaves(): Response<JsonElement>

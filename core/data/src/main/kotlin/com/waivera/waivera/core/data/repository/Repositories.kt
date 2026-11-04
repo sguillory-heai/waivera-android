@@ -4,11 +4,13 @@ import com.waivera.waivera.core.data.model.ActivityFeed
 import com.waivera.waivera.core.data.model.ActivityType
 import com.waivera.waivera.core.data.model.AppSettings
 import com.waivera.waivera.core.data.model.AttachmentSource
+import com.waivera.waivera.core.data.model.AttendeeOption
 import com.waivera.waivera.core.data.model.Bookmark
 import com.waivera.waivera.core.data.model.Conversation
 import com.waivera.waivera.core.data.model.DateRange
 import com.waivera.waivera.core.data.model.EmployeeFilePage
 import com.waivera.waivera.core.data.model.EmployeeProfile
+import com.waivera.waivera.core.data.model.EventDraft
 import com.waivera.waivera.core.data.model.Message
 import com.waivera.waivera.core.data.model.MessageThread
 import com.waivera.waivera.core.data.model.MessageTimeline
@@ -316,6 +318,18 @@ interface CalendarRepository {
 
     /** Creates or reuses the meeting room and returns the web lobby URL to open. */
     suspend fun meetingLobbyUrl(eventId: String): Result<String>
+
+    /** Coworkers who can be invited; [eventId] asks for an edit's options (it may include people already invited). */
+    suspend fun attendeeOptions(eventId: String? = null): Result<List<AttendeeOption>>
+
+    /** Creates a one-off event owned by the person; open schedules refresh after. */
+    suspend fun createEvent(draft: EventDraft): Result<Unit>
+
+    /** Saves the person's own one-off event; the event and open schedules refresh after. */
+    suspend fun updateEvent(event: ScheduleEvent, draft: EventDraft): Result<Unit>
+
+    /** Cancels the person's own one-off event; it leaves every cached schedule at once. */
+    suspend fun cancelEvent(eventId: String): Result<Unit>
 
     companion object {
         /** The 42-cell month grid range, starting the Sunday on or before the 1st. */

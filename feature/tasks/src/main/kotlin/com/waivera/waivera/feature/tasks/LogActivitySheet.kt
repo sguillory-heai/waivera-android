@@ -14,18 +14,9 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.DatePicker
-import androidx.compose.material3.DatePickerDialog
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.SelectableDates
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.TimePicker
-import androidx.compose.material3.TimePickerDialog
-import androidx.compose.material3.rememberDatePickerState
-import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -49,10 +40,12 @@ import com.waivera.waivera.core.designsystem.component.WaiveraBanner
 import com.waivera.waivera.core.designsystem.component.WaiveraBottomSheet
 import com.waivera.waivera.core.designsystem.component.WaiveraButton
 import com.waivera.waivera.core.designsystem.component.WaiveraButtonSize
+import com.waivera.waivera.core.designsystem.component.WaiveraDatePickerDialog
+import com.waivera.waivera.core.designsystem.component.WaiveraTimePickerDialog
 import com.waivera.waivera.core.designsystem.component.WaiveraErrorState
 import com.waivera.waivera.core.designsystem.component.WaiveraIconButton
 import com.waivera.waivera.core.designsystem.component.WaiveraListRow
-import com.waivera.waivera.core.designsystem.component.WaiveraPressable
+import com.waivera.waivera.core.designsystem.component.WaiveraPickerField
 import com.waivera.waivera.core.designsystem.component.WaiveraSheetFrame
 import com.waivera.waivera.core.designsystem.component.WaiveraTextField
 import com.waivera.waivera.core.designsystem.icon.WaiveraIcons
@@ -63,9 +56,7 @@ import com.waivera.waivera.core.designsystem.theme.WaiveraSizes
 import com.waivera.waivera.core.designsystem.theme.WaiveraSpacing
 import com.waivera.waivera.core.designsystem.theme.WaiveraTextStyles
 import com.waivera.waivera.core.designsystem.theme.WaiveraTheme
-import java.time.Instant
 import java.time.LocalDate
-import java.time.ZoneOffset
 
 internal data class LogActivityActions(
     val onDismiss: () -> Unit,
@@ -122,7 +113,7 @@ internal fun ColumnScope.LogActivityFields(
         if (form.failed) {
             WaiveraBanner(message = stringResource(R.string.feature_tasks_log_failed), tone = BannerTone.Error)
         }
-        PickerField(
+        WaiveraPickerField(
             label = stringResource(R.string.feature_tasks_log_type),
             value = form.type?.name,
             placeholder = stringResource(R.string.feature_tasks_log_type_placeholder),
@@ -135,7 +126,7 @@ internal fun ColumnScope.LogActivityFields(
             onClick = onChooseType,
         )
         DurationStepper(form, actions.onStep)
-        PickerField(
+        WaiveraPickerField(
             label = stringResource(R.string.feature_tasks_log_when),
             value = form.whenText.text(),
             placeholder = stringResource(R.string.feature_tasks_log_when_placeholder),
@@ -272,118 +263,26 @@ private fun StepButton(icon: Int, label: String, enabled: Boolean, onClick: () -
     }
 }
 
-/** A field that opens a chooser: it looks like a text field, reads as a button. */
-@Composable
-private fun PickerField(
-    label: String,
-    value: String?,
-    placeholder: String,
-    icon: Int,
-    errorText: String?,
-    enabled: Boolean,
-    onClick: () -> Unit,
-) {
-    val colors = WaiveraTheme.colors
-    Column(verticalArrangement = Arrangement.spacedBy(WaiveraSpacing.ExtraSmall + WaiveraSpacing.XxSmall)) {
-        Text(text = label, style = MaterialTheme.typography.labelMedium, color = colors.textSecondary)
-        WaiveraPressable(
-            onClick = onClick,
-            enabled = enabled,
-            onClickLabel = label,
-            role = Role.Button,
-            shape = WaiveraShapes.Field,
-            depth = PressDepth.Card,
-            modifier = Modifier.semantics { contentDescription = "$label, ${value ?: placeholder}" },
-        ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .heightIn(min = WaiveraSizes.FieldHeight)
-                    .background(colors.field, WaiveraShapes.Field)
-                    .border(
-                        WaiveraSpacing.Hairline,
-                        if (errorText != null) colors.dangerText else colors.fieldBorder,
-                        WaiveraShapes.Field,
-                    )
-                    .padding(horizontal = WaiveraSpacing.Medium),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Text(
-                    text = value ?: placeholder,
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = if (value == null) colors.textSecondary else colors.text,
-                    modifier = Modifier.weight(1f),
-                )
-                Icon(
-                    painter = painterResource(icon),
-                    contentDescription = null,
-                    tint = colors.textSecondary,
-                    modifier = Modifier.size(WaiveraSizes.Icon),
-                )
-            }
-        }
-        if (errorText != null) {
-            Text(text = errorText, style = MaterialTheme.typography.bodySmall, color = colors.dangerText)
-        }
-    }
-}
-
-/**
- * Day, then time, both as wall-clock values in the employee's saved zone. The date picker works
- * in UTC midnights, so the day crosses that boundary as a plain [LocalDate] and never through
- * the device zone.
- */
-@OptIn(ExperimentalMaterial3Api::class)
+/** Day, then time, both wall-clock values in the employee's saved zone; later days can't be picked. */
 @Composable
 private fun WhenPicker(form: LogForm, onPicked: (LocalDate, Int) -> Unit, onDismiss: () -> Unit) {
     val local = form.completedAt.atZone(form.zone)
-    val today = form.today ?: local.toLocalDate()
     var day by remember { mutableStateOf<LocalDate?>(null) }
     val picked = day
     if (picked == null) {
-        val dateState = rememberDatePickerState(
-            initialSelectedDateMillis = local.toLocalDate().atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli(),
-            selectableDates = remember(today) {
-                object : SelectableDates {
-                    override fun isSelectableDate(utcTimeMillis: Long): Boolean =
-                        !Instant.ofEpochMilli(utcTimeMillis).atZone(ZoneOffset.UTC).toLocalDate().isAfter(today)
-
-                    override fun isSelectableYear(year: Int): Boolean = year <= today.year
-                }
-            },
+        WaiveraDatePickerDialog(
+            initial = local.toLocalDate(),
+            latest = form.today ?: local.toLocalDate(),
+            onPicked = { day = it },
+            onDismiss = { if (day == null) onDismiss() },
         )
-        DatePickerDialog(
-            onDismissRequest = onDismiss,
-            confirmButton = {
-                TextButton(onClick = {
-                    dateState.selectedDateMillis?.let {
-                        day = Instant.ofEpochMilli(it).atZone(ZoneOffset.UTC).toLocalDate()
-                    }
-                }) { Text(stringResource(R.string.feature_tasks_pick_time_ok)) }
-            },
-            dismissButton = {
-                TextButton(onClick = onDismiss) { Text(stringResource(R.string.feature_tasks_pick_cancel)) }
-            },
-        ) {
-            DatePicker(state = dateState)
-        }
     } else {
-        val timeState = rememberTimePickerState(initialHour = local.hour, initialMinute = local.minute)
-        TimePickerDialog(
-            onDismissRequest = onDismiss,
-            title = { Text(stringResource(R.string.feature_tasks_log_when)) },
-            confirmButton = {
-                TextButton(onClick = {
-                    onPicked(picked, timeState.hour * MINUTES_PER_HOUR + timeState.minute)
-                    onDismiss()
-                }) { Text(stringResource(R.string.feature_tasks_pick_time_ok)) }
-            },
-            dismissButton = {
-                TextButton(onClick = onDismiss) { Text(stringResource(R.string.feature_tasks_pick_cancel)) }
-            },
-        ) {
-            TimePicker(state = timeState)
-        }
+        WaiveraTimePickerDialog(
+            initial = local.toLocalTime(),
+            title = stringResource(R.string.feature_tasks_log_when),
+            onPicked = { time -> onPicked(picked, time.hour * MINUTES_PER_HOUR + time.minute) },
+            onDismiss = onDismiss,
+        )
     }
 }
 

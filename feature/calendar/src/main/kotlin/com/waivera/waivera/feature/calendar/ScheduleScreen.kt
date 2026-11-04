@@ -1,5 +1,8 @@
 package com.waivera.waivera.feature.calendar
 
+import com.waivera.waivera.feature.calendar.form.EventFormSheet
+import com.waivera.waivera.feature.calendar.form.EventFormRequest
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -161,6 +164,22 @@ fun ScheduleScreen(
         }
     }
     PreferWeekAtLargeFont(view = state.view, onPreferWeek = viewModel::preferWeekOverMonth)
+    // The day the New event sheet opened on; null while it is closed.
+    var newEventOn by rememberSaveable { mutableStateOf<LocalDate?>(null) }
+    val created = stringResource(R.string.feature_calendar_event_created)
+    val webUnavailable = stringResource(R.string.feature_calendar_web_unavailable)
+    val scope = rememberCoroutineScope()
+    newEventOn?.let { day ->
+        EventFormSheet(
+            request = EventFormRequest(date = day),
+            onDismiss = { newEventOn = null },
+            onSaved = {
+                newEventOn = null
+                scope.launch { snackbarHost.showSnackbar(created) }
+            },
+            onWebUnavailable = { scope.launch { snackbarHost.showSnackbar(webUnavailable) } },
+        )
+    }
     Box(modifier = modifier) {
         ScheduleContent(
             state = state,
@@ -175,6 +194,7 @@ fun ScheduleScreen(
                 onRetry = viewModel::retry,
                 onRetryMilestones = viewModel::retryMilestones,
                 onSendWishes = viewModel::sendWishes,
+                onNewEvent = { newEventOn = state.selectedDate.takeIf { !it.isBefore(state.today) } ?: state.today },
             ),
         )
         WaiveraSnackbarHost(hostState = snackbarHost, modifier = Modifier.align(Alignment.BottomCenter))
@@ -195,6 +215,8 @@ class ScheduleActions(
     val onRetryMilestones: () -> Unit = {},
     /** "Send wishes" on a milestone card, with the person's user id. */
     val onSendWishes: (String) -> Unit = {},
+    /** The top bar's New event: a quick event on the day in view. */
+    val onNewEvent: () -> Unit = {},
 )
 
 /** Stateless schedule screen, for previews and screenshot tests. */
@@ -209,14 +231,14 @@ fun ScheduleContent(state: ScheduleUiState, actions: ScheduleActions, modifier: 
     ) {
         val jumpToToday = stringResource(R.string.feature_calendar_go_to_today)
         val refreshLabel = stringResource(R.string.feature_calendar_refresh)
+        val newEvent = stringResource(R.string.feature_calendar_new_event)
         WaiveraTopBar(
             title = stringResource(R.string.feature_calendar_schedule_title),
             // Refresh is pull-to-refresh (and a TalkBack action on the list), not a third header icon.
-            actions = if (state.showsJumpToToday) {
-                listOf(TopBarAction(WaiveraIcons.JumpToToday, jumpToToday, actions.onToday))
-            } else {
-                emptyList()
-            },
+            actions = listOfNotNull(
+                TopBarAction(WaiveraIcons.JumpToToday, jumpToToday, actions.onToday).takeIf { state.showsJumpToToday },
+                TopBarAction(WaiveraIcons.Add, newEvent, actions.onNewEvent),
+            ),
             account = rememberTopBarAccount(
                 onClick = actions.onAccountClick,
                 fallbackName = "",

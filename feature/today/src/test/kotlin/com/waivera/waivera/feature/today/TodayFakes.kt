@@ -2,8 +2,10 @@ package com.waivera.waivera.feature.today
 
 import com.waivera.waivera.core.data.model.ActivityFeed
 import com.waivera.waivera.core.data.model.ActivityItem
+import com.waivera.waivera.core.data.model.AttendeeOption
 import com.waivera.waivera.core.data.model.Conversation
 import com.waivera.waivera.core.data.model.DateRange
+import com.waivera.waivera.core.data.model.EventDraft
 import com.waivera.waivera.core.data.model.Milestone
 import com.waivera.waivera.core.data.model.MyInvitation
 import com.waivera.waivera.core.data.model.Notice
@@ -225,6 +227,14 @@ class FakeCalendarRepository(
     }
 
     override suspend fun meetingLobbyUrl(eventId: String): Result<String> = unused()
+
+    override suspend fun attendeeOptions(eventId: String?): Result<List<AttendeeOption>> = unused()
+
+    override suspend fun createEvent(draft: EventDraft): Result<Unit> = unused()
+
+    override suspend fun updateEvent(event: ScheduleEvent, draft: EventDraft): Result<Unit> = unused()
+
+    override suspend fun cancelEvent(eventId: String): Result<Unit> = unused()
 
     override fun observeEvent(eventId: String): Flow<Synced<ScheduleEvent?>> = emptyFlow()
 
