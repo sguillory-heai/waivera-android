@@ -149,7 +149,13 @@ fun MessageRowView(
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .bubbleArrival(progress = arrival, mine = row.isMine, offset = ChatDimens.ArrivalOffset)
+            .then(
+                if (arrival != null) {
+                    Modifier.bubbleArrival(progress = arrival, mine = row.isMine, offset = ChatDimens.ArrivalOffset)
+                } else {
+                    Modifier
+                },
+            )
             .background(rowBackground)
             .then(if (highlighted) Modifier.border(WaiveraSpacing.Hairline, colors.accentBorderStrong) else Modifier),
     ) {
@@ -283,7 +289,7 @@ private fun Bubble(
     authorName: String,
     time: RowTime,
     callbacks: MessageRowCallbacks,
-    arrival: State<Float>,
+    arrival: State<Float>?,
 ) {
     val colors = WaiveraTheme.colors
     val message = row.message
@@ -330,7 +336,7 @@ private fun Bubble(
         Box(Modifier.clip(shape).background(color = fill, shape = shape)) {
             // A live arrival's wash fades in a layer of its own, read in the layer, so the fade
             // never recomposes or redraws the bubble (M1-08). At rest it is fully transparent.
-            if (row.isLiveArrival) {
+            if (row.isLiveArrival && arrival != null) {
                 Box(
                     Modifier
                         .matchParentSize()

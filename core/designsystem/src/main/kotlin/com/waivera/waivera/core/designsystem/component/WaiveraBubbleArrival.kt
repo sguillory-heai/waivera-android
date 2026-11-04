@@ -49,19 +49,30 @@ object BubbleArrival {
 }
 
 /**
- * 0 → 1 for a live arrival (your send on `sendPop`, others on `layout`), 1 at once for history
- * or with reduced motion. The value can briefly pass 1 on a send; clamp it before using it as
- * an opacity. Returned as state: read it in a layer or draw block only, so an arriving bubble
- * never recomposes per frame (M1-08).
+ * 0 → 1 for a live arrival (your send on `sendPop`, others on `layout`), or null when there is
+ * nothing to animate: history, reduced motion, and an arrival once it has settled. The value can
+ * briefly pass 1 on a send; clamp it before using it as an opacity. Returned as state: read it in
+ * a layer or draw block only, so an arriving bubble never recomposes per frame (M1-08).
+ *
+ * Null after settling so the row drops [bubbleArrival]'s layer and draws plainly: on a phone, a
+ * landed send sometimes kept its space but drew nothing until it was scrolled away and back
+ * (owner's device, 2026-11-04), which points at the arrival's layer going stale.
  */
 @Composable
-fun rememberBubbleArrival(isLiveArrival: Boolean, mine: Boolean): State<Float> {
+fun rememberBubbleArrival(isLiveArrival: Boolean, mine: Boolean): State<Float>? {
     val motion = WaiveraTheme.motion
-    val progress = remember { Animatable(if (isLiveArrival && !motion.reduced) 0f else 1f) }
-    LaunchedEffect(Unit) {
-        if (progress.value < 1f) progress.animateTo(1f, if (mine) motion.sendPop else motion.layout<Float>())
+    val progress = remember { if (isLiveArrival && !motion.reduced) Animatable(0f) else null }
+    var arrived by remember { mutableStateOf(progress == null) }
+    if (progress != null && !arrived) {
+        LaunchedEffect(progress) {
+            try {
+                progress.animateTo(1f, if (mine) motion.sendPop else motion.layout<Float>())
+            } finally {
+                arrived = true
+            }
+        }
     }
-    return progress.asState()
+    return if (arrived) null else progress?.asState()
 }
 
 /**
