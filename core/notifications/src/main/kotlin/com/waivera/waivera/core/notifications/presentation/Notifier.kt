@@ -24,6 +24,9 @@ interface Notifier {
 
     fun cancelThread(conversationId: Long, threadRootMessageId: Long) = cancelChat(conversationId, threadRootMessageId)
 
+    /** Clears a stored notification's entry, or with a null id every one of them. */
+    fun cancelNotice(notificationId: String?)
+
     /** Sign-out clears everything so the next account never sees the previous one's messages. */
     fun cancelAll()
 }

@@ -1,6 +1,7 @@
 package com.waivera.waivera.core.notifications.payload
 
 import com.waivera.waivera.core.notifications.deeplink.DeepLinkUris
+import java.time.Instant
 
 /**
  * Decodes FCM data maps per `spec/contract/push.md`.
@@ -13,8 +14,8 @@ import com.waivera.waivera.core.notifications.deeplink.DeepLinkUris
 object PushPayloadParser {
 
     /**
-     * @return the message, or null when the payload is a chat push without a usable
-     *   conversation id (nothing to show and nowhere to go).
+     * @return the message, or null when the payload is a chat push (or a read sync) without a
+     *   usable id (nothing to show and nowhere to go).
      */
     fun parse(
         data: Map<
@@ -32,6 +33,14 @@ object PushPayloadParser {
             return when (type.lowercase()) {
                 TYPE_CHAT -> parseChat(fields, title, body)
                 TYPE_NOTIFICATION -> parseNotice(fields, title, body)
+                TYPE_CHAT_READ -> DeepLinkUris.positiveId(fields["conversationId"])?.let { id ->
+                    PushMessage.ChatRead(
+                        conversationId = id,
+                        threadRootMessageId = DeepLinkUris.positiveId(fields["threadRootMessageId"]),
+                        readAt = fields["readAt"]?.let { runCatching { Instant.parse(it) }.getOrNull() },
+                    )
+                }
+                TYPE_NOTIFICATION_READ -> parseNoticeRead(fields)
                 else -> PushMessage.Unknown(type = type, title = title, body = body)
             }
         }
@@ -92,6 +101,16 @@ object PushPayloadParser {
         return PushMessage.Notice(notificationId = id, taskId = taskId, title = title, body = body)
     }
 
+    /** One notification by id, or all of them with `all: "true"`; anything else is unusable. */
+    private fun parseNoticeRead(fields: CaseInsensitiveFields): PushMessage.NoticeRead? {
+        val id = fields["notificationId"]?.takeIf(OpaqueId::matches)
+        return when {
+            id != null -> PushMessage.NoticeRead(id)
+            fields["all"].equals("true", ignoreCase = true) -> PushMessage.NoticeRead(null)
+            else -> null
+        }
+    }
+
     private fun conversationIdFromUrl(url: String?): Long? =
         url?.let(ChatUrl::matchEntire)?.groupValues?.get(1)?.let(DeepLinkUris::positiveId)
 
@@ -108,6 +127,8 @@ object PushPayloadParser {
 
     private const val TYPE_CHAT = "chat"
     private const val TYPE_NOTIFICATION = "notification"
+    private const val TYPE_CHAT_READ = "chat.read"
+    private const val TYPE_NOTIFICATION_READ = "notification.read"
     private const val LEGACY_MEETING = "meeting"
     private const val LEGACY_CALL = "call"
     private const val LEGACY_SURVEY = "survey"

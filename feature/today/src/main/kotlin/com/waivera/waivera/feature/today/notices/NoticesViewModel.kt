@@ -1,5 +1,6 @@
 package com.waivera.waivera.feature.today.notices
 
+import androidx.annotation.StringRes
 import androidx.compose.runtime.Immutable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -7,6 +8,7 @@ import com.waivera.waivera.core.data.repository.CalendarRepository
 import com.waivera.waivera.core.data.repository.NoticeRepository
 import com.waivera.waivera.core.data.repository.RealtimeStatusRepository
 import com.waivera.waivera.core.designsystem.component.ConnectionBannerState
+import com.waivera.waivera.core.network.error.WaiveraError
 import com.waivera.waivera.feature.today.NowSource
 import com.waivera.waivera.feature.today.model.TodayAssembler
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -39,6 +41,10 @@ data class NoticesUiState(
     val connection: ConnectionBannerState = ConnectionBannerState.Connected,
     /** Notifications loaded before the chip narrows them. */
     val totalCount: Int = 0,
+    /** The failure's own client copy, so a server fault does not read as a connection problem. */
+    @StringRes val errorMessage: Int? = null,
+    /** Error type and HTTP status, never server text; shown only in debuggable builds. */
+    val errorCode: String? = null,
 ) {
     /** Notifications exist, but none of them in the chosen chip. */
     val isFilteredEmpty: Boolean get() = phase == NoticesPhase.Empty && totalCount > 0
@@ -99,6 +105,8 @@ class NoticesViewModel @Inject constructor(
                 TodayAssembler.connectionBanner(realtime)
             },
             totalCount = feed.items.size,
+            errorMessage = synced.error?.messageRes,
+            errorCode = synced.error?.let(::diagnosticCode),
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS), NoticesUiState())
 
@@ -143,6 +151,13 @@ class NoticesViewModel @Inject constructor(
             if (result.isFailure) effectChannel.send(NoticesEffect.MarkAllReadFailed)
         }
     }
+
+    /** For example `NotFound 404` or `Unexpected SerializationException`. */
+    private fun diagnosticCode(error: WaiveraError): String = listOfNotNull(
+        error::class.simpleName,
+        error.httpStatus?.toString(),
+        error.cause?.let { it::class.simpleName },
+    ).joinToString(" ")
 
     private data class Local(val filter: NoticeFilter = NoticeFilter.All, val isMarkingAllRead: Boolean = false)
 

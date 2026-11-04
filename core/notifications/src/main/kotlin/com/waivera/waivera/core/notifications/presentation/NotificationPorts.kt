@@ -1,6 +1,7 @@
 package com.waivera.waivera.core.notifications.presentation
 
 import com.waivera.waivera.core.notifications.channel.WaiveraChannel
+import java.time.Instant
 
 /**
  * What the app must provide so notifications can make local decisions. Implemented in `:app`
@@ -51,4 +52,16 @@ fun interface PushSessionGate {
  */
 fun interface ThreadRootLookup {
     suspend fun threadRootOf(messageId: Long): Long?
+}
+
+/**
+ * Applies a read made on another device (a silent read push) to the local store: the
+ * conversation's badge or the notification's dot clears, and its tray entry closes with it.
+ */
+interface ReadSyncSink {
+    /** [readAt] null when the push did not say; then the read is applied as it arrives. */
+    suspend fun conversationRead(conversationId: Long, threadRootMessageId: Long?, readAt: Instant?)
+
+    /** Null means every notification. */
+    suspend fun noticeRead(notificationId: String?)
 }

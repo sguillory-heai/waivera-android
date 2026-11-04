@@ -1,5 +1,6 @@
 package com.waivera.waivera.notifications
 
+import com.waivera.waivera.core.data.live.LiveConversationRepository
 import com.waivera.waivera.core.data.live.PushTokenRevoker
 import com.waivera.waivera.core.data.model.ConversationKind
 import com.waivera.waivera.core.data.model.ConversationTitleText
@@ -9,10 +10,12 @@ import com.waivera.waivera.core.data.model.NotificationPreferences
 import com.waivera.waivera.core.data.model.currentUserId
 import com.waivera.waivera.core.data.repository.ConversationRepository
 import com.waivera.waivera.core.data.repository.DurableMessageSender
+import com.waivera.waivera.core.data.repository.NoticeRepository
 import com.waivera.waivera.core.data.repository.PushRegistrationRepository
 import com.waivera.waivera.core.data.repository.SessionRepository
 import com.waivera.waivera.core.data.repository.SettingsRepository
 import com.waivera.waivera.core.data.repository.ThreadRepository
+import com.waivera.waivera.core.network.dto.ChatReadStateDto
 import com.waivera.waivera.core.notifications.action.ChatNotificationActions
 import com.waivera.waivera.core.notifications.channel.WaiveraChannel
 import com.waivera.waivera.core.notifications.presentation.ClientNotificationPreferences
@@ -20,9 +23,11 @@ import com.waivera.waivera.core.notifications.presentation.ConversationInfoSourc
 import com.waivera.waivera.core.notifications.presentation.ConversationNotificationInfo
 import com.waivera.waivera.core.notifications.presentation.NotificationPreferencesSource
 import com.waivera.waivera.core.notifications.presentation.PushSessionGate
+import com.waivera.waivera.core.notifications.presentation.ReadSyncSink
 import com.waivera.waivera.core.notifications.presentation.ThreadRootLookup
 import com.waivera.waivera.core.notifications.token.PushTokenProvider
 import com.waivera.waivera.core.notifications.token.PushTokenSink
+import java.time.Instant
 import javax.inject.Inject
 import kotlinx.coroutines.flow.first
 
@@ -109,4 +114,36 @@ class CachedThreadRoots @Inject constructor(private val threads: ThreadRepositor
 /** Every session end deletes the FCM token, so a stale server registration cannot deliver. */
 class FirebasePushTokenRevoker @Inject constructor(private val tokens: PushTokenProvider) : PushTokenRevoker {
     override suspend fun revoke() = tokens.deleteToken()
+}
+
+/**
+ * Applies a silent read push from another device: the conversation's badge clears through the
+ * same path as the hub's `ReceiveChatReadState`, which also closes its tray entry, and a
+ * notification reads as read in the inbox and leaves the tray. A main-chat read that arrives
+ * after someone else wrote again (a push held back while the phone dozed) is skipped: the badge
+ * and the notification are for the newer message.
+ */
+class DataLayerReadSync @Inject constructor(
+    private val conversations: LiveConversationRepository,
+    private val session: SessionRepository,
+    private val notices: NoticeRepository,
+) : ReadSyncSink {
+    override suspend fun conversationRead(conversationId: Long, threadRootMessageId: Long?, readAt: Instant?) {
+        if (threadRootMessageId == null && readAt != null && hasNewerFromOthers(conversationId, readAt)) return
+        conversations.onReadState(
+            ChatReadStateDto(
+                conversationId = conversationId,
+                threadRootMessageId = threadRootMessageId,
+                readAt = readAt,
+            ),
+        )
+    }
+
+    override suspend fun noticeRead(notificationId: String?) = notices.onReadElsewhere(notificationId)
+
+    private suspend fun hasNewerFromOthers(conversationId: Long, readAt: Instant): Boolean {
+        val last = conversations.observeConversation(conversationId).first()?.lastMessage ?: return false
+        val created = last.createdAt ?: return false
+        return created.isAfter(readAt) && last.authorId != session.state.value.currentUserId
+    }
 }

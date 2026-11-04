@@ -47,6 +47,7 @@ object ChatHubContract {
         const val CONVERSATION_CALL_STATE_CHANGED = "ConversationCallStateChanged"
         const val REMOVE_AD_HOC_FROM_CONVERSATION = "RemoveAdHocFromConversation"
         const val RECEIVE_NOTIFICATION = "ReceiveNotification"
+        const val RECEIVE_NOTIFICATION_READ = "ReceiveNotificationRead"
 
         /** Lower-case on the wire; register verbatim. */
         const val RECEIVE_NOTIFICATION_WEB = "receivenotification_web"
@@ -69,6 +70,7 @@ object ChatHubContract {
             CONVERSATION_CALL_STATE_CHANGED to 1,
             REMOVE_AD_HOC_FROM_CONVERSATION to 1,
             RECEIVE_NOTIFICATION to 1,
+            RECEIVE_NOTIFICATION_READ to 1,
             RECEIVE_NOTIFICATION_WEB to 1,
         )
     }

@@ -172,6 +172,19 @@ object WaiveraTextStyles {
         hyphens = WaiveraHyphens,
     )
 
+    /**
+     * A card's own action under its title (a ticket's Open ticket): a step under the button
+     * label, in the title's weight, so the action never reads louder than what it opens.
+     */
+    val CardAction = TextStyle(
+        fontFamily = Jakarta,
+        fontSize = 15.sp,
+        lineHeight = 20.sp,
+        fontWeight = FontWeight.SemiBold,
+        lineBreak = TitleLineBreak,
+        hyphens = WaiveraHyphens,
+    )
+
     /** Count and status badges. */
     val Badge = TextStyle(
         fontFamily = Jakarta,

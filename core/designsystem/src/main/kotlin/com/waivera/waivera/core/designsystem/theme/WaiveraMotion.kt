@@ -292,8 +292,6 @@ class WaiveraMotionScheme internal constructor(val reduced: Boolean) {
          */
         const val REMOVAL_HELD_MILLIS = 1_000L
 
-        /** Where the selected tab's pill starts across: grown out from the glyph (M1-11). */
-        const val TAB_PILL_START_SCALE_X = 0.55f
         const val REDUCED_FADE_MILLIS = 150
         internal const val SPATIAL_DAMPING = 0.9f
         internal const val FAST_SPATIAL_STIFFNESS = 1400f

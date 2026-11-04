@@ -26,8 +26,11 @@ import kotlinx.coroutines.sync.withLock
  * from the server's own count, so it includes rows older than the first page.
  */
 @Singleton
-class LiveNoticeRepository @Inject constructor(private val api: NotificationApi, private val clock: Clock) :
-    NoticeRepository,
+class LiveNoticeRepository @Inject constructor(
+    private val api: NotificationApi,
+    private val clock: Clock,
+    private val reads: NoticeReadListener,
+) : NoticeRepository,
     SignOutCleaner {
     private val state = MutableStateFlow(Synced(NoticeFeed()))
     private val refreshLock = Mutex()
@@ -37,6 +40,9 @@ class LiveNoticeRepository @Inject constructor(private val api: NotificationApi,
 
     /** Read here but maybe not yet on the server's page; kept read until a page agrees. */
     private val readLocally = mutableSetOf<String>()
+
+    /** Read on another device, so the server has them read: a failed local read never undoes them. */
+    private val readElsewhere = mutableSetOf<String>()
 
     override fun observeNotices(): Flow<Synced<NoticeFeed>> = state.asStateFlow()
 
@@ -64,7 +70,9 @@ class LiveNoticeRepository @Inject constructor(private val api: NotificationApi,
      * stay read, and rows that arrived live and are newer than the page stay at the top.
      */
     private fun merged(fetched: NoticeFeed, current: NoticeFeed): NoticeFeed = synchronized(readLocally) {
-        readLocally.removeAll(fetched.items.filter { it.read }.mapTo(mutableSetOf()) { it.id })
+        val agreed = fetched.items.filter { it.read }.mapTo(mutableSetOf()) { it.id }
+        readLocally.removeAll(agreed)
+        readElsewhere.removeAll(agreed)
         val fetchedIds = fetched.items.mapTo(mutableSetOf()) { it.id }
         val newest = fetched.items.mapNotNull { it.createdAt }.maxOrNull()
         val arrived = current.items.filter { n ->
@@ -91,6 +99,7 @@ class LiveNoticeRepository @Inject constructor(private val api: NotificationApi,
         if (before.items.none { it.id == id && !it.read }) return Result.success(Unit)
         synchronized(readLocally) { readLocally += id }
         state.update { it.copy(data = before.markRead(setOf(id))) }
+        reads.onRead(id)
         return catchingWaivera { apiCall { api.markRead(id) } }.map { }.onFailure { rollBack(setOf(id)) }
     }
 
@@ -100,18 +109,41 @@ class LiveNoticeRepository @Inject constructor(private val api: NotificationApi,
         if (unreadBefore == 0 && unreadIds.isEmpty()) return Result.success(Unit)
         synchronized(readLocally) { readLocally += unreadIds }
         state.update { it.copy(data = NoticeFeed(it.data.items.map { n -> n.copy(read = true) }, 0)) }
+        reads.onRead(null)
         return catchingWaivera { apiCall { api.markAllRead() } }.map { }.onFailure {
-            synchronized(readLocally) { readLocally -= unreadIds }
+            val undo = synchronized(readLocally) { (unreadIds - readElsewhere).also { readLocally -= it } }
             state.update { current ->
-                val items = current.data.items.map { n -> if (n.id in unreadIds) n.copy(read = false) else n }
-                current.copy(data = NoticeFeed(items, unreadBefore))
+                val items = current.data.items.map { n -> if (n.id in undo) n.copy(read = false) else n }
+                current.copy(data = NoticeFeed(items, unreadBefore - (unreadIds.size - undo.size)))
             }
         }
     }
 
+    override suspend fun onReadElsewhere(notificationId: String?) {
+        // Kept read through a refresh already in flight, as a read here is.
+        val ids = notificationId?.let(::setOf)
+            ?: state.value.data.items.filter { !it.read }.mapTo(mutableSetOf()) { it.id }
+        synchronized(readLocally) {
+            readLocally += ids
+            readElsewhere += ids
+        }
+        state.update { current ->
+            val feed = current.data
+            val read = if (notificationId == null) {
+                NoticeFeed(feed.items.map { it.copy(read = true) }, 0)
+            } else {
+                // A row outside the loaded page waits for the next refresh to correct the count.
+                val known = feed.items.any { it.id == notificationId }
+                if (known) feed.markRead(setOf(notificationId)) else feed
+            }
+            current.copy(data = read)
+        }
+        reads.onRead(notificationId)
+    }
+
     private fun rollBack(ids: Set<String>) {
-        synchronized(readLocally) { readLocally -= ids }
-        state.update { current -> current.copy(data = current.data.rolledBack(ids)) }
+        val undo = synchronized(readLocally) { (ids - readElsewhere).also { readLocally -= it } }
+        state.update { current -> current.copy(data = current.data.rolledBack(undo)) }
     }
 
     private fun NoticeFeed.rolledBack(ids: Set<String>): NoticeFeed {
@@ -121,7 +153,10 @@ class LiveNoticeRepository @Inject constructor(private val api: NotificationApi,
 
     override suspend fun clear() {
         generation++
-        synchronized(readLocally) { readLocally.clear() }
+        synchronized(readLocally) {
+            readLocally.clear()
+            readElsewhere.clear()
+        }
         state.value = Synced(NoticeFeed())
     }
 }

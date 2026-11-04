@@ -239,6 +239,12 @@ interface NoticeRepository {
     suspend fun markRead(id: String): Result<Unit>
 
     suspend fun markAllRead(): Result<Unit>
+
+    /**
+     * Read on another device (the web or another phone): the row, or with a null id every row,
+     * reads as read here. Nothing is sent; the server already has it.
+     */
+    suspend fun onReadElsewhere(notificationId: String?) = Unit
 }
 
 interface PeopleRepository {

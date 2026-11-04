@@ -1,6 +1,7 @@
 package com.waivera.waivera.notifications
 
 import com.waivera.waivera.core.data.live.ConversationReadListener
+import com.waivera.waivera.core.data.live.NoticeReadListener
 import com.waivera.waivera.core.data.live.PushTokenRevoker
 import com.waivera.waivera.core.data.live.SignOutCleaner
 import com.waivera.waivera.core.data.repository.RealtimeStatusRepository
@@ -10,6 +11,7 @@ import com.waivera.waivera.core.notifications.presentation.LiveConversationMonit
 import com.waivera.waivera.core.notifications.presentation.NotificationPreferencesSource
 import com.waivera.waivera.core.notifications.presentation.Notifier
 import com.waivera.waivera.core.notifications.presentation.PushSessionGate
+import com.waivera.waivera.core.notifications.presentation.ReadSyncSink
 import com.waivera.waivera.core.notifications.presentation.ThreadRootLookup
 import com.waivera.waivera.core.notifications.token.PushTokenSink
 import dagger.Binds
@@ -44,6 +46,9 @@ abstract class NotificationBindingsModule {
     @Binds
     abstract fun tokenRevoker(impl: FirebasePushTokenRevoker): PushTokenRevoker
 
+    @Binds
+    abstract fun readSync(impl: DataLayerReadSync): ReadSyncSink
+
     companion object {
         /** Foreground suppression asks the data layer: hub connected and that conversation on screen. */
         @Provides
@@ -58,6 +63,10 @@ abstract class NotificationBindingsModule {
             override fun onThreadRead(conversationId: Long, rootMessageId: Long) =
                 notifier.cancelThread(conversationId, rootMessageId)
         }
+
+        /** A notification read here or on another device leaves the shade too. */
+        @Provides
+        fun noticeReads(notifier: Notifier): NoticeReadListener = NoticeReadListener(notifier::cancelNotice)
 
         /** A session end clears the shade too, even with no screen alive to do it (AS-02). */
         @Provides

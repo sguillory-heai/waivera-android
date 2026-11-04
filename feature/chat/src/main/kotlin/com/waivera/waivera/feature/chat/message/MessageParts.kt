@@ -63,6 +63,7 @@ import com.waivera.waivera.core.data.model.SendState
 import com.waivera.waivera.core.designsystem.component.BadgeTone
 import com.waivera.waivera.core.designsystem.component.SkeletonBlock
 import com.waivera.waivera.core.designsystem.component.WaiveraButton
+import com.waivera.waivera.core.designsystem.component.WaiveraButtonSize
 import com.waivera.waivera.core.designsystem.component.WaiveraButtonVariant
 import com.waivera.waivera.core.designsystem.component.WaiveraDivider
 import com.waivera.waivera.core.designsystem.component.WaiveraIconTile
@@ -615,7 +616,10 @@ fun TicketCard(ticket: TicketNotification, onOpen: (String) -> Unit, modifier: M
             text = stringResource(R.string.feature_chat_ticket_open),
             onClick = { onOpen(ticket.url) },
             variant = WaiveraButtonVariant.Secondary,
+            // Full width as on iPhone, so the one action reads as the card's own.
+            fullWidth = true,
             leadingIcon = WaiveraIcons.OpenExternal,
+            size = WaiveraButtonSize.Card,
         )
         Column(
             modifier = Modifier

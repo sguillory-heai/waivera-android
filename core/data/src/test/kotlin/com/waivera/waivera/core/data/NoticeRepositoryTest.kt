@@ -132,6 +132,41 @@ class NoticeRepositoryTest {
     }
 
     @Test
+    fun readsHereCloseTheTrayEntryAndAFailedOneStillDid() = testScope.runTest {
+        graph.server.json("GET /api/notifications", page)
+        graph.server.json("GET /api/notifications/unread-count", """{"data":2,"success":true}""")
+        graph.notices.refresh().getOrThrow()
+        graph.server.json("PUT /api/notifications/0c1d-guid", """{"data":true,"success":true}""")
+        graph.notices.markRead("0c1d-guid").getOrThrow()
+        // Already read: nothing to close.
+        graph.notices.markRead("esign-request-77").getOrThrow()
+        graph.server.json("PUT /api/notifications/mark-all-read", """{"data":true,"success":true}""")
+        graph.notices.markAllRead().getOrThrow()
+        assertEquals(listOf<String?>("0c1d-guid", null), graph.noticeReads)
+    }
+
+    @Test
+    fun aReadOnAnotherDeviceMarksTheRowOrAllRowsAndClosesTheTray() = testScope.runTest {
+        graph.server.json("GET /api/notifications", page)
+        graph.server.json("GET /api/notifications/unread-count", """{"data":5,"success":true}""")
+        graph.notices.refresh().getOrThrow()
+
+        graph.realtimeSync.apply(HubEvent.NotificationRead("m-1"))
+        var feed = graph.notices.observeNotices().first().data
+        assertTrue(feed.items.first { it.id == "m-1" }.read)
+        assertEquals(4, feed.unreadCount)
+
+        graph.realtimeSync.apply(HubEvent.NotificationRead("not-loaded"))
+        assertEquals(4, graph.notices.observeNotices().first().data.unreadCount, "an unknown row waits for a refresh")
+
+        graph.notices.onReadElsewhere(null)
+        feed = graph.notices.observeNotices().first().data
+        assertTrue(feed.items.all { it.read })
+        assertEquals(0, feed.unreadCount)
+        assertEquals(listOf<String?>("m-1", "not-loaded", null), graph.noticeReads)
+    }
+
+    @Test
     fun aNumericIdFromAnOlderPayloadStillDecodes() {
         val dto = WaiveraJson.decodeFromString(EventNotificationResponse.serializer(), """{"id":55120,"title":"x"}""")
         assertEquals("55120", NoticeMapping.notice(dto)?.id)
@@ -163,5 +198,36 @@ class NoticeRepositoryTest {
         val feed = graph.notices.observeNotices().first().data
         assertEquals("live-1", feed.items.first().id)
         assertEquals(3, feed.unreadCount)
+    }
+
+    /** The production body as ASP.NET writes it: nested user and organization, 7-digit fractions, nulls. */
+    @Test
+    fun decodesTheServersFullShape() = testScope.runTest {
+        graph.server.json(
+            "GET /api/notifications",
+            """
+            [{"id":"9b2f6c1e-1d2a-4c55-9a51-2a1f0c3b7d10","type":"task.assigned","status":"new",
+              "title":"A new task has been assigned to you","message":"{author} assigned task {task}",
+              "surveyInstanceId":null,
+              "notifies":{"id":"u1","firstName":"Sheldon","lastName":"G","email":"s@example.test","displayName":"Sheldon G",
+                "scId":null,"isParticipant":false,"isExternal":false,"deactivated":false,"avatarUrl":null,
+                "joinDate":"2024-01-02T00:00:00","organization":{"id":3,"name":"Org","abbreviation":"O",
+                "atRiskWindowDays":30,"defaultPtoDays":10.5,"isSandbox":false},"roles":null,"regions":null,
+                "participantCount":0,"employeeRole":null},
+              "allowApproval":null,"actionLabel":null,"actionUrl":null,
+              "createdAt":"2026-11-03T20:01:54.3761234","read":false,"isSurveyFilled":null,
+              "createdByUser":{"id":"u2","firstName":"Priya","lastName":"Raman","email":null,"displayName":"Priya Raman",
+                "scId":null,"isParticipant":false,"isExternal":false,"deactivated":false,"avatarUrl":null,"joinDate":null,
+                "organization":null,"roles":null,"regions":null,"participantCount":0,"employeeRole":null},
+              "notificationResources":[{"id":11,"notificationId":"9b2f6c1e-1d2a-4c55-9a51-2a1f0c3b7d10",
+                "createdById":"u2","resourceId":"/task/42","resourceType":"task","resourceName":"42",
+                "eventNotification":null}]}]
+            """.trimIndent(),
+        )
+        graph.server.json("GET /api/notifications/unread-count", """{"data":1,"success":true,"statusCode":200}""")
+        graph.notices.refresh().getOrThrow()
+        val notice = graph.notices.observeNotices().first().data.items.single()
+        assertEquals("42", notice.taskId)
+        assertEquals("Priya Raman assigned task 42", notice.message)
     }
 }

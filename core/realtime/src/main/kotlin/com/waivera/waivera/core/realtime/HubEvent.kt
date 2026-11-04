@@ -65,6 +65,9 @@ sealed interface HubEvent {
 
     /** `ReceiveNotification` ([isWebFeed] false) or `receivenotification_web` ([isWebFeed] true). */
     data class Notification(val notification: EventNotificationResponse, val isWebFeed: Boolean) : HubEvent
+
+    /** `ReceiveNotificationRead`: read on another device; [notificationId] null means all. */
+    data class NotificationRead(val notificationId: String?) : HubEvent
 }
 
 /** Video hub events, decoded for when the app joins calls natively (not in phase 1). */

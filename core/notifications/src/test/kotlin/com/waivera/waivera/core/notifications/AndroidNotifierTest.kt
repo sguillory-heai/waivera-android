@@ -14,6 +14,7 @@ import com.waivera.waivera.core.notifications.presentation.ChatNotificationExtra
 import com.waivera.waivera.core.notifications.presentation.ConversationNotificationInfo
 import com.waivera.waivera.core.notifications.presentation.ConversationShortcuts
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
@@ -326,8 +327,39 @@ class AndroidNotifierTest {
         )
         notifier.show(first, WaiveraChannel.Updates, conversation = null)
         notifier.show(first.copy(notificationId = "n2"), WaiveraChannel.Updates, conversation = null)
-        val one = assertNotNull(posted(AndroidNotifier.GENERIC_TAG_PREFIX + "n1"))
-        assertNotNull(posted(AndroidNotifier.GENERIC_TAG_PREFIX + "n2"))
+        val one = assertNotNull(posted(AndroidNotifier.noticeTag("n1")))
+        assertNotNull(posted(AndroidNotifier.noticeTag("n2")))
         assertEquals(WaiveraChannel.Updates.id, one.channelId)
+    }
+
+    @Test
+    fun `a notice read elsewhere closes its row, and all of them close the rest but not chats`() {
+        val notice = PushMessage.Notice(
+            notificationId = "n1",
+            taskId = null,
+            title = "Task assigned",
+            body = "From Priya",
+        )
+        notifier.show(notice, WaiveraChannel.Updates, conversation = null)
+        notifier.show(notice.copy(notificationId = "n2"), WaiveraChannel.Updates, conversation = null)
+        notifier.show(notice.copy(notificationId = "n3"), WaiveraChannel.Updates, conversation = null)
+        notifier.show(chat(messageId = 1, body = "Hi"), WaiveraChannel.Messages, conversation = null)
+
+        notifier.cancelNotice("n1")
+        assertNull(posted(AndroidNotifier.noticeTag("n1")))
+        assertNotNull(posted(AndroidNotifier.noticeTag("n2")))
+
+        notifier.cancelNotice(null)
+        assertNull(posted(AndroidNotifier.noticeTag("n2")))
+        assertNull(posted(AndroidNotifier.noticeTag("n3")))
+        assertNotNull(posted(AndroidNotifier.chatTag(7)))
+    }
+
+    @Test
+    fun `notice tags include the generic ones older builds posted, not other pushes`() {
+        assertTrue(AndroidNotifier.isNoticeTag("notice:n1"))
+        assertTrue(AndroidNotifier.isNoticeTag("push:4b1c-esign"))
+        assertFalse(AndroidNotifier.isNoticeTag("push:-12345"))
+        assertFalse(AndroidNotifier.isNoticeTag("chat:7"))
     }
 }

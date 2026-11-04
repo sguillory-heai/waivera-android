@@ -277,6 +277,17 @@ data class EventNotificationResponse(
     val notificationResources: List<NotificationResourceDto> = emptyList(),
 )
 
+/**
+ * Hub `ReceiveNotificationRead`: a stored notification, or with [all] every one, was read on
+ * another device (`NotificationService.SyncNotificationReadAsync`).
+ */
+@Serializable
+data class NotificationReadDto(
+    @Serializable(with = StringOrNumberSerializer::class)
+    val notificationId: String? = null,
+    val all: Boolean = false,
+)
+
 /** `Models/NotificationResource.cs`: what a notification points at (task, file, meeting, …). */
 @Serializable
 data class NotificationResourceDto(

@@ -25,6 +25,8 @@
     <string name="feature_today_notices_show_all">Show all</string>
     <string name="feature_today_notices_error_title">Couldn’t load your inbox</string>
     <string name="feature_today_notices_error_message">Check your connection and try again.</string>
+    <!-- Debug builds only: the client message, then an error type and HTTP status such as "NotFound 404". -->
+    <string name="feature_today_notices_error_with_code">%1$s (%2$s)</string>
     <string name="feature_today_notices_refresh_failed">Couldn’t refresh your inbox.</string>
     <string name="feature_today_notices_nothing_to_open">Open this one on the Waivera website.</string>
     <string name="feature_today_notice_open">Open</string>

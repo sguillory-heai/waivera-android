@@ -12,7 +12,18 @@ data class PresenceSnapshot(val hubConnected: Boolean, val visibleChat: VisibleC
 sealed interface PresentationDecision {
     data class Show(val channel: WaiveraChannel) : PresentationDecision
 
-    enum class SuppressReason { SignedOut, PushDisabled, ChannelDisabled, ChatOnScreen }
+    enum class SuppressReason {
+        SignedOut,
+        PushDisabled,
+        ChannelDisabled,
+        ChatOnScreen,
+
+        /** A silent read sync from another device: applied, never shown. */
+        ReadElsewhere,
+
+        /** No title and no body: a type this build does not know, with nothing to show. */
+        Blank,
+    }
 
     data class Suppress(val reason: SuppressReason) : PresentationDecision
 }
@@ -37,7 +48,9 @@ object NotificationPresentationPolicy {
         is PushMessage.IncomingCall -> WaiveraChannel.Messages
         is PushMessage.Meeting -> WaiveraChannel.ScheduleChanges
         is PushMessage.Notice -> WaiveraChannel.Updates
-        is PushMessage.Survey, is PushMessage.Unknown -> WaiveraChannel.Digest
+        // Read syncs are never shown; the quiet channel is only here to keep the mapping total.
+        is PushMessage.Survey, is PushMessage.Unknown, is PushMessage.ChatRead, is PushMessage.NoticeRead ->
+            WaiveraChannel.Digest
     }
 
     fun decide(

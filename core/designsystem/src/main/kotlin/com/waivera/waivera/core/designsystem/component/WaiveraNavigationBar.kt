@@ -1,7 +1,7 @@
 package com.waivera.waivera.core.designsystem.component
 
 import androidx.annotation.DrawableRes
-import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.Animatable
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -20,8 +20,15 @@ import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
-import androidx.compose.runtime.State
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.Stable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateMapOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
@@ -29,25 +36,33 @@ import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.layout.Layout
+import androidx.compose.ui.layout.LayoutCoordinates
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.onPlaced
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Constraints
+import androidx.compose.ui.unit.center
+import androidx.compose.ui.unit.toOffset
 import com.waivera.waivera.core.designsystem.icon.WaiveraIcons
 import com.waivera.waivera.core.designsystem.preview.WaiveraPreviews
 import com.waivera.waivera.core.designsystem.theme.EXTRA_LARGE_FONT_SCALE
 import com.waivera.waivera.core.designsystem.theme.PressDepth
 import com.waivera.waivera.core.designsystem.theme.WaiveraElevation
-import com.waivera.waivera.core.designsystem.theme.WaiveraMotionScheme
 import com.waivera.waivera.core.designsystem.theme.WaiveraShapes
 import com.waivera.waivera.core.designsystem.theme.WaiveraSizes
 import com.waivera.waivera.core.designsystem.theme.WaiveraSpacing
 import com.waivera.waivera.core.designsystem.theme.WaiveraTextStyles
 import com.waivera.waivera.core.designsystem.theme.WaiveraTheme
-import com.waivera.waivera.core.designsystem.theme.exit
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.launch
 
 /** One bottom tab. [key] is the caller's stable id for the tab. */
 @Immutable
@@ -68,10 +83,10 @@ data class NavigationBarItemModel(
  * the glyph's top-end corner in the attention rose, ringed in the bar's colour so it reads as cut
  * out of it. The pill is decoration; the label, the selected state and the count carry the meaning.
  *
- * Feedback: a tab's glyph and pill shrink from touch-down and the tab just picked pops them. Its
- * pill grows out from the glyph on the pop token while it fades in, and the pill it replaces
- * fades out faster than that, so the bar never shows two half pills (M1-11). A tab switch has no
- * haptic (the feedback map keeps taps silent).
+ * Feedback, matching the iPhone bar: a tab's glyph and the pill under it shrink from touch-down,
+ * then the bar's one pill glides across to the tab just picked and its glyph pops. One pill moves
+ * rather than one fading out and another in, so the bar never shows two half pills (M1-11). A tab
+ * switch has no haptic (the feedback map keeps taps silent).
  */
 @Composable
 fun WaiveraNavigationBar(
@@ -94,34 +109,37 @@ fun WaiveraNavigationBar(
         val scale = navLabelTextScale(fontScale) / fontScale
         style.copy(fontSize = style.fontSize * scale, lineHeight = style.lineHeight * scale)
     }
+    val pill = rememberTabPill(selectedKey)
     NavigationBar(
         modifier = modifier
             .testTag(NAV_BAR_TEST_TAG)
+            // Glyph centres are kept relative to the bar, so the bar sliding in or out (or the
+            // window resizing) moves the pill with it instead of sending it gliding.
+            .onPlaced { pill.bar = it }
             .drawBehind {
+                // The bar's fill is drawn here, under the pill: Material's own container would
+                // cover anything drawn behind the bar.
+                drawRect(colors.navBar)
                 drawLine(
                     color = colors.navBarBorder,
                     start = Offset.Zero,
                     end = Offset(size.width, 0f),
                     strokeWidth = WaiveraSpacing.Hairline.toPx(),
                 )
+                drawTabPill(pill, colors.selectedFill)
             },
-        containerColor = colors.navBar,
+        containerColor = Color.Transparent,
         contentColor = colors.text,
         tonalElevation = WaiveraElevation.Level0,
         windowInsets = insets,
     ) {
         items.forEach { item ->
             val selected = item.key == selectedKey
-            val washAlpha = rememberTabWashAlpha(selected)
             val interactionSource = remember { MutableInteractionSource() }
             val press = rememberPressFeedback(interactionSource, depth = PressDepth.Compact)
-            // The tab just picked pops its glyph and pill; the press shrinks them from touch-down.
+            pill.presses[item.key] = press
+            // The tab just picked pops its glyph; the press shrinks glyph and pill from touch-down.
             val pop = rememberPopScale(key = selected, enabled = selected)
-            val pillWidth = rememberPopScale(
-                key = selected,
-                enabled = selected,
-                from = WaiveraMotionScheme.TAB_PILL_START_SCALE_X,
-            )
             NavigationBarItem(
                 selected = selected,
                 onClick = { onSelect(item.key) },
@@ -133,13 +151,10 @@ fun WaiveraNavigationBar(
                         besideGlyph = extraLarge,
                         modifier = Modifier
                             .testTag(NAV_ICON_TEST_TAG)
+                            // Before the scales, so the pill aims at the glyph's resting centre.
+                            .onGloballyPositioned { pill.place(item.key, it) }
                             .pressScale(press)
-                            .popScale(pop)
-                            .selectedTabPill(
-                                fill = colors.selectedFill,
-                                alpha = { washAlpha.value },
-                                widthScale = { pillWidth.value },
-                            ),
+                            .popScale(pop),
                     ) {
                         Icon(
                             painterResource(item.icon),
@@ -160,8 +175,8 @@ fun WaiveraNavigationBar(
                 colors = NavigationBarItemDefaults.colors(
                     selectedIconColor = colors.onSelectedFill,
                     selectedTextColor = colors.text,
-                    // The pill is drawn once, below, so Material's own indicator stays invisible:
-                    // two pills of different widths read as a smear (UI8-01).
+                    // The pill is drawn once, by the bar, so Material's own indicator stays
+                    // invisible: two pills of different widths read as a smear (UI8-01).
                     indicatorColor = Color.Transparent,
                     unselectedIconColor = colors.textSecondary,
                     unselectedTextColor = colors.textSecondary,
@@ -172,37 +187,67 @@ fun WaiveraNavigationBar(
 }
 
 /**
- * Fades the selected tab's pill in on the state token, and out on the faster exit, so the old
- * pill is gone before the new one peaks. Returned as state for the draw block to read, so the
- * fade never recomposes the bar.
+ * The one pill the whole bar shares, as on iPhone: where each glyph rests, and the pill's centre
+ * gliding to the selected one on the press spring. Under Remove animations the spring snaps.
+ * Everything here is read in the draw block, so the glide never recomposes the bar.
  */
+@Stable
+private class TabPill(val x: Animatable<Float, *>, val y: Animatable<Float, *>) {
+    var bar: LayoutCoordinates? = null
+    val centers = mutableStateMapOf<String, Offset>()
+    val presses = mutableMapOf<String, PressFeedbackState>()
+    var selectedKey by mutableStateOf<String?>(null)
+    var placed by mutableStateOf(false)
+
+    /** Records a glyph's resting centre in the bar's own space; an unchanged one writes nothing. */
+    fun place(key: String, glyph: LayoutCoordinates) {
+        val bar = bar?.takeIf { it.isAttached } ?: return
+        val center = bar.localPositionOf(glyph, glyph.size.center.toOffset())
+        if (centers[key] != center) centers[key] = center
+    }
+}
+
 @Composable
-private fun rememberTabWashAlpha(selected: Boolean): State<Float> {
+private fun rememberTabPill(selectedKey: String): TabPill {
     val motion = WaiveraTheme.motion
-    return animateFloatAsState(
-        targetValue = if (selected) 1f else 0f,
-        animationSpec = if (selected) motion.state() else motion.exit(),
-        label = "tabWash",
-    )
+    val pill = remember { TabPill(Animatable(0f), Animatable(0f)) }
+    SideEffect { pill.selectedKey = selectedKey }
+    // The target is read here, outside composition, so a glide or a re-layout never recomposes
+    // the bar. A new pick mid-glide redirects the pill from where it is, keeping its speed.
+    LaunchedEffect(pill, motion) {
+        snapshotFlow { pill.selectedKey?.let { pill.centers[it] } }
+            .filterNotNull()
+            .collectLatest { target ->
+                if (!pill.placed) {
+                    pill.x.snapTo(target.x)
+                    pill.y.snapTo(target.y)
+                    pill.placed = true
+                    return@collectLatest
+                }
+                coroutineScope {
+                    launch { pill.y.animateTo(target.y, motion.press()) }
+                    pill.x.animateTo(target.x, motion.press())
+                }
+            }
+    }
+    return pill
 }
 
 /**
- * The selected tab's one pill, solid [fill]. It draws behind the icon and outside the icon's
- * bounds, centred on it, so it never changes the layout. [widthScale] grows it across from the
- * glyph's centre; both values are read here, in the draw block only.
+ * Draws the shared pill, solid [fill], centred on its gliding centre. It shrinks with the
+ * selected tab's press, so the tab under the finger and its pill give together.
  */
-private fun Modifier.selectedTabPill(fill: Color, alpha: () -> Float, widthScale: () -> Float): Modifier = drawBehind {
-    val shown = alpha()
-    if (shown == 0f) return@drawBehind
-    val width = WaiveraSizes.NavIndicatorWidth.toPx() * widthScale()
-    val height = WaiveraSizes.NavIndicatorHeight.toPx()
-    val topLeft = Offset(center.x - width / 2f, center.y - height / 2f)
+private fun DrawScope.drawTabPill(pill: TabPill, fill: Color) {
+    if (!pill.placed) return
+    val scale = pill.selectedKey?.let { pill.presses[it]?.value } ?: 1f
+    val width = WaiveraSizes.NavIndicatorWidth.toPx() * scale
+    val height = WaiveraSizes.NavIndicatorHeight.toPx() * scale
+    val center = Offset(pill.x.value, pill.y.value)
     drawRoundRect(
         color = fill,
-        topLeft = topLeft,
+        topLeft = Offset(center.x - width / 2f, center.y - height / 2f),
         size = Size(width, height),
         cornerRadius = CornerRadius(height / 2f),
-        alpha = shown,
     )
 }
 

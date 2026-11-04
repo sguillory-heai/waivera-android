@@ -13,6 +13,7 @@ import com.waivera.waivera.core.notifications.presentation.Notifier
 import com.waivera.waivera.core.notifications.presentation.PresenceSnapshot
 import com.waivera.waivera.core.notifications.presentation.PresentationDecision
 import com.waivera.waivera.core.notifications.presentation.PushSessionGate
+import com.waivera.waivera.core.notifications.presentation.ReadSyncSink
 import com.waivera.waivera.core.notifications.presentation.ThreadRootLookup
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -31,6 +32,7 @@ class PushMessageHandler @Inject constructor(
     private val session: PushSessionGate,
     private val threads: ThreadRootLookup,
     private val trace: PushTrace,
+    private val reads: ReadSyncSink,
 ) {
     /** @return what was decided, for tests and debug tooling; null when the payload was unusable. */
     suspend fun handle(
@@ -48,6 +50,7 @@ class PushMessageHandler @Inject constructor(
             trace.note(PushStep.Hidden, PresentationDecision.SuppressReason.SignedOut.name)
             return PresentationDecision.Suppress(PresentationDecision.SuppressReason.SignedOut)
         }
+        quietDecision(parsed)?.let { return it }
         val parsedChat = parsed as? PushMessage.Chat
         // The data layer confirms hub + conversation; the tracker narrows it to the exact thread.
         val liveOnScreen = parsedChat != null && hub.isLiveOnScreen(parsedChat.conversationId)
@@ -67,6 +70,26 @@ class PushMessageHandler @Inject constructor(
             decision is PresentationDecision.Show -> show(message, decision.channel, conversation)
         }
         return decision
+    }
+
+    /** Read syncs are applied and never shown; a payload with nothing to show is dropped. */
+    private suspend fun quietDecision(message: PushMessage): PresentationDecision? {
+        val reason = when (message) {
+            is PushMessage.ChatRead -> {
+                reads.conversationRead(message.conversationId, message.threadRootMessageId, message.readAt)
+                PresentationDecision.SuppressReason.ReadElsewhere
+            }
+            is PushMessage.NoticeRead -> {
+                reads.noticeRead(message.notificationId)
+                PresentationDecision.SuppressReason.ReadElsewhere
+            }
+            is PushMessage.Unknown -> PresentationDecision.SuppressReason.Blank.takeIf {
+                message.title == null && message.body == null
+            }
+            else -> null
+        } ?: return null
+        trace.note(PushStep.Hidden, reason.name)
+        return PresentationDecision.Suppress(reason)
     }
 
     /** Key names, which fields are present and the parsed kind; never a value. */

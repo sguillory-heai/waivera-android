@@ -119,6 +119,7 @@ class RealtimeSync @Inject constructor(
             is HubEvent.Notification -> if (event.isWebFeed) {
                 NoticeMapping.notice(event.notification)?.let { notices.onArrived(it) }
             }
+            is HubEvent.NotificationRead -> notices.onReadElsewhere(event.notificationId)
         }
     }
 

@@ -106,6 +106,16 @@ class AndroidNotifier @Inject constructor(
         syncSummary(activeChatTags() - tag)
     }
 
+    override fun cancelNotice(notificationId: String?) {
+        if (notificationId != null) {
+            manager.cancel(noticeTag(notificationId), NOTIFICATION_ID)
+            // Builds before 19 posted notices under the generic tag.
+            manager.cancel(GENERIC_TAG_PREFIX + notificationId, NOTIFICATION_ID)
+            return
+        }
+        activeTags.filter(::isNoticeTag).forEach { manager.cancel(it, NOTIFICATION_ID) }
+    }
+
     override fun cancelAll() {
         if (activeChatTags().isNotEmpty()) trace.note(PushStep.ClearedAll, null)
         manager.cancelAll()
@@ -264,11 +274,15 @@ class AndroidNotifier @Inject constructor(
             ?.firstOrNull { it.tag == chatTag(conversationId, threadRootMessageId) && it.id == NOTIFICATION_ID }
             ?.notification
 
-    private fun activeChatTags(): Set<String> = context.getSystemService<NotificationManager>()
-        ?.activeNotifications
-        ?.mapNotNull { it.tag?.takeIf { tag -> tag.startsWith(CHAT_TAG_PREFIX) } }
-        ?.toSet()
-        .orEmpty()
+    private fun activeChatTags(): Set<String> = activeTags.filterTo(mutableSetOf()) { it.startsWith(CHAT_TAG_PREFIX) }
+
+    /** Tags of the app's notifications in the shade now. */
+    private val activeTags: List<String>
+        get() = context.getSystemService<NotificationManager>()
+            ?.activeNotifications
+            ?.filter { it.id == NOTIFICATION_ID }
+            ?.mapNotNull { it.tag }
+            .orEmpty()
 
     private fun hasPostPermission(): Boolean = Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU ||
         ContextCompat.checkSelfPermission(
@@ -298,8 +312,15 @@ class AndroidNotifier @Inject constructor(
         internal const val CHAT_TAG_PREFIX = "chat:"
         private const val THREAD_TAG_INFIX = ":thread:"
         internal const val GENERIC_TAG_PREFIX = "push:"
+        internal const val NOTICE_TAG_PREFIX = "notice:"
         internal const val SUMMARY_TAG = "chat-summary"
         private const val SUMMARY_REQUEST_CODE = -1
+
+        fun noticeTag(notificationId: String): String = NOTICE_TAG_PREFIX + notificationId
+
+        /** A notice's tag, including the generic one older builds used: other pushes end in a hash code. */
+        internal fun isNoticeTag(tag: String): Boolean = tag.startsWith(NOTICE_TAG_PREFIX) ||
+            (tag.startsWith(GENERIC_TAG_PREFIX) && tag.removePrefix(GENERIC_TAG_PREFIX).toIntOrNull() == null)
 
         fun chatTag(conversationId: Long, threadRootMessageId: Long? = null): String =
             if (threadRootMessageId == null) {
@@ -311,8 +332,9 @@ class AndroidNotifier @Inject constructor(
 }
 
 /** Each stored notification keeps its own row; other pushes collapse by where they open. */
-private fun genericTag(message: PushMessage): String =
-    AndroidNotifier.GENERIC_TAG_PREFIX + ((message as? PushMessage.Notice)?.notificationId ?: message.target.hashCode())
+private fun genericTag(message: PushMessage): String = (message as? PushMessage.Notice)?.notificationId
+    ?.let(AndroidNotifier::noticeTag)
+    ?: (AndroidNotifier.GENERIC_TAG_PREFIX + message.target.hashCode())
 
 /** Where a chat notification opens when it has no message's own target yet. */
 private fun targetFor(conversationId: Long, threadRootMessageId: Long?): DeepLinkTarget =

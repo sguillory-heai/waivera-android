@@ -12,6 +12,7 @@ import com.waivera.waivera.core.network.dto.EventNotificationResponse
 import com.waivera.waivera.core.network.dto.MessageDeleteDto
 import com.waivera.waivera.core.network.dto.MessageSendResponse
 import com.waivera.waivera.core.network.dto.MessageUpdateDto
+import com.waivera.waivera.core.network.dto.NotificationReadDto
 import com.waivera.waivera.core.network.dto.ReactionAction
 import com.waivera.waivera.core.network.dto.ReceiveGroupCallInviteResponse
 import com.waivera.waivera.core.network.dto.RemoveAdHocFromConversationDto
@@ -80,6 +81,13 @@ object HubEventDecoder {
             ?.let { HubEvent.Notification(it, isWebFeed = false) }
         Events.RECEIVE_NOTIFICATION_WEB -> obj(args, EventNotificationResponse.serializer())
             ?.let { HubEvent.Notification(it, isWebFeed = true) }
+        Events.RECEIVE_NOTIFICATION_READ -> obj(args, NotificationReadDto.serializer())?.let { read ->
+            when {
+                read.all -> HubEvent.NotificationRead(null)
+                read.notificationId.isNullOrBlank() -> null
+                else -> HubEvent.NotificationRead(read.notificationId)
+            }
+        }
         else -> null
     }
 

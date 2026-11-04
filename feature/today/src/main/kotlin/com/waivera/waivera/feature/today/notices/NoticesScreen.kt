@@ -1,5 +1,6 @@
 package com.waivera.waivera.feature.today.notices
 
+import android.content.pm.ApplicationInfo
 import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -27,6 +28,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.pluralStringResource
@@ -184,10 +186,10 @@ private fun NoticesBody(state: NoticesUiState, callbacks: NoticesCallbacks) {
         NoticesPhase.Loading -> if (rememberSkeletonVisible(loading = true)) {
             SectionSkeleton(modifier = Modifier.padding(top = WaiveraSpacing.Small))
         }
-        // The raw error never shows; the copy is fixed.
+        // The raw error never shows: client copy for the failure, plus its code on debug builds.
         NoticesPhase.Error -> WaiveraErrorState(
             title = stringResource(R.string.feature_today_notices_error_title),
-            message = stringResource(R.string.feature_today_notices_error_message),
+            message = errorText(state),
             onRetry = callbacks.onRefresh,
             modifier = top,
         )
@@ -372,4 +374,12 @@ private fun NoticesEmptyPreview() {
             callbacks = NoticesPreviewStates.callbacks,
         )
     }
+}
+
+@Composable
+private fun errorText(state: NoticesUiState): String {
+    val message = stringResource(state.errorMessage ?: R.string.feature_today_notices_error_message)
+    val debuggable = (LocalContext.current.applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE) != 0
+    val code = state.errorCode?.takeIf { debuggable } ?: return message
+    return stringResource(R.string.feature_today_notices_error_with_code, message, code)
 }

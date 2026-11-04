@@ -112,7 +112,10 @@ class TestGraph(val scope: CoroutineScope, connected: Boolean = true) : AutoClos
     val threads = LiveThreadRepository(chatApi, cache, sync, ingest, outbox, realtime, session, scope)
     val bookmarks = LiveBookmarkRepository(chatApi, cache, sync)
     val activity = LiveActivityRepository(chatApi, cache, sync)
-    val notices = LiveNoticeRepository(retrofit.create(NotificationApi::class.java), clock)
+
+    /** Every notice read the repository reported, for tray-clearing assertions; null is "all". */
+    val noticeReads = mutableListOf<String?>()
+    val notices = LiveNoticeRepository(retrofit.create(NotificationApi::class.java), clock) { noticeReads += it }
     val people = LivePeopleRepository(fileApi, authApi, cache, sync, clock)
     val calendar = LiveCalendarRepository(calendarApi, videoApi, cache, sync, session, server.config, clock, scope)
     val profile = LiveProfileRepository(employeeApi, timeOffApi, authApi, cache, sync, session)

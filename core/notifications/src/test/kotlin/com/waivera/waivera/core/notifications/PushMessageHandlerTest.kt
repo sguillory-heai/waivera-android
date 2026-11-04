@@ -9,6 +9,7 @@ import com.waivera.waivera.core.notifications.presentation.ConversationNotificat
 import com.waivera.waivera.core.notifications.presentation.NotificationPreferencesSource
 import com.waivera.waivera.core.notifications.presentation.Notifier
 import com.waivera.waivera.core.notifications.presentation.PresentationDecision
+import com.waivera.waivera.core.notifications.presentation.ReadSyncSink
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
@@ -25,6 +26,7 @@ class PushMessageHandlerTest {
     private val threadRoots = mutableMapOf<Long, Long>()
     private val tracker = ActiveConversationTracker(notifier)
     private val notes = mutableListOf<Pair<PushStep, String?>>()
+    private val reads = FakeReadSync()
     private val handler = PushMessageHandler(
         notifier = notifier,
         preferences = object : NotificationPreferencesSource {
@@ -38,6 +40,7 @@ class PushMessageHandlerTest {
         session = { signedIn },
         threads = { messageId -> threadRoots[messageId] },
         trace = { step, detail -> notes += step to detail },
+        reads = reads,
     )
     private val chatData = PushFixtures.load("chat-message.json").data
 
@@ -54,6 +57,42 @@ class PushMessageHandlerTest {
         assertEquals(3, notes.count { it.first == PushStep.Received }, "every payload is noted as it arrives")
         val received = notes.first { it.first == PushStep.Received }.second.orEmpty()
         assertTrue("keys [" in received && "Chat" in received, received)
+    }
+
+    @Test
+    fun `a read on another device is applied silently and never shown`() = runTest {
+        val chat = handler.handle(mapOf("type" to "chat.read", "conversationId" to "7", "threadRootMessageId" to "31"))
+        val one = handler.handle(mapOf("type" to "notification.read", "notificationId" to "n-1"))
+        val all = handler.handle(mapOf("type" to "notification.read", "all" to "true"))
+        val unusable = handler.handle(mapOf("type" to "notification.read"))
+
+        listOf(chat, one, all).forEach {
+            assertEquals(
+                PresentationDecision.SuppressReason.ReadElsewhere,
+                assertIs<PresentationDecision.Suppress>(it).reason,
+            )
+        }
+        assertNull(unusable)
+        assertEquals(listOf<Pair<Long, Long?>>(7L to 31L), reads.conversations)
+        assertEquals(listOf<String?>("n-1", null), reads.notices)
+        assertTrue(notifier.shown.isEmpty())
+    }
+
+    @Test
+    fun `a read sync after sign-out changes nothing`() = runTest {
+        signedIn = false
+        handler.handle(mapOf("type" to "chat.read", "conversationId" to "7"))
+        assertTrue(reads.conversations.isEmpty())
+    }
+
+    @Test
+    fun `a push of an unknown type with nothing to say is dropped`() = runTest {
+        val decision = handler.handle(mapOf("type" to "future.kind"))
+        assertEquals(
+            PresentationDecision.SuppressReason.Blank,
+            assertIs<PresentationDecision.Suppress>(decision).reason,
+        )
+        assertTrue(notifier.shown.isEmpty())
     }
 
     @Test
@@ -178,6 +217,23 @@ class PushMessageHandlerTest {
     }
 }
 
+private class FakeReadSync : ReadSyncSink {
+    val conversations = mutableListOf<Pair<Long, Long?>>()
+    val notices = mutableListOf<String?>()
+
+    override suspend fun conversationRead(
+        conversationId: Long,
+        threadRootMessageId: Long?,
+        readAt: java.time.Instant?,
+    ) {
+        conversations += conversationId to threadRootMessageId
+    }
+
+    override suspend fun noticeRead(notificationId: String?) {
+        notices += notificationId
+    }
+}
+
 private class FakeNotifier : Notifier {
     var allowed = true
     val shown = mutableListOf<Pair<PushMessage, WaiveraChannel>>()
@@ -198,6 +254,8 @@ private class FakeNotifier : Notifier {
     override fun cancelChat(conversationId: Long, threadRootMessageId: Long?) {
         if (threadRootMessageId == null) cancelled += conversationId
     }
+
+    override fun cancelNotice(notificationId: String?) = Unit
 
     override fun cancelAll() = Unit
 }

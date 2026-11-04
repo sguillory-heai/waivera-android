@@ -1,6 +1,7 @@
 package com.waivera.waivera.core.notifications.payload
 
 import com.waivera.waivera.core.notifications.deeplink.DeepLinkTarget
+import java.time.Instant
 
 /** A decoded push payload. Every variant knows where a tap goes. */
 sealed interface PushMessage {
@@ -71,7 +72,35 @@ sealed interface PushMessage {
             get() = DeepLinkTarget.Notices
     }
 
-    /** Any other type. Shown quietly and opens the inbox, never dropped silently on tap. */
+    /**
+     * A conversation or thread was read on another device (`data.type == "chat.read"`). Silent:
+     * it closes this phone's tray entry and clears the cached badge, and never shows.
+     */
+    data class ChatRead(
+        val conversationId: Long,
+        val threadRootMessageId: Long?,
+        /** When the read happened; a push held back by Doze must not clear newer messages. */
+        val readAt: Instant? = null,
+    ) : PushMessage {
+        override val target: DeepLinkTarget get() = DeepLinkTarget.Conversation(conversationId)
+        override val title: String? get() = null
+        override val body: String? get() = null
+    }
+
+    /**
+     * A stored notification was read on another device (`data.type == "notification.read"`);
+     * [notificationId] null means all of them. Silent, like [ChatRead].
+     */
+    data class NoticeRead(val notificationId: String?) : PushMessage {
+        override val target: DeepLinkTarget get() = DeepLinkTarget.Notices
+        override val title: String? get() = null
+        override val body: String? get() = null
+    }
+
+    /**
+     * Any other type. Shown quietly and opens the inbox, never dropped silently on tap; one with
+     * neither title nor text has nothing to show and is dropped, as the notifier always did.
+     */
     data class Unknown(val type: String?, override val title: String?, override val body: String?) : PushMessage {
         override val target: DeepLinkTarget
             get() = DeepLinkTarget.Inbox

@@ -149,6 +149,29 @@ class HubEventDecoderTest {
     }
 
     @Test
+    fun notificationReadNamesOneRowOrAllAndDropsAnEmptyOne() {
+        fun decode(build: kotlinx.serialization.json.JsonObjectBuilder.() -> Unit) = HubEventDecoder.decode(
+            ChatHubContract.Events.RECEIVE_NOTIFICATION_READ,
+            JsonArray(listOf(buildJsonObject(build))),
+        )
+        assertEquals(
+            HubEvent.NotificationRead("n-1"),
+            decode {
+                put("NotificationId", "n-1")
+                put("All", false)
+            },
+        )
+        assertEquals(
+            HubEvent.NotificationRead(null),
+            decode {
+                put("notificationId", null as String?)
+                put("all", true)
+            },
+        )
+        assertNull(decode { put("all", false) })
+    }
+
+    @Test
     fun messageWithoutIdsIsDropped() {
         val payload = buildJsonObject { put("messageContent", "orphan") }
         assertNull(HubEventDecoder.decode(ChatHubContract.Events.RECEIVE_MESSAGE, JsonArray(listOf(payload))))

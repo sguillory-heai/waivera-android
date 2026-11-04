@@ -101,6 +101,14 @@ class TicketCardLongContentLayoutTest {
     }
 
     @Test
+    fun openTicketSpansTheCardLikeOnIphone() {
+        show(longTicket(), fontScale = 1f)
+        val card = compose.onNodeWithTag(CARD_TAG).fetchSemanticsNode().boundsInRoot
+        val open = compose.onNodeWithText(context.getString(R.string.feature_chat_ticket_open)).fetchSemanticsNode()
+        assertEquals(card.width, open.boundsInRoot.width, 1f)
+    }
+
+    @Test
     fun labelsKeepTheirWidthBesideALongName() {
         show(longTicket(), fontScale = 1f)
         listOf(createdBy, created, due).forEach(::assertReadable)

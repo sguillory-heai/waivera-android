@@ -36,6 +36,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -47,6 +48,7 @@ import com.waivera.waivera.core.designsystem.theme.WaiveraPalette
 import com.waivera.waivera.core.designsystem.theme.WaiveraShapes
 import com.waivera.waivera.core.designsystem.theme.WaiveraSizes
 import com.waivera.waivera.core.designsystem.theme.WaiveraSpacing
+import com.waivera.waivera.core.designsystem.theme.WaiveraTextStyles
 import com.waivera.waivera.core.designsystem.theme.WaiveraTheme
 import com.waivera.waivera.core.designsystem.theme.isLargeFontScale
 import com.waivera.waivera.core.designsystem.theme.swapEnterFade
@@ -87,9 +89,10 @@ enum class WaiveraButtonVariant {
  * How big a [WaiveraButton] is: [Large] is the 56dp full-width action a screen exists for (Sign in).
  * [Compact] keeps the 48dp height and the full-size label but tightens the side padding, the icon
  * and its gap, for a short run of actions that has to share one line in a narrow column (a failed
- * send's Discard, Edit and Retry on a 360dp phone).
+ * send's Discard, Edit and Retry on a 360dp phone). [Card] is a card's own action under its
+ * title: the regular button with the smaller [WaiveraTextStyles.CardAction] label.
  */
-enum class WaiveraButtonSize { Regular, Large, Compact }
+enum class WaiveraButtonSize { Regular, Large, Compact, Card }
 
 /**
  * The app's button.
@@ -186,6 +189,13 @@ fun WaiveraButton(
                 leadingIcon = leadingIcon,
                 regularWeight = variant == WaiveraButtonVariant.Unselected,
                 compact = compact,
+                style = if (size ==
+                    WaiveraButtonSize.Card
+                ) {
+                    WaiveraTextStyles.CardAction
+                } else {
+                    MaterialTheme.typography.labelLarge
+                },
                 modifier = Modifier.graphicsLayer { alpha = labelAlpha },
             )
             WaiveraPopVisibility(visible = loading, swapsInPlace = true) {
@@ -205,6 +215,7 @@ private fun ButtonLabel(
     @DrawableRes leadingIcon: Int?,
     regularWeight: Boolean,
     compact: Boolean,
+    style: TextStyle,
     modifier: Modifier = Modifier,
 ) {
     Row(
@@ -226,7 +237,7 @@ private fun ButtonLabel(
         }
         Text(
             text = text,
-            style = MaterialTheme.typography.labelLarge,
+            style = style,
             fontWeight = if (regularWeight) FontWeight.Normal else null,
             textAlign = TextAlign.Center,
             maxLines = maxLines,

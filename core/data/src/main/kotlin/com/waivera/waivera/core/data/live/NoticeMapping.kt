@@ -4,6 +4,9 @@ import com.waivera.waivera.core.data.model.Notice
 import com.waivera.waivera.core.data.model.NoticeKind
 import com.waivera.waivera.core.network.dto.EventNotificationResponse
 import com.waivera.waivera.core.network.dto.NotificationResourceDto
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.contentOrNull
 
 /**
  * Turns the web's notification rows into [Notice]s. The web renders `{task}`, `{author}` and
@@ -27,8 +30,8 @@ object NoticeMapping {
         return Notice(
             id = dto.id,
             kind = kind(dto.type, resources),
-            title = render(dto.title, resources),
-            message = render(dto.message, resources),
+            title = render(dto.title, resources, author(dto)),
+            message = render(dto.message, resources, author(dto)),
             createdAt = dto.createdAt,
             read = dto.read,
             taskId = taskId,
@@ -37,12 +40,24 @@ object NoticeMapping {
         )
     }
 
-    fun render(template: String?, resources: List<NotificationResourceDto>): String {
+    fun render(template: String?, resources: List<NotificationResourceDto>, author: String? = null): String {
         if (template.isNullOrBlank()) return ""
         fun named(type: String) = resources.firstOrNull { it.resourceType.equals(type, ignoreCase = true) }
             ?.resourceName?.trim()?.takeIf(String::isNotEmpty)
-        val tokens = mapOf("{task}" to named("task"), "{author}" to named("user"), "{activity}" to named("task_action"))
+        val tokens = mapOf(
+            "{task}" to named("task"),
+            "{author}" to (named("user") ?: author),
+            "{activity}" to named("task_action"),
+        )
         return template.replace(Placeholder) { tokens[it.value.lowercase()].orEmpty() }.replace(Spaces, " ").trim()
+    }
+
+    /** The server fills `createdByUser` from the resources' creator when no `user` resource names them. */
+    private fun author(dto: EventNotificationResponse): String? {
+        val user = dto.createdByUser as? JsonObject ?: return null
+        fun field(name: String) = (user[name] as? JsonPrimitive)?.contentOrNull?.trim()?.takeIf(String::isNotEmpty)
+        return field("displayName")
+            ?: listOfNotNull(field("firstName"), field("lastName")).joinToString(" ").ifEmpty { null }
     }
 
     /** Only same-site paths, never a full URL, so a row can only open the configured web app. */
