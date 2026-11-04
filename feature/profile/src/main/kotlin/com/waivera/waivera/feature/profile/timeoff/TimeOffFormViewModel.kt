@@ -75,6 +75,8 @@ data class TimeOffFormState(
     /** The first day is before today in the person's zone: allowed, with the web's note. */
     val past: Boolean = false,
     val sending: Boolean = false,
+    /** The last send's refusal, shown until the person changes something or sends again. */
+    val failure: SendFailure? = null,
     val today: LocalDate = LocalDate.MIN,
 ) {
     val type: LeaveType? get() = (types as? LeaveTypes.Ready)?.types?.firstOrNull { it.id == typeId }
@@ -89,11 +91,13 @@ data class TimeOffFormState(
         get() = !sending && issue == null && preview?.block == null && preview != null && !overBalance
 }
 
+/** A refused send; [problem] picks the app's wording, null for the general one. */
+@Immutable
+data class SendFailure(val problem: LeaveSendProblem?)
+
 sealed interface TimeOffFormEffect {
     /** Sent: the profile shows [request] as pending at once. */
     data class Sent(val request: TimeOffRequest) : TimeOffFormEffect
-
-    data class SendFailed(val problem: LeaveSendProblem?) : TimeOffFormEffect
 }
 
 @Suppress("TooManyFunctions") // One small handler per form field.
@@ -117,6 +121,20 @@ class TimeOffFormViewModel @Inject constructor(
 
     init {
         loadTypes()
+        // The saved zone arrives after the fallback; recompute today and any partial-day times in it.
+        viewModelScope.launch { zone.collect { change { it } } }
+    }
+
+    /**
+     * Starts an empty form, like the web's modal on every open. A send still in flight is kept, so
+     * closing the sheet mid-send never loses its result.
+     */
+    fun reset() {
+        if (form.value.sending) return
+        checking?.cancel()
+        val types = form.value.types
+        form.value = TimeOffFormState(types = types, today = today())
+        if (types !is LeaveTypes.Ready) loadTypes()
     }
 
     fun loadTypes() {
@@ -147,7 +165,9 @@ class TimeOffFormViewModel @Inject constructor(
 
     fun pickTo(time: LocalTime) = change { it.copy(to = time) }
 
-    fun setNote(text: String) = form.update { it.copy(note = text.take(NOTE_MAX_LENGTH)) }
+    fun setNote(text: String) = form.update {
+        if (it.sending) it else it.copy(note = text.take(NOTE_MAX_LENGTH), failure = null)
+    }
 
     fun retryCheck() = change { it }
 
@@ -155,21 +175,25 @@ class TimeOffFormViewModel @Inject constructor(
         val current = form.value
         if (!current.canSend) return
         val draft = TimeOffDrafts.draft(current, zone.value) ?: return
-        form.update { it.copy(sending = true) }
+        form.update { it.copy(sending = true, failure = null) }
         viewModelScope.launch {
-            val result = requests.requestTimeOff(draft)
-            form.update { it.copy(sending = false) }
-            effectChannel.send(
-                result.fold(
-                    onSuccess = { TimeOffFormEffect.Sent(TimeOffDrafts.pending(current)) },
-                    onFailure = { TimeOffFormEffect.SendFailed((it as? LeaveSendException)?.problem) },
-                ),
+            requests.requestTimeOff(draft).fold(
+                onSuccess = {
+                    form.update { it.copy(sending = false) }
+                    effectChannel.send(TimeOffFormEffect.Sent(TimeOffDrafts.pending(current)))
+                },
+                onFailure = { error ->
+                    val failure = SendFailure((error as? LeaveSendException)?.problem)
+                    form.update { it.copy(sending = false, failure = failure) }
+                },
             )
         }
     }
 
     /** Applies [edit], re-runs the local checks, then asks the server again after a short pause. */
     private fun change(edit: (TimeOffFormState) -> TimeOffFormState) {
+        // The fields are frozen while a send is out, so what was sent is what the form shows.
+        if (form.value.sending) return
         val today = today()
         form.update { current ->
             val next = edit(current)
@@ -178,6 +202,7 @@ class TimeOffFormViewModel @Inject constructor(
                 past = TimeOffDrafts.past(next, today),
                 today = today,
                 check = LeaveCheck.Idle,
+                failure = null,
             )
         }
         checking?.cancel()

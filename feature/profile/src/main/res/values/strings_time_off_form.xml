@@ -2,6 +2,7 @@
 <resources>
     <string name="feature_profile_time_off_request">Request time off</string>
     <string name="feature_profile_time_off_leave_type">Leave type</string>
+    <string name="feature_profile_time_off_type_value">%1$s · %2$s</string>
     <string name="feature_profile_time_off_pick_type">Pick a leave type</string>
     <string name="feature_profile_time_off_full_day">Full day</string>
     <string name="feature_profile_time_off_partial_day">Partial day</string>

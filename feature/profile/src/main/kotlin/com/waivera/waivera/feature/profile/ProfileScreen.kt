@@ -22,11 +22,10 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -70,8 +69,9 @@ import com.waivera.waivera.core.designsystem.theme.WaiveraTextStyles
 import com.waivera.waivera.core.designsystem.theme.WaiveraTheme
 import com.waivera.waivera.core.designsystem.theme.isLargeFontScale
 import com.waivera.waivera.core.network.error.WaiveraError
+import com.waivera.waivera.feature.profile.timeoff.TimeOffFormEffect
 import com.waivera.waivera.feature.profile.timeoff.TimeOffFormSheet
-import kotlinx.coroutines.launch
+import com.waivera.waivera.feature.profile.timeoff.TimeOffFormViewModel
 
 /**
  * Entry point for the profile screen. Owned by `:feature:profile`; routed by `:app`.
@@ -88,11 +88,21 @@ fun ProfileScreen(
     val viewModel: ProfileViewModel = hiltViewModel()
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbar = remember { SnackbarHostState() }
-    val scope = rememberCoroutineScope()
     val sentMessage = stringResource(R.string.feature_profile_time_off_sent)
-    // Counts openings, so each one gets a fresh form.
-    var timeOffForm by rememberSaveable { mutableIntStateOf(0) }
+    // One form per profile, collected here so a send finishing after the sheet closes still lands.
+    val timeOffForm: TimeOffFormViewModel = hiltViewModel()
     var showTimeOffForm by rememberSaveable { mutableStateOf(false) }
+    LaunchedEffect(timeOffForm) {
+        timeOffForm.effects.collect { effect ->
+            when (effect) {
+                is TimeOffFormEffect.Sent -> {
+                    showTimeOffForm = false
+                    viewModel.timeOffSent(effect.request)
+                    snackbar.showSnackbar(sentMessage)
+                }
+            }
+        }
+    }
     Box(modifier = modifier) {
         ProfileContent(
             state = state,
@@ -102,7 +112,7 @@ fun ProfileScreen(
             onOpenPerson = onOpenPerson,
             onOpenSettings = onOpenSettings,
             onRequestTimeOff = {
-                timeOffForm++
+                timeOffForm.reset()
                 showTimeOffForm = true
             },
         )
@@ -114,15 +124,7 @@ fun ProfileScreen(
         )
     }
     if (showTimeOffForm) {
-        TimeOffFormSheet(
-            key = "time-off-form-$timeOffForm",
-            onDismiss = { showTimeOffForm = false },
-            onSent = { request ->
-                showTimeOffForm = false
-                viewModel.timeOffSent(request)
-                scope.launch { snackbar.showSnackbar(sentMessage) }
-            },
-        )
+        TimeOffFormSheet(viewModel = timeOffForm, onDismiss = { showTimeOffForm = false })
     }
 }
 

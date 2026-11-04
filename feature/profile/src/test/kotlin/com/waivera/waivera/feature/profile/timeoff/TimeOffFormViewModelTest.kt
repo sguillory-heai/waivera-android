@@ -21,8 +21,10 @@ import kotlin.test.assertFalse
 import kotlin.test.assertIs
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.advanceTimeBy
+import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import org.junit.Rule
@@ -37,6 +39,7 @@ class TimeOffFormViewModelTest {
         var types: Result<List<LeaveType>> = Result.success(listOf(VACATION, JURY))
         var preview: Result<LeavePreview> = Result.success(READY)
         var send: Result<Unit> = Result.success(Unit)
+        var sendDelay = 0L
         val previews = mutableListOf<LeaveDraft>()
         val sent = mutableListOf<LeaveDraft>()
 
@@ -49,6 +52,7 @@ class TimeOffFormViewModelTest {
 
         override suspend fun requestTimeOff(draft: LeaveDraft): Result<Unit> {
             sent += draft
+            delay(sendDelay)
             return send
         }
     }
@@ -209,12 +213,44 @@ class TimeOffFormViewModelTest {
         val (leave, vm) = setUp()
         leave.send = Result.failure(LeaveSendException(LeaveSendProblem.Probation))
         fillFullDays(vm)
-        vm.effects.test {
-            vm.send()
-            assertEquals(TimeOffFormEffect.SendFailed(LeaveSendProblem.Probation), awaitItem())
-        }
+        vm.send()
+        runCurrent()
+        assertEquals(SendFailure(LeaveSendProblem.Probation), vm.state.value.failure)
         assertFalse(vm.state.value.sending)
         assertTrue(vm.state.value.canSend)
+
+        vm.pickLastDay(LocalDate.of(2026, 11, 25))
+        assertNull(vm.state.value.failure)
+    }
+
+    @Test
+    fun fields_stay_put_while_a_send_is_out() = runTest {
+        val (leave, vm) = setUp()
+        leave.sendDelay = PAUSE * 4
+        fillFullDays(vm)
+        vm.send()
+        runCurrent()
+        assertTrue(vm.state.value.sending)
+
+        vm.pickLastDay(LocalDate.of(2026, 11, 30))
+        vm.setNote("changed")
+        vm.reset()
+        assertEquals(LocalDate.of(2026, 11, 26), vm.state.value.lastDay)
+        assertEquals("", vm.state.value.note)
+        advanceUntilIdle()
+        assertFalse(vm.state.value.sending)
+    }
+
+    @Test
+    fun reset_starts_an_empty_form_and_keeps_the_types() = runTest {
+        val (_, vm) = setUp()
+        fillFullDays(vm)
+        vm.reset()
+        val state = vm.state.value
+        assertNull(state.typeId)
+        assertNull(state.firstDay)
+        assertEquals(LeaveCheck.Idle, state.check)
+        assertIs<LeaveTypes.Ready>(state.types)
     }
 
     private fun TestScope.fillFullDays(vm: TimeOffFormViewModel) {

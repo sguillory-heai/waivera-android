@@ -18,7 +18,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -27,6 +26,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
@@ -35,14 +35,12 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.KeyboardCapitalization
-import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.waivera.waivera.core.data.model.LeaveBlock
 import com.waivera.waivera.core.data.model.LeaveImpact
 import com.waivera.waivera.core.data.model.LeavePreview
 import com.waivera.waivera.core.data.model.LeaveSendProblem
 import com.waivera.waivera.core.data.model.LeaveType
-import com.waivera.waivera.core.data.model.TimeOffRequest
 import com.waivera.waivera.core.designsystem.component.BannerTone
 import com.waivera.waivera.core.designsystem.component.SkeletonText
 import com.waivera.waivera.core.designsystem.component.WaiveraBanner
@@ -86,38 +84,20 @@ internal data class TimeOffFormActions(
 
 private enum class Picking { Type, FirstDay, LastDay, Day, From, To }
 
-/**
- * Request time off, opened from the profile. [onSent] gets the request as the profile should
- * show it while the real one loads.
- */
+/** Request time off, opened from the profile. The profile owns [viewModel] and its effects. */
 @Composable
-internal fun TimeOffFormSheet(key: String, onDismiss: () -> Unit, onSent: (TimeOffRequest) -> Unit) {
-    // A new key per opening, so every form starts empty like the web's modal.
-    val viewModel: TimeOffFormViewModel = hiltViewModel(key = key)
+internal fun TimeOffFormSheet(viewModel: TimeOffFormViewModel, onDismiss: () -> Unit) {
     val state by viewModel.state.collectAsStateWithLifecycle()
-    var failure by remember { mutableStateOf<SendFailure?>(null) }
     var picking by rememberSaveable { mutableStateOf<Picking?>(null) }
-    LaunchedEffect(viewModel) {
-        viewModel.effects.collect { effect ->
-            when (effect) {
-                is TimeOffFormEffect.Sent -> onSent(effect.request)
-                is TimeOffFormEffect.SendFailed -> failure = SendFailure(effect.problem)
-            }
-        }
-    }
     WaiveraBottomSheet(
         onDismissRequest = onDismiss,
         title = stringResource(R.string.feature_profile_time_off_request),
     ) {
         TimeOffFormContent(
             state = state,
-            failure = failure,
             actions = TimeOffFormActions(
                 onPickType = { picking = Picking.Type },
-                onPartialDay = {
-                    failure = null
-                    viewModel.setPartialDay(it)
-                },
+                onPartialDay = viewModel::setPartialDay,
                 onPickFirstDay = { picking = Picking.FirstDay },
                 onPickLastDay = { picking = Picking.LastDay },
                 onPickDay = { picking = Picking.Day },
@@ -126,18 +106,12 @@ internal fun TimeOffFormSheet(key: String, onDismiss: () -> Unit, onSent: (TimeO
                 onNote = viewModel::setNote,
                 onRetryTypes = viewModel::loadTypes,
                 onRetryCheck = viewModel::retryCheck,
-                onSend = {
-                    failure = null
-                    viewModel.send()
-                },
+                onSend = viewModel::send,
             ),
         )
     }
     Pickers(picking = picking, state = state, viewModel = viewModel, onDone = { picking = null })
 }
-
-/** A failed send, kept until the person changes something or tries again. */
-internal data class SendFailure(val problem: LeaveSendProblem?)
 
 @Composable
 private fun Pickers(picking: Picking?, state: TimeOffFormState, viewModel: TimeOffFormViewModel, onDone: () -> Unit) {
@@ -189,7 +163,7 @@ private fun Pickers(picking: Picking?, state: TimeOffFormState, viewModel: TimeO
  * then Send pinned under it all so a long note never pushes it out of reach.
  */
 @Composable
-internal fun TimeOffFormContent(state: TimeOffFormState, failure: SendFailure?, actions: TimeOffFormActions) {
+internal fun TimeOffFormContent(state: TimeOffFormState, actions: TimeOffFormActions) {
     Column(verticalArrangement = Arrangement.spacedBy(WaiveraSpacing.MediumSmall)) {
         Column(
             modifier = Modifier
@@ -218,7 +192,7 @@ internal fun TimeOffFormContent(state: TimeOffFormState, failure: SendFailure?, 
                 keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences),
             )
         }
-        failure?.let {
+        state.failure?.let {
             WaiveraBanner(message = stringResource(it.problem.text()), tone = BannerTone.Error, gutter = false)
         }
         WaiveraButton(
@@ -252,7 +226,9 @@ private fun TypeField(state: TimeOffFormState, actions: TimeOffFormActions) {
             val type = state.type
             WaiveraPickerField(
                 label = stringResource(R.string.feature_profile_time_off_leave_type),
-                value = type?.let { "${it.name} · ${balanceText(it)}" },
+                value = type?.let {
+                    stringResource(R.string.feature_profile_time_off_type_value, it.name, balanceText(it))
+                },
                 placeholder = stringResource(R.string.feature_profile_time_off_pick_type),
                 icon = WaiveraIcons.ExpandMore,
                 onClick = actions.onPickType,
@@ -297,7 +273,7 @@ private fun PartialDayFields(state: TimeOffFormState, actions: TimeOffFormAction
     Row(horizontalArrangement = Arrangement.spacedBy(WaiveraSpacing.Small)) {
         WaiveraPickerField(
             label = stringResource(R.string.feature_profile_time_off_from),
-            value = state.from?.let(::timeText),
+            value = state.from?.let { timeText(it) },
             placeholder = stringResource(R.string.feature_profile_time_off_pick_start),
             icon = WaiveraIcons.Schedule,
             onClick = actions.onPickFrom,
@@ -305,7 +281,7 @@ private fun PartialDayFields(state: TimeOffFormState, actions: TimeOffFormAction
         )
         WaiveraPickerField(
             label = stringResource(R.string.feature_profile_time_off_to),
-            value = state.to?.let(::timeText),
+            value = state.to?.let { timeText(it) },
             placeholder = stringResource(R.string.feature_profile_time_off_pick_end),
             icon = WaiveraIcons.Schedule,
             onClick = actions.onPickTo,
@@ -581,8 +557,9 @@ private fun balanceText(type: LeaveType): String {
 internal fun hoursText(minutes: Int): String {
     val hours = minutes / MINUTES_PER_HOUR.toDouble()
     val whole = minutes % MINUTES_PER_HOUR == 0
-    val number = remember(minutes) {
-        NumberFormat.getNumberInstance().apply { maximumFractionDigits = 2 }.format(hours)
+    val locale = LocalConfiguration.current.locales[0]
+    val number = remember(minutes, locale) {
+        NumberFormat.getNumberInstance(locale).apply { maximumFractionDigits = 2 }.format(hours)
     }
     val quantity = if (whole && abs(hours) == 1.0) 1 else 2
     return pluralStringResource(R.plurals.feature_profile_time_off_hours, quantity, number)
@@ -594,7 +571,12 @@ private fun dayText(day: LocalDate, today: LocalDate): String = remember(day, to
     day.format(DateTimeFormatter.ofPattern(pattern, Locale.getDefault()))
 }
 
-private fun timeText(time: LocalTime): String = time.format(DateTimeFormatter.ofPattern("h:mm a", Locale.getDefault()))
+@Composable
+private fun timeText(time: LocalTime): String {
+    val locale = LocalConfiguration.current.locales[0]
+    val format = remember(locale) { DateTimeFormatter.ofPattern("h:mm a", locale) }
+    return time.format(format)
+}
 
 private fun LeaveBlock.text(): Int = when (this) {
     LeaveBlock.Weekend -> R.string.feature_profile_time_off_block_weekend

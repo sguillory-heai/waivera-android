@@ -43,10 +43,10 @@ class TimeOffScreenshotTest {
     )
     private val base = TimeOffFormState(types = LeaveTypes.Ready(types), typeId = 1, today = today)
 
-    private fun capture(name: String, heightDp: Int, state: TimeOffFormState, failure: SendFailure? = null) =
+    private fun capture(name: String, heightDp: Int, state: TimeOffFormState) =
         captureScreenshots(name, heightDp = heightDp) {
             WaiveraSheetFrame(title = "Request time off") {
-                TimeOffFormContent(state = state, failure = failure, actions = TimeOffFormActions())
+                TimeOffFormContent(state = state, actions = TimeOffFormActions())
             }
         }
 
@@ -107,8 +107,7 @@ class TimeOffScreenshotTest {
     fun sendFailed() = capture(
         "time_off_send_failed",
         1100,
-        base.copy(typeId = 2),
-        failure = SendFailure(LeaveSendProblem.Probation),
+        base.copy(typeId = 2, failure = SendFailure(LeaveSendProblem.Probation)),
     )
 
     @Test
