@@ -211,10 +211,15 @@ class RequestsViewModelTest {
         }
         val vm = viewModel(requests)
         runCurrent()
+        // The card already uses the leave zone, before any review opens.
+        assertEquals(
+            TaskFormat.Span("1:30 AM", "6:00 AM"),
+            assertIs<RequestChange.TimeOff>(vm.waitingItem().change).times,
+        )
         vm.review(vm.waitingItem())
         runCurrent()
         val change = assertIs<RequestChange.TimeOff>(vm.uiState.value.reviewing?.change)
-        assertEquals("1:30 AM – 6:00 AM", change.times)
+        assertEquals(TaskFormat.Span("1:30 AM", "6:00 AM"), change.times)
         assertEquals("Vacation", change.leaveType)
         // A pending request already holds its minutes, so "before" adds them back.
         assertEquals(Loadable.Ready(BalanceChange(before = 1290, after = 960)), vm.uiState.value.balance)
@@ -314,6 +319,24 @@ class RequestsViewModelTest {
         val change = assertIs<RequestChange.Profile>(vm.waitingItem().change)
         assertEquals(listOf(ProfileRow(ProfileField.Field.CpocEnd, "Jan 31, 2027", "Mar 31, 2027")), change.changed)
         assertEquals(listOf(ProfileRow(ProfileField.Field.FirstName, "Luis", "Luis")), change.unchanged)
+    }
+
+    @Test
+    fun a_balance_that_fails_to_load_offers_a_retry() = runTest {
+        val requests = FakeRequests().apply {
+            serverWaiting = listOf(FakeRequests.request(1, RequestKind.TimeOff).copy(timeOff = timeOff(false, 480)))
+            balance = Result.failure(WaiveraError.Network())
+        }
+        val vm = viewModel(requests)
+        runCurrent()
+        vm.review(vm.waitingItem())
+        runCurrent()
+        assertEquals(Loadable.Failed, vm.uiState.value.balance)
+
+        requests.balance = Result.success(LeaveBalance(leaveTypeId = 7, tracksBalance = true, availableMinutes = 600))
+        vm.retryDetails()
+        runCurrent()
+        assertEquals(Loadable.Ready(BalanceChange(before = 1080, after = 600)), vm.uiState.value.balance)
     }
 
     private fun timeOff(partial: Boolean, minutes: Int) = TimeOffReview(

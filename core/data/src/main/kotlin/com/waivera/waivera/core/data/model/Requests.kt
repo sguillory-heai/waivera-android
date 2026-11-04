@@ -83,8 +83,8 @@ data class LeaveImpact(
     val dueBefore: Int,
     val dueDuring: Int,
     val shortNotice: Boolean,
-    /** The server's other notices, already worded for people. */
-    val notices: List<String>,
+    /** Sick leave over three working days; the agency may ask for documentation. */
+    val extendedSick: Boolean = false,
 )
 
 /** The employee's balance for one leave type; [tracksBalance] false needs none. */

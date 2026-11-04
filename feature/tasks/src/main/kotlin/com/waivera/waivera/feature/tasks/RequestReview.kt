@@ -23,6 +23,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.style.TextDecoration
@@ -58,6 +60,7 @@ import com.waivera.waivera.core.designsystem.theme.isLargeFontScale
 internal data class ReviewExtras(
     val balance: Loadable<BalanceChange?> = Loadable.Ready(null),
     val training: Loadable<TrainingCredit> = Loadable.Loading,
+    val openingCertificate: Boolean = false,
 )
 
 internal data class ReviewActions(
@@ -84,9 +87,9 @@ internal fun ReviewFields(item: RequestItem, extras: ReviewExtras, actions: Revi
         ) {
             Requester(item)
             when (val change = item.change) {
-                is RequestChange.TimeOff -> TimeOffDetails(item, change, extras.balance)
+                is RequestChange.TimeOff -> TimeOffDetails(item, change, extras.balance, actions.onRetry)
                 is RequestChange.Profile -> ProfileDetails(change)
-                RequestChange.Training -> TrainingDetails(extras.training, actions)
+                RequestChange.Training -> TrainingDetails(extras, actions)
                 else -> TaskRequestDetails(item, actions)
             }
         }
@@ -202,14 +205,19 @@ private fun TaskChangeRow(item: RequestItem) {
 }
 
 @Composable
-private fun TimeOffDetails(item: RequestItem, change: RequestChange.TimeOff, balance: Loadable<BalanceChange?>) {
+private fun TimeOffDetails(
+    item: RequestItem,
+    change: RequestChange.TimeOff,
+    balance: Loadable<BalanceChange?>,
+    onRetry: () -> Unit,
+) {
     val timeOff = item.request.timeOff
     SheetGroup {
         InfoRow(stringResource(R.string.feature_tasks_review_dates), WaiveraIcons.Calendar) {
-            InfoValue(change.dates)
+            InfoValue(spanText(change.dates))
             val length = hoursText(change.minutes)
             InfoNote(
-                change.times?.let { stringResource(R.string.feature_tasks_review_partial_day, it, length) }
+                change.times?.let { stringResource(R.string.feature_tasks_review_partial_day, spanText(it), length) }
                     ?: stringResource(R.string.feature_tasks_review_full_days, length),
             )
         }
@@ -219,7 +227,7 @@ private fun TimeOffDetails(item: RequestItem, change: RequestChange.TimeOff, bal
                 InfoValue(change.leaveType)
             }
         }
-        BalanceRow(balance, change.cancellation)
+        BalanceRow(balance, change.cancellation, onRetry)
         timeOff?.note?.let { note ->
             InfoDivider()
             InfoRow(stringResource(R.string.feature_tasks_review_note), WaiveraIcons.Chat) { LongNote(note) }
@@ -229,7 +237,7 @@ private fun TimeOffDetails(item: RequestItem, change: RequestChange.TimeOff, bal
 }
 
 @Composable
-private fun BalanceRow(balance: Loadable<BalanceChange?>, cancellation: Boolean) {
+private fun BalanceRow(balance: Loadable<BalanceChange?>, cancellation: Boolean, onRetry: () -> Unit) {
     val colors = WaiveraTheme.colors
     when (balance) {
         Loadable.Loading -> {
@@ -245,9 +253,17 @@ private fun BalanceRow(balance: Loadable<BalanceChange?>, cancellation: Boolean)
         is Loadable.Ready -> balance.value?.let { change ->
             InfoDivider()
             InfoRow(stringResource(R.string.feature_tasks_review_balance), WaiveraIcons.Schedule) {
-                Row(horizontalArrangement = Arrangement.spacedBy(WaiveraSpacing.ExtraSmall)) {
+                val spoken = stringResource(
+                    R.string.feature_tasks_review_balance_spoken,
+                    hoursText(change.before),
+                    hoursText(change.after),
+                )
+                Row(
+                    modifier = Modifier.clearAndSetSemantics { contentDescription = spoken },
+                    horizontalArrangement = Arrangement.spacedBy(WaiveraSpacing.ExtraSmall),
+                ) {
                     InfoValue(hoursText(change.before))
-                    InfoValue("→")
+                    InfoValue(stringResource(R.string.feature_tasks_review_balance_arrow))
                     // The web marks a balance that would go below zero in red; it does not block approval.
                     Text(
                         text = hoursText(change.after),
@@ -266,7 +282,18 @@ private fun BalanceRow(balance: Loadable<BalanceChange?>, cancellation: Boolean)
                 )
             }
         }
-        Loadable.Failed -> Unit
+        Loadable.Failed -> {
+            InfoDivider()
+            InfoRow(
+                label = stringResource(R.string.feature_tasks_review_balance),
+                icon = WaiveraIcons.Schedule,
+                onClick = onRetry,
+                onClickLabel = stringResource(R.string.feature_tasks_review_balance_retry),
+            ) {
+                InfoValue(stringResource(R.string.feature_tasks_review_balance_failed))
+                InfoNote(stringResource(R.string.feature_tasks_review_balance_retry))
+            }
+        }
     }
 }
 
@@ -301,8 +328,9 @@ private fun ImpactNotices(name: String, impact: LeaveImpact?, changed: Boolean, 
         stringResource(R.string.feature_tasks_review_impact_counts, impact.dueBefore, impact.dueDuring)
             .takeIf { total > 0 },
         stringResource(R.string.feature_tasks_review_impact_changed).takeIf { changed },
+        stringResource(R.string.feature_tasks_review_extended_sick).takeIf { impact.extendedSick },
         ack,
-    ) + impact.notices
+    )
     WaiveraBanner(
         title = if (total > 0) {
             pluralStringResource(R.plurals.feature_tasks_review_impact_tasks, total, total, name.firstName())
@@ -453,7 +481,8 @@ private fun UnchangedFields(rows: List<ProfileRow>) {
 }
 
 @Composable
-private fun TrainingDetails(training: Loadable<TrainingCredit>, actions: ReviewActions) {
+private fun TrainingDetails(extras: ReviewExtras, actions: ReviewActions) {
+    val training = extras.training
     when (training) {
         Loadable.Loading -> SheetGroup {
             InfoRow(stringResource(R.string.feature_tasks_review_course), WaiveraIcons.Award) {
@@ -504,10 +533,15 @@ private fun TrainingDetails(training: Loadable<TrainingCredit>, actions: ReviewA
                 InfoRow(
                     label = stringResource(R.string.feature_tasks_review_certificate),
                     icon = WaiveraIcons.Attachment,
-                    onClick = actions.onOpenCertificate,
+                    onClick = actions.onOpenCertificate.takeUnless { extras.openingCertificate },
                     onClickLabel = stringResource(R.string.feature_tasks_review_view_certificate),
                 ) {
                     InfoValue(stringResource(R.string.feature_tasks_review_view_certificate))
+                    if (extras.openingCertificate) {
+                        InfoNote(
+                            stringResource(R.string.feature_tasks_review_certificate_opening),
+                        )
+                    }
                 }
             }
             if (credit.pending && credit.decidable && credit.needsApproveReason) {
@@ -710,3 +744,8 @@ internal fun TrainingDecisionContent(
 }
 
 private const val REASON_LINES = 3
+
+/** "Tue, Nov 24 – Thu, Nov 26", or the one day or time alone. */
+@Composable
+internal fun spanText(span: TaskFormat.Span): String =
+    span.end?.let { stringResource(R.string.feature_tasks_span, span.start, it) } ?: span.start

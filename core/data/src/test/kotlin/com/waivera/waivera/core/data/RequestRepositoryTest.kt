@@ -194,7 +194,7 @@ class RequestRepositoryTest {
             {"code":"SHORT_NOTICE_VACATION","message":"Short notice"},
             {"code":"SUPERVISION_GAP","message":"Hidden"},
             {"code":"FUTURE_TASK_REVIEW","message":"Hidden too"},
-            {"code":"COVERAGE","message":"Coverage is thin that week."}]}"""
+            {"code":"EXTENDED_SICK_LEAVE","message":"Server words"}]}"""
         val review = ApprovalMapping.timeOff(
             TimeOffDetailsResponse(
                 intelligenceSnapshotJson = saved,
@@ -208,7 +208,7 @@ class RequestRepositoryTest {
         assertEquals(1, impact?.dueBefore)
         assertEquals(2, impact?.dueDuring)
         assertEquals(true, impact?.shortNotice)
-        assertEquals(listOf("Coverage is thin that week."), impact?.notices)
+        assertEquals(true, impact?.extendedSick)
         assertTrue(review.impactChanged)
         // Acknowledged an older revision: not this review.
         assertEquals(false, review.acknowledged)

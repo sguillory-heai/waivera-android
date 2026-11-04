@@ -19,6 +19,14 @@
     <string name="feature_tasks_review_partial_day">%1$s · %2$s</string>
     <string name="feature_tasks_review_leave_type">Leave type</string>
     <string name="feature_tasks_review_balance">Balance</string>
+    <string name="feature_tasks_review_balance_arrow" translatable="false">→</string>
+    <string name="feature_tasks_review_balance_spoken">%1$s now, %2$s after</string>
+    <string name="feature_tasks_review_balance_failed">Couldn\'t load the balance</string>
+    <string name="feature_tasks_review_balance_retry">Tap to try again</string>
+    <string name="feature_tasks_span">%1$s – %2$s</string>
+    <string name="feature_tasks_review_extended_sick">This sick leave is longer than three working days, so your agency may ask for documentation.</string>
+    <string name="feature_tasks_review_certificate_opening">Opening…</string>
+    <string name="feature_tasks_review_certificate_file">Training certificate.pdf</string>
     <string name="feature_tasks_review_balance_after">After this request</string>
     <string name="feature_tasks_review_balance_after_cancel">After the hours go back</string>
     <plurals name="feature_tasks_review_hours">

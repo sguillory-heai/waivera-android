@@ -15,6 +15,7 @@ import dagger.assisted.AssistedFactory
 import dagger.assisted.AssistedInject
 import dagger.hilt.android.lifecycle.HiltViewModel
 import java.io.File
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -71,9 +72,14 @@ class TaskFileActionsViewModel @AssistedInject constructor(
     /** Downloaded and waiting for the person to pick where it goes. */
     private var pendingSave: File? = null
 
+    /** The task's files as last read; the detail screen has normally loaded them already. */
+    private var known: List<TaskAttachment>? = null
+    private var running: Job? = null
+
     fun choose(attachmentId: Int) {
         viewModelScope.launch {
-            val file = attachment(attachmentId) ?: return@launch
+            // Without the file's details (offline, say) the tap still opens it, as before the sheet.
+            val file = attachment(attachmentId) ?: return@launch effectChannel.send(FileActionEffect.Open(attachmentId))
             // Access normally loads at sign-in; a tap that beats it waits rather than guessing.
             requests.ensureAccess()
             if (canDownload(file)) {
@@ -84,8 +90,11 @@ class TaskFileActionsViewModel @AssistedInject constructor(
         }
     }
 
+    /** Closing the sheet also stops a download that is still running, so nothing pops up later. */
     fun dismiss() {
-        if (state.value?.busy == null) state.value = null
+        running?.cancel()
+        running = null
+        state.value = null
     }
 
     fun open() {
@@ -129,7 +138,7 @@ class TaskFileActionsViewModel @AssistedInject constructor(
         val current = state.value ?: return
         if (current.busy != null) return
         state.update { it?.copy(busy = action) }
-        viewModelScope.launch {
+        running = viewModelScope.launch {
             val file = attachment(current.attachmentId)
             val downloaded = file?.let { files.export(taskId, it).getOrNull() }
             if (file == null || downloaded == null) {
@@ -147,7 +156,10 @@ class TaskFileActionsViewModel @AssistedInject constructor(
     }
 
     private suspend fun attachment(attachmentId: Int): TaskAttachment? =
-        tasks.attachments(taskId).getOrNull()?.firstOrNull { it.attachmentId == attachmentId }
+        known?.firstOrNull { it.attachmentId == attachmentId }
+            ?: tasks.attachments(taskId).getOrNull()
+                ?.also { known = it }
+                ?.firstOrNull { it.attachmentId == attachmentId }
 
     private fun canDownload(file: TaskAttachment): Boolean {
         val access = requests.access.value

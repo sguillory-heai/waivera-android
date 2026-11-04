@@ -193,7 +193,7 @@ class DemoRequestRepository @Inject constructor(private val backend: DemoBackend
                     leaveType = "Vacation", leaveTypeId = 1, partialDay = false,
                     startDate = today.plusDays(20), endDate = today.plusDays(22), start = null, end = null,
                     minutes = 24 * 60, note = "Family trip. Dana's visit is moved to the week before.",
-                    impact = LeaveImpact(dueBefore = 0, dueDuring = 2, shortNotice = false, notices = emptyList()),
+                    impact = LeaveImpact(dueBefore = 0, dueDuring = 2, shortNotice = false),
                     impactChanged = false, acknowledged = false,
                 ),
             ),

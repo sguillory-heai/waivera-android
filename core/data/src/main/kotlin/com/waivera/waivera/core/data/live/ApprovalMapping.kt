@@ -21,6 +21,7 @@ object ApprovalMapping {
     private const val FUTURE_TASK_REVIEW = "FUTURE_TASK_REVIEW"
     private const val SUPERVISION = "SUPERVISION"
     private const val SHORT_NOTICE_VACATION = "SHORT_NOTICE_VACATION"
+    private const val EXTENDED_SICK_LEAVE = "EXTENDED_SICK_LEAVE"
     private const val MASK = "••••"
     private val lenient = Json { ignoreUnknownKeys = true }
 
@@ -59,19 +60,15 @@ object ApprovalMapping {
     private fun visible(review: LeaveIntelligenceResponse) = Triple(
         review.overdueCount,
         review.dueDuringLeaveCount,
-        review.warnings.filter { isVisible(it.code.orEmpty()) }.map { it.code to it.message },
+        review.warnings.map { it.code.orEmpty() }.filter(::isVisible).sorted(),
     )
 
     private fun impact(review: LeaveIntelligenceResponse) = LeaveImpact(
         dueBefore = review.overdueCount,
         dueDuring = review.dueDuringLeaveCount,
         shortNotice = review.warnings.any { it.code == SHORT_NOTICE_VACATION },
-        notices = review.warnings
-            .filter {
-                val code = it.code.orEmpty()
-                code != SHORT_NOTICE_VACATION && isVisible(code)
-            }
-            .mapNotNull { it.message?.trim()?.takeIf(String::isNotEmpty) },
+        // The phone words the codes it knows itself rather than showing the server's text.
+        extendedSick = review.warnings.any { it.code == EXTENDED_SICK_LEAVE },
     )
 
     /** sprout_web `renderChangeDiff`, without the web's empty Waiver ID and with SSN digits masked. */

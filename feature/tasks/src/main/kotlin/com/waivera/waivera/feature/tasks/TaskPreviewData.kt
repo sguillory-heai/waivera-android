@@ -170,13 +170,19 @@ internal object TaskPreviewData {
                 minutes = 1440,
                 note = "Family trip for Thanksgiving. Dana's visit is moved to Nov 20, and Luis has agreed to " +
                     "cover the Tuesday check-in calls while I'm away. I'll be reachable by text for anything urgent.",
-                impact = LeaveImpact(dueBefore = 1, dueDuring = 2, shortNotice = false, notices = emptyList()),
+                impact = LeaveImpact(dueBefore = 1, dueDuring = 2, shortNotice = false),
                 impactChanged = false,
                 acknowledged = false,
             ),
         )
         return item(request).copy(
-            change = RequestChange.TimeOff("Vacation", "Tue, Nov 24 – Thu, Nov 26", null, 1440, false),
+            change = RequestChange.TimeOff(
+                leaveType = "Vacation",
+                dates = TaskFormat.Span("Tue, Nov 24", "Thu, Nov 26"),
+                times = null,
+                minutes = 1440,
+                cancellation = false,
+            ),
         )
     }
 

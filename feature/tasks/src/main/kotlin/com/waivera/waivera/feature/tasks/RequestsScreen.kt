@@ -143,11 +143,16 @@ fun RequestsScreen(onOpenTask: (Int) -> Unit, modifier: Modifier = Modifier) {
         ),
         modifier = modifier,
     )
+    val certificateName = stringResource(R.string.feature_tasks_review_certificate_file)
     state.reviewing?.let { item ->
         WaiveraBottomSheet(onDismissRequest = viewModel::closeReview, title = item.reviewTitle()) {
             ReviewFields(
                 item = item,
-                extras = ReviewExtras(balance = state.balance, training = state.training),
+                extras = ReviewExtras(
+                    balance = state.balance,
+                    training = state.training,
+                    openingCertificate = state.openingCertificate,
+                ),
                 actions = ReviewActions(
                     onApprove = { viewModel.ask(approve = true) },
                     onReject = { viewModel.ask(approve = false) },
@@ -158,7 +163,7 @@ fun RequestsScreen(onOpenTask: (Int) -> Unit, modifier: Modifier = Modifier) {
                         }
                     },
                     onRetry = viewModel::retryDetails,
-                    onOpenCertificate = viewModel::openCertificate,
+                    onOpenCertificate = { viewModel.openCertificate(certificateName) },
                     onOpenWeb = viewModel::openWeb,
                 ),
             )
@@ -593,7 +598,7 @@ private fun Decision.confirmCopy(): ConfirmCopy {
 private fun Decision.timeOffCopy(): ConfirmCopy {
     val change = item.change as? RequestChange.TimeOff
     val name = item.request.requesterName
-    val dates = change?.dates.orEmpty()
+    val dates = change?.dates?.let { spanText(it) }.orEmpty()
     val cancel = item.request.kind == RequestKind.TimeOffCancellation
     return ConfirmCopy(
         title = stringResource(
@@ -668,9 +673,9 @@ internal fun RequestChange.text(): String? = when (this) {
     is RequestChange.DelayWindow -> stringResource(R.string.feature_tasks_change_delay, start, end)
     RequestChange.Closure -> stringResource(R.string.feature_tasks_change_closure)
     is RequestChange.TimeOff -> if (leaveType.isEmpty()) {
-        dates
+        spanText(dates)
     } else {
-        stringResource(R.string.feature_tasks_change_time_off, leaveType, dates)
+        stringResource(R.string.feature_tasks_change_time_off, leaveType, spanText(dates))
     }
     is RequestChange.Profile -> if (changed.isEmpty()) {
         null

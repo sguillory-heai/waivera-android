@@ -13,6 +13,7 @@ import com.waivera.waivera.feature.tasks.R
 import java.io.File
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.test.runTest
 import org.junit.Rule
 import org.junit.Test
@@ -128,6 +129,35 @@ class TaskFileActionsViewModelTest {
         assertEquals("Care plan.pdf", viewModel.sheet.value?.name)
     }
 
+    @Test
+    fun a_tap_without_the_file_list_still_opens_the_file() = runTest {
+        tasks.attachments = Result.failure(WaiveraError.Network())
+        val viewModel = viewModel(RequestAccess(canDownloadCaseFiles = true, loaded = true))
+
+        viewModel.effects.test {
+            viewModel.choose(ATTACHMENT)
+            assertEquals(FileActionEffect.Open(ATTACHMENT), awaitItem())
+        }
+        assertNull(viewModel.sheet.value)
+    }
+
+    @Test
+    fun closing_the_sheet_stops_a_running_download() = runTest {
+        val gate = CompletableDeferred<Unit>()
+        files.gate = gate
+        files.result = Result.success(folder.newFile("download"))
+        val viewModel = withSheet()
+
+        viewModel.effects.test {
+            viewModel.share()
+            assertEquals(FileAction.Share, viewModel.sheet.value?.busy)
+            viewModel.dismiss()
+            gate.complete(Unit)
+            expectNoEvents()
+        }
+        assertNull(viewModel.sheet.value)
+    }
+
     private fun withSheet(): TaskFileActionsViewModel {
         tasks.attachments = Result.success(listOf(attachment(employeeFile = false)))
         return viewModel(RequestAccess(canDownloadCaseFiles = true, loaded = true)).also { it.choose(ATTACHMENT) }
@@ -150,12 +180,14 @@ class TaskFileActionsViewModelTest {
     private class ExportFiles : TaskFileRepository {
         var result: Result<File> = Result.failure(WaiveraError.Unexpected())
         var exported = 0
+        var gate: CompletableDeferred<Unit>? = null
         val closed = mutableListOf<File>()
 
         override suspend fun open(taskId: Int, file: TaskAttachment): Result<File> = result
 
         override suspend fun export(taskId: Int, file: TaskAttachment): Result<File> {
             exported++
+            gate?.await()
             return result
         }
 

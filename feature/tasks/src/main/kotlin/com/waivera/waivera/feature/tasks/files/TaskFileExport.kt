@@ -16,6 +16,7 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import dagger.multibindings.IntoSet
 import java.io.File
+import java.util.UUID
 import javax.inject.Inject
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.withContext
@@ -25,7 +26,10 @@ interface TaskFileExport {
     /** Copies [file] into the document the system file picker created at [destinationUri]. */
     suspend fun saveTo(file: File, destinationUri: String): Result<Unit>
 
-    /** A read-only content uri for [file] under its real [fileName], for the share sheet. */
+    /**
+     * A read-only content uri for [file] under its real [fileName], for the share sheet. [file]
+     * moves into the shared folder when it can, so a large file isn't written twice.
+     */
     suspend fun shareableUri(file: File, fileName: String): Result<String>
 
     /** The type another app should treat [fileName] as. */
@@ -46,13 +50,16 @@ class AndroidTaskFileExport @Inject constructor(
 
     override suspend fun shareableUri(file: File, fileName: String): Result<String> = catchingWaivera {
         withContext(io) {
-            // Only the file being shared now stays; the last share's copy goes first.
-            val directory = File(context.cacheDir, SHARE_DIRECTORY).apply {
-                deleteRecursively()
-                mkdirs()
-            }
+            val root = File(context.cacheDir, SHARE_DIRECTORY)
+            // Each share gets its own folder, because the receiving app may read it much later.
+            // Folders from earlier shares go once they are a day old; sign-out removes them all.
+            val cutoff = System.currentTimeMillis() - KEEP_SHARED_MILLIS
+            root.listFiles()?.filter { it.lastModified() < cutoff }?.forEach { it.deleteRecursively() }
+            val directory = File(root, UUID.randomUUID().toString()).apply { mkdirs() }
             val target = File(directory, safeName(fileName))
-            file.inputStream().use { input -> target.outputStream().use { input.copyTo(it) } }
+            if (!file.renameTo(target)) {
+                file.inputStream().use { input -> target.outputStream().use { input.copyTo(it) } }
+            }
             FileProvider.getUriForFile(context, "${context.packageName}$AUTHORITY_SUFFIX", target).toString()
         }
     }
@@ -68,6 +75,7 @@ class AndroidTaskFileExport @Inject constructor(
         const val AUTHORITY_SUFFIX = ".feature.tasks.files"
         private const val DEFAULT_TYPE = "application/octet-stream"
         private const val MAX_NAME = 120
+        private const val KEEP_SHARED_MILLIS = 24L * 60 * 60 * 1000
 
         /** A file name any app accepts: no path characters, never empty. */
         fun safeName(fileName: String): String =

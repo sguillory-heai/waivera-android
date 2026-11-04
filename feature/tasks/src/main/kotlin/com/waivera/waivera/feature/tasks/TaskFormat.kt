@@ -82,6 +82,10 @@ object TaskFormat {
     fun date(date: LocalDate, today: LocalDate): String =
         if (date.year == today.year) date.format(SameYear) else date.format(OtherYear)
 
+    /** A from–to pair already worded; [end] is null when it is a single day or time. */
+    @Immutable
+    data class Span(val start: String, val end: String?)
+
     /** A wall-clock moment in the employee's zone: "Today, 2:30 PM". */
     @Immutable
     data class Moment(val relativeDay: RelativeDay, val day: String, val time: String)

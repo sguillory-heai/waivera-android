@@ -50,9 +50,10 @@ sealed interface RequestChange {
     /** Time off asked for, or handed back by a cancellation. */
     data class TimeOff(
         val leaveType: String,
-        val dates: String,
-        /** "9:00 AM – 1:00 PM" for a partial day, in the agency's leave zone. */
-        val times: String?,
+        /** First and last day; [TaskFormat.Span.end] is null for one day. */
+        val dates: TaskFormat.Span,
+        /** From and to clock times for a partial day, in the agency's leave zone. */
+        val times: TaskFormat.Span?,
         val minutes: Int,
         val cancellation: Boolean,
     ) : RequestChange
@@ -110,6 +111,8 @@ data class RequestsUiState(
     val training: Loadable<TrainingCredit> = Loadable.Loading,
     /** What the reviewer writes on a training decision. */
     val reason: String = "",
+    /** The training certificate is downloading; another tap waits for it. */
+    val openingCertificate: Boolean = false,
 )
 
 const val REASON_MAX_LENGTH = 2_000
@@ -148,13 +151,18 @@ class RequestsViewModel @Inject constructor(
     private val export: TaskFileExport,
 ) : ViewModel() {
     private val local = MutableStateFlow(Local())
+
+    /** Typed apart from [local], so a keystroke doesn't reword both request lists. */
+    private val reason = MutableStateFlow("")
+    private var certificate: Job? = null
+    private var leaveZoneAsked = false
     private val effectChannel = Channel<RequestsEffect>(Channel.BUFFERED)
     val effects: Flow<RequestsEffect> = effectChannel.receiveAsFlow()
     private var details: Job? = null
     private val zone = calendar.zone.distinctUntilChanged()
         .stateIn(viewModelScope, SharingStarted.Eagerly, WaiveraTime.FallbackZone)
 
-    val uiState: StateFlow<RequestsUiState> = combine(local, requests.waiting, zone) { l, waiting, zone ->
+    private val lists = combine(local, requests.waiting, zone) { l, waiting, zone ->
         val today = clock.instant().atZone(zone).toLocalDate()
         // Partial days are told in the agency's leave zone, as on the web; the person's own zone
         // stands in when the leave settings can't be read.
@@ -179,9 +187,12 @@ class RequestsViewModel @Inject constructor(
             isRefreshing = l.isRefreshing,
             balance = l.balance,
             training = l.training,
-            reason = l.reason,
+            openingCertificate = l.openingCertificate,
         )
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS), RequestsUiState())
+    }
+
+    val uiState: StateFlow<RequestsUiState> = combine(lists, reason) { state, reason -> state.copy(reason = reason) }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS), RequestsUiState())
 
     init {
         load(refreshing = false)
@@ -201,9 +212,8 @@ class RequestsViewModel @Inject constructor(
             openWeb()
             return
         }
-        local.update {
-            it.copy(reviewingId = item.id, balance = Loadable.Loading, training = Loadable.Loading, reason = "")
-        }
+        reason.value = ""
+        local.update { it.copy(reviewingId = item.id, balance = Loadable.Loading, training = Loadable.Loading) }
         details?.cancel()
         details = viewModelScope.launch { loadDetails(item.request) }
     }
@@ -217,17 +227,22 @@ class RequestsViewModel @Inject constructor(
 
     fun closeReview() {
         details?.cancel()
-        local.update { it.copy(reviewingId = null, confirming = null, reason = "") }
+        certificate?.cancel()
+        reason.value = ""
+        local.update { it.copy(reviewingId = null, confirming = null, openingCertificate = false) }
     }
 
     fun ask(approve: Boolean) {
         val id = local.value.reviewingId ?: return
-        local.update { it.copy(confirming = id to approve, reason = "") }
+        reason.value = ""
+        local.update { it.copy(confirming = id to approve) }
     }
 
     fun cancelConfirm() = local.update { it.copy(confirming = null) }
 
-    fun setReason(text: String) = local.update { it.copy(reason = text.take(REASON_MAX_LENGTH)) }
+    fun setReason(text: String) {
+        reason.value = text.take(REASON_MAX_LENGTH)
+    }
 
     /** Whether the confirm button can send: a training decision may need a written reason first. */
     fun canConfirm(state: RequestsUiState = uiState.value): Boolean {
@@ -238,14 +253,21 @@ class RequestsViewModel @Inject constructor(
         return credit.decidable && (!reasonNeeded || state.reason.isNotBlank())
     }
 
-    fun openCertificate() {
+    /** Downloads the certificate once and hands it to a PDF app under [fileName]; repeat taps wait for it. */
+    fun openCertificate(fileName: String) {
         val request = uiState.value.reviewing?.request ?: return
-        viewModelScope.launch {
-            val downloaded = files.certificate(request.id).getOrNull()
-            val uri = downloaded?.let { file ->
-                export.shareableUri(file, CERTIFICATE_NAME).also { files.close(file) }.getOrNull()
+        if (certificate?.isActive == true) return
+        local.update { it.copy(openingCertificate = true) }
+        certificate = viewModelScope.launch {
+            try {
+                val downloaded = files.certificate(request.id).getOrNull()
+                val uri = downloaded?.let { file ->
+                    export.shareableUri(file, fileName).also { files.close(file) }.getOrNull()
+                }
+                effectChannel.send(uri?.let(RequestsEffect::OpenCertificate) ?: RequestsEffect.CertificateFailed)
+            } finally {
+                local.update { it.copy(openingCertificate = false) }
             }
-            effectChannel.send(uri?.let(RequestsEffect::OpenCertificate) ?: RequestsEffect.CertificateFailed)
         }
     }
 
@@ -257,7 +279,8 @@ class RequestsViewModel @Inject constructor(
         val training = (state.training as? Loadable.Ready)?.value
             ?.takeIf { decision.item.request.kind == RequestKind.TrainingCredit }
             ?.let { credit -> credit.revision?.let { TrainingDecision(it, state.reason.trim()) } }
-        local.update { it.copy(reviewingId = null, confirming = null, reason = "") }
+        reason.value = ""
+        local.update { it.copy(reviewingId = null, confirming = null) }
         viewModelScope.launch {
             val result = requests.decide(decision.item.request, decision.approve, training)
             val effect = result.fold(
@@ -292,9 +315,7 @@ class RequestsViewModel @Inject constructor(
             request.kind.isTimeOff -> {
                 val timeOff = request.timeOff
                 val employee = request.requesterId
-                if (local.value.leaveZone == null) {
-                    requests.leaveZone()?.let { zone -> local.update { it.copy(leaveZone = zone) } }
-                }
+                loadLeaveZone()
                 if (timeOff == null || employee == null) {
                     local.update { it.copy(balance = Loadable.Ready(null)) }
                     return
@@ -310,7 +331,8 @@ class RequestsViewModel @Inject constructor(
                         )
                     }
                 }
-                local.update { it.copy(balance = change.fold({ Loadable.Ready(it) }, { Loadable.Ready(null) })) }
+                // A reviewer who may not see balances gets Ready(null); a failed load offers a retry.
+                local.update { it.copy(balance = change.fold({ Loadable.Ready(it) }, { Loadable.Failed })) }
             }
             else -> Unit
         }
@@ -322,8 +344,18 @@ class RequestsViewModel @Inject constructor(
             val waiting = requests.refreshWaiting()
             local.update { it.copy(waitingFailed = waiting.isFailure) }
             loadMine()
+            // Cards word partial days in the leave zone too, so it loads with the lists.
+            val mine = (local.value.mine as? Loadable.Ready)?.value.orEmpty()
+            if ((requests.waiting.value.orEmpty() + mine).any { it.timeOff?.partialDay == true }) loadLeaveZone()
             local.update { it.copy(isRefreshing = false) }
         }
+    }
+
+    /** Asked once: reviewers who aren't leave administrators can't read it, and the answer won't change. */
+    private suspend fun loadLeaveZone() {
+        if (leaveZoneAsked) return
+        leaveZoneAsked = true
+        requests.leaveZone()?.let { zone -> local.update { it.copy(leaveZone = zone) } }
     }
 
     private suspend fun loadMine() {
@@ -398,13 +430,13 @@ class RequestsViewModel @Inject constructor(
         val endDay = if (partial) end.atZone(zone).toLocalDate() else time.endDate
         val dates = when {
             startDay == null -> null
-            endDay == null || endDay == startDay -> TaskFormat.date(startDay, today)
-            else -> "${TaskFormat.date(startDay, today)} – ${TaskFormat.date(endDay, today)}"
+            endDay == null || endDay == startDay -> TaskFormat.Span(TaskFormat.date(startDay, today), null)
+            else -> TaskFormat.Span(TaskFormat.date(startDay, today), TaskFormat.date(endDay, today))
         } ?: return RequestChange.Other
         return RequestChange.TimeOff(
             leaveType = time.leaveType,
             dates = dates,
-            times = if (partial) "${TaskFormat.clock(start, zone)} – ${TaskFormat.clock(end, zone)}" else null,
+            times = if (partial) TaskFormat.Span(TaskFormat.clock(start, zone), TaskFormat.clock(end, zone)) else null,
             minutes = time.minutes,
             cancellation = kind == RequestKind.TimeOffCancellation,
         )
@@ -418,14 +450,13 @@ class RequestsViewModel @Inject constructor(
         val isRefreshing: Boolean = false,
         val balance: Loadable<BalanceChange?> = Loadable.Loading,
         val training: Loadable<TrainingCredit> = Loadable.Loading,
-        val reason: String = "",
         val leaveZone: ZoneId? = null,
+        val openingCertificate: Boolean = false,
     )
 
     private companion object {
         const val STOP_TIMEOUT_MILLIS = 5_000L
         const val WEB_REQUESTS_PATH = "/admin-requests"
-        const val CERTIFICATE_NAME = "Training certificate.pdf"
         val DateFields = setOf(
             ProfileField.Field.DateOfBirth,
             ProfileField.Field.Certification,
