@@ -29,6 +29,7 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import com.waivera.waivera.core.designsystem.component.TopBarAction
 import com.waivera.waivera.core.designsystem.component.WaiveraCelebrationBurst
 import com.waivera.waivera.core.designsystem.component.WaiveraHeroCard
 import com.waivera.waivera.core.designsystem.component.WaiveraHeroCardContent
@@ -80,6 +81,7 @@ internal fun TodayHero(state: TodayUiState, callbacks: TodayCallbacks, modifier:
             WaiveraHeroTopBar(
                 title = stringResource(R.string.feature_today_today_title),
                 account = rememberTopBarAccount(onClick = callbacks.onAccountClick, fallbackName = state.accountName),
+                actions = listOf(inboxAction(state.inboxUnread, callbacks.onOpenInbox)),
             )
         },
     ) {
@@ -266,6 +268,19 @@ private fun needsYouBreakdown(kinds: NeedsYouKinds): String? {
     return parts.map { (kind, count) -> pluralStringResource(kind.pluralRes, count, count) }.joinToString(separator)
 }
 
+/** The bell: opens the inbox, with the unread count as its badge and in what TalkBack says. */
+@Composable
+private fun inboxAction(unread: Int, onClick: () -> Unit) = TopBarAction(
+    icon = WaiveraIcons.Notifications,
+    contentDescription = if (unread > 0) {
+        pluralStringResource(R.plurals.feature_today_notices_open_inbox_unread, unread, unread)
+    } else {
+        stringResource(R.string.feature_today_notices_open_inbox)
+    },
+    onClick = onClick,
+    badgeCount = unread,
+)
+
 /** The plural that names [this] kind with its count ("2 messages"). */
 @get:PluralsRes
 internal val NeedsYouKind.pluralRes: Int
@@ -275,6 +290,7 @@ internal val NeedsYouKind.pluralRes: Int
         NeedsYouKind.Mention -> R.plurals.feature_today_brand_kind_mentions
         NeedsYouKind.Invitation -> R.plurals.feature_today_brand_kind_invites
         NeedsYouKind.Ticket -> R.plurals.feature_today_brand_kind_tickets
+        NeedsYouKind.Update -> R.plurals.feature_today_brand_kind_updates
     }
 
 /**

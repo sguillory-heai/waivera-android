@@ -31,6 +31,7 @@ object PushPayloadParser {
         if (type != null) {
             return when (type.lowercase()) {
                 TYPE_CHAT -> parseChat(fields, title, body)
+                TYPE_NOTIFICATION -> parseNotice(fields, title, body)
                 else -> PushMessage.Unknown(type = type, title = title, body = body)
             }
         }
@@ -81,6 +82,16 @@ object PushPayloadParser {
         )
     }
 
+    private fun parseNotice(fields: CaseInsensitiveFields, title: String?, body: String?): PushMessage {
+        val id = fields["notificationId"]?.takeIf(OpaqueId::matches)
+            ?: return PushMessage.Unknown(type = TYPE_NOTIFICATION, title = title, body = body)
+        val taskId = fields["resourceId"]
+            ?.takeIf { fields["resourceType"].equals("task", ignoreCase = true) }
+            ?.let(DeepLinkUris::positiveId)
+            ?.toString()
+        return PushMessage.Notice(notificationId = id, taskId = taskId, title = title, body = body)
+    }
+
     private fun conversationIdFromUrl(url: String?): Long? =
         url?.let(ChatUrl::matchEntire)?.groupValues?.get(1)?.let(DeepLinkUris::positiveId)
 
@@ -96,6 +107,7 @@ object PushPayloadParser {
     }
 
     private const val TYPE_CHAT = "chat"
+    private const val TYPE_NOTIFICATION = "notification"
     private const val LEGACY_MEETING = "meeting"
     private const val LEGACY_CALL = "call"
     private const val LEGACY_SURVEY = "survey"

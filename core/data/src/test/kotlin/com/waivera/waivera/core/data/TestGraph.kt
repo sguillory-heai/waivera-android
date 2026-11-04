@@ -7,6 +7,7 @@ import com.waivera.waivera.core.data.live.LiveBookmarkRepository
 import com.waivera.waivera.core.data.live.LiveCalendarRepository
 import com.waivera.waivera.core.data.live.LiveConversationRepository
 import com.waivera.waivera.core.data.live.LiveMessageRepository
+import com.waivera.waivera.core.data.live.LiveNoticeRepository
 import com.waivera.waivera.core.data.live.LivePeopleRepository
 import com.waivera.waivera.core.data.live.LiveProfileRepository
 import com.waivera.waivera.core.data.live.LivePushRegistrationRepository
@@ -26,6 +27,7 @@ import com.waivera.waivera.core.network.api.ChatApi
 import com.waivera.waivera.core.network.api.EmployeeApi
 import com.waivera.waivera.core.network.api.FileApi
 import com.waivera.waivera.core.network.api.MobilePushApi
+import com.waivera.waivera.core.network.api.NotificationApi
 import com.waivera.waivera.core.network.api.TimeOffApi
 import com.waivera.waivera.core.network.api.VideoApi
 import com.waivera.waivera.core.testing.FakeConnectivityMonitor
@@ -110,6 +112,7 @@ class TestGraph(val scope: CoroutineScope, connected: Boolean = true) : AutoClos
     val threads = LiveThreadRepository(chatApi, cache, sync, ingest, outbox, realtime, session, scope)
     val bookmarks = LiveBookmarkRepository(chatApi, cache, sync)
     val activity = LiveActivityRepository(chatApi, cache, sync)
+    val notices = LiveNoticeRepository(retrofit.create(NotificationApi::class.java), clock)
     val people = LivePeopleRepository(fileApi, authApi, cache, sync, clock)
     val calendar = LiveCalendarRepository(calendarApi, videoApi, cache, sync, session, server.config, clock, scope)
     val profile = LiveProfileRepository(employeeApi, timeOffApi, authApi, cache, sync, session)
@@ -128,7 +131,19 @@ class TestGraph(val scope: CoroutineScope, connected: Boolean = true) : AutoClos
         Dispatchers.IO,
     )
     val realtimeSync =
-        RealtimeSync(cache, ingest, conversations, messages, threads, bookmarks, activity, calendar, typing, session)
+        RealtimeSync(
+            cache,
+            ingest,
+            conversations,
+            messages,
+            threads,
+            bookmarks,
+            activity,
+            calendar,
+            notices,
+            typing,
+            session,
+        )
 
     override fun close() {
         server.close()

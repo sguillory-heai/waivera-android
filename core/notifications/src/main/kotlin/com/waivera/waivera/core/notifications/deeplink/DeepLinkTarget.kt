@@ -18,6 +18,9 @@ sealed interface DeepLinkTarget {
 
     data object Schedule : DeepLinkTarget
 
+    /** The notifications inbox (the web bell's list), opened from Today's bell. */
+    data object Notices : DeepLinkTarget
+
     /** A calendar event detail. Calendar event ids are opaque strings (for example `evt_8f2b19c4`). */
     data class CalendarEvent(val eventId: String) : DeepLinkTarget
 

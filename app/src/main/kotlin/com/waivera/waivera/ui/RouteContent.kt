@@ -21,6 +21,7 @@ import com.waivera.waivera.feature.settings.AppearanceScreen
 import com.waivera.waivera.feature.settings.NotificationSettingsScreen
 import com.waivera.waivera.feature.settings.SettingsScreen
 import com.waivera.waivera.feature.today.TodayScreen
+import com.waivera.waivera.feature.today.notices.NoticesScreen
 import com.waivera.waivera.navigation.AppRoute
 import com.waivera.waivera.navigation.AppearanceRoute
 import com.waivera.waivera.navigation.BookmarksRoute
@@ -29,6 +30,7 @@ import com.waivera.waivera.navigation.ChangePasswordRoute
 import com.waivera.waivera.navigation.ChatListRoute
 import com.waivera.waivera.navigation.ConversationRoute
 import com.waivera.waivera.navigation.GroupMembersRoute
+import com.waivera.waivera.navigation.NoticesRoute
 import com.waivera.waivera.navigation.NotificationSettingsRoute
 import com.waivera.waivera.navigation.PeopleRoute
 import com.waivera.waivera.navigation.PersonRoute
@@ -98,6 +100,7 @@ fun RouteContent(route: AppRoute, actions: RouteActions) {
             onOpenMessage = actions.openMessage,
             onOpenScheduleToday = actions.openScheduleToday,
             onOpenScheduleWeek = actions.openScheduleWeek,
+            onOpenInbox = { actions.push(NoticesRoute) },
         )
         ChatListRoute -> ChatListScreen(
             onAccountClick = actions.openAccountMenu,
@@ -152,6 +155,7 @@ fun RouteContent(route: AppRoute, actions: RouteActions) {
             onOpenConversation = actions.openConversation,
         )
         BookmarksRoute -> BookmarksScreen(onBack = actions.back, onOpenMessage = actions.openMessage)
+        NoticesRoute -> NoticesScreen(onBack = actions.back, onOpenEvent = actions.openEvent)
         SettingsRoute -> SettingsScreen(
             onBack = actions.back,
             onOpenNotificationSettings = { actions.push(NotificationSettingsRoute) },

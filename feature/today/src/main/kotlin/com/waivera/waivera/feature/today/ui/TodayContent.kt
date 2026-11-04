@@ -65,6 +65,8 @@ internal class TodayCallbacks(
     val onOpenScheduleToday: () -> Unit = onOpenSchedule,
     /** The "events this week" stat: the schedule's Week view on this week. */
     val onOpenScheduleWeek: () -> Unit = onOpenSchedule,
+    /** The bell: the notifications inbox. */
+    val onOpenInbox: () -> Unit = {},
 )
 
 /**
@@ -226,6 +228,7 @@ private fun LazyListScope.needsYouCards(section: NeedsYouSection, callbacks: Tod
         onOpenMention = { mention -> openMention(mention, callbacks) },
         onOpenEvent = callbacks.onOpenEvent,
         onRespond = { id, accept -> callbacks.onAction(TodayAction.RespondToInvitation(id, accept)) },
+        onOpenNotice = { id -> callbacks.onAction(TodayAction.OpenNotice(id)) },
     )
     items(section.items, key = { it.key }, contentType = { it::class.simpleName }) { item ->
         NeedsYouRow(
@@ -467,6 +470,7 @@ private fun guardNavigation(callbacks: TodayCallbacks): TodayCallbacks {
             onOpenEvent = { id -> guard { callbacks.onOpenEvent(id) } },
             onOpenScheduleToday = { guard(callbacks.onOpenScheduleToday) },
             onOpenScheduleWeek = { guard(callbacks.onOpenScheduleWeek) },
+            onOpenInbox = { guard(callbacks.onOpenInbox) },
         )
     }
 }

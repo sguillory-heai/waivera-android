@@ -34,6 +34,7 @@ import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
@@ -103,7 +104,12 @@ internal fun tabSheetLip(): Dp = if (isShortWindow()) WaiveraHero.TabSheetLipSho
  * title is the screen's heading and wraps to two lines at large font instead of clipping.
  */
 @Composable
-fun WaiveraHeroTopBar(title: String, modifier: Modifier = Modifier, account: TopBarAccount? = null) {
+fun WaiveraHeroTopBar(
+    title: String,
+    modifier: Modifier = Modifier,
+    account: TopBarAccount? = null,
+    actions: List<TopBarAction> = emptyList(),
+) {
     val hero = WaiveraHero.colors
     Row(
         modifier = modifier
@@ -124,6 +130,23 @@ fun WaiveraHeroTopBar(title: String, modifier: Modifier = Modifier, account: Top
                 .weight(1f)
                 .semantics { heading() },
         )
+        actions.forEach { action ->
+            Box {
+                WaiveraIconButton(
+                    icon = action.icon,
+                    contentDescription = action.contentDescription,
+                    onClick = action.onClick,
+                    tint = hero.onHeader,
+                )
+                // The action's description already says the count, so the badge stays silent.
+                WaiveraCountBadge(
+                    count = action.badgeCount,
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .clearAndSetSemantics {},
+                )
+            }
+        }
         if (account != null) {
             val label = stringResource(R.string.core_designsystem_account_menu)
             WaiveraPressable(

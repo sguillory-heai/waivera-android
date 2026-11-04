@@ -6,6 +6,9 @@ import com.waivera.waivera.core.data.model.Conversation
 import com.waivera.waivera.core.data.model.DateRange
 import com.waivera.waivera.core.data.model.Milestone
 import com.waivera.waivera.core.data.model.MyInvitation
+import com.waivera.waivera.core.data.model.Notice
+import com.waivera.waivera.core.data.model.NoticeFeed
+import com.waivera.waivera.core.data.model.NoticeKind
 import com.waivera.waivera.core.data.model.RealtimeStatus
 import com.waivera.waivera.core.data.model.ScheduleEvent
 import com.waivera.waivera.core.data.model.ScheduleFeed
@@ -14,9 +17,12 @@ import com.waivera.waivera.core.data.model.Synced
 import com.waivera.waivera.core.data.repository.ActivityRepository
 import com.waivera.waivera.core.data.repository.CalendarRepository
 import com.waivera.waivera.core.data.repository.ConversationRepository
+import com.waivera.waivera.core.data.repository.NoticeRepository
 import com.waivera.waivera.core.data.repository.RealtimeStatusRepository
+import com.waivera.waivera.core.network.NetworkConfig
 import com.waivera.waivera.core.network.error.WaiveraError
 import com.waivera.waivera.core.realtime.ConnectionState
+import com.waivera.waivera.feature.today.notices.NoticeLinks
 import java.time.Instant
 import java.time.ZoneId
 import kotlinx.coroutines.CompletableDeferred
@@ -243,3 +249,68 @@ class FakeRealtimeStatusRepository(
 }
 
 private fun <T> unused(): Result<T> = Result.failure(WaiveraError.NotFound())
+
+/** The inbox, held in memory like the live repository: optimistic mark-read with rollback. */
+class FakeNoticeRepository(initial: Synced<NoticeFeed> = Synced(NoticeFeed(), lastSyncedAt = TEST_NOW)) :
+    NoticeRepository {
+    val state = MutableStateFlow(initial)
+    var refreshResult: Result<Unit> = Result.success(Unit)
+    var markReadResult: Result<Unit> = Result.success(Unit)
+    var markAllResult: Result<Unit> = Result.success(Unit)
+    var refreshes = 0
+        private set
+    val markedRead = mutableListOf<String>()
+
+    override fun observeNotices(): Flow<Synced<NoticeFeed>> = state
+
+    override suspend fun refresh(): Result<Unit> {
+        refreshes++
+        refreshResult.exceptionOrNull()?.let { error ->
+            state.update { it.copy(status = SyncStatus.Failed(WaiveraError.from(error))) }
+        }
+        return refreshResult
+    }
+
+    override suspend fun onArrived(notice: Notice) {
+        state.update { it.copy(data = NoticeFeed(listOf(notice) + it.data.items, it.data.unreadCount + 1)) }
+    }
+
+    override suspend fun markRead(id: String): Result<Unit> {
+        markedRead += id
+        if (markReadResult.isSuccess) {
+            state.update { s ->
+                val items = s.data.items.map { if (it.id == id) it.copy(read = true) else it }
+                s.copy(data = NoticeFeed(items, items.count { !it.read }))
+            }
+        }
+        return markReadResult
+    }
+
+    override suspend fun markAllRead(): Result<Unit> {
+        if (markAllResult.isSuccess) {
+            state.update { s -> s.copy(data = NoticeFeed(s.data.items.map { it.copy(read = true) }, 0)) }
+        }
+        return markAllResult
+    }
+}
+
+fun notice(
+    id: String,
+    kind: NoticeKind = NoticeKind.TaskAssigned,
+    at: Instant = TEST_NOW.minusSeconds(600),
+    read: Boolean = false,
+    taskId: String? = "42",
+    eventId: String? = null,
+) = Notice(
+    id = id,
+    kind = kind,
+    title = "Title $id",
+    message = "Message $id",
+    createdAt = at,
+    read = read,
+    taskId = taskId,
+    eventId = eventId,
+)
+
+val TEST_LINKS =
+    NoticeLinks(NetworkConfig(apiBaseUrl = "https://api.example.test", webBaseUrl = "https://app.example.test"))

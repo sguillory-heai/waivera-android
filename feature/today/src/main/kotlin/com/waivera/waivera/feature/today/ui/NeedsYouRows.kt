@@ -41,6 +41,7 @@ internal class NeedsYouCallbacks(
     val onOpenMention: (NeedsYouItem.Mention) -> Unit,
     val onOpenEvent: (eventId: String) -> Unit,
     val onRespond: (eventId: String, accept: Boolean) -> Unit,
+    val onOpenNotice: (noticeId: String) -> Unit = {},
 )
 
 @Composable
@@ -57,6 +58,16 @@ internal fun NeedsYouRow(item: NeedsYouItem, callbacks: NeedsYouCallbacks, modif
             modifier = modifier,
         )
         is NeedsYouItem.Ticket -> TicketRow(item, { callbacks.onOpenConversation(item.conversationId) }, modifier)
+        is NeedsYouItem.Notice -> NoticeRow(
+            kind = item.noticeKind,
+            title = item.title,
+            message = item.message,
+            at = item.at,
+            unread = true,
+            opensOutside = item.opensOutside,
+            onClick = { callbacks.onOpenNotice(item.noticeId) },
+            modifier = modifier,
+        )
     }
 }
 

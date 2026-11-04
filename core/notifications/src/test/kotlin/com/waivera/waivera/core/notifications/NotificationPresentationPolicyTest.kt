@@ -129,4 +129,14 @@ class NotificationPresentationPolicyTest {
             NotificationPresentationPolicy.channelFor(PushMessage.Survey(null, null, null), null),
         )
     }
+
+    @Test
+    fun `inbox pushes go to the updates channel and are never suppressed by an open chat`() {
+        val notice = PushMessage.Notice(notificationId = "n1", taskId = null, title = "t", body = "b")
+        assertEquals(WaiveraChannel.Updates, NotificationPresentationPolicy.channelFor(notice, conversation = null))
+        assertEquals(
+            PresentationDecision.Show(WaiveraChannel.Updates),
+            decide(message = notice, hubConnected = true, visible = VisibleChat(42, null)),
+        )
+    }
 }

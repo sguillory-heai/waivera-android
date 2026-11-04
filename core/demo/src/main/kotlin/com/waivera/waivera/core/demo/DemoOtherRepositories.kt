@@ -241,6 +241,8 @@ class DemoSettingsRepository @Inject constructor(private val backend: DemoBacken
         it.copy(hapticsEnabled = enabled)
     }
 
+    override suspend fun setReduceMotion(enabled: Boolean) = backend.settings.update { it.copy(reduceMotion = enabled) }
+
     override suspend fun setNotificationsEnabled(enabled: Boolean) = notifications { it.copy(enabled = enabled) }
 
     override suspend fun setCategoryEnabled(category: NotificationCategory, enabled: Boolean) =

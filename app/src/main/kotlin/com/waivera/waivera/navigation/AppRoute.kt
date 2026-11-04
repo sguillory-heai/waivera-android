@@ -58,6 +58,10 @@ data class PersonRoute(val userId: String) : AppRoute
 @Serializable
 data object BookmarksRoute : AppRoute
 
+/** The notifications inbox, from Today's bell or an update push. */
+@Serializable
+data object NoticesRoute : AppRoute
+
 @Serializable
 data object SettingsRoute : AppRoute
 

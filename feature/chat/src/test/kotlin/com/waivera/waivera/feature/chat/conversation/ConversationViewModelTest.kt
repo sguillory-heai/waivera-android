@@ -549,6 +549,21 @@ class ConversationViewModelTest {
     }
 
     @Test
+    fun aPushedThreadReplyThatArrivesWithItsContextOpensTheThread() = runTest {
+        val s = subject()
+        val reply = s.graph.incoming("Reply that only the server had").copy(threadRootMessageId = DemoData.THREAD_ROOT)
+        s.viewModel.effects.test {
+            s.viewModel.highlight(reply.id)
+            runCurrent()
+            // The context page lands in the cache a moment after the call returns.
+            s.graph.backend.append(reply)
+            advanceTimeBy(ConversationViewModel.CACHE_POLL_MILLIS * 2)
+            runCurrent()
+            assertEquals(ChatEffect.OpenThread(DemoData.THREAD_ROOT), expectMostRecentItem())
+        }
+    }
+
+    @Test
     fun aMissingHighlightTargetKeepsTheConversationAndSaysSo() = runTest {
         val s = subject()
         s.viewModel.effects.test {

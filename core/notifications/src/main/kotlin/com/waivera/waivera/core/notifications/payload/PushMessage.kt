@@ -56,6 +56,21 @@ sealed interface PushMessage {
             get() = DeepLinkTarget.Today
     }
 
+    /**
+     * A stored web notification (`data.type == "notification"`): task, approval, signature,
+     * survey or meeting. A tap opens the inbox, which refreshes, so the person picks it there; opening
+     * a row marks it read.
+     */
+    data class Notice(
+        val notificationId: String,
+        val taskId: String?,
+        override val title: String?,
+        override val body: String?,
+    ) : PushMessage {
+        override val target: DeepLinkTarget
+            get() = DeepLinkTarget.Notices
+    }
+
     /** Any other type. Shown quietly and opens the inbox, never dropped silently on tap. */
     data class Unknown(val type: String?, override val title: String?, override val body: String?) : PushMessage {
         override val target: DeepLinkTarget

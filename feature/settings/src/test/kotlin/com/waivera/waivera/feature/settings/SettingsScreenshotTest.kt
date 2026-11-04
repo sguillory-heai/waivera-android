@@ -55,6 +55,7 @@ class SettingsScreenshotTest {
             onBack = {},
             onThemeChange = {},
             onHapticsChange = {},
+            onReduceMotionChange = {},
         )
     }
 
@@ -65,6 +66,7 @@ class SettingsScreenshotTest {
             onBack = {},
             onThemeChange = {},
             onHapticsChange = {},
+            onReduceMotionChange = {},
         )
     }
 

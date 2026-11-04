@@ -9,12 +9,15 @@ import com.waivera.waivera.core.data.model.ConversationTitles
 import com.waivera.waivera.core.data.model.HandledTally
 import com.waivera.waivera.core.data.model.MessagePreview
 import com.waivera.waivera.core.data.model.Milestone
+import com.waivera.waivera.core.data.model.NoticeFeed
 import com.waivera.waivera.core.data.model.RealtimeStatus
 import com.waivera.waivera.core.data.model.ScheduleFeed
 import com.waivera.waivera.core.data.model.Synced
 import com.waivera.waivera.core.designsystem.component.ConnectionBannerState
 import com.waivera.waivera.core.network.dto.ChatActivityType
 import com.waivera.waivera.core.realtime.ConnectionState
+import com.waivera.waivera.feature.today.notices.NoticeLinks
+import com.waivera.waivera.feature.today.notices.NoticeRules
 import java.time.Duration
 import java.time.Instant
 import java.time.LocalDate
@@ -45,6 +48,8 @@ data class TodaySources(
     val milestones: Synced<List<Milestone>>,
     /** Conversations with a message of mine the outbox gave up on. */
     val failedSends: Set<Long> = emptySet(),
+    /** The notifications inbox (the web bell); null until it has been observed. */
+    val notices: Synced<NoticeFeed>? = null,
 )
 
 /** Who, where and when the screen is rendered for. */
@@ -61,6 +66,8 @@ data class TodayContext(
     val firstName: String? = null,
     /** The saved handled-today tally ([HandledTally]); null before the first one. */
     val handled: HandledTally? = null,
+    /** Where notifications open, so a Needs you row shows the open-outside mark only when it does. */
+    val noticeLinks: NoticeLinks = NoticeLinks.Unconfigured,
 )
 
 /** Builds [TodayUiState] from the cache. Pure, so every rule is unit tested without Android. */
@@ -106,6 +113,7 @@ object TodayAssembler {
             stats = DayRules.stats(sources.conversations, sources.schedule, context.zone, today),
             day = DayRules.timeline(sources.schedule, context.zone, today, context.now),
             handledObservation = observation,
+            inboxUnread = sources.notices?.data?.unreadCount ?: 0,
         )
     }
 
@@ -166,7 +174,8 @@ object TodayAssembler {
                 ticketTitle = c.lastMessage?.ticket?.title,
             )
         }
-        return notSentRows(sources, context) + conversationRows + invitations + tickets
+        return notSentRows(sources, context) + conversationRows + invitations + tickets +
+            NoticeRules.needsYou(sources.notices?.data?.items.orEmpty(), context.noticeLinks, context.now, context.zone)
     }
 
     private fun needsYouSection(

@@ -188,4 +188,42 @@ class PushPayloadParserTest {
         )
         assertEquals(DeepLinkTarget.Conversation(7, null), chat.target)
     }
+
+    @Test
+    fun `an inbox push carries its notification and task ids and opens the inbox`() {
+        val notice = assertIs<PushMessage.Notice>(
+            PushPayloadParser.parse(
+                mapOf(
+                    "type" to "notification",
+                    "notificationId" to "6f1c2b9e-4d1a-4a8e-9a51-2a1f0c3b7d10",
+                    "resourceType" to "task",
+                    "resourceId" to "42",
+                    "title" to "Task 42 is ready for your approval",
+                    "body" to "Priya Raman submitted task 42",
+                ),
+            ),
+        )
+        assertEquals("6f1c2b9e-4d1a-4a8e-9a51-2a1f0c3b7d10", notice.notificationId)
+        assertEquals("42", notice.taskId)
+        assertEquals("Task 42 is ready for your approval", notice.title)
+        assertEquals(DeepLinkTarget.Notices, notice.target)
+    }
+
+    @Test
+    fun `an inbox push without a usable id is not trusted as one`() {
+        assertIs<PushMessage.Unknown>(
+            PushPayloadParser.parse(mapOf("type" to "notification", "notificationId" to "../x")),
+        )
+        val noTask = assertIs<PushMessage.Notice>(
+            PushPayloadParser.parse(
+                mapOf(
+                    "type" to "notification",
+                    "notificationId" to "esign-request-12",
+                    "resourceType" to "task",
+                    "resourceId" to "-3",
+                ),
+            ),
+        )
+        assertNull(noTask.taskId)
+    }
 }

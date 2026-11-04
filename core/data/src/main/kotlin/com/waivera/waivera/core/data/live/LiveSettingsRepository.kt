@@ -18,6 +18,8 @@ class LiveSettingsRepository @Inject constructor(private val store: SettingsStor
 
     override suspend fun setHapticsEnabled(enabled: Boolean) = store.setHapticsEnabled(enabled)
 
+    override suspend fun setReduceMotion(enabled: Boolean) = store.setReduceMotion(enabled)
+
     override suspend fun setNotificationsEnabled(enabled: Boolean) = store.updateNotifications {
         it.copy(enabled = enabled)
     }

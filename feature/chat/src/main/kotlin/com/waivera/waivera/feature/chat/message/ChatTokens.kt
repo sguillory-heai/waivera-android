@@ -47,6 +47,10 @@ internal object ChatDimens {
     val TypingSlot: Dp = 22.dp
     val ComposerMinHeight: Dp = 48.dp
     val ComposerMaxHeight: Dp = 120.dp
+
+    /** With bodyMedium's 22sp line, 13dp above and below makes the empty field exactly [ComposerMinHeight]. */
+    val ComposerVerticalPadding: Dp = 13.dp
+    val ComposerHorizontalPadding: Dp = 16.dp
     val QuoteBar: Dp = 3.dp
     val ListMarkerGutter: Dp = 24.dp
     val TableCellWidth: Dp = 150.dp

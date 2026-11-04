@@ -4,12 +4,15 @@ import com.waivera.waivera.core.data.calendar.CalendarMath
 import com.waivera.waivera.core.data.model.ActivityFeed
 import com.waivera.waivera.core.data.model.DateRange
 import com.waivera.waivera.core.data.model.HandledTally
+import com.waivera.waivera.core.data.model.NoticeFeed
 import com.waivera.waivera.core.data.model.RealtimeStatus
 import com.waivera.waivera.core.data.model.ScheduleFeed
 import com.waivera.waivera.core.data.model.Synced
 import com.waivera.waivera.core.demo.DemoData
+import com.waivera.waivera.core.demo.DemoNotices
 import com.waivera.waivera.core.realtime.ConnectionState
 import com.waivera.waivera.core.testing.EnglishConversationTitles
+import com.waivera.waivera.feature.today.TEST_LINKS
 import com.waivera.waivera.feature.today.model.TodayAssembler
 import com.waivera.waivera.feature.today.model.TodayContext
 import com.waivera.waivera.feature.today.model.TodayLocalState
@@ -45,6 +48,7 @@ internal object TodayDemo {
         milestones = Synced(DemoData.milestones(), lastSyncedAt = synced),
         // The demo DM holds a message that wasn't sent, as the demo app does.
         failedSends = setOf(DemoData.DM_PRIYA),
+        notices = DemoNotices.all().let { Synced(NoticeFeed(it, it.count { n -> !n.read }), lastSyncedAt = synced) },
     )
 
     /** Five things already handled this morning, so the ring reads as it does mid-day. */
@@ -67,6 +71,7 @@ internal object TodayDemo {
             titles = EnglishConversationTitles,
             firstName = "Alex",
             handled = handled,
+            noticeLinks = TEST_LINKS,
         ),
     )
 }

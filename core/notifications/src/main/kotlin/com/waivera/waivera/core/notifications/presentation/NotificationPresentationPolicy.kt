@@ -36,6 +36,7 @@ object NotificationPresentationPolicy {
         }
         is PushMessage.IncomingCall -> WaiveraChannel.Messages
         is PushMessage.Meeting -> WaiveraChannel.ScheduleChanges
+        is PushMessage.Notice -> WaiveraChannel.Updates
         is PushMessage.Survey, is PushMessage.Unknown -> WaiveraChannel.Digest
     }
 

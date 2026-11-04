@@ -91,8 +91,8 @@
     <string name="feature_auth_primer_messages_body">Direct messages and mentions can make a sound. Group chats arrive quietly.</string>
     <string name="feature_auth_primer_schedule_title">Your schedule</string>
     <string name="feature_auth_primer_schedule_body">A heads-up before shifts and events start, and when one is added, moved or cancelled.</string>
-    <string name="feature_auth_primer_digest_title">Digest and announcements</string>
-    <string name="feature_auth_primer_digest_body">Team celebrations and other low-key updates, delivered quietly.</string>
+    <string name="feature_auth_primer_digest_title">Updates and announcements</string>
+    <string name="feature_auth_primer_digest_body">Tasks, approvals and signatures that need you, plus team celebrations.</string>
     <string name="feature_auth_primer_requesting">Asking Android…</string>
     <!-- Example notification on the primer. Sample copy, shown as an example only. -->
     <string name="feature_auth_primer_sample_app">Waivera · now</string>

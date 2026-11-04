@@ -62,6 +62,8 @@ class InMemorySettingsStore(initial: AppSettings = AppSettings()) : SettingsStor
 
     override suspend fun setHapticsEnabled(enabled: Boolean) = state.update { it.copy(hapticsEnabled = enabled) }
 
+    override suspend fun setReduceMotion(enabled: Boolean) = state.update { it.copy(reduceMotion = enabled) }
+
     override suspend fun updateNotifications(transform: (NotificationPreferences) -> NotificationPreferences) =
         state.update { it.copy(notifications = transform(it.notifications)) }
 

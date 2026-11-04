@@ -100,7 +100,7 @@ internal val PrimerKinds: List<PrimerKind> = listOf(
         body = R.string.feature_auth_primer_schedule_body,
     ),
     PrimerKind(
-        categories = listOf(NotificationCategory.DIGEST),
+        categories = listOf(NotificationCategory.UPDATES, NotificationCategory.DIGEST),
         icon = WaiveraIcons.Announcement,
         tone = WaiveraTileTone.Amber,
         title = R.string.feature_auth_primer_digest_title,

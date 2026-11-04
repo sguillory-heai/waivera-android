@@ -5,7 +5,7 @@
     <string name="feature_settings_section_preferences">Preferences</string>
     <string name="feature_settings_section_account">Account</string>
     <string name="feature_settings_notifications_row_detail">Messages, group activity and your schedule</string>
-    <string name="feature_settings_appearance_row_detail">Theme and haptics</string>
+    <string name="feature_settings_appearance_row_detail">Theme, haptics and motion</string>
     <string name="feature_settings_sign_out">Sign out</string>
     <string name="feature_settings_signing_out">Signing out…</string>
     <string name="feature_settings_sign_out_detail">Signing out stops notifications for this account on this device.</string>
@@ -24,6 +24,8 @@
     <string name="feature_settings_theme_dark_detail">Always use the dark theme</string>
     <string name="feature_settings_feedback_section">Feedback</string>
     <string name="feature_settings_haptics_title">Haptics</string>
+    <string name="feature_settings_reduce_motion_title">Reduce motion</string>
+    <string name="feature_settings_reduce_motion_subtitle">Shorter, calmer animations in Waivera. When your phone\'s Remove animations setting is on, Waivera already follows it.</string>
     <string name="feature_settings_haptics_subtitle">One short vibration when a message fails to send or a sign-in is not accepted. Nothing else vibrates.</string>
 
     <!-- Notifications -->
@@ -45,6 +47,8 @@
     <string name="feature_settings_category_schedule_reminders_detail">Shifts and events starting soon.</string>
     <string name="feature_settings_category_schedule_changes">Schedule changes</string>
     <string name="feature_settings_category_schedule_changes_detail">Events that were added, moved or cancelled.</string>
+    <string name="feature_settings_category_updates">Tasks and approvals</string>
+    <string name="feature_settings_category_updates_detail">Task assignments and activity, approvals, signature requests and surveys.</string>
     <string name="feature_settings_category_digest">Digest and announcements</string>
     <string name="feature_settings_category_digest_detail">Milestones, announcements and other low-priority updates.</string>
     <string name="feature_settings_privacy_section">Privacy</string>

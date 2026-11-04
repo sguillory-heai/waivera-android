@@ -7,6 +7,7 @@ import com.waivera.waivera.core.data.live.LiveBookmarkRepository
 import com.waivera.waivera.core.data.live.LiveCalendarRepository
 import com.waivera.waivera.core.data.live.LiveConversationRepository
 import com.waivera.waivera.core.data.live.LiveMessageRepository
+import com.waivera.waivera.core.data.live.LiveNoticeRepository
 import com.waivera.waivera.core.data.live.LivePeopleRepository
 import com.waivera.waivera.core.data.live.LiveProfileRepository
 import com.waivera.waivera.core.data.live.LivePushRegistrationRepository
@@ -22,6 +23,7 @@ import com.waivera.waivera.core.data.repository.ConversationRepository
 import com.waivera.waivera.core.data.repository.DataLayerStarter
 import com.waivera.waivera.core.data.repository.DurableMessageSender
 import com.waivera.waivera.core.data.repository.MessageRepository
+import com.waivera.waivera.core.data.repository.NoticeRepository
 import com.waivera.waivera.core.data.repository.PeopleRepository
 import com.waivera.waivera.core.data.repository.ProfileRepository
 import com.waivera.waivera.core.data.repository.PushRegistrationRepository
@@ -39,6 +41,7 @@ import com.waivera.waivera.core.demo.DemoConversationRepository
 import com.waivera.waivera.core.demo.DemoHub
 import com.waivera.waivera.core.demo.DemoMessageRepository
 import com.waivera.waivera.core.demo.DemoMode
+import com.waivera.waivera.core.demo.DemoNoticeRepository
 import com.waivera.waivera.core.demo.DemoPeopleRepository
 import com.waivera.waivera.core.demo.DemoProfileRepository
 import com.waivera.waivera.core.demo.DemoPushRegistrationRepository
@@ -129,6 +132,13 @@ object DemoSwitchModule {
         live: Provider<LiveActivityRepository>,
         demo: Provider<DemoActivityRepository>,
     ): ActivityRepository = pick(mode, live, demo)
+
+    @Provides
+    fun notices(
+        mode: DemoMode,
+        live: Provider<LiveNoticeRepository>,
+        demo: Provider<DemoNoticeRepository>,
+    ): NoticeRepository = pick(mode, live, demo)
 
     @Provides
     fun people(

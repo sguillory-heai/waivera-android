@@ -46,6 +46,14 @@ enum class WaiveraChannel(
         descriptionRes = R.string.core_notifications_channel_schedule_changes_description,
     ),
 
+    /** Tasks, approvals, signatures and surveys: what the web bell shows. */
+    Updates(
+        id = "updates",
+        importance = NotificationManager.IMPORTANCE_DEFAULT,
+        nameRes = R.string.core_notifications_channel_updates,
+        descriptionRes = R.string.core_notifications_channel_updates_description,
+    ),
+
     /** Milestones, announcements and anything without its own category. */
     Digest(
         id = "digest",

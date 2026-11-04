@@ -9,11 +9,13 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.stringResource
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.waivera.waivera.core.designsystem.preview.WaiveraPreviews
 import com.waivera.waivera.core.designsystem.theme.WaiveraTheme
+import com.waivera.waivera.feature.today.notices.NoticeDestination
 import com.waivera.waivera.feature.today.ui.TodayCallbacks
 import com.waivera.waivera.feature.today.ui.TodayContent
 import com.waivera.waivera.feature.today.ui.TodayPreviewStates
@@ -37,13 +39,20 @@ fun TodayScreen(
     onOpenMessage: ((conversationId: Long, messageId: Long, threadRootMessageId: Long?) -> Unit)? = null,
     onOpenScheduleToday: () -> Unit = onOpenSchedule,
     onOpenScheduleWeek: () -> Unit = onOpenSchedule,
+    onOpenInbox: () -> Unit = {},
 ) {
     val viewModel: TodayViewModel = hiltViewModel()
     val state by viewModel.state.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
     val openMessage by rememberUpdatedState(onOpenMessage)
     val openConversation by rememberUpdatedState(onOpenConversation)
-    TodayEffects(viewModel, snackbarHostState, onOpenConversation = { id -> openConversation(id) })
+    val openEvent by rememberUpdatedState(onOpenEvent)
+    TodayEffects(
+        viewModel,
+        snackbarHostState,
+        onOpenConversation = { id -> openConversation(id) },
+        onOpenEvent = { id -> openEvent(id) },
+    )
     val callbacks = remember(
         viewModel,
         onAccountClick,
@@ -51,6 +60,7 @@ fun TodayScreen(
         onOpenEvent,
         onOpenScheduleToday,
         onOpenScheduleWeek,
+        onOpenInbox,
     ) {
         TodayCallbacks(
             onAction = viewModel::onAction,
@@ -63,6 +73,7 @@ fun TodayScreen(
             onOpenEvent = onOpenEvent,
             onOpenScheduleToday = onOpenScheduleToday,
             onOpenScheduleWeek = onOpenScheduleWeek,
+            onOpenInbox = onOpenInbox,
         )
     }
     TodayContent(state = state, callbacks = callbacks, snackbarHostState = snackbarHostState, modifier = modifier)
@@ -74,7 +85,9 @@ private fun TodayEffects(
     viewModel: TodayViewModel,
     snackbarHostState: SnackbarHostState,
     onOpenConversation: (Long) -> Unit,
+    onOpenEvent: (String) -> Unit,
 ) {
+    val uriHandler = LocalUriHandler.current
     val messages = TodayMessages(
         refreshFailed = stringResource(R.string.feature_today_refresh_failed),
         markReadFailed = stringResource(R.string.feature_today_mark_read_failed),
@@ -85,15 +98,21 @@ private fun TodayEffects(
         retry = stringResource(R.string.feature_today_retry),
         undo = stringResource(R.string.feature_today_undo),
         wishesFailed = stringResource(R.string.feature_today_brand_wishes_failed),
+        nothingToOpen = stringResource(R.string.feature_today_notices_nothing_to_open),
     )
     val currentMessages by rememberUpdatedState(messages)
     val openConversation by rememberUpdatedState(onOpenConversation)
     LaunchedEffect(viewModel, snackbarHostState) {
         viewModel.effects.collect { effect ->
-            if (effect is TodayEffect.OpenConversation) {
-                openConversation(effect.conversationId)
-            } else {
-                handleEffect(effect, currentMessages, snackbarHostState, viewModel::onAction)
+            when (effect) {
+                is TodayEffect.OpenConversation -> openConversation(effect.conversationId)
+                is TodayEffect.OpenNotice -> when (val destination = effect.destination) {
+                    is NoticeDestination.Event -> onOpenEvent(destination.eventId)
+                    // A phone without a browser cannot open it; nothing else to do.
+                    is NoticeDestination.Web -> runCatching { uriHandler.openUri(destination.url) }
+                    NoticeDestination.None -> snackbarHostState.showSnackbar(currentMessages.nothingToOpen)
+                }
+                else -> handleEffect(effect, currentMessages, snackbarHostState, viewModel::onAction)
             }
         }
     }
@@ -109,6 +128,7 @@ private data class TodayMessages(
     val retry: String,
     val undo: String,
     val wishesFailed: String,
+    val nothingToOpen: String,
 )
 
 private suspend fun handleEffect(
@@ -149,7 +169,7 @@ private suspend fun handleEffect(
                 onAction(TodayAction.SendWishes(effect.userId))
             }
         // Navigation, handled by the collector before it gets here.
-        is TodayEffect.OpenConversation -> Unit
+        is TodayEffect.OpenConversation, is TodayEffect.OpenNotice -> Unit
     }
 }
 

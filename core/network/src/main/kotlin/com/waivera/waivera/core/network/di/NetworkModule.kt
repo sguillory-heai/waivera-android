@@ -13,6 +13,7 @@ import com.waivera.waivera.core.network.api.ChatApi
 import com.waivera.waivera.core.network.api.EmployeeApi
 import com.waivera.waivera.core.network.api.FileApi
 import com.waivera.waivera.core.network.api.MobilePushApi
+import com.waivera.waivera.core.network.api.NotificationApi
 import com.waivera.waivera.core.network.api.TimeOffApi
 import com.waivera.waivera.core.network.api.VideoApi
 import dagger.Module
@@ -103,6 +104,10 @@ object NetworkModule {
     @Provides
     @Singleton
     fun videoApi(retrofit: Retrofit): VideoApi = retrofit.create(VideoApi::class.java)
+
+    @Provides
+    @Singleton
+    fun notificationApi(retrofit: Retrofit): NotificationApi = retrofit.create(NotificationApi::class.java)
 
     @Provides
     @Singleton

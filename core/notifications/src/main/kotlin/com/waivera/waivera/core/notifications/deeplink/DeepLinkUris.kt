@@ -15,6 +15,7 @@ import java.net.URLEncoder
  * waivera://chats                                   inbox
  * waivera://chats/{conversationId}?messageId={id}
  * waivera://chats/{conversationId}/thread/{rootMessageId}?messageId={id}
+ * waivera://notifications                         the bell's inbox
  * waivera://schedule                                (waivera://calendar is accepted too)
  * waivera://calendar/{eventId}
  * waivera://profile
@@ -40,6 +41,7 @@ object DeepLinkUris {
         is DeepLinkTarget.Thread ->
             "$SCHEME://chats/${target.conversationId}/thread/${target.rootMessageId}" + messageQuery(target.messageId)
         DeepLinkTarget.Schedule -> "$SCHEME://schedule"
+        DeepLinkTarget.Notices -> "$SCHEME://notifications"
         is DeepLinkTarget.CalendarEvent -> "$SCHEME://calendar/${encode(target.eventId)}"
         DeepLinkTarget.Profile -> "$SCHEME://profile"
         DeepLinkTarget.People -> "$SCHEME://people"
@@ -60,6 +62,7 @@ object DeepLinkUris {
             "today" -> DeepLinkTarget.Today.takeIf { segments.isEmpty() }
             "chats" -> parseChats(segments, messageId)
             "schedule" -> DeepLinkTarget.Schedule.takeIf { segments.isEmpty() }
+            "notifications" -> DeepLinkTarget.Notices.takeIf { segments.isEmpty() }
             "calendar" -> parseCalendar(segments)
             "profile" -> DeepLinkTarget.Profile.takeIf { segments.isEmpty() }
             "people" -> parsePeople(segments)

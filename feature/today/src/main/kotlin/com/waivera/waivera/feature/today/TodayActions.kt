@@ -2,6 +2,7 @@ package com.waivera.waivera.feature.today
 
 import com.waivera.waivera.core.network.error.WaiveraError
 import com.waivera.waivera.feature.today.model.ActivityFilter
+import com.waivera.waivera.feature.today.notices.NoticeDestination
 
 /** Everything the person can do on Today that changes state. Navigation goes through the screen's lambdas. */
 sealed interface TodayAction {
@@ -37,6 +38,9 @@ sealed interface TodayAction {
 
     /** "Send wishes" on a celebration: opens the direct conversation with [userId]. */
     data class SendWishes(val userId: String) : TodayAction
+
+    /** A notification under Needs you: marks it read and opens where it points. */
+    data class OpenNotice(val noticeId: String) : TodayAction
 }
 
 /** One-off results the screen turns into a snackbar (never a vibration). */
@@ -60,4 +64,7 @@ sealed interface TodayEffect {
 
     /** The conversation couldn't be opened; Retry tries "Send wishes" again. */
     data class WishesFailed(val userId: String) : TodayEffect
+
+    /** A notification was opened: show its event, or its page on the web app. */
+    data class OpenNotice(val destination: NoticeDestination) : TodayEffect
 }

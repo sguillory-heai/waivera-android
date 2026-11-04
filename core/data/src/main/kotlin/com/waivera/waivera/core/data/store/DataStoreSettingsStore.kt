@@ -32,6 +32,10 @@ class DataStoreSettingsStore @Inject constructor(@ApplicationContext private val
         context.settingsDataStore.edit { it[HAPTICS] = enabled }
     }
 
+    override suspend fun setReduceMotion(enabled: Boolean) {
+        context.settingsDataStore.edit { it[REDUCE_MOTION] = enabled }
+    }
+
     override suspend fun updateNotifications(transform: (NotificationPreferences) -> NotificationPreferences) {
         context.settingsDataStore.edit { prefs ->
             val next = transform(read(prefs).notifications)
@@ -48,6 +52,7 @@ class DataStoreSettingsStore @Inject constructor(@ApplicationContext private val
         prefs[THEME]?.let { raw -> ThemePreference.entries.firstOrNull { it.name == raw } }
             ?: ThemePreference.SYSTEM,
         hapticsEnabled = prefs[HAPTICS] ?: true,
+        reduceMotion = prefs[REDUCE_MOTION] ?: false,
         notifications = prefs[NOTIFICATIONS]?.let {
             runCatching { WaiveraJson.decodeFromString(NotificationPreferences.serializer(), it) }.getOrNull()
         } ?: NotificationPreferences(),
@@ -56,6 +61,7 @@ class DataStoreSettingsStore @Inject constructor(@ApplicationContext private val
     private companion object {
         val THEME = stringPreferencesKey("theme")
         val HAPTICS = booleanPreferencesKey("haptics")
+        val REDUCE_MOTION = booleanPreferencesKey("reduce_motion")
         val NOTIFICATIONS = stringPreferencesKey("notifications")
     }
 }

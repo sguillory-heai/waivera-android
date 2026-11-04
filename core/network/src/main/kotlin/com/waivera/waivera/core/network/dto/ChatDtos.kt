@@ -260,7 +260,9 @@ data class RemoveAdHocFromConversationDto(val conversationId: Long = 0, val room
 /** `EventNotificationResponse` from hub `ReceiveNotification` and `receivenotification_web`. */
 @Serializable
 data class EventNotificationResponse(
-    val id: Long = 0,
+    /** A GUID or a prefixed key such as `esign-request-…`; older fixtures send a number. */
+    @Serializable(with = StringOrNumberSerializer::class)
+    val id: String = "",
     val type: String? = null,
     val status: String? = null,
     val title: String? = null,
@@ -272,5 +274,14 @@ data class EventNotificationResponse(
     val createdAt: Instant? = null,
     val read: Boolean = false,
     val createdByUser: JsonElement? = null,
-    val notificationResources: JsonElement? = null,
+    val notificationResources: List<NotificationResourceDto> = emptyList(),
+)
+
+/** `Models/NotificationResource.cs`: what a notification points at (task, file, meeting, …). */
+@Serializable
+data class NotificationResourceDto(
+    @Serializable(with = StringOrNumberSerializer::class)
+    val resourceId: String = "",
+    val resourceType: String = "",
+    val resourceName: String? = null,
 )

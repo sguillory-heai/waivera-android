@@ -21,6 +21,7 @@ class DeepLinkUrisTest {
         DeepLinkTarget.Person("usr_priya_raman"),
         DeepLinkTarget.Person("4471"),
         DeepLinkTarget.Bookmarks,
+        DeepLinkTarget.Notices,
         DeepLinkTarget.Settings,
         DeepLinkTarget.NotificationSettings,
     )

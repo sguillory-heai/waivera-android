@@ -54,7 +54,6 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
@@ -345,25 +344,37 @@ class ConversationViewModel @AssistedInject constructor(
 
     private suspend fun runHighlight(messageId: Long) {
         _state.first { it.content != ConversationContent.Loading }
-        allMessages.firstOrNull { it.id == messageId }?.takeIf { it.isThreadReply }?.let { reply ->
-            reply.threadRootMessageId?.let { emit(ChatEffect.OpenThread(it)) }
-            return
-        }
-        var key = keyFor(messageId)
-        if (key == null && messages.loadAround(conversationId, messageId).isSuccess) key = awaitKey(messageId)
-        var pages = 0
-        while (key == null && pages < MAX_HIGHLIGHT_PAGES && _state.value.hasOlder) {
-            if (messages.loadOlder(conversationId).getOrDefault(false).not()) break
-            key = awaitKey(messageId)
-            pages++
-        }
-        if (key == null) {
+        when (val landed = locate(messageId)) {
+            is Landed.InThread -> emit(ChatEffect.OpenThread(landed.rootMessageId))
+            is Landed.InTimeline -> showHighlight(landed.key)
             // The person was sent here for that message: say it is gone instead of nothing (UI2-08).
-            if (_state.value.content == ConversationContent.Messages) {
+            null -> if (_state.value.content == ConversationContent.Messages) {
                 emit(ChatEffect.Snackbar(R.string.feature_chat_message_missing))
             }
-            return
         }
+    }
+
+    /**
+     * Finds [messageId]: in the cache, then through its context page, then a few older pages. A
+     * thread reply (cached or brought in by a push's context page) lives in its thread, never in
+     * the main timeline.
+     */
+    private suspend fun locate(messageId: Long): Landed? {
+        threadRootOf(messageId)?.let { return Landed.InThread(it) }
+        var landed: Landed? = keyFor(messageId)?.let(Landed::InTimeline)
+        if (landed == null && messages.loadAround(conversationId, messageId).isSuccess) {
+            landed = awaitLanded(messageId)
+        }
+        var pages = 0
+        while (landed == null && pages < MAX_HIGHLIGHT_PAGES && _state.value.hasOlder) {
+            if (messages.loadOlder(conversationId).getOrDefault(false).not()) break
+            landed = awaitLanded(messageId)
+            pages++
+        }
+        return landed
+    }
+
+    private suspend fun showHighlight(key: String) {
         delay(HIGHLIGHT_SCROLL_DELAY_MILLIS)
         emit(ChatEffect.ScrollTo(key))
         _state.update { it.copy(highlightKey = key) }
@@ -380,8 +391,23 @@ class ConversationViewModel @AssistedInject constructor(
         }
     }?.key
 
-    private suspend fun awaitKey(messageId: Long): String? = withTimeoutOrNull(HIGHLIGHT_WAIT_MILLIS) {
-        _state.map { keyFor(messageId) }.filterNotNull().first()
+    private fun threadRootOf(messageId: Long): Long? =
+        allMessages.firstOrNull { it.id == messageId }?.takeIf { it.isThreadReply }?.threadRootMessageId
+
+    private sealed interface Landed {
+        data class InTimeline(val key: String) : Landed
+
+        data class InThread(val rootMessageId: Long) : Landed
+    }
+
+    /** Where [messageId] showed up once the cache delivered it, or null after the usual wait. */
+    private suspend fun awaitLanded(messageId: Long): Landed? = withTimeoutOrNull(HIGHLIGHT_WAIT_MILLIS) {
+        var landed: Landed? = null
+        while (landed == null) {
+            landed = threadRootOf(messageId)?.let(Landed::InThread) ?: keyFor(messageId)?.let(Landed::InTimeline)
+            if (landed == null) delay(CACHE_POLL_MILLIS)
+        }
+        landed
     }
 
     // endregion
@@ -578,6 +604,7 @@ class ConversationViewModel @AssistedInject constructor(
         const val HIGHLIGHT_SCROLL_DELAY_MILLIS = 160L
         const val HIGHLIGHT_MILLIS = 3_200L
         const val HIGHLIGHT_WAIT_MILLIS = 2_000L
+        const val CACHE_POLL_MILLIS = 50L
         const val MAX_HIGHLIGHT_PAGES = 8
 
         fun isValid(conversationId: Long): Boolean = conversationId > 0

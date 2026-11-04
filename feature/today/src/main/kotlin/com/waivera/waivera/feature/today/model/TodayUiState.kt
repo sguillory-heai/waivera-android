@@ -2,6 +2,7 @@ package com.waivera.waivera.feature.today.model
 
 import androidx.compose.runtime.Immutable
 import com.waivera.waivera.core.data.model.HandledObservation
+import com.waivera.waivera.core.data.model.NoticeKind
 import com.waivera.waivera.core.designsystem.component.ConnectionBannerState
 import com.waivera.waivera.core.network.dto.ChatActivityType
 import com.waivera.waivera.core.network.error.WaiveraError
@@ -46,6 +47,8 @@ data class TodayUiState(
      * Needs you is loading or failed, so a missing source never reads as everything handled.
      */
     val handledObservation: HandledObservation? = null,
+    /** Unread notifications in the inbox, for the bell's badge (the server's count). */
+    val inboxUnread: Int = 0,
 ) {
     /** The one "All caught up" moment: nothing needs the person and no activity is unread. */
     val isAllCaughtUp: Boolean
@@ -77,7 +80,7 @@ data class NeedsYouSection(
 }
 
 /** The kinds of thing that can need the person, in the order the hero names them. */
-enum class NeedsYouKind { NotSent, Message, Mention, Invitation, Ticket }
+enum class NeedsYouKind { NotSent, Message, Mention, Invitation, Ticket, Update }
 
 /**
  * How many open Needs you items there are of each [NeedsYouKind], counted on the device from the
@@ -103,6 +106,7 @@ val NeedsYouItem.kind: NeedsYouKind
         is NeedsYouItem.Mention -> NeedsYouKind.Mention
         is NeedsYouItem.Invitation -> NeedsYouKind.Invitation
         is NeedsYouItem.Ticket -> NeedsYouKind.Ticket
+        is NeedsYouItem.Notice -> NeedsYouKind.Update
     }
 
 @Immutable
@@ -161,6 +165,19 @@ sealed interface NeedsYouItem {
         val ticketTitle: String? = null,
     ) : NeedsYouItem {
         override val key: String get() = "ticket-$conversationId"
+    }
+
+    /** An unread inbox notification that asks for something (task, approval, signature, survey). */
+    data class Notice(
+        val noticeId: String,
+        val noticeKind: NoticeKind,
+        val title: String,
+        val message: String,
+        val at: PastLabel?,
+        /** Opens its page on the web app rather than a screen in the app. */
+        val opensOutside: Boolean,
+    ) : NeedsYouItem {
+        override val key: String get() = "notice-$noticeId"
     }
 }
 

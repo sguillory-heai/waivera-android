@@ -18,12 +18,13 @@ import kotlinx.coroutines.launch
 internal data class AppearanceUiState(
     val theme: ThemePreference = ThemePreference.SYSTEM,
     val hapticsEnabled: Boolean = true,
+    val reduceMotion: Boolean = false,
     /** False until the stored settings arrive, so the rows never show a wrong default first. */
     val loaded: Boolean = false,
 )
 
 /**
- * Theme and haptics. The app's theme reads the same [SettingsRepository] flow, so a change
+ * Theme, haptics and motion. The app's theme reads the same [SettingsRepository] flow, so a change
  * applies at once, and "System" follows the device as it switches.
  */
 @HiltViewModel
@@ -40,10 +41,14 @@ internal class AppearanceViewModel @Inject constructor(private val settings: Set
         viewModelScope.launch { settings.setHapticsEnabled(enabled) }
     }
 
+    fun setReduceMotion(enabled: Boolean) {
+        viewModelScope.launch { settings.setReduceMotion(enabled) }
+    }
+
     private companion object {
         const val STOP_TIMEOUT_MILLIS = 5_000L
     }
 }
 
 private fun AppSettings.toAppearance() =
-    AppearanceUiState(theme = theme, hapticsEnabled = hapticsEnabled, loaded = true)
+    AppearanceUiState(theme = theme, hapticsEnabled = hapticsEnabled, reduceMotion = reduceMotion, loaded = true)

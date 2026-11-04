@@ -37,6 +37,8 @@ interface SettingsStore {
 
     suspend fun setHapticsEnabled(enabled: Boolean)
 
+    suspend fun setReduceMotion(enabled: Boolean)
+
     suspend fun updateNotifications(transform: (NotificationPreferences) -> NotificationPreferences)
 
     suspend fun clear()

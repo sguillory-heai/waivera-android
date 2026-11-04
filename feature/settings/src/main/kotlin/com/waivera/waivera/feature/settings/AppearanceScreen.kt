@@ -36,6 +36,7 @@ fun AppearanceScreen(onBack: () -> Unit, modifier: Modifier = Modifier) {
         onBack = onBack,
         onThemeChange = viewModel::setTheme,
         onHapticsChange = viewModel::setHapticsEnabled,
+        onReduceMotionChange = viewModel::setReduceMotion,
         modifier = modifier,
     )
 }
@@ -46,6 +47,7 @@ internal fun AppearanceContent(
     onBack: () -> Unit,
     onThemeChange: (ThemePreference) -> Unit,
     onHapticsChange: (Boolean) -> Unit,
+    onReduceMotionChange: (Boolean) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Column(modifier = modifier.fillMaxSize().background(WaiveraTheme.colors.background)) {
@@ -79,6 +81,19 @@ internal fun AppearanceContent(
                         )
                     },
                 )
+                SettingsRowDivider()
+                WaiveraSwitchRow(
+                    title = stringResource(R.string.feature_settings_reduce_motion_title),
+                    subtitle = stringResource(R.string.feature_settings_reduce_motion_subtitle),
+                    checked = state.reduceMotion,
+                    onCheckedChange = onReduceMotionChange,
+                    leading = {
+                        WaiveraIconTile(
+                            icon = R.drawable.feature_settings_ic_motion,
+                            tone = if (state.reduceMotion) WaiveraTileTone.Brand else WaiveraTileTone.Neutral,
+                        )
+                    },
+                )
             }
             Spacer(Modifier.windowInsetsBottomHeight(WindowInsets.navigationBars))
         }
@@ -108,6 +123,7 @@ private fun AppearanceScreenPreview() {
             onBack = {},
             onThemeChange = {},
             onHapticsChange = {},
+            onReduceMotionChange = {},
         )
     }
 }

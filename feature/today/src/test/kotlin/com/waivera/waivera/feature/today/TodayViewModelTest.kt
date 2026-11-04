@@ -6,6 +6,8 @@ import androidx.lifecycle.ViewModelStore
 import com.waivera.waivera.core.data.model.ActivityFeed
 import com.waivera.waivera.core.data.model.CurrentUser
 import com.waivera.waivera.core.data.model.MyInvitation
+import com.waivera.waivera.core.data.model.NoticeFeed
+import com.waivera.waivera.core.data.model.NoticeKind
 import com.waivera.waivera.core.data.model.RealtimeStatus
 import com.waivera.waivera.core.data.model.ScheduleFeed
 import com.waivera.waivera.core.data.model.SessionState
@@ -21,10 +23,14 @@ import com.waivera.waivera.core.testing.MainDispatcherRule
 import com.waivera.waivera.core.testing.TestSessionRepository
 import com.waivera.waivera.feature.today.model.ActivityFilter
 import com.waivera.waivera.feature.today.model.DayPart
+import com.waivera.waivera.feature.today.model.NeedsYouItem
+import com.waivera.waivera.feature.today.model.NeedsYouKind
 import com.waivera.waivera.feature.today.model.TodayProgress
 import com.waivera.waivera.feature.today.model.TodayStats
 import com.waivera.waivera.feature.today.model.TodayUiState
 import com.waivera.waivera.feature.today.model.UpcomingLabel
+import com.waivera.waivera.feature.today.notices.NoticeDestination
+import com.waivera.waivera.feature.today.notices.NoticeOpener
 import java.time.Instant
 import java.time.LocalDate
 import kotlin.test.assertEquals
@@ -55,6 +61,7 @@ class TodayViewModelTest {
     private val realtime = FakeRealtimeStatusRepository()
     private val now = TestNowSource()
     private val handled = InMemoryHandledTodayRepository()
+    private val notices = FakeNoticeRepository()
     private val window = InvitationAnswers.UNDO_WINDOW_MILLIS
 
     // Owning the ViewModel through a store lets a test clear it the way navigation does.
@@ -71,6 +78,8 @@ class TodayViewModelTest {
             now,
             EnglishConversationTitles,
             backgroundScope,
+            notices,
+            NoticeOpener(notices, TEST_LINKS),
         )
         val factory = object : ViewModelProvider.Factory {
             @Suppress("UNCHECKED_CAST")
@@ -507,5 +516,62 @@ class TodayViewModelTest {
         val (viewModel, _) = start()
         assertEquals(TodayStats(eventsToday = 1, unreadChats = 2, eventsThisWeek = 2), viewModel.ui.stats)
         assertEquals(1, viewModel.ui.day?.eventCount)
+    }
+
+    @Test
+    fun inbox_unreadCountFeedsTheBellAndActionNoticesJoinNeedsYou() = runTest(main.testDispatcher) {
+        notices.state.value = Synced(
+            NoticeFeed(
+                listOf(
+                    notice("approve", kind = NoticeKind.Approval),
+                    notice("activity", kind = NoticeKind.TaskActivity),
+                    notice("done", kind = NoticeKind.TaskAssigned, read = true),
+                ),
+                unreadCount = 7,
+            ),
+            lastSyncedAt = TEST_NOW,
+        )
+        val (viewModel, _) = start()
+        runCurrent()
+        assertEquals(7, viewModel.ui.inboxUnread)
+        val items = viewModel.ui.needsYou.items.filterIsInstance<NeedsYouItem.Notice>()
+        // Activity only informs and a read one is done, so only the approval asks for the person.
+        assertEquals(listOf("approve"), items.map { it.noticeId })
+        assertTrue(items.single().opensOutside)
+        assertEquals(1, viewModel.ui.needsYou.kinds.counts[NeedsYouKind.Update])
+    }
+
+    @Test
+    fun openNotice_marksItReadAndOpensItsEventInTheApp() = runTest(main.testDispatcher) {
+        notices.state.value = Synced(
+            NoticeFeed(listOf(notice("m1", kind = NoticeKind.Meeting, taskId = null, eventId = "evt_9")), 1),
+            lastSyncedAt = TEST_NOW,
+        )
+        val (viewModel, effects) = start()
+        viewModel.onAction(TodayAction.OpenNotice("m1"))
+        runCurrent()
+        assertEquals(TodayEffect.OpenNotice(NoticeDestination.Event("evt_9")), effects.last())
+        assertEquals(listOf("m1"), notices.markedRead)
+        assertEquals(0, viewModel.ui.inboxUnread)
+    }
+
+    @Test
+    fun openNotice_aTaskOpensItsPageOnTheWebApp() = runTest(main.testDispatcher) {
+        notices.state.value = Synced(NoticeFeed(listOf(notice("t1")), 1), lastSyncedAt = TEST_NOW)
+        val (viewModel, effects) = start()
+        viewModel.onAction(TodayAction.OpenNotice("t1"))
+        runCurrent()
+        assertEquals(TodayEffect.OpenNotice(NoticeDestination.Web("https://app.example.test/task/42")), effects.last())
+    }
+
+    @Test
+    fun refresh_alsoRefreshesTheInboxWithoutBlamingTodayWhenItFails() = runTest(main.testDispatcher) {
+        notices.refreshResult = Result.failure(WaiveraError.Network())
+        val (viewModel, effects) = start()
+        val before = notices.refreshes
+        viewModel.onAction(TodayAction.Refresh)
+        runCurrent()
+        assertEquals(before + 1, notices.refreshes)
+        assertTrue(effects.none { it is TodayEffect.RefreshFailed })
     }
 }

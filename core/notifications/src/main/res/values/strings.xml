@@ -11,6 +11,8 @@
     <string name="core_notifications_channel_schedule_reminders_description">Shifts and events starting soon.</string>
     <string name="core_notifications_channel_schedule_changes">Schedule changes</string>
     <string name="core_notifications_channel_schedule_changes_description">Events that were added, moved or cancelled.</string>
+    <string name="core_notifications_channel_updates">Tasks and approvals</string>
+    <string name="core_notifications_channel_updates_description">Task assignments and activity, approvals, signature requests and surveys.</string>
     <string name="core_notifications_channel_digest">Digest and announcements</string>
     <string name="core_notifications_channel_digest_description">Milestones, announcements and other low-priority updates.</string>
 

@@ -40,6 +40,7 @@ import com.waivera.waivera.core.data.repository.DataLayerStarter
 import com.waivera.waivera.core.data.repository.DurableMessageSender
 import com.waivera.waivera.core.data.repository.HandledTodayRepository
 import com.waivera.waivera.core.data.repository.MessageRepository
+import com.waivera.waivera.core.data.repository.NoticeRepository
 import com.waivera.waivera.core.data.repository.PeopleRepository
 import com.waivera.waivera.core.data.repository.ProfileRepository
 import com.waivera.waivera.core.data.repository.PushRegistrationRepository
@@ -57,6 +58,7 @@ import com.waivera.waivera.core.demo.DemoBackend
 import com.waivera.waivera.core.demo.DemoBookmarkRepository
 import com.waivera.waivera.core.demo.DemoConversationRepository
 import com.waivera.waivera.core.demo.DemoMessageRepository
+import com.waivera.waivera.core.demo.DemoNoticeRepository
 import com.waivera.waivera.core.demo.DemoPeopleRepository
 import com.waivera.waivera.core.demo.DemoProfileRepository
 import com.waivera.waivera.core.demo.DemoPushRegistrationRepository
@@ -118,6 +120,9 @@ abstract class TourRepositoriesModule {
 
     @Binds
     abstract fun activity(impl: DemoActivityRepository): ActivityRepository
+
+    @Binds
+    abstract fun notices(impl: DemoNoticeRepository): NoticeRepository
 
     @Binds
     abstract fun people(impl: DemoPeopleRepository): PeopleRepository

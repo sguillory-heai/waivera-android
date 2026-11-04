@@ -7,17 +7,18 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -33,12 +34,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.KeyboardCapitalization
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextOverflow
 import com.waivera.waivera.core.designsystem.component.BannerTone
 import com.waivera.waivera.core.designsystem.component.WaiveraBanner
@@ -115,45 +118,20 @@ fun Composer(
                     tint = colors.accent,
                 )
             }
-            OutlinedTextField(
-                value = draft,
-                onValueChange = onDraftChange,
+            ComposerField(
+                draft = draft,
+                onDraftChange = onDraftChange,
                 enabled = config.enabled,
+                placeholder = stringResource(
+                    when {
+                        config.isEditing -> R.string.feature_chat_composer_edit_placeholder
+                        config.isReply -> R.string.feature_chat_composer_reply_placeholder
+                        else -> R.string.feature_chat_composer_placeholder
+                    },
+                ),
                 modifier = Modifier
                     .weight(1f)
-                    .heightIn(min = ChatDimens.ComposerMinHeight, max = ChatDimens.ComposerMaxHeight)
                     .then(focusRequester?.let { Modifier.focusRequester(it) } ?: Modifier),
-                textStyle = MaterialTheme.typography.bodyMedium,
-                placeholder = {
-                    Text(
-                        text = stringResource(
-                            when {
-                                config.isEditing -> R.string.feature_chat_composer_edit_placeholder
-                                config.isReply -> R.string.feature_chat_composer_reply_placeholder
-                                else -> R.string.feature_chat_composer_placeholder
-                            },
-                        ),
-                        color = colors.textSecondary,
-                        // One line even at 200%, so the empty field is not two lines tall; the
-                        // field itself still grows with typed text (UI8-12).
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                },
-                keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences),
-                // Concept A's field radius; the surface on the page at rest, the raised step and an
-                // accent edge while typing.
-                shape = WaiveraShapes.Field,
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedContainerColor = colors.raised,
-                    unfocusedContainerColor = colors.surface,
-                    disabledContainerColor = colors.surfaceMuted,
-                    focusedBorderColor = colors.accent,
-                    unfocusedBorderColor = colors.border,
-                    cursorColor = colors.accent,
-                    focusedTextColor = colors.text,
-                    unfocusedTextColor = colors.text,
-                ),
             )
             SendButton(
                 canSend = canSend,
@@ -168,6 +146,80 @@ fun Composer(
             )
         }
     }
+}
+
+/**
+ * The message field. Material's outlined field is at least 56dp tall, which stood taller than the
+ * 48dp photo and send buttons beside it; this keeps the same look at the buttons' height and still
+ * grows with typed text (and with large text sizes).
+ */
+@Composable
+private fun ComposerField(
+    draft: String,
+    onDraftChange: (String) -> Unit,
+    enabled: Boolean,
+    placeholder: String,
+    modifier: Modifier = Modifier,
+) {
+    val colors = WaiveraTheme.colors
+    val interactionSource = remember { MutableInteractionSource() }
+    val fieldColors = OutlinedTextFieldDefaults.colors(
+        focusedContainerColor = colors.raised,
+        unfocusedContainerColor = colors.surface,
+        disabledContainerColor = colors.surfaceMuted,
+        focusedBorderColor = colors.accent,
+        unfocusedBorderColor = colors.border,
+        cursorColor = colors.accent,
+        focusedTextColor = colors.text,
+        unfocusedTextColor = colors.text,
+    )
+    val textStyle = MaterialTheme.typography.bodyMedium.copy(color = colors.text)
+    BasicTextField(
+        value = draft,
+        onValueChange = onDraftChange,
+        enabled = enabled,
+        modifier = modifier.heightIn(min = ChatDimens.ComposerMinHeight, max = ChatDimens.ComposerMaxHeight),
+        textStyle = textStyle,
+        cursorBrush = SolidColor(colors.accent),
+        keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences),
+        interactionSource = interactionSource,
+        decorationBox = { innerTextField ->
+            OutlinedTextFieldDefaults.DecorationBox(
+                value = draft,
+                innerTextField = innerTextField,
+                enabled = enabled,
+                singleLine = false,
+                visualTransformation = VisualTransformation.None,
+                interactionSource = interactionSource,
+                placeholder = {
+                    // One line even at 200%, so the empty field is not two lines tall (UI8-12).
+                    Text(
+                        text = placeholder,
+                        style = textStyle,
+                        color = colors.textSecondary,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                },
+                colors = fieldColors,
+                contentPadding = PaddingValues(
+                    horizontal = ChatDimens.ComposerHorizontalPadding,
+                    vertical = ChatDimens.ComposerVerticalPadding,
+                ),
+                // Concept A's field radius; the surface on the page at rest, the raised step and
+                // an accent edge while typing.
+                container = {
+                    OutlinedTextFieldDefaults.Container(
+                        enabled = enabled,
+                        isError = false,
+                        interactionSource = interactionSource,
+                        colors = fieldColors,
+                        shape = WaiveraShapes.Field,
+                    )
+                },
+            )
+        },
+    )
 }
 
 /**

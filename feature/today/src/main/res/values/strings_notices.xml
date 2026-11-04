@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="feature_today_notices_title">Inbox</string>
+    <string name="feature_today_notices_open_inbox">Inbox</string>
+    <plurals name="feature_today_notices_open_inbox_unread">
+        <item quantity="one">Inbox, %d unread</item>
+        <item quantity="other">Inbox, %d unread</item>
+    </plurals>
+    <plurals name="feature_today_notices_unread">
+        <item quantity="one">%d unread</item>
+        <item quantity="other">%d unread</item>
+    </plurals>
+    <string name="feature_today_notices_filter_all">All</string>
+    <string name="feature_today_notices_filter_tasks">Tasks</string>
+    <string name="feature_today_notices_filter_approvals">Approvals</string>
+    <string name="feature_today_notices_filter_meetings">Meetings</string>
+    <string name="feature_today_notices_day_today">Today</string>
+    <string name="feature_today_notices_day_yesterday">Yesterday</string>
+    <string name="feature_today_notices_day_this_week">Earlier this week</string>
+    <string name="feature_today_notices_day_earlier">Older</string>
+    <string name="feature_today_notices_empty_title">You’re all caught up</string>
+    <string name="feature_today_notices_empty_message">Task updates, approvals and meeting reminders show up here.</string>
+    <string name="feature_today_notices_filtered_empty_title">Nothing here</string>
+    <string name="feature_today_notices_filtered_empty_message">No notifications of this kind right now.</string>
+    <string name="feature_today_notices_show_all">Show all</string>
+    <string name="feature_today_notices_error_title">Couldn’t load your inbox</string>
+    <string name="feature_today_notices_error_message">Check your connection and try again.</string>
+    <string name="feature_today_notices_refresh_failed">Couldn’t refresh your inbox.</string>
+    <string name="feature_today_notices_nothing_to_open">Open this one on the Waivera website.</string>
+    <string name="feature_today_notice_open">Open</string>
+    <string name="feature_today_notice_open_web">Open in browser</string>
+    <string name="feature_today_notice_task_assigned">Task assigned</string>
+    <string name="feature_today_notice_task_activity">Task activity</string>
+    <string name="feature_today_notice_approval">Approval requested</string>
+    <string name="feature_today_notice_meeting">Meeting</string>
+    <string name="feature_today_notice_signature">Signature requested</string>
+    <string name="feature_today_notice_survey">Survey</string>
+    <string name="feature_today_notice_time_off">Time off</string>
+    <string name="feature_today_notice_update">Update</string>
+    <plurals name="feature_today_brand_kind_updates">
+        <item quantity="one">%d update</item>
+        <item quantity="other">%d updates</item>
+    </plurals>
+</resources>

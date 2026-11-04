@@ -12,6 +12,8 @@ import com.waivera.waivera.core.data.model.Message
 import com.waivera.waivera.core.data.model.MessageThread
 import com.waivera.waivera.core.data.model.MessageTimeline
 import com.waivera.waivera.core.data.model.Milestone
+import com.waivera.waivera.core.data.model.Notice
+import com.waivera.waivera.core.data.model.NoticeFeed
 import com.waivera.waivera.core.data.model.NotificationCategory
 import com.waivera.waivera.core.data.model.NotificationPreferences
 import com.waivera.waivera.core.data.model.Organization
@@ -224,6 +226,21 @@ interface ActivityRepository {
     suspend fun markAllRead(): Result<Unit>
 }
 
+/** The web bell's notifications (task, approval, signature, survey, meeting, time off). */
+interface NoticeRepository {
+    fun observeNotices(): Flow<Synced<NoticeFeed>>
+
+    suspend fun refresh(): Result<Unit>
+
+    /** A notification that arrived live (hub) or by push; shown at once, then confirmed. */
+    suspend fun onArrived(notice: Notice)
+
+    /** Optimistic: the row reads as read at once and rolls back if the server refuses. */
+    suspend fun markRead(id: String): Result<Unit>
+
+    suspend fun markAllRead(): Result<Unit>
+}
+
 interface PeopleRepository {
     /** Staff who can be messaged, sorted by name. */
     fun observeDirectory(): Flow<Synced<List<Person>>>
@@ -297,6 +314,8 @@ interface SettingsRepository {
     suspend fun setTheme(theme: ThemePreference)
 
     suspend fun setHapticsEnabled(enabled: Boolean)
+
+    suspend fun setReduceMotion(enabled: Boolean)
 
     suspend fun setNotificationsEnabled(enabled: Boolean)
 

@@ -23,6 +23,7 @@ object DeepLinkRouting {
         DeepLinkTarget.People -> TopLevelTab.Today to listOf(TodayRoute, PeopleRoute)
         is DeepLinkTarget.Person -> TopLevelTab.Today to listOf(TodayRoute, PeopleRoute, PersonRoute(target.userId))
         DeepLinkTarget.Bookmarks -> TopLevelTab.Today to listOf(TodayRoute, BookmarksRoute)
+        DeepLinkTarget.Notices -> TopLevelTab.Today to listOf(TodayRoute, NoticesRoute)
         DeepLinkTarget.Settings -> TopLevelTab.Today to listOf(TodayRoute, SettingsRoute)
         DeepLinkTarget.NotificationSettings -> TopLevelTab.Today to listOf(
             TodayRoute,

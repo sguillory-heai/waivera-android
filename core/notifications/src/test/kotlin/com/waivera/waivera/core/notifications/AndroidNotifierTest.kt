@@ -315,4 +315,19 @@ class AndroidNotifierTest {
         assertTrue(manager.activeNotifications.isEmpty())
         assertTrue(!notifier.canPost())
     }
+
+    @Test
+    fun `each inbox push keeps its own row on the updates channel`() {
+        val first = PushMessage.Notice(
+            notificationId = "n1",
+            taskId = "42",
+            title = "Task 42 assigned",
+            body = "From Priya",
+        )
+        notifier.show(first, WaiveraChannel.Updates, conversation = null)
+        notifier.show(first.copy(notificationId = "n2"), WaiveraChannel.Updates, conversation = null)
+        val one = assertNotNull(posted(AndroidNotifier.GENERIC_TAG_PREFIX + "n1"))
+        assertNotNull(posted(AndroidNotifier.GENERIC_TAG_PREFIX + "n2"))
+        assertEquals(WaiveraChannel.Updates.id, one.channelId)
+    }
 }

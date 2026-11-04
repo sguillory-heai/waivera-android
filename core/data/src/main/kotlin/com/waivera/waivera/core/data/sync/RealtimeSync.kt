@@ -9,8 +9,10 @@ import com.waivera.waivera.core.data.live.LiveMessageRepository
 import com.waivera.waivera.core.data.live.LiveThreadRepository
 import com.waivera.waivera.core.data.live.Mappers
 import com.waivera.waivera.core.data.live.MessageIngest
+import com.waivera.waivera.core.data.live.NoticeMapping
 import com.waivera.waivera.core.data.live.TypingTracker
 import com.waivera.waivera.core.data.model.currentUserId
+import com.waivera.waivera.core.data.repository.NoticeRepository
 import com.waivera.waivera.core.data.repository.SessionRepository
 import com.waivera.waivera.core.network.dto.ReactionAction
 import com.waivera.waivera.core.network.log.WaiveraLog
@@ -37,6 +39,7 @@ class RealtimeSync @Inject constructor(
     private val bookmarks: LiveBookmarkRepository,
     private val activity: LiveActivityRepository,
     private val calendar: LiveCalendarRepository,
+    private val notices: NoticeRepository,
     private val typing: TypingTracker,
     private val session: SessionRepository,
 ) {
@@ -112,8 +115,10 @@ class RealtimeSync @Inject constructor(
             is HubEvent.ConversationCreated -> conversations.onConversation(Mappers.conversation(event.conversation))
             is HubEvent.CallStateChanged -> conversations.onCallState(event.state)
             is HubEvent.AdHocRemoved -> conversations.onAdHocRemoved(event.removal.conversationId)
-            // G-07: notification feeds target the web app; employees get chat pushes only.
-            is HubEvent.Notification -> Unit
+            // The web feed is the staff bell; `ReceiveNotification` is the participant app's.
+            is HubEvent.Notification -> if (event.isWebFeed) {
+                NoticeMapping.notice(event.notification)?.let { notices.onArrived(it) }
+            }
         }
     }
 
@@ -128,6 +133,7 @@ class RealtimeSync @Inject constructor(
             messages.activeConversations.forEach { id -> add(async { messages.refreshLatest(id) }) }
             threads.activeRoots.forEach { root -> add(async { threads.refresh(root) }) }
             add(async { activity.refresh() })
+            add(async { notices.refresh() })
             calendar.activeRanges.forEach { range -> add(async { calendar.refresh(range) }) }
         }
         jobs.awaitAll()

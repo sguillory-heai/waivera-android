@@ -243,6 +243,13 @@ internal enum class CategoryCopy(
         WaiveraIcons.Calendar,
         WaiveraTileTone.Teal,
     ),
+    Updates(
+        NotificationCategory.UPDATES,
+        R.string.feature_settings_category_updates,
+        R.string.feature_settings_category_updates_detail,
+        WaiveraIcons.Notifications,
+        WaiveraTileTone.Amber,
+    ),
     Digest(
         NotificationCategory.DIGEST,
         R.string.feature_settings_category_digest,

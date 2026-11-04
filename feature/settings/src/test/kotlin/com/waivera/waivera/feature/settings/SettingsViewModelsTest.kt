@@ -142,6 +142,19 @@ class AppearanceViewModelTest {
         assertEquals(ThemePreference.DARK, vm.uiState.value.theme)
         assertFalse(vm.uiState.value.hapticsEnabled)
     }
+
+    @Test
+    fun reduceMotionStartsOffAndIsPersisted() = runTest {
+        val graph = DemoGraph(backgroundScope)
+        val vm = AppearanceViewModel(graph.settings)
+        keepCollecting(vm.uiState)
+        assertFalse(vm.uiState.value.reduceMotion, "off means Waivera follows the phone")
+
+        vm.setReduceMotion(true)
+
+        assertTrue(graph.settings.settings.first().reduceMotion)
+        assertTrue(vm.uiState.value.reduceMotion)
+    }
 }
 
 class NotificationSettingsViewModelTest {

@@ -10,6 +10,7 @@ enum class NotificationCategory(val id: String) {
     GROUP_ACTIVITY("group_activity"),
     SCHEDULE_REMINDERS("schedule_reminders"),
     SCHEDULE_CHANGES("schedule_changes"),
+    UPDATES("updates"),
     DIGEST("digest"),
 }
 
@@ -31,6 +32,8 @@ data class NotificationPreferences(
 data class AppSettings(
     val theme: ThemePreference = ThemePreference.SYSTEM,
     val hapticsEnabled: Boolean = true,
+    /** Waivera's own "Reduce motion": on, the app uses calm motion even when the phone does not. */
+    val reduceMotion: Boolean = false,
     val notifications: NotificationPreferences = NotificationPreferences(),
 )
 

@@ -27,6 +27,7 @@ class NotificationChannelInstallerTest {
             "group_activity" to NotificationManager.IMPORTANCE_DEFAULT,
             "schedule_reminders" to NotificationManager.IMPORTANCE_HIGH,
             "schedule_changes" to NotificationManager.IMPORTANCE_DEFAULT,
+            "updates" to NotificationManager.IMPORTANCE_DEFAULT,
             "digest" to NotificationManager.IMPORTANCE_LOW,
         )
         val created = manager.notificationChannels.associate { it.id to it.importance }

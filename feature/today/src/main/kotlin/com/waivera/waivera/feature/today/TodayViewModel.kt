@@ -15,6 +15,7 @@ import com.waivera.waivera.core.data.repository.ActivityRepository
 import com.waivera.waivera.core.data.repository.CalendarRepository
 import com.waivera.waivera.core.data.repository.ConversationRepository
 import com.waivera.waivera.core.data.repository.HandledTodayRepository
+import com.waivera.waivera.core.data.repository.NoticeRepository
 import com.waivera.waivera.core.data.repository.RealtimeStatusRepository
 import com.waivera.waivera.core.data.repository.SessionRepository
 import com.waivera.waivera.core.network.di.ApplicationScope
@@ -26,6 +27,7 @@ import com.waivera.waivera.feature.today.model.TodayContext
 import com.waivera.waivera.feature.today.model.TodayLocalState
 import com.waivera.waivera.feature.today.model.TodaySources
 import com.waivera.waivera.feature.today.model.TodayUiState
+import com.waivera.waivera.feature.today.notices.NoticeOpener
 import dagger.hilt.android.lifecycle.HiltViewModel
 import java.time.Duration
 import java.time.LocalDate
@@ -71,6 +73,8 @@ class TodayViewModel @Inject constructor(
     private val nowSource: NowSource,
     private val titles: ConversationTitleText,
     @ApplicationScope appScope: CoroutineScope,
+    private val notices: NoticeRepository,
+    private val noticeOpener: NoticeOpener,
 ) : ViewModel() {
     private val local = MutableStateFlow(TodayLocalState())
     private val pager = ActivityPager(viewModelScope, activity, local)
@@ -101,12 +105,15 @@ class TodayViewModel @Inject constructor(
 
     val state: StateFlow<TodayUiState> = combine(
         combine(
-            conversations.observeConversations(),
-            activity.observeActivity(),
-            schedule,
-            calendar.observeMilestones(),
-            conversations.observeFailedSends(),
-        ) { chats, feed, events, milestones, failed -> TodaySources(chats, feed, events, milestones, failed) },
+            combine(
+                conversations.observeConversations(),
+                activity.observeActivity(),
+                schedule,
+                calendar.observeMilestones(),
+                conversations.observeFailedSends(),
+            ) { chats, feed, events, milestones, failed -> TodaySources(chats, feed, events, milestones, failed) },
+            notices.observeNotices(),
+        ) { sources, inbox -> sources.copy(notices = inbox) },
         combine(
             combine(session.state, zone, ticks, realtimeStatus.status, local) { s, z, now, realtime, l ->
                 TodayContext(
@@ -117,6 +124,7 @@ class TodayViewModel @Inject constructor(
                     realtime = realtime,
                     local = l,
                     titles = titles,
+                    noticeLinks = noticeOpener.links,
                     firstName = s.currentUser?.let { GreetingRules.firstName(it.firstName, it.displayName) },
                 )
             },
@@ -162,6 +170,9 @@ class TodayViewModel @Inject constructor(
             is TodayAction.InvitationUndoClosed,
             -> onInvitationAction(action)
             is TodayAction.SendWishes -> sendWishes(action.userId)
+            is TodayAction.OpenNotice -> viewModelScope.launch {
+                noticeOpener.open(action.noticeId) { effectChannel.send(TodayEffect.OpenNotice(it)) }
+            }
         }
     }
 
@@ -199,6 +210,7 @@ class TodayViewModel @Inject constructor(
         refreshIfStale(conversations.observeConversations(), CHAT_FRESH_FOR) { conversations.refresh() }
         refreshIfStale(activity.observeActivity(), ACTIVITY_FRESH_FOR) { activity.refresh() }
         refreshIfStale(calendar.observeMilestones(), MILESTONES_FRESH_FOR) { calendar.refreshMilestones() }
+        refreshIfStale(notices.observeNotices(), NOTICES_FRESH_FOR) { notices.refresh() }
     }
 
     private fun refreshIfStale(source: Flow<Synced<*>>, freshFor: Duration, refresh: suspend () -> Result<Unit>) {
@@ -215,6 +227,8 @@ class TodayViewModel @Inject constructor(
             val range = currentRange()
             val chats = async { conversations.refresh() }
             val feed = async { activity.refresh() }
+            // The inbox has its own screen for a failed load; Today's snackbar stays about Today.
+            launch { notices.refresh() }
             val others = listOf(async { calendar.refresh(range) }, async { calendar.refreshMilestones() })
             val results = listOf(chats.await(), feed.await()) + others.awaitAll()
             pager.reset()
@@ -259,6 +273,7 @@ class TodayViewModel @Inject constructor(
         val CHAT_FRESH_FOR: Duration = Duration.ofSeconds(60)
         val ACTIVITY_FRESH_FOR: Duration = Duration.ofSeconds(30)
         val MILESTONES_FRESH_FOR: Duration = Duration.ofMinutes(15)
+        val NOTICES_FRESH_FOR: Duration = Duration.ofSeconds(60)
     }
 }
 

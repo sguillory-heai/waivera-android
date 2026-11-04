@@ -198,9 +198,9 @@ class AndroidNotifier @Inject constructor(
             .setCategory(category)
             .setVisibility(NotificationCompat.VISIBILITY_PRIVATE)
             .setPublicVersion(publicVersion(channel))
-            .setContentIntent(intents.open(message.target, requestCode = message.target.hashCode()))
+            .setContentIntent(intents.open(message.target, requestCode = genericTag(message).hashCode()))
             .build()
-        post("$GENERIC_TAG_PREFIX${message.target.hashCode()}", notification)
+        post(genericTag(message), notification)
     }
 
     private fun chatBuilder(
@@ -309,6 +309,10 @@ class AndroidNotifier @Inject constructor(
             }
     }
 }
+
+/** Each stored notification keeps its own row; other pushes collapse by where they open. */
+private fun genericTag(message: PushMessage): String =
+    AndroidNotifier.GENERIC_TAG_PREFIX + ((message as? PushMessage.Notice)?.notificationId ?: message.target.hashCode())
 
 /** Where a chat notification opens when it has no message's own target yet. */
 private fun targetFor(conversationId: Long, threadRootMessageId: Long?): DeepLinkTarget =

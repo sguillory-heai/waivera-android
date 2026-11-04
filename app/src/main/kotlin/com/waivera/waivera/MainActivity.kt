@@ -12,6 +12,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
@@ -65,18 +66,7 @@ class MainActivity : ComponentActivity() {
                 enableEdgeToEdge(statusBarStyle = style, navigationBarStyle = style)
                 onDispose {}
             }
-            val lifecycleOwner = LocalLifecycleOwner.current
-            DisposableEffect(lifecycleOwner) {
-                val observer = LifecycleEventObserver { _, event ->
-                    when (event) {
-                        Lifecycle.Event.ON_RESUME -> shell.onResumedChanged(true)
-                        Lifecycle.Event.ON_PAUSE -> shell.onResumedChanged(false)
-                        else -> Unit
-                    }
-                }
-                lifecycleOwner.lifecycle.addObserver(observer)
-                onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
-            }
+            ReportResumed(shell::onResumedChanged)
             val actions = remember {
                 ShellActions(
                     select = shell::select,
@@ -88,13 +78,34 @@ class MainActivity : ComponentActivity() {
                     onUnopenableLinkShown = shell::onUnopenableLinkShown,
                 )
             }
-            WaiveraTheme(darkTheme = darkTheme, hapticsEnabled = state.settings.hapticsEnabled) {
+            WaiveraTheme(
+                darkTheme = darkTheme,
+                hapticsEnabled = state.settings.hapticsEnabled,
+                reduceMotion = state.settings.reduceMotion,
+            ) {
                 val toolbarColor = WaiveraTheme.colors.surface.toArgb()
                 val uriHandler = remember(toolbarColor) { CustomTabsUriHandler(this, toolbarColor) }
                 CompositionLocalProvider(LocalUriHandler provides uriHandler) {
                     WaiveraApp(state = state, actions = actions)
                 }
             }
+        }
+    }
+
+    /** Tells the shell when the activity is in front, for push suppression. */
+    @Composable
+    private fun ReportResumed(onResumedChanged: (Boolean) -> Unit) {
+        val lifecycleOwner = LocalLifecycleOwner.current
+        DisposableEffect(lifecycleOwner) {
+            val observer = LifecycleEventObserver { _, event ->
+                when (event) {
+                    Lifecycle.Event.ON_RESUME -> onResumedChanged(true)
+                    Lifecycle.Event.ON_PAUSE -> onResumedChanged(false)
+                    else -> Unit
+                }
+            }
+            lifecycleOwner.lifecycle.addObserver(observer)
+            onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
         }
     }
 

@@ -3,6 +3,7 @@ package com.waivera.waivera.core.data.di
 import com.waivera.waivera.core.data.image.AuthenticatedImageLoader
 import com.waivera.waivera.core.data.live.ChatCache
 import com.waivera.waivera.core.data.live.LiveAttachmentRepository
+import com.waivera.waivera.core.data.live.LiveNoticeRepository
 import com.waivera.waivera.core.data.live.LivePeopleRepository
 import com.waivera.waivera.core.data.live.SignOutCleaner
 import com.waivera.waivera.core.data.outbox.OutboxDirectory
@@ -30,6 +31,10 @@ abstract class SignOutCleanersModule {
     @Binds
     @IntoSet
     abstract fun attachmentCleaner(repository: LiveAttachmentRepository): SignOutCleaner
+
+    @Binds
+    @IntoSet
+    abstract fun noticeCleaner(repository: LiveNoticeRepository): SignOutCleaner
 
     @Binds
     @IntoSet

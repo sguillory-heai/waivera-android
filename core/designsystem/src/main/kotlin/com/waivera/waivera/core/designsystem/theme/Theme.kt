@@ -20,18 +20,21 @@ import com.waivera.waivera.core.designsystem.feedback.LocalHapticsEnabled
  * @param motion the motion scheme; defaults to following the system animator scale.
  * @param hapticsEnabled the Settings "Haptics" switch. When off,
  *   [com.waivera.waivera.core.designsystem.feedback.Haptics] does nothing.
+ * @param reduceMotion the Settings "Reduce motion" switch. When on, [WaiveraMotionScheme.Reduced]
+ *   applies whatever the system animator scale is; when off the system still decides.
  */
 @Composable
 fun WaiveraTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
     motion: WaiveraMotionScheme = rememberSystemMotionScheme(),
     hapticsEnabled: Boolean = true,
+    reduceMotion: Boolean = false,
     content: @Composable () -> Unit,
 ) {
     val colors = waiveraColors(darkTheme)
     CompositionLocalProvider(
         LocalWaiveraColors provides colors,
-        LocalWaiveraMotion provides motion,
+        LocalWaiveraMotion provides if (reduceMotion) WaiveraMotionScheme.Reduced else motion,
         LocalHapticsEnabled provides hapticsEnabled,
     ) {
         MaterialTheme(
