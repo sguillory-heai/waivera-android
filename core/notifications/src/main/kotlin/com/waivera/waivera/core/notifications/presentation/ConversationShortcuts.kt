@@ -28,7 +28,9 @@ internal class ConversationShortcuts(private val context: Context) {
             .setShortLabel(label)
             .setLongLived(true)
             .setLocusId(LocusIdCompat(id))
-            .setIcon(InitialsAvatar.icon(context, label))
+            // Android draws a conversation notification's avatar from its shortcut, not from the
+            // message's sender, so a direct chat's shortcut carries the sender's photo or tile.
+            .setIcon(person?.icon ?: InitialsAvatar.icon(context, label))
             .setIntent(intent)
             .apply { if (person != null) setPerson(person) }
             .build()
