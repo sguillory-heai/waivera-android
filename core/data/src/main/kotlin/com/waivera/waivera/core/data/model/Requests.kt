@@ -210,6 +210,8 @@ data class ChangeReason(
     val requiresEvidence: Boolean,
     /** Closure reasons named "Other" need a comment, as on the web. */
     val needsComment: Boolean = false,
+    /** Fills the explanation when picked, unless something was typed (web `useReasonExplanation`). */
+    val preset: String? = null,
 )
 
 /** A file attached to the task that a request can cite as evidence. */

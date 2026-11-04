@@ -3,6 +3,10 @@ package com.waivera.waivera.core.data.repository
 import com.waivera.waivera.core.data.model.ActivityFeed
 import com.waivera.waivera.core.data.model.ActivityType
 import com.waivera.waivera.core.data.model.AppSettings
+import com.waivera.waivera.core.data.model.ApprovalMode
+import com.waivera.waivera.core.data.model.ApprovalOutcome
+import com.waivera.waivera.core.data.model.ApprovalPlan
+import com.waivera.waivera.core.data.model.ApprovalSend
 import com.waivera.waivera.core.data.model.AttachmentSource
 import com.waivera.waivera.core.data.model.AttendeeOption
 import com.waivera.waivera.core.data.model.Bookmark
@@ -14,10 +18,14 @@ import com.waivera.waivera.core.data.model.DateRange
 import com.waivera.waivera.core.data.model.DelayFilter
 import com.waivera.waivera.core.data.model.DelayPeriod
 import com.waivera.waivera.core.data.model.DocumentCategory
+import com.waivera.waivera.core.data.model.EmployeeClosure
 import com.waivera.waivera.core.data.model.EmployeeFilePage
 import com.waivera.waivera.core.data.model.EmployeeProfile
 import com.waivera.waivera.core.data.model.EventDraft
 import com.waivera.waivera.core.data.model.FileTemplate
+import com.waivera.waivera.core.data.model.FormDraft
+import com.waivera.waivera.core.data.model.LateContext
+import com.waivera.waivera.core.data.model.LateEdit
 import com.waivera.waivera.core.data.model.LeaveBalance
 import com.waivera.waivera.core.data.model.LeaveDraft
 import com.waivera.waivera.core.data.model.LeavePreview
@@ -43,6 +51,7 @@ import com.waivera.waivera.core.data.model.RequestOutcome
 import com.waivera.waivera.core.data.model.RequiredFile
 import com.waivera.waivera.core.data.model.ScheduleEvent
 import com.waivera.waivera.core.data.model.ScheduleFeed
+import com.waivera.waivera.core.data.model.SendBackOption
 import com.waivera.waivera.core.data.model.SessionState
 import com.waivera.waivera.core.data.model.Synced
 import com.waivera.waivera.core.data.model.TaskActivity
@@ -343,6 +352,9 @@ interface TaskFileRepository {
  * sent one at a time by a background job that outlives the screen and the app, and is retried
  * when the connection comes back. Sign-out drops everything still queued.
  */
+/** Who a prepared pick is for: each keeps its own copy so one pick never removes the other's. */
+enum class PickPurpose { Activity, Evidence }
+
 interface TaskUploadRepository {
     /** This task's uploads that the server does not list yet, oldest first. */
     fun uploads(taskId: Int): Flow<List<TaskUpload>>
@@ -369,7 +381,7 @@ interface TaskUploadRepository {
      * Checks and copies a file picked for Log activity. Fails with `UploadRefused` and the
      * app's reason when the file can't be sent. Only the latest prepared file is kept.
      */
-    suspend fun prepare(uri: String): Result<PreparedFile>
+    suspend fun prepare(uri: String, purpose: PickPurpose = PickPurpose.Activity): Result<PreparedFile>
 
     /**
      * Sends [file] now, under [template]'s name and type when there is one (sprout_web logs the
@@ -378,8 +390,62 @@ interface TaskUploadRepository {
      */
     suspend fun sendNow(taskId: Int, file: PreparedFile, template: FileTemplate?): Result<String?>
 
+    /**
+     * Sends [file] as evidence for a late reason (sprout_web `uploadComplianceEvidence`) and
+     * returns its attachment id. Fails with `UploadRefused` carrying the app's reason.
+     */
+    suspend fun sendEvidence(taskId: Int, file: PreparedFile): Result<Int>
+
     /** Drops a prepared file the person removed or never sent. */
     suspend fun discard(file: PreparedFile)
+}
+
+/**
+ * Submitting, approving and rejecting a task, and every step the web runs on the way
+ * (sprout_web `TaskPage.HandleApprove`). The server re-checks each call against the viewer's
+ * own workflow role, so a stale screen fails safely.
+ */
+@Suppress("TooManyFunctions") // One function per step of the web's review chain.
+interface TaskReviewRepository {
+    suspend fun plan(taskId: Int, mode: ApprovalMode): Result<ApprovalPlan>
+
+    /** A refusal the person can act on is an [ApprovalOutcome]; anything else fails. */
+    suspend fun approve(taskId: Int, send: ApprovalSend): Result<ApprovalOutcome>
+
+    suspend fun drafts(taskId: Int): Result<List<FormDraft>>
+
+    suspend fun employeeClosure(taskId: Int): Result<EmployeeClosure>
+
+    /** [merge] lists the PDFs to combine, in order; null closes and finalizes each file. */
+    suspend fun chooseClosure(taskId: Int, merge: List<String>?, nextExpiration: LocalDate?): Result<Unit>
+
+    /** Empty when there is no earlier step. */
+    suspend fun sendBackOptions(taskId: Int): Result<List<SendBackOption>>
+
+    /** [lateReasonId] when it returns a late reason for correction. */
+    suspend fun sendBack(
+        taskId: Int,
+        option: SendBackOption,
+        feedback: String,
+        minutes: Int,
+        lateReasonId: Long? = null,
+    ): Result<Unit>
+
+    suspend fun lateContext(taskId: Int): Result<LateContext>
+
+    /** Reasons that may explain a late task. */
+    suspend fun lateReasons(): Result<List<ChangeReason>>
+
+    suspend fun justify(
+        taskId: Int,
+        reasonId: Long,
+        explanation: String,
+        evidenceId: Int?,
+        delayId: Long?,
+    ): Result<Unit>
+
+    /** Agrees with a late reason, optionally correcting it first. */
+    suspend fun agreeLate(taskId: Int, justificationId: Long, note: String?, edit: LateEdit?): Result<Unit>
 }
 
 /**

@@ -132,6 +132,7 @@ fun RouteContent(route: AppRoute, actions: RouteActions) {
             taskId = route.taskId,
             onBack = actions.back,
             onOpenFile = { task, attachment -> actions.push(TaskFileRoute(task, attachment)) },
+            onOpenTask = { id -> actions.push(TaskRoute(id)) },
         )
         is TaskFileRoute -> TaskFileScreen(
             taskId = route.taskId,

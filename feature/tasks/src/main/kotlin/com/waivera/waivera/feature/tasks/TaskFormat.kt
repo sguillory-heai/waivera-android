@@ -48,6 +48,7 @@ object TaskFormat {
     private val Clock get() = pattern("h:mm a")
     private val Day get() = pattern("EEE, MMM d")
     private val Month get() = pattern("MMM")
+    private val MonthYear get() = pattern("MMMM yyyy")
 
     fun due(due: LocalDate?, today: LocalDate): DueText = when {
         due == null -> DueText.None
@@ -72,6 +73,9 @@ object TaskFormat {
 
     /** The date tile's month, "Nov". */
     fun tileMonth(date: LocalDate): String = date.format(Month)
+
+    /** "October 2026": a Drive section, which is filed by month. */
+    fun monthYear(date: LocalDate): String = date.format(MonthYear)
 
     /** "Nov 24, 2026": a date read on its own, such as a profile field. */
     fun fullDate(date: LocalDate): String = date.format(OtherYear)

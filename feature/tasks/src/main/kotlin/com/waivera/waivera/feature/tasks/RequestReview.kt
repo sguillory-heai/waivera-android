@@ -601,7 +601,7 @@ private fun DecisionButtons(approve: String, reject: String, actions: ReviewActi
 
 /** Notes over four lines open in place, like long activity notes on a task. */
 @Composable
-private fun LongNote(text: String) {
+internal fun LongNote(text: String) {
     ActivityNote(text = text, startExpanded = false, lines = NOTE_LINES, style = MaterialTheme.typography.bodyMedium)
 }
 

@@ -109,6 +109,11 @@ data class TaskDetail(
     val pendingRequest: ChangeRequest? = null,
     /** The approved delay covering today, if any. */
     val delay: TaskDelay? = null,
+    /** Submit, Approve and Reject, as the server allows them now. */
+    val review: TaskReviewAccess = TaskReviewAccess.None,
+    /** The approval stages in order; empty when the task has no workflow. */
+    val steps: List<WorkflowStep> = emptyList(),
+    val planDates: PlanDates? = null,
 ) {
     /** Completed or closed: the server refuses new activity. */
     val isFinished: Boolean get() = state == TaskState.Completed || state == TaskState.Closed

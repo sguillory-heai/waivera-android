@@ -18,6 +18,7 @@ import com.waivera.waivera.core.data.live.LiveSessionRepository
 import com.waivera.waivera.core.data.live.LiveSettingsRepository
 import com.waivera.waivera.core.data.live.LiveTaskFileRepository
 import com.waivera.waivera.core.data.live.LiveTaskRepository
+import com.waivera.waivera.core.data.live.LiveTaskReviewRepository
 import com.waivera.waivera.core.data.live.LiveThreadRepository
 import com.waivera.waivera.core.data.repository.ActivityRepository
 import com.waivera.waivera.core.data.repository.AttachmentRepository
@@ -38,6 +39,7 @@ import com.waivera.waivera.core.data.repository.SessionRepository
 import com.waivera.waivera.core.data.repository.SettingsRepository
 import com.waivera.waivera.core.data.repository.TaskFileRepository
 import com.waivera.waivera.core.data.repository.TaskRepository
+import com.waivera.waivera.core.data.repository.TaskReviewRepository
 import com.waivera.waivera.core.data.repository.TaskUploadRepository
 import com.waivera.waivera.core.data.repository.ThreadRepository
 import com.waivera.waivera.core.data.sync.LiveDataLayerStarter
@@ -63,6 +65,7 @@ import com.waivera.waivera.core.demo.DemoSessionRepository
 import com.waivera.waivera.core.demo.DemoSettingsRepository
 import com.waivera.waivera.core.demo.DemoTaskFileRepository
 import com.waivera.waivera.core.demo.DemoTaskRepository
+import com.waivera.waivera.core.demo.DemoTaskReviewRepository
 import com.waivera.waivera.core.demo.DemoTaskUploadRepository
 import com.waivera.waivera.core.demo.DemoThreadRepository
 import com.waivera.waivera.core.network.AuthTokenProvider
@@ -165,6 +168,13 @@ object DemoSwitchModule {
         live: Provider<LiveTaskFileRepository>,
         demo: Provider<DemoTaskFileRepository>,
     ): TaskFileRepository = pick(mode, live, demo)
+
+    @Provides
+    fun taskReview(
+        mode: DemoMode,
+        live: Provider<LiveTaskReviewRepository>,
+        demo: Provider<DemoTaskReviewRepository>,
+    ): TaskReviewRepository = pick(mode, live, demo)
 
     @Provides
     fun taskUploads(

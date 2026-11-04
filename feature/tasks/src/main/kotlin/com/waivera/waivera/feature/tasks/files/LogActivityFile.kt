@@ -53,6 +53,7 @@ internal fun LogActivityFile(form: LogForm, onSource: (UploadSource) -> Unit, on
                     uploaded = sentAs != null,
                     canRemove = !form.isSaving && sentAs == null,
                     onRemove = onRemove,
+                    pendingText = stringResource(R.string.feature_tasks_log_file_on_log),
                 )
             }
             form.fileChecking -> SheetGroup {
@@ -89,14 +90,17 @@ internal fun LogActivityFile(form: LogForm, onSource: (UploadSource) -> Unit, on
     }
 }
 
+/** A picked file waiting to go up with the form it belongs to; [pendingText] says when it goes. */
 @Composable
-private fun PickedFileRow(
+@Suppress("LongParameterList") // The row's fields, each shown as given.
+internal fun PickedFileRow(
     name: String,
     kind: FileKind,
     sizeBytes: Long?,
     uploaded: Boolean,
     canRemove: Boolean,
     onRemove: () -> Unit,
+    pendingText: String,
 ) {
     val colors = WaiveraTheme.colors
     val context = LocalContext.current
@@ -120,13 +124,7 @@ private fun PickedFileRow(
             )
             Text(
                 text = listOfNotNull(
-                    stringResource(
-                        if (!uploaded) {
-                            R.string.feature_tasks_log_file_on_log
-                        } else {
-                            R.string.feature_tasks_upload_done
-                        },
-                    ),
+                    if (uploaded) stringResource(R.string.feature_tasks_upload_done) else pendingText,
                     sizeBytes?.let { Formatter.formatShortFileSize(context, it) },
                 ).joinToString(" · "),
                 style = MaterialTheme.typography.bodySmall,

@@ -38,4 +38,12 @@ internal object UploadForm {
     }
 
     private fun field(name: String, value: String) = MultipartBody.Part.createFormData(name, value)
+
+    /** sprout_web `uploadComplianceEvidence`: the server takes everything else from the task. */
+    fun evidenceParts(body: RequestBody, fileName: String, taskId: Int, mimeType: String, sizeBytes: Long) = listOf(
+        MultipartBody.Part.createFormData("file.File", fileName, body),
+        field("file.TaskId", taskId.toString()),
+        field("file.MimeType", mimeType),
+        field("file.Size", sizeBytes.toString()),
+    )
 }

@@ -19,6 +19,7 @@ import com.waivera.waivera.core.data.model.TaskUpload
 import com.waivera.waivera.core.data.model.UploadProblem
 import com.waivera.waivera.core.data.model.UploadState
 import com.waivera.waivera.core.data.model.UploadTarget
+import com.waivera.waivera.core.data.repository.PickPurpose
 import com.waivera.waivera.core.data.repository.TaskUploadRepository
 import com.waivera.waivera.core.network.api.TaskApi
 import com.waivera.waivera.core.network.di.ApplicationScope
@@ -51,7 +52,9 @@ import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
+import okhttp3.RequestBody
 import okhttp3.RequestBody.Companion.asRequestBody
+import retrofit2.Response
 
 /** Runs [TaskUploadProcessor]; dependencies come through an entry point, like the outbox worker. */
 class TaskUploadWorker(context: Context, params: WorkerParameters) : CoroutineWorker(context, params) {
@@ -210,37 +213,63 @@ class LiveTaskUploadRepository @Inject constructor(
         scope.launch(io) { store.remove(id) }
     }
 
-    override suspend fun prepare(uri: String): Result<PreparedFile> = withContext(io) {
-        // One Log activity sheet is open at a time; an earlier pick it never sent goes.
-        store.activityDirectory.deleteRecursively()
-        stager.stage(uri, store.activityDirectory).map {
+    override suspend fun prepare(uri: String, purpose: PickPurpose): Result<PreparedFile> = stageOne(
+        uri,
+        when (purpose) {
+            PickPurpose.Activity -> store.activityDirectory
+            PickPurpose.Evidence -> store.evidenceDirectory
+        },
+    )
+
+    /** One sheet of each kind is open at a time; an earlier pick it never sent goes. */
+    private suspend fun stageOne(uri: String, directory: File): Result<PreparedFile> = withContext(io) {
+        directory.deleteRecursively()
+        stager.stage(uri, directory).map {
             PreparedFile(it.file.path, it.fileName, it.mimeType, it.file.length())
         }
     }
 
-    override suspend fun sendNow(taskId: Int, file: PreparedFile, template: FileTemplate?): Result<String?> =
-        withContext(io) {
-            val copy = File(file.path).takeIf(File::exists)
-                ?: return@withContext Result.failure(UploadRefused(UploadProblem.Unreadable))
-            val name = template?.let { UploadChecks.templateName(it.name, file.mimeType) } ?: file.name
-            val target =
-                UploadTarget(typeId = template?.typeId ?: UploadTarget.PLAIN_TYPE_ID, categoryId = template?.categoryId)
-            val body = copy.asRequestBody(file.mimeType.toMediaTypeOrNull())
-            catchingWaivera {
-                apiCall {
-                    api.uploadTaskFile(UploadForm.parts(body, name, target, taskId, file.mimeType, copy.length()))
-                }
-            }.fold(
-                onSuccess = { saved ->
-                    copy.delete()
-                    Result.success(saved.fileName?.takeIf(String::isNotBlank))
-                },
-                onFailure = { error ->
-                    val problem = (error as? WaiveraError)?.let(TaskUploadProcessor::problem) ?: UploadProblem.Failed
-                    Result.failure(UploadRefused(problem))
-                },
-            )
-        }
+    override suspend fun sendNow(taskId: Int, file: PreparedFile, template: FileTemplate?): Result<String?> {
+        val name = template?.let { UploadChecks.templateName(it.name, file.mimeType) } ?: file.name
+        val target =
+            UploadTarget(typeId = template?.typeId ?: UploadTarget.PLAIN_TYPE_ID, categoryId = template?.categoryId)
+        return sendStaged(
+            file,
+            send = { body, size ->
+                api.uploadTaskFile(UploadForm.parts(body, name, target, taskId, file.mimeType, size))
+            },
+            read = { it.fileName?.takeIf(String::isNotBlank) },
+        )
+    }
+
+    override suspend fun sendEvidence(taskId: Int, file: PreparedFile): Result<Int> = sendStaged(
+        file,
+        send = { body, size ->
+            api.uploadEvidence(UploadForm.evidenceParts(body, file.name, taskId, file.mimeType, size))
+        },
+        read = { it.attachmentId },
+    )
+
+    /** Sends a prepared copy now; the copy goes once the server has it and stays for a retry otherwise. */
+    private suspend fun <R : Any, T> sendStaged(
+        file: PreparedFile,
+        send: suspend (RequestBody, Long) -> Response<R>,
+        read: (R) -> T,
+    ): Result<T> = withContext(io) {
+        val copy = File(file.path).takeIf(File::exists)
+            ?: return@withContext Result.failure(UploadRefused(UploadProblem.Unreadable))
+        val body = copy.asRequestBody(file.mimeType.toMediaTypeOrNull())
+        catchingWaivera { read(apiCall { send(body, copy.length()) }) }.fold(
+            onSuccess = { value ->
+                copy.delete()
+                Result.success(value)
+            },
+            onFailure = { error ->
+                val problem = (error as? WaiveraError)?.let(TaskUploadProcessor::problem) ?: UploadProblem.Failed
+                Result.failure(UploadRefused(problem))
+            },
+        )
+    }
 
     override suspend fun discard(file: PreparedFile) {
         withContext(io) { File(file.path).delete() }

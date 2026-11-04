@@ -8,6 +8,7 @@ import com.waivera.waivera.core.data.model.RequiredFile
 import com.waivera.waivera.core.data.model.TaskUpload
 import com.waivera.waivera.core.data.model.UploadState
 import com.waivera.waivera.core.data.model.UploadTarget
+import com.waivera.waivera.core.data.repository.PickPurpose
 import com.waivera.waivera.core.data.repository.TaskUploadRepository
 import com.waivera.waivera.core.network.di.ApplicationScope
 import java.util.UUID
@@ -80,7 +81,7 @@ class DemoTaskUploadRepository @Inject constructor(@ApplicationScope private val
 
     override fun dismiss(id: String) = all.update { list -> list.filterNot { it.id == id } }
 
-    override suspend fun prepare(uri: String): Result<PreparedFile> {
+    override suspend fun prepare(uri: String, purpose: PickPurpose): Result<PreparedFile> {
         val name = uri.substringAfterLast('/').ifEmpty { "Photo.jpg" }
         return Result.success(
             PreparedFile(uri, name, if (name.endsWith(".pdf")) "application/pdf" else "image/jpeg", DEMO_SIZE),
@@ -92,12 +93,18 @@ class DemoTaskUploadRepository @Inject constructor(@ApplicationScope private val
         return Result.success(template?.name ?: file.name)
     }
 
+    override suspend fun sendEvidence(taskId: Int, file: PreparedFile): Result<Int> {
+        delay(STEP_MILLIS * STEPS)
+        return Result.success(DEMO_EVIDENCE_ID)
+    }
+
     override suspend fun discard(file: PreparedFile) = Unit
 
     private fun change(id: String, edit: (TaskUpload) -> TaskUpload) =
         all.update { list -> list.map { if (it.id == id) edit(it) else it } }
 
     private companion object {
+        const val DEMO_EVIDENCE_ID = 9_101
         const val CERTIFICATIONS = 1
         const val TRAINING = 2
         const val HR_FORMS = 3

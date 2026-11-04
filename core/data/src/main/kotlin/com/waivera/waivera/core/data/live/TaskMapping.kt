@@ -82,6 +82,9 @@ object TaskMapping {
                 .filter { it.status == RequestStatus.Pending }
                 .maxByOrNull { it.requestedAt ?: Instant.MIN },
             delay = dto.currentTaskDelay?.let(::delay),
+            review = ReviewMapping.access(dto.capabilities, dto.isTaskReady),
+            steps = ReviewMapping.steps(dto.workflowBlueprint),
+            planDates = ReviewMapping.planDates(dto.participant),
         )
     }
 

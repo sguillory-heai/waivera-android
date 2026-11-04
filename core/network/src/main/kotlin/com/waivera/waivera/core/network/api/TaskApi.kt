@@ -3,6 +3,7 @@ package com.waivera.waivera.core.network.api
 import com.waivera.waivera.core.network.dto.ActionSubTypeResponse
 import com.waivera.waivera.core.network.dto.ApiResponse
 import com.waivera.waivera.core.network.dto.DocumentCategoryResponse
+import com.waivera.waivera.core.network.dto.EvidenceUploadResponse
 import com.waivera.waivera.core.network.dto.RequiredAttachmentResponse
 import com.waivera.waivera.core.network.dto.TaskActionRequest
 import com.waivera.waivera.core.network.dto.TaskActionResponse
@@ -102,6 +103,11 @@ interface TaskApi {
     @Multipart
     @POST("api/file/upload")
     suspend fun uploadTaskFile(@Part parts: List<MultipartBody.Part>): Response<TaskUploadResponse>
+
+    /** The web's `uploadComplianceEvidence` form: `file.File`, `file.TaskId`, `file.MimeType`, `file.Size`. */
+    @Multipart
+    @POST("api/file/upload-compliance-evidence")
+    suspend fun uploadEvidence(@Part parts: List<MultipartBody.Part>): Response<EvidenceUploadResponse>
 
     /** Employee file categories; an extra file on an employee task needs one. */
     @GET("api/documentCategory/getall")

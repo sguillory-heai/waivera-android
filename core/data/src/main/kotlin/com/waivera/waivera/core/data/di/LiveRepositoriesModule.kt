@@ -18,6 +18,7 @@ import com.waivera.waivera.core.data.live.LiveSessionRepository
 import com.waivera.waivera.core.data.live.LiveSettingsRepository
 import com.waivera.waivera.core.data.live.LiveTaskFileRepository
 import com.waivera.waivera.core.data.live.LiveTaskRepository
+import com.waivera.waivera.core.data.live.LiveTaskReviewRepository
 import com.waivera.waivera.core.data.live.LiveThreadRepository
 import com.waivera.waivera.core.data.repository.ActivityRepository
 import com.waivera.waivera.core.data.repository.AttachmentRepository
@@ -38,6 +39,7 @@ import com.waivera.waivera.core.data.repository.SessionRepository
 import com.waivera.waivera.core.data.repository.SettingsRepository
 import com.waivera.waivera.core.data.repository.TaskFileRepository
 import com.waivera.waivera.core.data.repository.TaskRepository
+import com.waivera.waivera.core.data.repository.TaskReviewRepository
 import com.waivera.waivera.core.data.repository.TaskUploadRepository
 import com.waivera.waivera.core.data.repository.ThreadRepository
 import com.waivera.waivera.core.data.sync.LiveDataLayerStarter
@@ -95,6 +97,9 @@ interface LiveRepositoriesModule {
 
     @Binds
     fun taskUploads(impl: LiveTaskUploadRepository): TaskUploadRepository
+
+    @Binds
+    fun taskReview(impl: LiveTaskReviewRepository): TaskReviewRepository
 
     @Binds
     fun links(impl: LiveLinkLookupRepository): LinkLookupRepository

@@ -6,6 +6,7 @@ import com.waivera.waivera.core.data.model.PreparedFile
 import com.waivera.waivera.core.data.model.RequiredFile
 import com.waivera.waivera.core.data.model.TaskUpload
 import com.waivera.waivera.core.data.model.UploadTarget
+import com.waivera.waivera.core.data.repository.PickPurpose
 import com.waivera.waivera.core.data.repository.TaskUploadRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -52,14 +53,31 @@ class FakeTaskUploads(private val categories: List<DocumentCategory> = emptyList
     val sent = mutableListOf<Pair<PreparedFile, FileTemplate?>>()
     val discarded = mutableListOf<PreparedFile>()
 
-    override suspend fun prepare(uri: String): Result<PreparedFile> = prepareResult(uri)
+    val evidencePicks = mutableListOf<String>()
+
+    override suspend fun prepare(uri: String, purpose: PickPurpose): Result<PreparedFile> {
+        if (purpose == PickPurpose.Evidence) evidencePicks += uri
+        return prepareResult(uri)
+    }
 
     override suspend fun sendNow(taskId: Int, file: PreparedFile, template: FileTemplate?): Result<String?> {
         sent += file to template
         return sendResult
     }
 
+    var evidenceResult: Result<Int> = Result.success(EVIDENCE_ID)
+    val evidence = mutableListOf<PreparedFile>()
+
+    override suspend fun sendEvidence(taskId: Int, file: PreparedFile): Result<Int> {
+        evidence += file
+        return evidenceResult
+    }
+
     override suspend fun discard(file: PreparedFile) {
         discarded += file
+    }
+
+    companion object {
+        const val EVIDENCE_ID = 777
     }
 }

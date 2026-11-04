@@ -18,6 +18,9 @@ object WaiveraIcons {
     /** "Show it": scrolls up to something further up the screen, such as a message that wasn't sent. */
     @DrawableRes val ArrowUp: Int = R.drawable.core_designsystem_ic_arrow_upward
 
+    /** Moves an item one place later in a list the person orders. */
+    @DrawableRes val ArrowDown: Int = R.drawable.core_designsystem_ic_arrow_downward
+
     @DrawableRes val Attachment: Int = R.drawable.core_designsystem_ic_attachment
 
     @DrawableRes val Award: Int = R.drawable.core_designsystem_ic_award

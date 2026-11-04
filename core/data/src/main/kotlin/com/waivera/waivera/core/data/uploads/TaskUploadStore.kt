@@ -55,6 +55,9 @@ class TaskUploadStore @Inject constructor(@TaskUploadDirectory private val direc
     /** Copies of files picked for Log activity, kept apart from the queue's own. */
     val activityDirectory: File get() = File(directory, ACTIVITY_DIRECTORY)
 
+    /** Copies of files picked as late-reason evidence, apart from Log activity's so neither wipes the other. */
+    val evidenceDirectory: File get() = File(directory, EVIDENCE_DIRECTORY)
+
     val progress: StateFlow<Map<String, Float>> = progressFlow.asStateFlow()
 
     suspend fun all(): StateFlow<List<UploadEntry>?> {
@@ -131,6 +134,7 @@ class TaskUploadStore @Inject constructor(@TaskUploadDirectory private val direc
     private companion object {
         const val QUEUE_FILE = "queue.json"
         const val ACTIVITY_DIRECTORY = "activity"
+        const val EVIDENCE_DIRECTORY = "evidence"
         const val STAGED = "files"
     }
 }

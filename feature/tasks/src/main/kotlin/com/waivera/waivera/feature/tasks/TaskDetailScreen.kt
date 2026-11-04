@@ -10,6 +10,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -77,6 +78,14 @@ import com.waivera.waivera.feature.tasks.files.UploadActions
 import com.waivera.waivera.feature.tasks.files.UploadSheetActions
 import com.waivera.waivera.feature.tasks.files.UploadSourceHost
 import com.waivera.waivera.feature.tasks.files.rememberTaskFileActions
+import com.waivera.waivera.feature.tasks.review.ReviewAction
+import com.waivera.waivera.feature.tasks.review.ReviewBarActions
+import com.waivera.waivera.feature.tasks.review.ReviewButtons
+import com.waivera.waivera.feature.tasks.review.ReviewUiState
+import com.waivera.waivera.feature.tasks.review.TaskReviewEffect
+import com.waivera.waivera.feature.tasks.review.TaskReviewSheets
+import com.waivera.waivera.feature.tasks.review.TaskReviewViewModel
+import com.waivera.waivera.feature.tasks.review.reviewSheetActions
 import kotlinx.coroutines.launch
 
 /** One task: its details, recent activity and Log activity. Owned by `:feature:tasks`; routed by `:app`. */
@@ -86,6 +95,7 @@ fun TaskDetailScreen(
     onBack: () -> Unit,
     onOpenFile: (taskId: Int, attachmentId: Int) -> Unit,
     modifier: Modifier = Modifier,
+    onOpenTask: (taskId: Int) -> Unit = {},
 ) {
     val viewModel = hiltViewModel<TaskDetailViewModel, TaskDetailViewModel.Factory>(
         key = "task-$taskId",
@@ -126,8 +136,31 @@ fun TaskDetailScreen(
             }
         }
     }
+    val reviewViewModel = hiltViewModel<TaskReviewViewModel, TaskReviewViewModel.Factory>(
+        key = "task-review-$taskId",
+        creationCallback = { factory -> factory.create(taskId) },
+    )
+    val review by reviewViewModel.uiState.collectAsStateWithLifecycle()
+    val reviewScope = rememberCoroutineScope()
+    LaunchedEffect(reviewViewModel) {
+        reviewViewModel.effects.collect { effect ->
+            when (effect) {
+                TaskReviewEffect.Reload -> viewModel.load()
+                is TaskReviewEffect.OpenFile -> onOpenFile(taskId, effect.attachmentId)
+                is TaskReviewEffect.OpenTask -> onOpenTask(effect.taskId)
+                // The message shows on its own so the Reload right behind it isn't held until it's gone:
+                // otherwise the old task, with Approve live again, stays up for the snackbar's length.
+                else -> effect.message()?.let { reviewScope.launch { snackbar.showSnackbar(resources.getString(it)) } }
+            }
+        }
+    }
     TaskDetailContent(
         state = state,
+        review = review,
+        reviewActions = ReviewBarActions(
+            onAction = { action -> state.task?.let { reviewViewModel.start(action, it) } },
+            onReject = reviewViewModel::startReject,
+        ),
         uploads = uploads,
         uploadActions = UploadActions(
             onUploadRequired = uploadsViewModel::startRequired,
@@ -160,6 +193,11 @@ fun TaskDetailScreen(
         ),
         onPicked = uploadsViewModel::picked,
         onLaunch = uploadsViewModel::launching,
+    )
+    TaskReviewSheets(
+        state = review,
+        today = state.today,
+        actions = reviewSheetActions(reviewViewModel, onOpenWeb = viewModel::openOnWeb),
     )
     state.ask?.let { form ->
         AskChangeSheet(
@@ -214,6 +252,24 @@ internal data class TaskDetailActions(
     }
 }
 
+private fun TaskReviewEffect.message(): Int? = when (this) {
+    is TaskReviewEffect.Done -> when {
+        completed -> R.string.feature_tasks_review_done_completed
+        action == ReviewAction.Submit || action == ReviewAction.SubmitAll -> R.string.feature_tasks_review_submitted
+        else -> R.string.feature_tasks_review_approved
+    }
+    TaskReviewEffect.SentBack -> R.string.feature_tasks_review_sent_back
+    TaskReviewEffect.Changed -> R.string.feature_tasks_review_task_changed
+    TaskReviewEffect.Failed -> R.string.feature_tasks_review_failed
+    TaskReviewEffect.LateNeedsAssignee -> R.string.feature_tasks_review_late_needs_assignee
+    TaskReviewEffect.CantApproveAll -> R.string.feature_tasks_review_cant_all
+    else -> null
+}
+
+@Composable
+private fun StepNote.text(): String = role?.let { stringResource(R.string.feature_tasks_field_step, order, total, it) }
+    ?: stringResource(R.string.feature_tasks_field_step_plain, order, total)
+
 private fun TaskDetailEffect.Asked.message(): Int = when {
     inEffect && kind == AskKind.MoreTime -> R.string.feature_tasks_asked_in_effect_more_time
     inEffect && kind == AskKind.Delay -> R.string.feature_tasks_asked_in_effect_delay
@@ -230,6 +286,8 @@ internal fun TaskDetailContent(
     modifier: Modifier = Modifier,
     uploads: TaskUploadsUiState = TaskUploadsUiState(required = Loadable.Ready(emptyList())),
     uploadActions: UploadActions = UploadActions(),
+    review: ReviewUiState = ReviewUiState(),
+    reviewActions: ReviewBarActions = ReviewBarActions(),
 ) {
     val colors = WaiveraTheme.colors
     val motion = WaiveraTheme.motion
@@ -277,16 +335,18 @@ internal fun TaskDetailContent(
         }
         if (task != null) {
             WaiveraBottomActionBar(insets = WindowInsets.navigationBars) {
-                if (state.canLog) {
-                    WaiveraButton(
+                val reviewing = state.canLog && task.review.any
+                if (reviewing) ReviewButtons(task.review, review, reviewActions)
+                when {
+                    reviewing -> SecondaryActions(state, actions)
+                    state.canLog -> WaiveraButton(
                         text = stringResource(R.string.feature_tasks_log_activity),
                         onClick = actions.onLog,
                         fullWidth = true,
                         leadingIcon = WaiveraIcons.Add,
                         size = WaiveraButtonSize.Large,
                     )
-                } else {
-                    Text(
+                    else -> Text(
                         text = stringResource(R.string.feature_tasks_finished_note),
                         style = MaterialTheme.typography.bodyMedium,
                         color = colors.textSecondary,
@@ -294,7 +354,7 @@ internal fun TaskDetailContent(
                 }
                 // Ask for a change leaves while a request is pending; the banner says why.
                 AnimatedVisibility(
-                    visible = state.canAsk,
+                    visible = state.canAsk && !reviewing,
                     enter = expandVertically(motion.layout(), expandFrom = Alignment.Top) + fadeIn(motion.state()),
                     exit = shrinkVertically(motion.layout()) + fadeOut(motion.state()),
                 ) {
@@ -307,6 +367,42 @@ internal fun TaskDetailContent(
                     )
                 }
             }
+        }
+    }
+}
+
+/**
+ * With review buttons on top, Log activity and Ask for a change step down to quiet text buttons
+ * side by side (stacked at large text), so the bar never grows past three rows.
+ */
+@Composable
+private fun SecondaryActions(state: TaskDetailUiState, actions: TaskDetailActions) {
+    val log = @Composable { modifier: Modifier ->
+        WaiveraButton(
+            text = stringResource(R.string.feature_tasks_log_activity),
+            onClick = actions.onLog,
+            variant = WaiveraButtonVariant.Text,
+            leadingIcon = WaiveraIcons.Add,
+            modifier = modifier,
+        )
+    }
+    val ask = @Composable { modifier: Modifier ->
+        WaiveraButton(
+            text = stringResource(R.string.feature_tasks_ask_change),
+            onClick = actions.onAsk,
+            variant = WaiveraButtonVariant.Text,
+            modifier = modifier,
+        )
+    }
+    when {
+        !state.canAsk -> log(Modifier.fillMaxWidth())
+        isLargeFontScale() -> Column {
+            log(Modifier.fillMaxWidth())
+            ask(Modifier.fillMaxWidth())
+        }
+        else -> Row(horizontalArrangement = Arrangement.spacedBy(WaiveraSpacing.Small)) {
+            log(Modifier.weight(1f))
+            ask(Modifier.weight(1f))
         }
     }
 }
@@ -344,6 +440,13 @@ private fun DetailBody(
             Column(Modifier.fillMaxWidth().padding(vertical = WaiveraSpacing.MediumSmall)) {
                 InfoRow(stringResource(R.string.feature_tasks_field_status), R.drawable.feature_tasks_ic_task) {
                     WaiveraStatusBadge(text = task.state.label(), tone = TaskFormat.tone(task.state, state.late))
+                    state.step?.let { InfoNote(it.text()) }
+                }
+                state.step?.sentBy?.let {
+                    InfoDivider()
+                    InfoRow(stringResource(R.string.feature_tasks_field_sent_by), WaiveraIcons.ArrowUp) {
+                        InfoValue(it)
+                    }
                 }
                 InfoDivider()
                 InfoRow(stringResource(R.string.feature_tasks_field_due), WaiveraIcons.Calendar) {

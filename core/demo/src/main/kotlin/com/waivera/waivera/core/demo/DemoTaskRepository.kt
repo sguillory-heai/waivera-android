@@ -8,6 +8,7 @@ import com.waivera.waivera.core.data.model.FileKind
 import com.waivera.waivera.core.data.model.FileTemplate
 import com.waivera.waivera.core.data.model.NewActivity
 import com.waivera.waivera.core.data.model.RequestKind
+import com.waivera.waivera.core.data.model.StepStatus
 import com.waivera.waivera.core.data.model.TaskActivity
 import com.waivera.waivera.core.data.model.TaskAttachment
 import com.waivera.waivera.core.data.model.TaskCounts
@@ -15,10 +16,12 @@ import com.waivera.waivera.core.data.model.TaskDelay
 import com.waivera.waivera.core.data.model.TaskDetail
 import com.waivera.waivera.core.data.model.TaskPage
 import com.waivera.waivera.core.data.model.TaskQuery
+import com.waivera.waivera.core.data.model.TaskReviewAccess
 import com.waivera.waivera.core.data.model.TaskScope
 import com.waivera.waivera.core.data.model.TaskState
 import com.waivera.waivera.core.data.model.TaskSummary
 import com.waivera.waivera.core.data.model.TaskWindow
+import com.waivera.waivera.core.data.model.WorkflowStep
 import com.waivera.waivera.core.data.repository.TaskRepository
 import com.waivera.waivera.core.network.error.WaiveraError
 import java.time.LocalDate
@@ -173,9 +176,21 @@ object DemoTasks {
                     through = today.plusDays(5),
                 ),
             ),
-        task(1042, "HEA-1042", "Annual plan review", today.plusDays(5), TaskState.NotStarted, "Maya Thompson"),
-        task(1017, "HEA-1017", "Update emergency contacts", today.plusDays(8), TaskState.InProgress, "Jordan Ellis"),
-        task(987, "HEA-987", "Service authorization follow-up", today.plusDays(11), TaskState.InReview, "Luis Ortega"),
+        task(1042, "HEA-1042", "Annual plan review", today.plusDays(5), TaskState.NotStarted, "Maya Thompson")
+            .copy(review = TaskReviewAccess(canSubmit = true, ready = true), steps = demoSteps(active = 1)),
+        task(1017, "HEA-1017", "Update emergency contacts", today.plusDays(8), TaskState.InProgress, "Jordan Ellis")
+            .copy(review = TaskReviewAccess(canSubmit = true, ready = false), steps = demoSteps(active = 1)),
+        task(987, "HEA-987", "Service authorization follow-up", today.plusDays(11), TaskState.InReview, "Luis Ortega")
+            .copy(
+                review = TaskReviewAccess(
+                    canApprove = true,
+                    canApproveAll = true,
+                    remainingStages = 2,
+                    canReject = true,
+                    ready = true,
+                ),
+                steps = demoSteps(active = 2),
+            ),
         task(
             1101,
             "HEA-1101",
@@ -216,6 +231,22 @@ object DemoTasks {
         delayed = task.delay != null,
         delayedThrough = task.delay?.through,
     )
+
+    /** Assignee, supervisor and director stages, with [active] (1-based) the stage the task waits on. */
+    private fun demoSteps(active: Int): List<WorkflowStep> = listOf("Assignee", "Supervisor", "Director")
+        .mapIndexed { index, role ->
+            val order = index + 1
+            WorkflowStep(
+                order = order,
+                role = role,
+                status = when {
+                    order < active -> StepStatus.Completed
+                    order == active -> StepStatus.Active
+                    else -> StepStatus.Future
+                },
+                approverName = if (order < active) "Priya Raman" else null,
+            )
+        }
 
     @Suppress("LongParameterList")
     private fun task(id: Int, key: String, title: String, due: LocalDate, state: TaskState, about: String?) =

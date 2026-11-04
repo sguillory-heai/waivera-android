@@ -13,11 +13,13 @@ import com.waivera.waivera.core.data.model.PreparedFile
 import com.waivera.waivera.core.data.model.RequestAccess
 import com.waivera.waivera.core.data.model.RequestKind
 import com.waivera.waivera.core.data.model.RequestOutcome
+import com.waivera.waivera.core.data.model.StepStatus
 import com.waivera.waivera.core.data.model.TaskActivity
 import com.waivera.waivera.core.data.model.TaskAttachment
 import com.waivera.waivera.core.data.model.TaskDetail
 import com.waivera.waivera.core.data.model.TaskState
 import com.waivera.waivera.core.data.model.UploadProblem
+import com.waivera.waivera.core.data.model.WorkflowStep
 import com.waivera.waivera.core.data.model.currentUserId
 import com.waivera.waivera.core.data.repository.CalendarRepository
 import com.waivera.waivera.core.data.repository.RequestRepository
@@ -107,6 +109,9 @@ data class TaskDetailUiState(
     /** The approved delay covering today: the task is not really overdue while it lasts. */
     val delay: DelayNote? = null,
 ) {
+    /** The approval stage the task waits on, for Details; the old approval banner's facts live here. */
+    val step: StepNote? get() = task?.let { StepNote.of(it.steps) }
+
     /** Past due with no delay covering it; the due date and status turn red only then. */
     val late: Boolean get() = due.overdue && delay == null
 
@@ -119,6 +124,20 @@ data class TaskDetailUiState(
 }
 
 private const val DELETED = "Deleted"
+
+/** "Step 2 of 4 · Supervisor", and who approved the stage before it. */
+@Immutable
+data class StepNote(val order: Int, val total: Int, val role: String?, val sentBy: String?) {
+    companion object {
+        fun of(steps: List<WorkflowStep>): StepNote? {
+            val active = steps.indexOfFirst { it.status == StepStatus.Active }
+            if (active < 0) return null
+            val step = steps[active]
+            val before = steps.take(active).lastOrNull { it.status == StepStatus.Completed }
+            return StepNote(active + 1, steps.size, step.role, before?.approverName)
+        }
+    }
+}
 
 /** The active delay, already worded: [through] is "Nov 20", null when the server sent no end. */
 @Immutable

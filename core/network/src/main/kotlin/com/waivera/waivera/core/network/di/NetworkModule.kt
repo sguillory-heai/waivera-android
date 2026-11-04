@@ -19,6 +19,7 @@ import com.waivera.waivera.core.network.api.RequestApi
 import com.waivera.waivera.core.network.api.TaskApi
 import com.waivera.waivera.core.network.api.TimeOffApi
 import com.waivera.waivera.core.network.api.VideoApi
+import com.waivera.waivera.core.network.api.WorkflowApi
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -99,6 +100,10 @@ object NetworkModule {
     @Provides
     @Singleton
     fun taskApi(retrofit: Retrofit): TaskApi = retrofit.create(TaskApi::class.java)
+
+    @Provides
+    @Singleton
+    fun workflowApi(retrofit: Retrofit): WorkflowApi = retrofit.create(WorkflowApi::class.java)
 
     @Provides
     @Singleton

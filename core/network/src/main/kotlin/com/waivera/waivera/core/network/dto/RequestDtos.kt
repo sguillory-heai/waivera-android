@@ -175,6 +175,11 @@ data class ComplianceReasonResponse(
     val canBeUsedForDelay: Boolean = false,
     val requiresEvidence: Boolean = false,
     val isActive: Boolean = false,
+    /** System codes are offered unless hidden; agency codes only while active (web late justification). */
+    val isSystemCode: Boolean = false,
+    val canBeUsedForLateJustification: Boolean = false,
+    /** Text that fills the explanation when the reason is picked and nothing was typed yet. */
+    val presetExplanation: String? = null,
 )
 
 /** `TransactionReasonResponseDto` from `GET api/lookup/reasons?type=CLOSURE`. */

@@ -72,6 +72,11 @@ data class TaskResponse(
     /** Change requests on the task; a pending one shows on the task page. */
     val administrativeTransactionRequests: List<AdminRequestResponse>? = null,
     val currentTaskDelay: TaskDelaySummaryResponse? = null,
+    /** Every required form, file and signature is done, so it can be submitted or approved. */
+    val isTaskReady: Boolean = false,
+    val capabilities: TaskCapabilitiesResponse? = null,
+    /** The approval stages in order, for the step the task is on. */
+    val workflowBlueprint: List<WorkflowStepResponse>? = null,
 )
 
 @Serializable
@@ -80,9 +85,18 @@ data class StatusResponse(val id: Int = 0, val name: String? = null)
 @Serializable
 data class TaskSubTypeResponse(val id: Int = 0, val name: String? = null)
 
-/** `ParticipantResponse`: only the name; the rest is participant record detail. */
+/**
+ * `ParticipantResponse`: the name, and the plan (CPOC) dates an approval step that updates them
+ * checks new dates against. Both dates are literal calendar dates.
+ */
 @Serializable
-data class TaskParticipantResponse(val id: Int = 0, val firstName: String? = null, val lastName: String? = null)
+data class TaskParticipantResponse(
+    val id: Int = 0,
+    val firstName: String? = null,
+    val lastName: String? = null,
+    val cpocDate: String? = null,
+    val cpocEndDate: String? = null,
+)
 
 /** `UserResponse`. */
 @Serializable
