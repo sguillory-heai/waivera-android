@@ -78,6 +78,7 @@
     <string name="feature_today_upcoming_tomorrow_at">Tomorrow · %1$s</string>
     <string name="feature_today_upcoming_day_at">%1$s · %2$s</string>
     <string name="feature_today_all_day_today">All day today</string>
+    <string name="feature_today_tomorrow">Tomorrow</string>
     <string name="feature_today_all_day_tomorrow">Tomorrow · All day</string>
     <string name="feature_today_all_day_on">%1$s · All day</string>
     <string name="feature_today_time_range">%1$s – %2$s</string>

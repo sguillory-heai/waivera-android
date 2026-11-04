@@ -82,7 +82,15 @@ internal fun UpNextCard(item: NextUpItem, onClick: () -> Unit, modifier: Modifie
     val time = upcomingText(item.time, formats)
     val place = item.location ?: if (item.isOnline) stringResource(R.string.feature_today_online) else null
     val range = timeRange(item, formats)
-    val showChip = item.isHappeningNow || item.time is UpcomingLabel.InMinutes || item.time is UpcomingLabel.InHours
+    val soon = item.isHappeningNow || item.time is UpcomingLabel.InMinutes || item.time is UpcomingLabel.InHours
+    // The large time has no date, so a card for another day names the day in the chip instead.
+    val day = when (val label = item.time) {
+        is UpcomingLabel.TomorrowAt -> stringResource(R.string.feature_today_tomorrow)
+        is UpcomingLabel.OnDayAt -> formats.day(label.date)
+        else -> null
+    }
+    val chipText = if (soon) time else day
+    val showChip = chipText != null
     val spokenNow = if (item.isHappeningNow) stringResource(R.string.feature_today_happening_now_a11y) else null
     val description = joined(joined(joined(time, title), range?.let { joined(it, place) } ?: place), spokenNow)
     // From 150% the chip goes under the address, so the title and the place keep the row's
@@ -90,7 +98,7 @@ internal fun UpNextCard(item: NextUpItem, onClick: () -> Unit, modifier: Modifie
     val chipBelow = isExtraLargeFontScale()
     val chip: @Composable (Modifier) -> Unit = { chipModifier ->
         Text(
-            text = time,
+            text = chipText.orEmpty(),
             style = WaiveraTextStyles.Chip,
             color = teal.content,
             maxLines = 1,
@@ -193,7 +201,7 @@ internal fun UpNextCard(item: NextUpItem, onClick: () -> Unit, modifier: Modifie
                             )
                         }
                     }
-                } else if (!showChip) {
+                } else if (!soon) {
                     Text(text = time, style = WaiveraTextStyles.ClockTime, color = colors.text)
                 }
             }
