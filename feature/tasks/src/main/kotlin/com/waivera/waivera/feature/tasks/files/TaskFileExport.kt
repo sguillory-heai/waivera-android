@@ -79,7 +79,8 @@ class AndroidTaskFileExport @Inject constructor(
 
         /** A file name any app accepts: no path characters, never empty. */
         fun safeName(fileName: String): String =
-            fileName.replace(Regex("""[\\/:*?"<>|\u0000-\u001f]"""), "-").trim().take(MAX_NAME).ifEmpty { "file" }
+            fileName.replace(Regex("""[\\/:*?"<>|\u0000-\u001f]"""), "-").trim().take(MAX_NAME)
+                .takeUnless { it.isEmpty() || it.all { c -> c == '.' } } ?: "file"
     }
 }
 
