@@ -1,3 +1,5 @@
+@file:Suppress("MagicNumber")
+
 package com.waivera.waivera.feature.tasks
 
 import com.waivera.waivera.core.data.model.ActivityType

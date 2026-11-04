@@ -264,7 +264,8 @@ private fun TasksEmpty(state: TasksUiState, actions: TasksActions) {
 @Composable
 private fun TaskList(state: TasksUiState, actions: TasksActions) {
     val listState = rememberLazyListState()
-    LoadMoreWhenNearEnd(listState, state.canLoadMore, actions.onLoadMore)
+    // Keyed on the row count too, so a page that lands with the list still at its end asks again.
+    LoadMoreWhenNearEnd(listState, state.canLoadMore && !state.isLoadingMore, state.rows.size, actions.onLoadMore)
     LazyColumn(
         state = listState,
         modifier = Modifier.fillMaxSize(),
@@ -298,8 +299,8 @@ private fun TaskList(state: TasksUiState, actions: TasksActions) {
 }
 
 @Composable
-private fun LoadMoreWhenNearEnd(listState: LazyListState, enabled: Boolean, onLoadMore: () -> Unit) {
-    LaunchedEffect(listState, enabled) {
+private fun LoadMoreWhenNearEnd(listState: LazyListState, enabled: Boolean, rowCount: Int, onLoadMore: () -> Unit) {
+    LaunchedEffect(listState, enabled, rowCount) {
         if (!enabled) return@LaunchedEffect
         snapshotFlow {
             val info = listState.layoutInfo

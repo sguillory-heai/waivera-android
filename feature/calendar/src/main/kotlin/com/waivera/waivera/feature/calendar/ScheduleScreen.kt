@@ -1,8 +1,5 @@
 package com.waivera.waivera.feature.calendar
 
-import com.waivera.waivera.feature.calendar.form.EventFormSheet
-import com.waivera.waivera.feature.calendar.form.EventFormRequest
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -24,8 +21,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -75,6 +74,8 @@ import com.waivera.waivera.core.designsystem.theme.enterAfterExit
 import com.waivera.waivera.core.designsystem.theme.exit
 import com.waivera.waivera.core.designsystem.theme.isExtraLargeFontScale
 import com.waivera.waivera.core.designsystem.theme.isLargeFontScale
+import com.waivera.waivera.feature.calendar.form.EventFormRequest
+import com.waivera.waivera.feature.calendar.form.EventFormSheet
 import com.waivera.waivera.feature.calendar.model.AgendaNow
 import com.waivera.waivera.feature.calendar.model.PeriodTitle
 import com.waivera.waivera.feature.calendar.model.ScheduleText
@@ -166,12 +167,13 @@ fun ScheduleScreen(
     PreferWeekAtLargeFont(view = state.view, onPreferWeek = viewModel::preferWeekOverMonth)
     // The day the New event sheet opened on; null while it is closed.
     var newEventOn by rememberSaveable { mutableStateOf<LocalDate?>(null) }
+    var formSession by rememberSaveable { mutableIntStateOf(0) }
     val created = stringResource(R.string.feature_calendar_event_created)
     val webUnavailable = stringResource(R.string.feature_calendar_web_unavailable)
     val scope = rememberCoroutineScope()
     newEventOn?.let { day ->
         EventFormSheet(
-            request = EventFormRequest(date = day),
+            request = EventFormRequest(date = day, session = formSession),
             onDismiss = { newEventOn = null },
             onSaved = {
                 newEventOn = null
@@ -194,7 +196,10 @@ fun ScheduleScreen(
                 onRetry = viewModel::retry,
                 onRetryMilestones = viewModel::retryMilestones,
                 onSendWishes = viewModel::sendWishes,
-                onNewEvent = { newEventOn = state.selectedDate.takeIf { !it.isBefore(state.today) } ?: state.today },
+                onNewEvent = {
+                    formSession++
+                    newEventOn = state.selectedDate.takeIf { !it.isBefore(state.today) } ?: state.today
+                },
             ),
         )
         WaiveraSnackbarHost(hostState = snackbarHost, modifier = Modifier.align(Alignment.BottomCenter))

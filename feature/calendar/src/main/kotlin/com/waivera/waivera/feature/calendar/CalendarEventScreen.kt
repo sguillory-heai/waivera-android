@@ -1,11 +1,5 @@
 package com.waivera.waivera.feature.calendar
 
-import com.waivera.waivera.feature.calendar.form.EventFormSheet
-import com.waivera.waivera.feature.calendar.form.EventFormRequest
-import com.waivera.waivera.core.designsystem.component.WaiveraConfirmationSheet
-import androidx.compose.runtime.setValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -22,9 +16,13 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalUriHandler
@@ -33,6 +31,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.waivera.waivera.core.designsystem.R as DesignR
+import com.waivera.waivera.core.designsystem.component.WaiveraConfirmationSheet
 import com.waivera.waivera.core.designsystem.component.WaiveraEmptyState
 import com.waivera.waivera.core.designsystem.component.WaiveraErrorState
 import com.waivera.waivera.core.designsystem.component.WaiveraIllustration
@@ -48,6 +47,8 @@ import com.waivera.waivera.feature.calendar.event.EventBodySkeleton
 import com.waivera.waivera.feature.calendar.event.EventEffect
 import com.waivera.waivera.feature.calendar.event.EventPreviewData
 import com.waivera.waivera.feature.calendar.event.EventUiState
+import com.waivera.waivera.feature.calendar.form.EventFormRequest
+import com.waivera.waivera.feature.calendar.form.EventFormSheet
 import java.net.URLEncoder
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
@@ -83,6 +84,7 @@ fun CalendarEventScreen(
     val webUnavailable = stringResource(R.string.feature_calendar_web_unavailable)
     val back by rememberUpdatedState(onBack)
     var editing by rememberSaveable { mutableStateOf(false) }
+    var formSession by rememberSaveable { mutableIntStateOf(0) }
     var confirmingCancel by rememberSaveable { mutableStateOf(false) }
     val cancelBusy by viewModel.cancelBusy.collectAsStateWithLifecycle()
 
@@ -156,7 +158,10 @@ fun CalendarEventScreen(
                     scope.launch { snackbarHost.showSnackbar(mapsFailed) }
                 }
             },
-            onEdit = { editing = true },
+            onEdit = {
+                formSession++
+                editing = true
+            },
             onCancelEvent = { confirmingCancel = true },
             onEditOnWeb = viewModel::editOnWeb,
         ),
@@ -165,7 +170,7 @@ fun CalendarEventScreen(
     )
     if (editing) {
         EventFormSheet(
-            request = EventFormRequest(eventId = eventId),
+            request = EventFormRequest(eventId = eventId, session = formSession),
             onDismiss = { editing = false },
             onSaved = {
                 editing = false

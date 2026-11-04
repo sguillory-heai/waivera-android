@@ -291,6 +291,8 @@ interface PeopleRepository {
     suspend fun details(userId: String): Result<PersonDetails>
 }
 
+// Reads, invitation answers and the quick-event writes belong to one calendar cache, so they stay together.
+@Suppress("TooManyFunctions")
 interface CalendarRepository {
     /** The employee's saved zone that every schedule value is shown in. */
     val zone: Flow<ZoneId>

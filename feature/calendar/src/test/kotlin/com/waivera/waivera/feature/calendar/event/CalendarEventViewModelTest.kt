@@ -1,13 +1,12 @@
 package com.waivera.waivera.feature.calendar.event
 
-import kotlin.test.assertFalse
-import com.waivera.waivera.core.network.NetworkConfig
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.ViewModelStore
 import com.waivera.waivera.core.data.model.MyInvitation
 import com.waivera.waivera.core.data.model.ScheduleEvent
 import com.waivera.waivera.core.data.model.Synced
+import com.waivera.waivera.core.network.NetworkConfig
 import com.waivera.waivera.core.network.error.WaiveraError
 import com.waivera.waivera.core.testing.MainDispatcherRule
 import com.waivera.waivera.core.testing.TestClock
@@ -19,6 +18,7 @@ import java.time.Instant
 import java.time.ZoneId
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertIs
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
@@ -330,7 +330,12 @@ class CalendarEventViewModelTest {
         assertNotNull(h.details().organizer?.celebration)
     }
 
-    private val mine = invite.copy(id = "mine", ownerUserId = me, ownerName = "Alex Rivera", myInvitation = MyInvitation.ORGANIZER)
+    private val mine = invite.copy(
+        id = "mine",
+        ownerUserId = me,
+        ownerName = "Alex Rivera",
+        myInvitation = MyInvitation.ORGANIZER,
+    )
 
     @Test
     fun myOneOffEventCanBeEditedAndCancelledHere() = runTest {
@@ -367,5 +372,14 @@ class CalendarEventViewModelTest {
     fun someoneElsesEventOffersNoOrganizerTools() = runTest {
         val h = open()
         assertNull(h.details().manage)
+    }
+
+    @Test
+    fun eventsSpanningMoreThanOneDayAreEditedOnTheWeb() = runTest {
+        val overnight = mine.copy(
+            startAt = Instant.parse("2026-11-03T04:00:00Z"), // 10 PM CST Nov 2
+            endAt = Instant.parse("2026-11-03T07:00:00Z"), // 1 AM CST Nov 3
+        )
+        assertEquals(ManageMode.WebOnly, open(event = overnight).details().manage)
     }
 }

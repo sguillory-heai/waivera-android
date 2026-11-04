@@ -102,6 +102,25 @@ class TasksViewModelTest {
     }
 
     @Test
+    fun a_failed_next_page_stops_asking_until_a_refresh() = runTest {
+        val tasks = FakeTasks().apply { all = (1..5).map { FakeTasks.summary(it, "Task $it") } }
+        val vm = viewModel(tasks)
+        runCurrent()
+        tasks.failList = WaiveraError.Network()
+        vm.loadMore()
+        runCurrent()
+        assertTrue(vm.uiState.value.pageFailed)
+        vm.loadMore()
+        runCurrent()
+        assertEquals(listOf(1, 2), tasks.listCalls.map { it.third })
+
+        tasks.failList = null
+        vm.refresh()
+        runCurrent()
+        assertTrue(vm.uiState.value.canLoadMore)
+    }
+
+    @Test
     fun search_waits_for_typing_to_pause_then_starts_over() = runTest {
         val tasks = FakeTasks().apply {
             all =

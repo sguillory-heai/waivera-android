@@ -99,8 +99,13 @@ fun WaiveraPickerField(
 private fun WaiveraPickerFieldPreview() {
     WaiveraTheme {
         Column(verticalArrangement = Arrangement.spacedBy(WaiveraSpacing.MediumSmall)) {
-            WaiveraPickerField(label = "When", value = "Today, 2:30 PM", placeholder = "Pick a time", icon = WaiveraIcons.Schedule, onClick = {
-            })
+            WaiveraPickerField(
+                label = "When",
+                value = "Today, 2:30 PM",
+                placeholder = "Pick a time",
+                icon = WaiveraIcons.Schedule,
+                onClick = {},
+            )
             WaiveraPickerField(
                 label = "Activity type",
                 value = null,

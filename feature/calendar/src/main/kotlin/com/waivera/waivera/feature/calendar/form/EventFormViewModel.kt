@@ -31,8 +31,11 @@ import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
-/** What the sheet opens for: a new event on [date], or an edit of [eventId]. */
-data class EventFormRequest(val eventId: String? = null, val date: LocalDate? = null)
+/**
+ * What the sheet opens for: a new event on [date], or an edit of [eventId]. [session] changes on
+ * every open, so each open gets a fresh form instead of the last one's fields.
+ */
+data class EventFormRequest(val eventId: String? = null, val date: LocalDate? = null, val session: Int = 0)
 
 enum class FormPhase { Loading, Ready, Unavailable }
 
@@ -81,6 +84,7 @@ sealed interface EventFormEffect {
  * the employee's saved zone; the repository turns them into UTC instants when it sends them.
  */
 @HiltViewModel(assistedFactory = EventFormViewModel.Factory::class)
+@Suppress("TooManyFunctions") // One small handler per form field.
 class EventFormViewModel @AssistedInject constructor(
     @Assisted private val request: EventFormRequest,
     private val calendar: CalendarRepository,
@@ -101,46 +105,55 @@ class EventFormViewModel @AssistedInject constructor(
     private suspend fun start() {
         val zone = calendar.zone.first()
         val eventId = request.eventId
-        if (eventId == null) {
-            val now = clock.instant().atZone(zone)
-            val date = request.date ?: now.toLocalDate()
-            val start = if (date == now.toLocalDate() && now.hour < LAST_DEFAULT_HOUR) {
-                nextHalfHour(now.toLocalTime())
-            } else {
-                LocalTime.of(EventFormUiState.DEFAULT_HOUR, 0)
-            }
-            state.update {
-                it.copy(phase = FormPhase.Ready, zone = zone, date = date, start = start, end = start.plus(DEFAULT_LENGTH))
-            }
-        } else {
-            val event = calendar.observeEvent(eventId).filter { it.lastSyncedAt != null || it.data != null || it.status is SyncStatus.Failed }.first().data
-            if (event == null) {
-                state.update { it.copy(phase = FormPhase.Unavailable) }
-                return
-            }
-            editing = event
-            val startAt = event.startAt?.atZone(zone)
-            val endAt = event.endAt?.atZone(zone)
-            state.update {
-                it.copy(
-                    phase = FormPhase.Ready,
-                    isEdit = true,
-                    zone = zone,
-                    title = event.title.orEmpty(),
-                    date = event.allDayStart ?: startAt?.toLocalDate() ?: clock.instant().atZone(zone).toLocalDate(),
-                    start = startAt?.toLocalTime() ?: LocalTime.of(EventFormUiState.DEFAULT_HOUR, 0),
-                    end = endAt?.toLocalTime() ?: LocalTime.of(EventFormUiState.DEFAULT_HOUR, EventFormUiState.DEFAULT_MINUTES),
-                    allDay = event.isAllDay,
-                    waiveraVideo = !event.isSprout,
-                    location = if (event.isSprout) event.location.orEmpty() else "",
-                    description = event.description.orEmpty(),
-                    invitees = event.attendees
-                        .filter { a -> a.userId != null && a.userId in EventPayload.invitees(event) }
-                        .map { a -> AttendeeOption(a.userId.orEmpty(), a.displayName ?: a.email.orEmpty(), a.email) },
-                )
-            }
-        }
+        if (eventId == null) startNew(zone) else startEdit(eventId, zone)
         loadDirectory()
+    }
+
+    private fun startNew(zone: ZoneId) {
+        val now = clock.instant().atZone(zone)
+        val date = request.date ?: now.toLocalDate()
+        val start = if (date == now.toLocalDate() && now.hour < LAST_DEFAULT_HOUR) {
+            nextHalfHour(now.toLocalTime())
+        } else {
+            LocalTime.of(EventFormUiState.DEFAULT_HOUR, 0)
+        }
+        state.update {
+            it.copy(phase = FormPhase.Ready, zone = zone, date = date, start = start, end = start.plus(DEFAULT_LENGTH))
+        }
+    }
+
+    private suspend fun startEdit(eventId: String, zone: ZoneId) {
+        val event = calendar.observeEvent(eventId)
+            .filter { it.lastSyncedAt != null || it.data != null || it.status is SyncStatus.Failed }
+            .first()
+            .data
+        if (event == null) {
+            state.update { it.copy(phase = FormPhase.Unavailable) }
+            return
+        }
+        editing = event
+        val startAt = event.startAt?.atZone(zone)
+        val endAt = event.endAt?.atZone(zone)
+        val invited = EventPayload.invitees(event).toSet()
+        state.update {
+            it.copy(
+                phase = FormPhase.Ready,
+                isEdit = true,
+                zone = zone,
+                title = event.title.orEmpty(),
+                date = event.allDayStart ?: startAt?.toLocalDate() ?: clock.instant().atZone(zone).toLocalDate(),
+                start = startAt?.toLocalTime() ?: it.start,
+                end = endAt?.toLocalTime() ?: it.end,
+                allDay = event.isAllDay,
+                waiveraVideo = !event.isSprout,
+                location = if (event.isSprout) event.location.orEmpty() else "",
+                description = event.description.orEmpty(),
+                invitees = event.attendees
+                    .filter { a -> a.userId in invited }
+                    .distinctBy { a -> a.userId }
+                    .map { a -> AttendeeOption(a.userId.orEmpty(), a.displayName ?: a.email.orEmpty(), a.email) },
+            )
+        }
     }
 
     fun loadDirectory() {
@@ -217,7 +230,9 @@ class EventFormViewModel @AssistedInject constructor(
     /** Recurrence and linked tasks live in the web calendar. */
     fun openWeb() {
         val url = config.webBase?.resolve(WEB_CALENDAR_PATH)?.toString()
-        viewModelScope.launch { effectChannel.send(url?.let(EventFormEffect::OpenWeb) ?: EventFormEffect.WebUnavailable) }
+        viewModelScope.launch {
+            effectChannel.send(url?.let(EventFormEffect::OpenWeb) ?: EventFormEffect.WebUnavailable)
+        }
     }
 
     private fun edit(transform: (EventFormUiState) -> EventFormUiState) = state.update {

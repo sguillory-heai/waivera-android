@@ -54,11 +54,13 @@ data class TasksUiState(
     val phase: TasksPhase = TasksPhase.Loading,
     val isRefreshing: Boolean = false,
     val isLoadingMore: Boolean = false,
+    val pageFailed: Boolean = false,
     /** A refresh failed while the last good list stays on screen. */
     val refreshFailed: Boolean = false,
     @StringRes val errorMessage: Int? = null,
 ) {
-    val canLoadMore: Boolean get() = phase == TasksPhase.Content && rows.size < totalCount
+    /** False after a failed next page, until a refresh, so a bad page is not retried in a loop. */
+    val canLoadMore: Boolean get() = phase == TasksPhase.Content && rows.size < totalCount && !pageFailed
 }
 
 /**
@@ -75,7 +77,9 @@ class TasksViewModel @Inject constructor(
     private val local = MutableStateFlow(Local())
     private val zone = calendar.zone.distinctUntilChanged()
         .stateIn(viewModelScope, SharingStarted.Eagerly, WaiveraTime.FallbackZone)
-    private var loadJob: Job? = null
+    private var listJob: Job? = null
+    private var pageJob: Job? = null
+    private var countsJob: Job? = null
 
     val uiState: StateFlow<TasksUiState> = combine(local, zone) { l, zone ->
         val today = clock.instant().atZone(zone).toLocalDate()
@@ -88,6 +92,7 @@ class TasksViewModel @Inject constructor(
             phase = l.phase,
             isRefreshing = l.isRefreshing,
             isLoadingMore = l.isLoadingMore,
+            pageFailed = l.pageFailed,
             refreshFailed = l.refreshFailed,
             errorMessage = l.errorMessage,
         )
@@ -114,16 +119,10 @@ class TasksViewModel @Inject constructor(
 
     fun loadMore() {
         val l = local.value
-        if (l.isLoadingMore ||
-            l.phase != TasksPhase.Content ||
-            l.items.size >= l.totalCount ||
-            loadJob?.isActive == true
-        ) {
-            return
-        }
+        if (!l.canLoadMore || pageJob?.isActive == true || listJob?.isActive == true) return
         local.update { it.copy(isLoadingMore = true) }
         val request = l.request
-        loadJob = viewModelScope.launch {
+        pageJob = viewModelScope.launch {
             val next = tasks.myTasks(request.window, request.query, l.page + 1)
             local.update { current ->
                 if (current.request != request) return@update current.copy(isLoadingMore = false)
@@ -138,14 +137,16 @@ class TasksViewModel @Inject constructor(
                         )
                     },
                     // A failed next page keeps what is shown; the next scroll asks again.
-                    onFailure = { current.copy(isLoadingMore = false) },
+                    onFailure = { current.copy(isLoadingMore = false, pageFailed = true) },
                 )
             }
         }
     }
 
     private fun reload(showSkeleton: Boolean) {
-        loadJob?.cancel()
+        listJob?.cancel()
+        pageJob?.cancel()
+        countsJob?.cancel()
         val request = local.value.request
         local.update {
             it.copy(
@@ -153,11 +154,14 @@ class TasksViewModel @Inject constructor(
                 items = if (showSkeleton) emptyList() else it.items,
                 isRefreshing = !showSkeleton,
                 isLoadingMore = false,
+                pageFailed = false,
                 refreshFailed = false,
             )
         }
-        loadJob = viewModelScope.launch {
-            launch { tasks.counts().onSuccess { counts -> local.update { it.copy(counts = counts) } } }
+        countsJob = viewModelScope.launch {
+            tasks.counts().onSuccess { counts -> local.update { it.copy(counts = counts) } }
+        }
+        listJob = viewModelScope.launch {
             val result = tasks.myTasks(request.window, request.query, page = 1)
             local.update { current ->
                 if (current.request != request) return@update current
@@ -207,10 +211,13 @@ class TasksViewModel @Inject constructor(
         val phase: TasksPhase = TasksPhase.Loading,
         val isRefreshing: Boolean = false,
         val isLoadingMore: Boolean = false,
+        val pageFailed: Boolean = false,
         val refreshFailed: Boolean = false,
         @StringRes val errorMessage: Int? = null,
     ) {
         val request: Request get() = Request(window, query.trim())
+        val canLoadMore: Boolean
+            get() = !isLoadingMore && !pageFailed && phase == TasksPhase.Content && items.size < totalCount
     }
 
     private companion object {

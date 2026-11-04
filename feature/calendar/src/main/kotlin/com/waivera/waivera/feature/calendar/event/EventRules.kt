@@ -79,22 +79,23 @@ object EventRules {
             chat = chat(event, myUserId, interaction.chatBusy),
             isRefreshing = isRefreshing,
             refreshError = refreshError,
-            manage = manage(event, myUserId),
+            manage = manage(event, myUserId, zone),
         )
     }
 
     /**
      * Your own one-off event is edited and cancelled here. Repeating events, single occurrences
      * (their ids carry the occurrence time after the 36-character event id) and task meetings
-     * need choices the phone does not offer, so they go to the web.
+     * need choices the phone does not offer, so they go to the web. So do events that span more
+     * than one day in [zone]: the phone's form has a single day.
      */
-    fun manage(event: ScheduleEvent, myUserId: String?): ManageMode? {
+    fun manage(event: ScheduleEvent, myUserId: String?, zone: ZoneId): ManageMode? {
         if (!isOrganizer(event, myUserId)) return null
         val oneOff = event.recurrenceRule.isNullOrBlank() &&
             event.parentEventId.isNullOrBlank() &&
             event.taskId == null &&
             event.id.length <= EVENT_ID_LENGTH
-        return if (oneOff) ManageMode.Edit else ManageMode.WebOnly
+        return if (oneOff && withinOneDay(event, zone)) ManageMode.Edit else ManageMode.WebOnly
     }
 
     fun isOrganizer(event: ScheduleEvent, myUserId: String?): Boolean =
@@ -184,4 +185,16 @@ object EventRules {
     }
 
     private fun statusFor(accept: Boolean) = if (accept) InviteStatus.ACCEPTED else InviteStatus.DECLINED
+}
+
+/** True when the event sits on one day in [zone], the only shape the phone's form edits. */
+private fun withinOneDay(event: ScheduleEvent, zone: ZoneId): Boolean {
+    val allDayStart = event.allDayStart
+    val start = event.startAt?.atZone(zone)
+    val end = event.endAt?.atZone(zone)
+    return when {
+        allDayStart != null -> event.allDayEndExclusive == null || event.allDayEndExclusive == allDayStart.plusDays(1)
+        start == null || end == null -> false
+        else -> end.isAfter(start) && end.toLocalDate() == start.toLocalDate()
+    }
 }

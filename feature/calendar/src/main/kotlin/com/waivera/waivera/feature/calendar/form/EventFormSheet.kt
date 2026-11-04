@@ -22,6 +22,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.layout
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -73,7 +74,7 @@ fun EventFormSheet(
     onWebUnavailable: () -> Unit,
 ) {
     val viewModel = hiltViewModel<EventFormViewModel, EventFormViewModel.Factory>(
-        key = "event-form-${request.eventId}-${request.date}",
+        key = "event-form-${request.eventId}-${request.date}-${request.session}",
         creationCallback = { factory -> factory.create(request) },
     )
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -84,14 +85,27 @@ fun EventFormSheet(
         viewModel.effects.collect { effect ->
             when (effect) {
                 is EventFormEffect.Saved -> saved(effect.created)
-                is EventFormEffect.OpenWeb -> if (runCatching { uriHandler.openUri(effect.url) }.isFailure) webUnavailable()
+                is EventFormEffect.OpenWeb -> if (runCatching {
+                        uriHandler.openUri(effect.url)
+                    }.isFailure
+                ) {
+                    webUnavailable()
+                }
                 EventFormEffect.WebUnavailable -> webUnavailable()
             }
         }
     }
     WaiveraBottomSheet(
         onDismissRequest = { if (!state.isSaving) onDismiss() },
-        title = stringResource(if (request.eventId == null) R.string.feature_calendar_new_event else R.string.feature_calendar_edit_event),
+        title = stringResource(
+            if (request.eventId ==
+                null
+            ) {
+                R.string.feature_calendar_new_event
+            } else {
+                R.string.feature_calendar_edit_event
+            },
+        ),
     ) {
         EventFormFields(
             state = state,
@@ -156,6 +170,8 @@ internal fun ColumnScope.EventFormFields(state: EventFormUiState, actions: Event
         FormPhase.Ready -> Unit
     }
     var picking by remember { mutableStateOf(Picking.None) }
+    val locale = formLocale()
+    val dayFormat = remember(locale) { DateTimeFormatter.ofPattern("EEE, MMM d, yyyy", locale) }
     val enabled = !state.isSaving
     Column(
         modifier = Modifier.weight(1f, fill = false).verticalScroll(rememberScrollState()),
@@ -170,7 +186,10 @@ internal fun ColumnScope.EventFormFields(state: EventFormUiState, actions: Event
             label = stringResource(R.string.feature_calendar_form_title),
             placeholder = stringResource(R.string.feature_calendar_form_title_placeholder),
             enabled = enabled,
-            errorText = stringResource(R.string.feature_calendar_form_title_required).takeIf { state.showErrors && state.titleMissing },
+            errorText = stringResource(R.string.feature_calendar_form_title_required).takeIf {
+                state.showErrors &&
+                    state.titleMissing
+            },
             keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences),
         )
         WaiveraSwitchRow(
@@ -182,7 +201,7 @@ internal fun ColumnScope.EventFormFields(state: EventFormUiState, actions: Event
         )
         WaiveraPickerField(
             label = stringResource(R.string.feature_calendar_form_day),
-            value = state.date.format(DayFormat),
+            value = state.date.format(dayFormat),
             placeholder = stringResource(R.string.feature_calendar_form_day_placeholder),
             icon = WaiveraIcons.Calendar,
             enabled = enabled,
@@ -190,7 +209,10 @@ internal fun ColumnScope.EventFormFields(state: EventFormUiState, actions: Event
         )
         if (!state.allDay) TimeFields(state, enabled) { picking = it }
         Text(
-            text = stringResource(R.string.feature_calendar_form_zone_note, state.zone.getDisplayName(TextStyle.FULL, Locale.getDefault())),
+            text = stringResource(
+                R.string.feature_calendar_form_zone_note,
+                state.zone.getDisplayName(TextStyle.FULL, locale),
+            ),
             style = MaterialTheme.typography.bodySmall,
             color = WaiveraTheme.colors.textSecondary,
         )
@@ -240,7 +262,9 @@ internal fun ColumnScope.EventFormFields(state: EventFormUiState, actions: Event
         }
     }
     WaiveraButton(
-        text = stringResource(if (state.isEdit) R.string.feature_calendar_form_save else R.string.feature_calendar_form_create),
+        text = stringResource(
+            if (state.isEdit) R.string.feature_calendar_form_save else R.string.feature_calendar_form_create,
+        ),
         onClick = actions.onSave,
         fullWidth = true,
         size = WaiveraButtonSize.Large,
@@ -271,10 +295,12 @@ internal fun ColumnScope.EventFormFields(state: EventFormUiState, actions: Event
 @Composable
 private fun TimeFields(state: EventFormUiState, enabled: Boolean, onPick: (Picking) -> Unit) {
     val placeholder = stringResource(R.string.feature_calendar_form_time_placeholder)
+    val locale = formLocale()
+    val timeFormat = remember(locale) { DateTimeFormatter.ofPattern("h:mm a", locale) }
     val start = @Composable { modifier: Modifier ->
         WaiveraPickerField(
             label = stringResource(R.string.feature_calendar_form_starts),
-            value = state.start.format(TimeFormat),
+            value = state.start.format(timeFormat),
             placeholder = placeholder,
             icon = WaiveraIcons.Schedule,
             enabled = enabled,
@@ -285,7 +311,7 @@ private fun TimeFields(state: EventFormUiState, enabled: Boolean, onPick: (Picki
     val end = @Composable { modifier: Modifier ->
         WaiveraPickerField(
             label = stringResource(R.string.feature_calendar_form_ends),
-            value = state.end.format(TimeFormat),
+            value = state.end.format(timeFormat),
             placeholder = placeholder,
             icon = WaiveraIcons.Schedule,
             enabled = enabled,
@@ -314,7 +340,11 @@ private fun Invitees(state: EventFormUiState, actions: EventFormActions, enabled
         placeholder = stringResource(R.string.feature_calendar_form_invite_placeholder),
         enabled = enabled,
         leadingIcon = {
-            Icon(painterResource(WaiveraIcons.Search), contentDescription = null, tint = WaiveraTheme.colors.textSecondary)
+            Icon(
+                painterResource(WaiveraIcons.Search),
+                contentDescription = null,
+                tint = WaiveraTheme.colors.textSecondary,
+            )
         },
     )
     if (state.directoryFailed) {
@@ -342,9 +372,15 @@ private fun Invitees(state: EventFormUiState, actions: EventFormActions, enabled
                     onClick = { actions.onInvite(person) },
                     onClickLabel = stringResource(R.string.feature_calendar_form_invite_add, person.name),
                     enabled = enabled,
-                    leading = { WaiveraAvatar(name = person.name, size = WaiveraSizes.AvatarSmall, contentDescription = null) },
+                    leading = {
+                        WaiveraAvatar(name = person.name, size = WaiveraSizes.AvatarSmall, contentDescription = null)
+                    },
                     trailing = {
-                        Icon(painterResource(WaiveraIcons.Add), contentDescription = null, tint = WaiveraTheme.colors.accent)
+                        Icon(
+                            painterResource(WaiveraIcons.Add),
+                            contentDescription = null,
+                            tint = WaiveraTheme.colors.accent,
+                        )
                     },
                 )
             }
@@ -389,8 +425,9 @@ private fun Modifier.bleedGutter(): Modifier = layout { measurable, constraints 
     layout(constraints.maxWidth, placeable.height) { placeable.place(-extra / 2, 0) }
 }
 
-private val DayFormat: DateTimeFormatter = DateTimeFormatter.ofPattern("EEE, MMM d, yyyy", Locale.getDefault())
-private val TimeFormat: DateTimeFormatter = DateTimeFormatter.ofPattern("h:mm a", Locale.getDefault())
+/** "Wed, Nov 4, 2026" and "3:00 PM": 12-hour clock times, as everywhere in the app (pitfall 39). */
+@Composable
+private fun formLocale(): Locale = LocalConfiguration.current.locales[0]
 
 @WaiveraPreviews
 @Composable
@@ -405,7 +442,10 @@ private fun EventFormPreview() {
                     start = LocalTime.of(15, 0),
                     end = LocalTime.of(15, 30),
                     zone = ZoneId.of("America/Chicago"),
-                    invitees = listOf(AttendeeOption("u1", "Priya Raman", null), AttendeeOption("u2", "Jordan Lee", null)),
+                    invitees = listOf(
+                        AttendeeOption("u1", "Priya Raman", null),
+                        AttendeeOption("u2", "Jordan Lee", null),
+                    ),
                 ),
                 actions = EventFormActions(),
             )

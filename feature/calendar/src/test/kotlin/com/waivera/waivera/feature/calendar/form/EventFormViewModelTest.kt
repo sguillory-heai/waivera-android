@@ -33,7 +33,10 @@ class EventFormViewModelTest {
     private val clock = TestClock(Instant.parse("2026-11-04T16:10:00Z"))
     private val calendar = FakeCalendarRepository(clock).apply {
         attendeeOptions = Result.success(
-            listOf(AttendeeOption("usr_priya", "Priya Raman", "priya@example.com"), AttendeeOption("usr_jordan", "Jordan Lee", null)),
+            listOf(
+                AttendeeOption("usr_priya", "Priya Raman", "priya@example.com"),
+                AttendeeOption("usr_jordan", "Jordan Lee", null),
+            ),
         )
     }
     private val config = NetworkConfig(apiBaseUrl = "https://api.example.com", webBaseUrl = "https://app.example.com")
@@ -129,11 +132,13 @@ class EventFormViewModelTest {
             ScheduleEvent(
                 id = "e1",
                 title = "Huddle",
-                // 9 AM CST on Nov 2 (UTC-6, after clocks fell back on Nov 1).
-                startAt = Instant.parse("2026-11-02T15:00:00Z"),
-                endAt = Instant.parse("2026-11-02T15:30:00Z"),
+                // 9 AM on Nov 1, the day clocks fell back at 2 AM: UTC-6, not the morning's UTC-5.
+                startAt = Instant.parse("2026-11-01T15:00:00Z"),
+                endAt = Instant.parse("2026-11-01T15:30:00Z"),
                 ownerUserId = "usr_alex_rivera",
-                attendees = listOf(Attendee("a1", AttendeeType.EMPLOYEE, userId = "usr_priya", displayName = "Priya Raman")),
+                attendees = listOf(
+                    Attendee("a1", AttendeeType.EMPLOYEE, userId = "usr_priya", displayName = "Priya Raman"),
+                ),
                 isSprout = true,
                 location = "Room 2",
                 myInvitation = MyInvitation.ORGANIZER,
@@ -142,7 +147,7 @@ class EventFormViewModelTest {
         val (vm, effects) = form(EventFormRequest(eventId = "e1"))
         val state = vm.uiState.value
         assertTrue(state.isEdit)
-        assertEquals(LocalDate.of(2026, 11, 2), state.date)
+        assertEquals(LocalDate.of(2026, 11, 1), state.date)
         assertEquals(LocalTime.of(9, 0), state.start)
         assertFalse(state.waiveraVideo)
         assertEquals("Room 2", state.location)

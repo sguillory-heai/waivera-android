@@ -39,11 +39,14 @@ sealed interface DueText {
 }
 
 object TaskFormat {
-    private val SameYear = DateTimeFormatter.ofPattern("EEE, MMM d", Locale.getDefault())
-    private val OtherYear = DateTimeFormatter.ofPattern("MMM d, yyyy", Locale.getDefault())
-    private val PastSameYear = DateTimeFormatter.ofPattern("MMM d", Locale.getDefault())
-    private val Clock = DateTimeFormatter.ofPattern("h:mm a", Locale.getDefault())
-    private val Day = DateTimeFormatter.ofPattern("EEE, MMM d", Locale.getDefault())
+    // Read the locale on each call, so a language change while the app runs is picked up.
+    // Clock times are 12-hour across the app (pitfall 39).
+    private fun pattern(value: String): DateTimeFormatter = DateTimeFormatter.ofPattern(value, Locale.getDefault())
+    private val SameYear get() = pattern("EEE, MMM d")
+    private val OtherYear get() = pattern("MMM d, yyyy")
+    private val PastSameYear get() = pattern("MMM d")
+    private val Clock get() = pattern("h:mm a")
+    private val Day get() = pattern("EEE, MMM d")
 
     fun due(due: LocalDate?, today: LocalDate): DueText = when {
         due == null -> DueText.None

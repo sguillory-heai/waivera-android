@@ -117,6 +117,7 @@ sealed interface TaskDetailEffect {
 }
 
 @HiltViewModel(assistedFactory = TaskDetailViewModel.Factory::class)
+@Suppress("TooManyFunctions") // One small handler per Log activity field.
 class TaskDetailViewModel @AssistedInject constructor(
     @Assisted private val taskId: Int,
     private val tasks: TaskRepository,

@@ -47,6 +47,7 @@ import com.waivera.waivera.core.data.repository.PushRegistrationRepository
 import com.waivera.waivera.core.data.repository.RealtimeStatusRepository
 import com.waivera.waivera.core.data.repository.SessionRepository
 import com.waivera.waivera.core.data.repository.SettingsRepository
+import com.waivera.waivera.core.data.repository.TaskRepository
 import com.waivera.waivera.core.data.repository.ThreadRepository
 import com.waivera.waivera.core.data.store.DataStoreSettingsStore
 import com.waivera.waivera.core.data.store.SecureStore
@@ -65,6 +66,7 @@ import com.waivera.waivera.core.demo.DemoPushRegistrationRepository
 import com.waivera.waivera.core.demo.DemoRealtimeClient
 import com.waivera.waivera.core.demo.DemoRealtimeStatusRepository
 import com.waivera.waivera.core.demo.DemoSettingsRepository
+import com.waivera.waivera.core.demo.DemoTaskRepository
 import com.waivera.waivera.core.demo.DemoThreadRepository
 import com.waivera.waivera.core.demo.di.DemoSwitchModule
 import com.waivera.waivera.core.network.AuthTokenProvider
@@ -132,6 +134,9 @@ abstract class TourRepositoriesModule {
 
     @Binds
     abstract fun profile(impl: DemoProfileRepository): ProfileRepository
+
+    @Binds
+    abstract fun tasks(impl: DemoTaskRepository): TaskRepository
 
     @Binds
     abstract fun settings(impl: DemoSettingsRepository): SettingsRepository

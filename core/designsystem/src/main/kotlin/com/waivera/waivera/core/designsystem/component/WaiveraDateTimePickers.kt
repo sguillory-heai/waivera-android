@@ -67,7 +67,8 @@ fun WaiveraDatePickerDialog(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun WaiveraTimePickerDialog(initial: LocalTime, title: String, onPicked: (LocalTime) -> Unit, onDismiss: () -> Unit) {
-    val state = rememberTimePickerState(initialHour = initial.hour, initialMinute = initial.minute)
+    // 12-hour, matching how the app writes times (pitfall 39).
+    val state = rememberTimePickerState(initialHour = initial.hour, initialMinute = initial.minute, is24Hour = false)
     TimePickerDialog(
         onDismissRequest = onDismiss,
         title = { Text(title) },
