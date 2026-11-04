@@ -9,6 +9,7 @@ import com.waivera.waivera.core.data.live.LiveTaskFileRepository
 import com.waivera.waivera.core.data.live.SignOutCleaner
 import com.waivera.waivera.core.data.outbox.OutboxDirectory
 import com.waivera.waivera.core.data.outbox.OutboxStore
+import com.waivera.waivera.core.data.uploads.LiveTaskUploadRepository
 import dagger.Binds
 import dagger.Module
 import dagger.Provides
@@ -36,6 +37,10 @@ abstract class SignOutCleanersModule {
     @Binds
     @IntoSet
     abstract fun taskFileCleaner(repository: LiveTaskFileRepository): SignOutCleaner
+
+    @Binds
+    @IntoSet
+    abstract fun taskUploadCleaner(repository: LiveTaskUploadRepository): SignOutCleaner
 
     @Binds
     @IntoSet

@@ -69,6 +69,13 @@ import com.waivera.waivera.core.designsystem.theme.WaiveraSpacing
 import com.waivera.waivera.core.designsystem.theme.WaiveraTextStyles
 import com.waivera.waivera.core.designsystem.theme.WaiveraTheme
 import com.waivera.waivera.core.designsystem.theme.isLargeFontScale
+import com.waivera.waivera.feature.tasks.files.RequiredFilesSection
+import com.waivera.waivera.feature.tasks.files.TaskUploadsEffect
+import com.waivera.waivera.feature.tasks.files.TaskUploadsUiState
+import com.waivera.waivera.feature.tasks.files.TaskUploadsViewModel
+import com.waivera.waivera.feature.tasks.files.UploadActions
+import com.waivera.waivera.feature.tasks.files.UploadSheetActions
+import com.waivera.waivera.feature.tasks.files.UploadSourceHost
 import com.waivera.waivera.feature.tasks.files.rememberTaskFileActions
 import kotlinx.coroutines.launch
 
@@ -91,7 +98,10 @@ fun TaskDetailScreen(
     LaunchedEffect(viewModel) {
         viewModel.effects.collect { effect ->
             when (effect) {
-                TaskDetailEffect.Logged -> snackbar.showSnackbar(resources.getString(R.string.feature_tasks_log_done))
+                is TaskDetailEffect.Logged -> snackbar.showSnackbar(
+                    effect.savedAs?.let { resources.getString(R.string.feature_tasks_logged_saved_as, it) }
+                        ?: resources.getString(R.string.feature_tasks_log_done),
+                )
                 is TaskDetailEffect.Asked -> snackbar.showSnackbar(resources.getString(effect.message()))
                 TaskDetailEffect.WebUnavailable ->
                     snackbar.showSnackbar(resources.getString(R.string.feature_tasks_web_unavailable))
@@ -104,8 +114,32 @@ fun TaskDetailScreen(
         }
     }
     val fileActions = rememberTaskFileActions(taskId, snackbar, onOpen = viewModel::openFile)
+    val uploadsViewModel = hiltViewModel<TaskUploadsViewModel, TaskUploadsViewModel.Factory>(
+        key = "task-uploads-$taskId",
+        creationCallback = { factory -> factory.create(taskId) },
+    )
+    val uploads by uploadsViewModel.uiState.collectAsStateWithLifecycle()
+    LaunchedEffect(state.task?.isClientTask) {
+        state.task?.let { uploadsViewModel.employeeTask = !it.isClientTask }
+    }
+    LaunchedEffect(uploadsViewModel) {
+        uploadsViewModel.effects.collect { effect ->
+            when (effect) {
+                TaskUploadsEffect.FilesChanged -> viewModel.loadFiles()
+            }
+        }
+    }
     TaskDetailContent(
         state = state,
+        uploads = uploads,
+        uploadActions = UploadActions(
+            onUploadRequired = uploadsViewModel::startRequired,
+            onOpenForm = viewModel::openOnWeb,
+            onRetryRequired = uploadsViewModel::loadRequired,
+            onAddFile = uploadsViewModel::startExtra,
+            onRetryUpload = uploadsViewModel::retry,
+            onDismissUpload = uploadsViewModel::dismiss,
+        ),
         snackbar = snackbar,
         actions = TaskDetailActions(
             onBack = onBack,
@@ -118,6 +152,15 @@ fun TaskDetailScreen(
             onAsk = viewModel::startAsk,
         ),
         modifier = modifier,
+    )
+    UploadSourceHost(
+        sheet = uploads.sheet,
+        actions = UploadSheetActions(
+            onDismiss = uploadsViewModel::closeSheet,
+            onCategory = uploadsViewModel::pickCategory,
+            onRetryCategories = uploadsViewModel::loadCategories,
+        ),
+        onPicked = uploadsViewModel::picked,
     )
     state.ask?.let { form ->
         AskChangeSheet(
@@ -150,6 +193,8 @@ fun TaskDetailScreen(
                 onWhen = viewModel::setWhen,
                 onDescription = viewModel::setDescription,
                 onSubmit = viewModel::submitLog,
+                onFilePicked = viewModel::pickLogFile,
+                onRemoveFile = viewModel::removeLogFile,
             ),
         )
     }
@@ -184,6 +229,8 @@ internal fun TaskDetailContent(
     snackbar: SnackbarHostState,
     actions: TaskDetailActions,
     modifier: Modifier = Modifier,
+    uploads: TaskUploadsUiState = TaskUploadsUiState(required = Loadable.Ready(emptyList())),
+    uploadActions: UploadActions = UploadActions(),
 ) {
     val colors = WaiveraTheme.colors
     val motion = WaiveraTheme.motion
@@ -218,7 +265,7 @@ internal fun TaskDetailContent(
                         onRetry = actions.onRetry,
                         modifier = Modifier.padding(top = WaiveraSpacing.Large),
                     )
-                    else -> DetailBody(state, task, actions)
+                    else -> DetailBody(state, task, actions, uploads, uploadActions)
                 }
             }
             // Above the action bar, so a confirmation never covers Log activity.
@@ -266,7 +313,13 @@ internal fun TaskDetailContent(
 }
 
 @Composable
-private fun DetailBody(state: TaskDetailUiState, task: TaskDetail, actions: TaskDetailActions) {
+private fun DetailBody(
+    state: TaskDetailUiState,
+    task: TaskDetail,
+    actions: TaskDetailActions,
+    uploads: TaskUploadsUiState,
+    uploadActions: UploadActions,
+) {
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -334,7 +387,15 @@ private fun DetailBody(state: TaskDetailUiState, task: TaskDetail, actions: Task
                 )
             }
         }
-        FilesSection(state.files, onOpen = actions.onOpenFile, onRetry = actions.onRetryFiles)
+        RequiredFilesSection(uploads.required, canUpload = state.canUpload, actions = uploadActions)
+        FilesSection(
+            files = state.files,
+            onOpen = actions.onOpenFile,
+            onRetry = actions.onRetryFiles,
+            uploads = uploads.uploads,
+            uploadActions = uploadActions,
+            canUpload = state.canUpload,
+        )
         ActivitySection(state.activity, actions.onRetryActivity)
     }
 }

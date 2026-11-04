@@ -103,7 +103,6 @@
     <string name="feature_tasks_log_saving">Logging activity</string>
     <string name="feature_tasks_log_failed">Couldn\'t log the activity. Try again.</string>
     <string name="feature_tasks_log_done">Activity logged</string>
-    <string name="feature_tasks_log_file_types_on_web">Activity types that need a file are on the web.</string>
     <string name="feature_tasks_today_at">Today, %1$s</string>
     <string name="feature_tasks_yesterday_at">Yesterday, %1$s</string>
     <string name="feature_tasks_day_at">%1$s, %2$s</string>

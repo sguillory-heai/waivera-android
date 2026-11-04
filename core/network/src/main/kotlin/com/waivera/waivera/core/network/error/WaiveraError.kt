@@ -33,7 +33,8 @@ sealed class WaiveraError(
 
     class NotFound : WaiveraError(R.string.core_network_error_not_found, HTTP_NOT_FOUND)
 
-    class Conflict : WaiveraError(R.string.core_network_error_conflict, HTTP_CONFLICT)
+    class Conflict(errorCode: String? = null) :
+        WaiveraError(R.string.core_network_error_conflict, HTTP_CONFLICT, errorCode)
 
     /** A 400 the user can fix by changing input. */
     class Validation(errorCode: String? = null) :

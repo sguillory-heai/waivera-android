@@ -18,6 +18,7 @@ androidxNavigation3 = "1.0.0"
 androidxNavigationEvent = "1.0.0"
 androidxComposeBom = "2026.09.00"
 androidxCoreKtx = "1.19.0"
+androidxExifinterface = "1.4.2"
 androidxLifecycle = "2.11.0"
 androidxDataStore = "1.1.7"
 androidxRoom = "2.7.2"
@@ -56,6 +57,7 @@ androidx-compose-ui-test-manifest = { module = "androidx.compose.ui:ui-test-mani
 androidx-compose-ui-tooling = { module = "androidx.compose.ui:ui-tooling" }
 androidx-compose-ui-tooling-preview = { module = "androidx.compose.ui:ui-tooling-preview" }
 androidx-core-ktx = { module = "androidx.core:core-ktx", version.ref = "androidxCoreKtx" }
+androidx-exifinterface = { module = "androidx.exifinterface:exifinterface", version.ref = "androidxExifinterface" }
 androidx-datastore = { module = "androidx.datastore:datastore", version.ref = "androidxDataStore" }
 androidx-datastore-preferences = { module = "androidx.datastore:datastore-preferences", version.ref = "androidxDataStore" }
 androidx-hilt-navigation-compose = { module = "androidx.hilt:hilt-navigation-compose", version.ref = "androidxHiltNavigationCompose" }

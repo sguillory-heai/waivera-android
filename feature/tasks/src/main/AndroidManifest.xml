@@ -3,8 +3,9 @@
 
     <application>
         <!--
-            Shares one task file at a time with the app the person picks. Only the
-            feature_tasks_share cache folder is exposed, and only through a granted read uri.
+            Shares one task file at a time with the app the person picks, and gives the camera
+            app one file to write a photo into. Only the feature_tasks_share and
+            feature_tasks_camera cache folders are exposed, and only through granted uris.
         -->
         <provider
             android:name="com.waivera.waivera.feature.tasks.files.TaskFileProvider"

@@ -27,7 +27,7 @@ object ErrorMapper {
                 message,
                 parsed.errorCode,
             )
-            else -> fromOtherStatus(status)
+            else -> fromOtherStatus(status, parsed.errorCode)
         }
     }
 
@@ -39,9 +39,9 @@ object ErrorMapper {
         else -> WaiveraError.Validation(errorCode)
     }
 
-    private fun fromOtherStatus(status: Int): WaiveraError = when (status) {
+    private fun fromOtherStatus(status: Int, errorCode: String?): WaiveraError = when (status) {
         HTTP_NOT_FOUND -> WaiveraError.NotFound()
-        HTTP_CONFLICT -> WaiveraError.Conflict()
+        HTTP_CONFLICT -> WaiveraError.Conflict(errorCode)
         HTTP_PAYLOAD_TOO_LARGE -> WaiveraError.AttachmentTooLarge()
         HTTP_LOCKED -> WaiveraError.AttachmentRejected()
         HTTP_TOO_MANY_REQUESTS -> WaiveraError.RateLimited()

@@ -5,6 +5,7 @@ package com.waivera.waivera.core.demo
 import com.waivera.waivera.core.data.model.ActivityType
 import com.waivera.waivera.core.data.model.DelayFilter
 import com.waivera.waivera.core.data.model.FileKind
+import com.waivera.waivera.core.data.model.FileTemplate
 import com.waivera.waivera.core.data.model.NewActivity
 import com.waivera.waivera.core.data.model.RequestKind
 import com.waivera.waivera.core.data.model.TaskActivity
@@ -128,6 +129,14 @@ class DemoTaskRepository @Inject constructor(private val backend: DemoBackend) :
             ActivityType(12, "Home visit", null, null),
             ActivityType(13, "Phone call", null, null),
             ActivityType(14, "Monthly contact", 15, "Monthly contact completed with the participant."),
+            ActivityType(
+                15,
+                "Signed visit form",
+                30,
+                null,
+                needsFile = true,
+                fileTemplate = FileTemplate(903, "Signed visit form", 1, null),
+            ),
         ),
     )
 

@@ -38,8 +38,10 @@ import com.waivera.waivera.core.data.repository.SessionRepository
 import com.waivera.waivera.core.data.repository.SettingsRepository
 import com.waivera.waivera.core.data.repository.TaskFileRepository
 import com.waivera.waivera.core.data.repository.TaskRepository
+import com.waivera.waivera.core.data.repository.TaskUploadRepository
 import com.waivera.waivera.core.data.repository.ThreadRepository
 import com.waivera.waivera.core.data.sync.LiveDataLayerStarter
+import com.waivera.waivera.core.data.uploads.LiveTaskUploadRepository
 import com.waivera.waivera.core.demo.DemoActivityRepository
 import com.waivera.waivera.core.demo.DemoAttachmentRepository
 import com.waivera.waivera.core.demo.DemoBackend
@@ -61,6 +63,7 @@ import com.waivera.waivera.core.demo.DemoSessionRepository
 import com.waivera.waivera.core.demo.DemoSettingsRepository
 import com.waivera.waivera.core.demo.DemoTaskFileRepository
 import com.waivera.waivera.core.demo.DemoTaskRepository
+import com.waivera.waivera.core.demo.DemoTaskUploadRepository
 import com.waivera.waivera.core.demo.DemoThreadRepository
 import com.waivera.waivera.core.network.AuthTokenProvider
 import com.waivera.waivera.core.realtime.DefaultRealtimeClient
@@ -162,6 +165,13 @@ object DemoSwitchModule {
         live: Provider<LiveTaskFileRepository>,
         demo: Provider<DemoTaskFileRepository>,
     ): TaskFileRepository = pick(mode, live, demo)
+
+    @Provides
+    fun taskUploads(
+        mode: DemoMode,
+        live: Provider<LiveTaskUploadRepository>,
+        demo: Provider<DemoTaskUploadRepository>,
+    ): TaskUploadRepository = pick(mode, live, demo)
 
     @Provides
     fun links(

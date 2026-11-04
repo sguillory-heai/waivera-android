@@ -3,6 +3,8 @@ package com.waivera.waivera.feature.tasks
 import com.waivera.waivera.core.data.model.ActivityType
 import com.waivera.waivera.core.data.model.ChangeReason
 import com.waivera.waivera.core.data.model.DelayPeriod
+import com.waivera.waivera.core.data.model.FileTemplate
+import com.waivera.waivera.core.data.model.PreparedFile
 import com.waivera.waivera.core.data.model.RequestAccess
 import com.waivera.waivera.core.data.model.RequestKind
 import com.waivera.waivera.core.data.model.RequestOutcome
@@ -10,6 +12,8 @@ import com.waivera.waivera.core.data.model.TaskActivity
 import com.waivera.waivera.core.data.model.TaskDelay
 import com.waivera.waivera.core.data.model.TaskFile
 import com.waivera.waivera.core.data.model.TaskState
+import com.waivera.waivera.core.data.model.UploadProblem
+import com.waivera.waivera.core.data.uploads.UploadRefused
 import com.waivera.waivera.core.demo.DemoGraph
 import com.waivera.waivera.core.network.NetworkConfig
 import com.waivera.waivera.core.network.error.WaiveraError
@@ -44,10 +48,12 @@ class TaskDetailViewModelTest {
         clock: TestClock = TestClock(),
         config: NetworkConfig = web,
         requests: FakeRequests = FakeRequests(),
+        uploads: FakeTaskUploads = FakeTaskUploads(),
     ): TaskDetailViewModel {
         val vm = TaskDetailViewModel(
             7,
             tasks,
+            uploads,
             requests,
             TestSessionRepository(),
             config,
@@ -188,11 +194,122 @@ class TaskDetailViewModelTest {
         vm.submitLog()
         runCurrent()
 
-        assertEquals(TaskDetailEffect.Logged, vm.effects.first())
+        assertEquals(TaskDetailEffect.Logged(), vm.effects.first())
         assertNull(vm.uiState.value.log)
         assertEquals(30, tasks.logged.single().minutes)
         val rows = assertIs<Loadable.Ready<List<ActivityRow>>>(vm.uiState.value.activity).value
         assertTrue(rows.single().isNew)
+    }
+
+    @Test
+    fun a_type_that_needs_a_file_waits_for_one_then_uploads_it_before_logging() = runTest {
+        val tasks = FakeTasks().apply { types = Result.success(listOf(SIGNED_FORM)) }
+        val uploads = FakeTaskUploads().apply { sendResult = Result.success("Signed visit form (2).pdf") }
+        val vm = viewModel(tasks, uploads = uploads)
+        runCurrent()
+        vm.startLog()
+        runCurrent()
+        vm.chooseType(SIGNED_FORM.id)
+        vm.setDescription("Signed at the visit")
+        val chosen = vm.uiState.value.log
+        assertTrue(chosen?.needsFile == true)
+        assertTrue(chosen?.minutesLocked == true)
+
+        vm.submitLog()
+        runCurrent()
+        assertTrue(vm.uiState.value.log?.fileMissing == true)
+        assertTrue(uploads.sent.isEmpty())
+
+        vm.pickLogFile(listOf("content://picked/scan.pdf"))
+        runCurrent()
+        assertEquals("Signed visit form.pdf", vm.uiState.value.log?.fileSavedName)
+        vm.submitLog()
+        runCurrent()
+
+        assertEquals(TaskDetailEffect.Logged(savedAs = "Signed visit form (2).pdf"), vm.effects.first())
+        assertEquals(SIGNED_FORM.fileTemplate, uploads.sent.single().second)
+        // The server sets the time for these types; the phone sends the type's own minutes.
+        assertEquals(45, tasks.logged.single().minutes)
+    }
+
+    @Test
+    fun a_refused_upload_logs_nothing_and_says_why() = runTest {
+        val tasks = FakeTasks().apply { types = Result.success(listOf(SIGNED_FORM)) }
+        val uploads = FakeTaskUploads().apply {
+            sendResult = Result.failure(UploadRefused(UploadProblem.PdfLocked))
+        }
+        val vm = viewModel(tasks, uploads = uploads)
+        runCurrent()
+        vm.startLog()
+        runCurrent()
+        vm.chooseType(SIGNED_FORM.id)
+        vm.setDescription("Signed at the visit")
+        vm.pickLogFile(listOf("content://picked/scan.pdf"))
+        runCurrent()
+        vm.submitLog()
+        runCurrent()
+
+        val form = vm.uiState.value.log
+        assertEquals(UploadProblem.PdfLocked, form?.fileProblem)
+        assertFalse(form?.isSaving == true)
+        assertTrue(tasks.logged.isEmpty())
+        // The server won't take this file, so it goes and the pickers come back.
+        assertNull(form?.file)
+        assertEquals(1, uploads.discarded.size)
+    }
+
+    @Test
+    fun once_the_file_is_up_a_retry_only_logs_the_activity() = runTest {
+        val tasks = FakeTasks().apply {
+            types = Result.success(listOf(SIGNED_FORM))
+            logResult = Result.failure(WaiveraError.Network())
+        }
+        val uploads = FakeTaskUploads()
+        val vm = viewModel(tasks, uploads = uploads)
+        runCurrent()
+        vm.startLog()
+        runCurrent()
+        vm.chooseType(SIGNED_FORM.id)
+        vm.setDescription("Signed at the visit")
+        vm.pickLogFile(listOf("content://picked/scan.pdf"))
+        runCurrent()
+        vm.submitLog()
+        runCurrent()
+        assertTrue(vm.uiState.value.log?.failed == true)
+        assertEquals("Signed visit form.pdf", vm.uiState.value.log?.sentAs)
+
+        tasks.logResult = Result.success(Unit)
+        vm.submitLog()
+        runCurrent()
+        assertEquals(1, uploads.sent.size)
+        assertEquals(TaskDetailEffect.Logged(), vm.effects.first())
+    }
+
+    @Test
+    fun a_refused_pick_shows_its_reason_and_switching_to_a_plain_type_drops_the_file() = runTest {
+        val tasks = FakeTasks().apply {
+            types = Result.success(listOf(SIGNED_FORM, ActivityType(1, "Home visit", null, null)))
+        }
+        val uploads = FakeTaskUploads().apply {
+            prepareResult = { Result.failure(UploadRefused(UploadProblem.TooLarge)) }
+        }
+        val vm = viewModel(tasks, uploads = uploads)
+        runCurrent()
+        vm.startLog()
+        runCurrent()
+        vm.chooseType(SIGNED_FORM.id)
+        vm.pickLogFile(listOf("content://picked/huge.pdf"))
+        runCurrent()
+        assertEquals(UploadProblem.TooLarge, vm.uiState.value.log?.fileProblem)
+
+        uploads.prepareResult = { uri -> Result.success(PreparedFile(uri, "scan.pdf", "application/pdf", 10)) }
+        vm.pickLogFile(listOf("content://picked/scan.pdf"))
+        runCurrent()
+        assertNull(vm.uiState.value.log?.fileProblem)
+        vm.chooseType(1)
+        runCurrent()
+        assertNull(vm.uiState.value.log?.file)
+        assertEquals("scan.pdf", uploads.discarded.single().name)
     }
 
     @Test
@@ -445,5 +562,16 @@ class TaskDetailViewModelTest {
         vm.setAskDue(FakeRequests.Due.plusDays(7))
         vm.setAskReason(1)
         vm.setAskExplanation("Visiting family until Nov 9.")
+    }
+
+    private companion object {
+        val SIGNED_FORM = ActivityType(
+            id = 21,
+            name = "Signed visit form",
+            recommendedMinutes = 45,
+            fixedDescription = null,
+            needsFile = true,
+            fileTemplate = FileTemplate(903, "Signed visit form", 4, null),
+        )
     }
 }

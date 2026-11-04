@@ -7,7 +7,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
@@ -51,6 +50,9 @@ import com.waivera.waivera.core.designsystem.theme.WaiveraShapes
 import com.waivera.waivera.core.designsystem.theme.WaiveraSpacing
 import com.waivera.waivera.core.designsystem.theme.WaiveraTextStyles
 import com.waivera.waivera.core.designsystem.theme.WaiveraTheme
+import com.waivera.waivera.feature.tasks.files.LogActivityFile
+import com.waivera.waivera.feature.tasks.files.UploadSource
+import com.waivera.waivera.feature.tasks.files.rememberUploadPicker
 import java.time.LocalDate
 
 internal data class LogActivityActions(
@@ -61,6 +63,8 @@ internal data class LogActivityActions(
     val onWhen: (LocalDate, minuteOfDay: Int) -> Unit,
     val onDescription: (String) -> Unit,
     val onSubmit: () -> Unit,
+    val onFilePicked: (List<String>) -> Unit = {},
+    val onRemoveFile: () -> Unit = {},
 ) {
     companion object {
         val None = LogActivityActions({}, {}, {}, {}, { _, _ -> }, {}, {})
@@ -70,6 +74,7 @@ internal data class LogActivityActions(
 @Composable
 internal fun LogActivitySheet(form: LogForm, task: TaskDetail?, actions: LogActivityActions) {
     var choosingType by rememberSaveable { mutableStateOf(false) }
+    val pickFile = rememberUploadPicker(single = true, onPicked = actions.onFilePicked)
     WaiveraBottomSheet(
         onDismissRequest = { if (choosingType) choosingType = false else actions.onDismiss() },
         title = stringResource(if (choosingType) R.string.feature_tasks_log_type else R.string.feature_tasks_log_title),
@@ -80,7 +85,7 @@ internal fun LogActivitySheet(form: LogForm, task: TaskDetail?, actions: LogActi
                 choosingType = false
             }
         } else {
-            LogActivityFields(form, task, actions, onChooseType = { choosingType = true })
+            LogActivityFields(form, task, actions, onChooseType = { choosingType = true }, onFileSource = pickFile)
         }
     }
 }
@@ -91,6 +96,7 @@ internal fun ColumnScope.LogActivityFields(
     task: TaskDetail?,
     actions: LogActivityActions,
     onChooseType: () -> Unit,
+    onFileSource: (UploadSource) -> Unit = {},
 ) {
     val colors = WaiveraTheme.colors
     var pickingWhen by remember { mutableStateOf(false) }
@@ -120,7 +126,8 @@ internal fun ColumnScope.LogActivityFields(
             enabled = !form.isSaving,
             onClick = onChooseType,
         )
-        DurationStepper(form, actions.onStep)
+        if (form.needsFile) LogActivityFile(form, onSource = onFileSource, onRemove = actions.onRemoveFile)
+        if (form.showsTime) DurationStepper(form, actions.onStep)
         WaiveraPickerField(
             label = stringResource(R.string.feature_tasks_log_when),
             value = form.whenText.text(),
@@ -147,7 +154,11 @@ internal fun ColumnScope.LogActivityFields(
         onClick = actions.onSubmit,
         fullWidth = true,
         size = WaiveraButtonSize.Large,
-        loadingText = stringResource(R.string.feature_tasks_log_saving).takeIf { form.isSaving },
+        loadingText = when {
+            form.isUploading -> stringResource(R.string.feature_tasks_log_uploading)
+            form.isSaving -> stringResource(R.string.feature_tasks_log_saving)
+            else -> null
+        },
     )
     if (pickingWhen) {
         WhenPicker(form, onPicked = actions.onWhen, onDismiss = { pickingWhen = false })
@@ -169,12 +180,6 @@ private fun TypeChoices(form: LogForm, onRetry: () -> Unit, onPick: (Int) -> Uni
         )
         is Loadable.Ready -> Column(Modifier.verticalScroll(rememberScrollState())) {
             types.value.forEach { type -> TypeRow(type, selected = type.id == form.typeId, onPick = onPick) }
-            Text(
-                text = stringResource(R.string.feature_tasks_log_file_types_on_web),
-                style = MaterialTheme.typography.bodySmall,
-                color = WaiveraTheme.colors.textSecondary,
-                modifier = Modifier.padding(top = WaiveraSpacing.Small),
-            )
         }
     }
 }
@@ -183,7 +188,10 @@ private fun TypeChoices(form: LogForm, onRetry: () -> Unit, onPick: (Int) -> Uni
 private fun TypeRow(type: ActivityType, selected: Boolean, onPick: (Int) -> Unit) {
     WaiveraListRow(
         headline = type.name,
-        supporting = type.recommendedMinutes?.let { durationText(it) },
+        supporting = listOfNotNull(
+            stringResource(R.string.feature_tasks_log_type_needs_file).takeIf { type.needsFile },
+            type.recommendedMinutes?.let { durationText(it) },
+        ).joinToString(" · ").ifEmpty { null },
         onClick = { onPick(type.id) },
         trailing = {
             if (selected) {

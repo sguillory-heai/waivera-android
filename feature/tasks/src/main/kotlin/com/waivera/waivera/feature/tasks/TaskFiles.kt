@@ -41,6 +41,10 @@ import com.waivera.waivera.core.designsystem.theme.WaiveraShapes
 import com.waivera.waivera.core.designsystem.theme.WaiveraSizes
 import com.waivera.waivera.core.designsystem.theme.WaiveraSpacing
 import com.waivera.waivera.core.designsystem.theme.WaiveraTheme
+import com.waivera.waivera.feature.tasks.files.AddFileFooter
+import com.waivera.waivera.feature.tasks.files.UploadActions
+import com.waivera.waivera.feature.tasks.files.UploadRow
+import com.waivera.waivera.feature.tasks.files.UploadRows
 
 /**
  * The task's files, newest first. PDFs, images, text and Word files open in the phone's
@@ -48,9 +52,18 @@ import com.waivera.waivera.core.designsystem.theme.WaiveraTheme
  * Hidden when the task has no files.
  */
 @Composable
-internal fun FilesSection(files: Loadable<List<FileRow>>, onOpen: (Int) -> Unit, onRetry: () -> Unit) {
+internal fun FilesSection(
+    files: Loadable<List<FileRow>>,
+    onOpen: (Int) -> Unit,
+    onRetry: () -> Unit,
+    uploads: List<UploadRow> = emptyList(),
+    uploadActions: UploadActions = UploadActions(),
+    canUpload: Boolean = false,
+) {
     val rows = (files as? Loadable.Ready)?.value.orEmpty()
-    if (files is Loadable.Ready && rows.isEmpty()) return
+    // Shown when there are files, files going up, or room to add one.
+    val nothingListed = files is Loadable.Ready && rows.isEmpty()
+    if (nothingListed && uploads.isEmpty() && !canUpload) return
     WaiveraSectionHeader(
         title = stringResource(R.string.feature_tasks_files_section),
         count = rows.size.takeIf { it > 0 },
@@ -63,25 +76,37 @@ internal fun FilesSection(files: Loadable<List<FileRow>>, onOpen: (Int) -> Unit,
             bottom = WaiveraSpacing.Small,
         ),
     )
-    WaiveraCardGroup {
-        when (files) {
-            Loadable.Loading -> Column(
-                modifier = Modifier.padding(WaiveraSpacing.Medium),
-                verticalArrangement = Arrangement.spacedBy(WaiveraSpacing.Small),
-            ) {
-                val pulse = rememberSkeletonPulse()
-                SkeletonText(style = MaterialTheme.typography.titleSmall, widthFraction = SKELETON_NAME, pulse = pulse)
-                SkeletonText(style = MaterialTheme.typography.bodySmall, widthFraction = SKELETON_META, pulse = pulse)
+    if (uploads.isNotEmpty() || files !is Loadable.Ready || rows.isNotEmpty()) {
+        WaiveraCardGroup {
+            UploadRows(uploads, uploadActions)
+            if (uploads.isNotEmpty() && (files !is Loadable.Ready || rows.isNotEmpty())) {
+                WaiveraInsetDivider(inset = WaiveraSpacing.Gutter + WaiveraSizes.FieldDividerInset)
             }
-            Loadable.Failed -> WaiveraErrorState(
-                message = stringResource(R.string.feature_tasks_files_error),
-                onRetry = onRetry,
-                dense = true,
-            )
-            is Loadable.Ready -> rows.forEachIndexed { index, row ->
-                if (index > 0) WaiveraInsetDivider(inset = WaiveraSpacing.Gutter + WaiveraSizes.FieldDividerInset)
-                FileRowItem(row, onOpen = { onOpen(row.attachmentId) })
-            }
+            FileList(files, rows, onOpen, onRetry)
+        }
+    }
+    if (canUpload) AddFileFooter(uploadActions.onAddFile)
+}
+
+@Composable
+private fun FileList(files: Loadable<List<FileRow>>, rows: List<FileRow>, onOpen: (Int) -> Unit, onRetry: () -> Unit) {
+    when (files) {
+        Loadable.Loading -> Column(
+            modifier = Modifier.padding(WaiveraSpacing.Medium),
+            verticalArrangement = Arrangement.spacedBy(WaiveraSpacing.Small),
+        ) {
+            val pulse = rememberSkeletonPulse()
+            SkeletonText(style = MaterialTheme.typography.titleSmall, widthFraction = SKELETON_NAME, pulse = pulse)
+            SkeletonText(style = MaterialTheme.typography.bodySmall, widthFraction = SKELETON_META, pulse = pulse)
+        }
+        Loadable.Failed -> WaiveraErrorState(
+            message = stringResource(R.string.feature_tasks_files_error),
+            onRetry = onRetry,
+            dense = true,
+        )
+        is Loadable.Ready -> rows.forEachIndexed { index, row ->
+            if (index > 0) WaiveraInsetDivider(inset = WaiveraSpacing.Gutter + WaiveraSizes.FieldDividerInset)
+            FileRowItem(row, onOpen = { onOpen(row.attachmentId) })
         }
     }
 }

@@ -13,9 +13,11 @@ import com.waivera.waivera.core.data.model.Conversation
 import com.waivera.waivera.core.data.model.DateRange
 import com.waivera.waivera.core.data.model.DelayFilter
 import com.waivera.waivera.core.data.model.DelayPeriod
+import com.waivera.waivera.core.data.model.DocumentCategory
 import com.waivera.waivera.core.data.model.EmployeeFilePage
 import com.waivera.waivera.core.data.model.EmployeeProfile
 import com.waivera.waivera.core.data.model.EventDraft
+import com.waivera.waivera.core.data.model.FileTemplate
 import com.waivera.waivera.core.data.model.LeaveBalance
 import com.waivera.waivera.core.data.model.LeaveDraft
 import com.waivera.waivera.core.data.model.LeavePreview
@@ -34,9 +36,11 @@ import com.waivera.waivera.core.data.model.NotificationPreferences
 import com.waivera.waivera.core.data.model.Organization
 import com.waivera.waivera.core.data.model.Person
 import com.waivera.waivera.core.data.model.PersonDetails
+import com.waivera.waivera.core.data.model.PreparedFile
 import com.waivera.waivera.core.data.model.RealtimeStatus
 import com.waivera.waivera.core.data.model.RequestAccess
 import com.waivera.waivera.core.data.model.RequestOutcome
+import com.waivera.waivera.core.data.model.RequiredFile
 import com.waivera.waivera.core.data.model.ScheduleEvent
 import com.waivera.waivera.core.data.model.ScheduleFeed
 import com.waivera.waivera.core.data.model.SessionState
@@ -49,10 +53,12 @@ import com.waivera.waivera.core.data.model.TaskFile
 import com.waivera.waivera.core.data.model.TaskPage
 import com.waivera.waivera.core.data.model.TaskQuery
 import com.waivera.waivera.core.data.model.TaskScope
+import com.waivera.waivera.core.data.model.TaskUpload
 import com.waivera.waivera.core.data.model.ThemePreference
 import com.waivera.waivera.core.data.model.TimeOffSummary
 import com.waivera.waivera.core.data.model.TrainingCredit
 import com.waivera.waivera.core.data.model.TrainingDecision
+import com.waivera.waivera.core.data.model.UploadTarget
 import com.waivera.waivera.core.data.model.currentUserId
 import java.io.File
 import java.time.LocalDate
@@ -330,6 +336,50 @@ interface TaskFileRepository {
     suspend fun certificate(requestId: Int): Result<java.io.File>
 
     fun close(file: java.io.File)
+}
+
+/**
+ * Files going onto tasks. Picked files are checked and copied into app storage at once, then
+ * sent one at a time by a background job that outlives the screen and the app, and is retried
+ * when the connection comes back. Sign-out drops everything still queued.
+ */
+interface TaskUploadRepository {
+    /** This task's uploads that the server does not list yet, oldest first. */
+    fun uploads(taskId: Int): Flow<List<TaskUpload>>
+
+    /** The task's required files still missing. */
+    suspend fun requiredFiles(taskId: Int): Result<List<RequiredFile>>
+
+    /** Employee file categories, for an extra file on an employee task. */
+    suspend fun categories(): Result<List<DocumentCategory>>
+
+    /**
+     * Checks and queues [uris] (`content://` or `file://`). A file that fails the web's checks
+     * (type, size, empty) is listed as failed with its reason and is not sent.
+     */
+    suspend fun add(taskId: Int, uris: List<String>, target: UploadTarget)
+
+    /** Sends a failed upload again. */
+    fun retry(id: String)
+
+    /** Forgets an upload: a failed one the person dismissed, or a finished one now on the server's list. */
+    fun dismiss(id: String)
+
+    /**
+     * Checks and copies a file picked for Log activity. Fails with `UploadRefused` and the
+     * app's reason when the file can't be sent. Only the latest prepared file is kept.
+     */
+    suspend fun prepare(uri: String): Result<PreparedFile>
+
+    /**
+     * Sends [file] now, under [template]'s name and type when there is one (sprout_web logs the
+     * activity only after its file is up). Returns the name the server saved it as. Fails with
+     * `UploadRefused` carrying the app's reason.
+     */
+    suspend fun sendNow(taskId: Int, file: PreparedFile, template: FileTemplate?): Result<String?>
+
+    /** Drops a prepared file the person removed or never sent. */
+    suspend fun discard(file: PreparedFile)
 }
 
 /**

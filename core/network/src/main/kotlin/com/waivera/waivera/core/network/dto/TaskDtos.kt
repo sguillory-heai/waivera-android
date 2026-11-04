@@ -136,3 +136,38 @@ data class TaskActionRequest(
     val durationInMinutes: Int,
     val completionTime: String,
 )
+
+/**
+ * `TaskRequiresAttachmentResponse` from `GET api/tasks/requiredAttachments/{taskId}`: the files
+ * still missing on a task. A requirement with a [TemplateFileResponse.form] is filled as a form.
+ */
+@Serializable
+data class RequiredAttachmentResponse(
+    val id: Int = 0,
+    val templateFile: TemplateFileResponse? = null,
+    val removalRequestPending: Boolean = false,
+)
+
+@Serializable
+data class TemplateFileResponse(
+    val id: Int = 0,
+    val fileName: String? = null,
+    val type: FileTypeResponse? = null,
+    val form: FormRefResponse? = null,
+    /** The employee file category an upload for this template is filed under. */
+    val employeeDocumentCategoryId: Int? = null,
+)
+
+@Serializable
+data class FileTypeResponse(val id: Int = 0, val type: String? = null)
+
+@Serializable
+data class FormRefResponse(val id: Int = 0, val name: String? = null)
+
+/** `POST api/file/upload`: the saved file and the name it was saved under ("Fax (2).pdf"). */
+@Serializable
+data class TaskUploadResponse(val fileId: String? = null, val fileName: String? = null)
+
+/** `dto/Response/DocumentCategoryDto.cs`: an employee file category. */
+@Serializable
+data class DocumentCategoryResponse(val id: Int = 0, val documentCategoryName: String? = null)

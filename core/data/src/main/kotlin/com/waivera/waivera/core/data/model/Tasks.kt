@@ -130,7 +130,16 @@ data class TaskActivity(
  * An activity type the person may log. [fixedDescription] and [recommendedMinutes] lock those
  * fields, as on the web; types that need a file are left to the web.
  */
-data class ActivityType(val id: Int, val name: String, val recommendedMinutes: Int?, val fixedDescription: String?)
+data class ActivityType(
+    val id: Int,
+    val name: String,
+    val recommendedMinutes: Int?,
+    val fixedDescription: String?,
+    /** Logging it takes one uploaded file; the server then sets its time to [recommendedMinutes]. */
+    val needsFile: Boolean = false,
+    /** The template that file is saved as, when the organization still has it. */
+    val fileTemplate: FileTemplate? = null,
+)
 
 data class NewActivity(
     val taskId: Int,

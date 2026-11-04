@@ -118,7 +118,14 @@ class LiveTaskRepository @Inject constructor(
     }
 
     override suspend fun activityTypes(): Result<List<ActivityType>> = catchingWaivera {
-        TaskMapping.activityTypes(apiCall { api.getActivityTypes() })
+        val types = apiCall { api.getActivityTypes() }
+        // Without templates a file still goes up under its own name, as on the web.
+        val templates = if (types.any { (it.requiresFile ?: 0) > 0 }) {
+            catchingWaivera { apiCall { api.getTemplateFiles() } }.getOrDefault(emptyList())
+        } else {
+            emptyList()
+        }
+        TaskMapping.activityTypes(types, templates)
     }
 
     override suspend fun logActivity(activity: NewActivity): Result<Unit> = catchingWaivera {

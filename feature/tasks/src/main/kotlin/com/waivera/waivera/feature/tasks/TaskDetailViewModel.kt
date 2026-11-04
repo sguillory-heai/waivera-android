@@ -9,17 +9,23 @@ import com.waivera.waivera.core.data.model.ChangeOptions
 import com.waivera.waivera.core.data.model.DelayPeriod
 import com.waivera.waivera.core.data.model.FileKind
 import com.waivera.waivera.core.data.model.NewActivity
+import com.waivera.waivera.core.data.model.PreparedFile
 import com.waivera.waivera.core.data.model.RequestAccess
 import com.waivera.waivera.core.data.model.RequestKind
 import com.waivera.waivera.core.data.model.RequestOutcome
 import com.waivera.waivera.core.data.model.TaskActivity
 import com.waivera.waivera.core.data.model.TaskAttachment
 import com.waivera.waivera.core.data.model.TaskDetail
+import com.waivera.waivera.core.data.model.TaskState
+import com.waivera.waivera.core.data.model.UploadProblem
 import com.waivera.waivera.core.data.model.currentUserId
 import com.waivera.waivera.core.data.repository.CalendarRepository
 import com.waivera.waivera.core.data.repository.RequestRepository
 import com.waivera.waivera.core.data.repository.SessionRepository
 import com.waivera.waivera.core.data.repository.TaskRepository
+import com.waivera.waivera.core.data.repository.TaskUploadRepository
+import com.waivera.waivera.core.data.uploads.UploadChecks
+import com.waivera.waivera.core.data.uploads.UploadRefused
 import com.waivera.waivera.core.network.NetworkConfig
 import com.waivera.waivera.core.network.error.waiveraErrorOrNull
 import com.waivera.waivera.core.network.time.WaiveraTime
@@ -104,8 +110,14 @@ data class TaskDetailUiState(
     val late: Boolean get() = due.overdue && delay == null
 
     val canLog: Boolean get() = task != null && !task.isFinished
+
+    /** sprout_web `isReadOnly`: completed, closed and deleted tasks take no files. */
+    val canUpload: Boolean
+        get() = canLog && (task?.state as? TaskState.Other)?.name?.equals(DELETED, ignoreCase = true) != true
     val canAsk: Boolean get() = task != null && !task.isFinished && pending == null && askChoices.isNotEmpty()
 }
+
+private const val DELETED = "Deleted"
 
 /** The active delay, already worded: [through] is "Nov 20", null when the server sent no end. */
 @Immutable
@@ -140,13 +152,38 @@ data class LogForm(
     val failed: Boolean = false,
     /** The picked time is after now. */
     val inFuture: Boolean = false,
+    /** The file a type that needs one will send, checked and copied. */
+    val file: PreparedFile? = null,
+    val fileChecking: Boolean = false,
+    /** Why the picked file can't be used, or why it didn't upload. */
+    val fileProblem: UploadProblem? = null,
+    /** The file is up (named as the server saved it); a retry only logs the activity. */
+    val sentAs: String? = null,
+    val isUploading: Boolean = false,
 ) {
     val type: ActivityType? get() = (types as? Loadable.Ready)?.value?.firstOrNull { it.id == typeId }
-    val minutesLocked: Boolean get() = type?.recommendedMinutes != null
+    val needsFile: Boolean get() = type?.needsFile == true
+
+    /** A type that needs a file has its time set by the server, as on the web. */
+    val minutesLocked: Boolean get() = type?.recommendedMinutes != null || needsFile
+    val showsTime: Boolean get() = !needsFile || type?.recommendedMinutes != null
     val descriptionLocked: Boolean get() = type?.fixedDescription != null
     val typeMissing: Boolean get() = typeId == null
     val descriptionMissing: Boolean get() = description.isBlank()
-    val isValid: Boolean get() = !typeMissing && !descriptionMissing && !inFuture && minutes > 0
+    val fileMissing: Boolean get() = needsFile && file == null && sentAs == null
+
+    /** The name the file is saved as: the template's, with the file's extension. */
+    val fileSavedName: String?
+        get() = file?.let { picked ->
+            type?.fileTemplate?.let { UploadChecks.templateName(it.name, picked.mimeType) } ?: picked.name
+        }
+    val isValid: Boolean
+        get() = !typeMissing &&
+            !descriptionMissing &&
+            !inFuture &&
+            !fileMissing &&
+            !fileChecking &&
+            (needsFile || minutes > 0)
 
     companion object {
         const val DEFAULT_MINUTES = 15
@@ -156,7 +193,8 @@ data class LogForm(
 }
 
 sealed interface TaskDetailEffect {
-    data object Logged : TaskDetailEffect
+    /** [savedAs] when the server numbered the activity's file, e.g. "Fax (2).pdf". */
+    data class Logged(val savedAs: String? = null) : TaskDetailEffect
 
     /** A change was asked for; [inEffect] when the server applied it at once (an owner's own request). */
     data class Asked(val kind: AskKind, val inEffect: Boolean) : TaskDetailEffect
@@ -174,6 +212,7 @@ sealed interface TaskDetailEffect {
 class TaskDetailViewModel @AssistedInject constructor(
     @Assisted private val taskId: Int,
     private val tasks: TaskRepository,
+    private val uploads: TaskUploadRepository,
     private val requests: RequestRepository,
     private val session: SessionRepository,
     private val config: NetworkConfig,
@@ -340,18 +379,55 @@ class TaskDetailViewModel @AssistedInject constructor(
     }
 
     fun dismissLog() {
-        if (local.value.log?.isSaving == true) return
+        val form = local.value.log ?: return
+        if (form.isSaving) return
         local.update { it.copy(log = null) }
+        form.file?.let { viewModelScope.launch { uploads.discard(it) } }
     }
 
-    fun chooseType(id: Int) = updateLog { form ->
-        val type = (form.types as? Loadable.Ready)?.value?.firstOrNull { it.id == id } ?: return@updateLog form
-        form.copy(
-            typeId = id,
-            minutes = type.recommendedMinutes ?: if (form.minutesLocked) LogForm.DEFAULT_MINUTES else form.minutes,
-            description = type.fixedDescription ?: if (form.descriptionLocked) "" else form.description,
-            failed = false,
-        )
+    fun chooseType(id: Int) {
+        val form = local.value.log ?: return
+        val type = (form.types as? Loadable.Ready)?.value?.firstOrNull { it.id == id } ?: return
+        // A file picked for one type goes when the new type takes none; once sent it stays sent.
+        val dropFile = !type.needsFile && form.sentAs == null
+        updateLog {
+            it.copy(
+                typeId = id,
+                minutes = type.recommendedMinutes ?: if (it.minutesLocked) LogForm.DEFAULT_MINUTES else it.minutes,
+                description = type.fixedDescription ?: if (it.descriptionLocked) "" else it.description,
+                failed = false,
+                file = if (dropFile) null else it.file,
+                fileProblem = if (dropFile) null else it.fileProblem,
+            )
+        }
+        if (dropFile) form.file?.let { viewModelScope.launch { uploads.discard(it) } }
+    }
+
+    /** The picker's result for the activity's file; an empty list means the person backed out. */
+    fun pickLogFile(uris: List<String>) {
+        val uri = uris.firstOrNull() ?: return
+        val form = local.value.log ?: return
+        if (form.isSaving || form.sentAs != null) return
+        updateLog { it.copy(fileChecking = true, fileProblem = null, file = null, failed = false) }
+        viewModelScope.launch {
+            val result = uploads.prepare(uri)
+            updateLog {
+                it.copy(
+                    fileChecking = false,
+                    file = result.getOrNull(),
+                    fileProblem = result.exceptionOrNull()?.let { error ->
+                        (error as? UploadRefused)?.problem ?: UploadProblem.Unreadable
+                    },
+                )
+            }
+        }
+    }
+
+    fun removeLogFile() {
+        val form = local.value.log ?: return
+        if (form.isSaving || form.sentAs != null) return
+        updateLog { it.copy(file = null, fileProblem = null) }
+        form.file?.let { viewModelScope.launch { uploads.discard(it) } }
     }
 
     fun stepMinutes(up: Boolean) = updateLog { form ->
@@ -378,13 +454,17 @@ class TaskDetailViewModel @AssistedInject constructor(
             return
         }
         val typeId = form.typeId ?: return
-        updateLog { it.copy(isSaving = true, failed = false) }
+        val file = form.file?.takeIf { form.needsFile && form.sentAs == null }
+        updateLog { it.copy(isSaving = true, isUploading = file != null, failed = false, fileProblem = null) }
         viewModelScope.launch {
+            // As on the web, the file goes up first and the activity is logged only once it is there.
+            val sentAs = if (file != null) uploadLogFile(form, file) ?: return@launch else form.sentAs
+            updateLog { it.copy(isUploading = false, sentAs = sentAs) }
             val result = tasks.logActivity(
                 NewActivity(
                     taskId = taskId,
                     typeId = typeId,
-                    minutes = form.minutes,
+                    minutes = if (form.needsFile) form.type?.recommendedMinutes ?: 0 else form.minutes,
                     completedAt = form.completedAt,
                     description = form.description,
                 ),
@@ -392,7 +472,9 @@ class TaskDetailViewModel @AssistedInject constructor(
             if (result.isSuccess) {
                 val before = (local.value.activity as? Loadable.Ready)?.value?.map(TaskActivity::id)?.toSet().orEmpty()
                 local.update { it.copy(log = null) }
-                effectChannel.send(TaskDetailEffect.Logged)
+                val numbered = sentAs?.takeIf { it.isNotEmpty() && it != form.fileSavedName }
+                effectChannel.send(TaskDetailEffect.Logged(savedAs = numbered))
+                if (sentAs != null) loadFiles()
                 val refreshed = tasks.activity(taskId)
                 refreshed.onSuccess { items ->
                     local.update { current ->
@@ -407,6 +489,21 @@ class TaskDetailViewModel @AssistedInject constructor(
                 updateLog { it.copy(isSaving = false, failed = true) }
             }
         }
+    }
+
+    /** The saved name, or null when the upload failed and the form now says why. */
+    private suspend fun uploadLogFile(form: LogForm, file: PreparedFile): String? {
+        val upload = uploads.sendNow(taskId, file, form.type?.fileTemplate)
+        val error = upload.exceptionOrNull() ?: return upload.getOrNull() ?: form.fileSavedName.orEmpty()
+        val problem = (error as? UploadRefused)?.problem ?: UploadProblem.Failed
+        // A file the server won't take is dropped so another can be picked; a failed send keeps
+        // it for Log activity to try again.
+        val keep = problem.canRetry
+        updateLog {
+            it.copy(isSaving = false, isUploading = false, fileProblem = problem, file = if (keep) it.file else null)
+        }
+        if (!keep) uploads.discard(file)
+        return null
     }
 
     fun startAsk() {

@@ -38,8 +38,10 @@ import com.waivera.waivera.core.data.repository.SessionRepository
 import com.waivera.waivera.core.data.repository.SettingsRepository
 import com.waivera.waivera.core.data.repository.TaskFileRepository
 import com.waivera.waivera.core.data.repository.TaskRepository
+import com.waivera.waivera.core.data.repository.TaskUploadRepository
 import com.waivera.waivera.core.data.repository.ThreadRepository
 import com.waivera.waivera.core.data.sync.LiveDataLayerStarter
+import com.waivera.waivera.core.data.uploads.LiveTaskUploadRepository
 import com.waivera.waivera.core.network.AuthTokenProvider
 import com.waivera.waivera.core.realtime.DefaultRealtimeClient
 import com.waivera.waivera.core.realtime.RealtimeClient
@@ -90,6 +92,9 @@ interface LiveRepositoriesModule {
 
     @Binds
     fun taskFiles(impl: LiveTaskFileRepository): TaskFileRepository
+
+    @Binds
+    fun taskUploads(impl: LiveTaskUploadRepository): TaskUploadRepository
 
     @Binds
     fun links(impl: LiveLinkLookupRepository): LinkLookupRepository

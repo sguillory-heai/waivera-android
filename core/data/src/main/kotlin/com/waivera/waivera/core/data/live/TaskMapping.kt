@@ -2,6 +2,7 @@ package com.waivera.waivera.core.data.live
 
 import com.waivera.waivera.core.data.model.ActivityType
 import com.waivera.waivera.core.data.model.FileKind
+import com.waivera.waivera.core.data.model.FileTemplate
 import com.waivera.waivera.core.data.model.RequestStatus
 import com.waivera.waivera.core.data.model.TaskActivity
 import com.waivera.waivera.core.data.model.TaskAttachment
@@ -9,6 +10,7 @@ import com.waivera.waivera.core.data.model.TaskDelay
 import com.waivera.waivera.core.data.model.TaskDetail
 import com.waivera.waivera.core.data.model.TaskState
 import com.waivera.waivera.core.data.model.TaskSummary
+import com.waivera.waivera.core.data.model.UploadTarget
 import com.waivera.waivera.core.network.dto.ActionSubTypeResponse
 import com.waivera.waivera.core.network.dto.OrganizationResponse
 import com.waivera.waivera.core.network.dto.TaskActionResponse
@@ -19,6 +21,7 @@ import com.waivera.waivera.core.network.dto.TaskListResponse
 import com.waivera.waivera.core.network.dto.TaskParticipantResponse
 import com.waivera.waivera.core.network.dto.TaskResponse
 import com.waivera.waivera.core.network.dto.TaskUserResponse
+import com.waivera.waivera.core.network.dto.TemplateFileResponse
 import com.waivera.waivera.core.network.time.WaiveraTime
 import java.time.Instant
 
@@ -132,18 +135,32 @@ object TaskMapping {
             }.thenByDescending { it.attachmentId },
         )
 
-    /** Types that need a file go to the web, which has the file picker the server checks. */
-    fun activityTypes(items: List<ActionSubTypeResponse>): List<ActivityType> = items
-        .filter { it.isUserLoggable && (it.requiresFile ?: 0) <= 0 && !it.actionSubTypeName.isNullOrBlank() }
+    /**
+     * The types a person can log. One that needs a file names a template by id (sprout_web
+     * `LogActivityModal`); a template the organization no longer has leaves the file under its own name.
+     */
+    fun activityTypes(
+        items: List<ActionSubTypeResponse>,
+        templates: List<TemplateFileResponse> = emptyList(),
+    ): List<ActivityType> = items
+        .filter { it.isUserLoggable && !it.actionSubTypeName.isNullOrBlank() }
         .map {
+            val templateId = it.requiresFile?.takeIf { id -> id > 0 }
             ActivityType(
                 id = it.id,
                 name = readable(it.actionSubTypeName.orEmpty()),
                 recommendedMinutes = it.recommendedTimeInMinutes?.takeIf { minutes -> minutes > 0 },
                 fixedDescription = it.description?.trim()?.takeIf(String::isNotEmpty),
+                needsFile = templateId != null,
+                fileTemplate = templateId?.let { id -> templates.firstOrNull { t -> t.id == id } }?.let(::template),
             )
         }
         .sortedBy { it.name.lowercase() }
+
+    private fun template(dto: TemplateFileResponse): FileTemplate? {
+        val name = dto.fileName?.trim()?.takeIf(String::isNotEmpty) ?: return null
+        return FileTemplate(dto.id, name, dto.type?.id ?: UploadTarget.PLAIN_TYPE_ID, dto.employeeDocumentCategoryId)
+    }
 
     /** `HEA-1042` as the web labels it; just the number when the agency has no abbreviation. */
     fun key(organization: OrganizationResponse?, friendlyId: Int): String {

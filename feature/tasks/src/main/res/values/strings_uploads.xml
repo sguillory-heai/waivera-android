@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="feature_tasks_required_files">Required files</string>
+    <plurals name="feature_tasks_required_count">
+        <item quantity="one">%d file still needed</item>
+        <item quantity="other">%d files still needed</item>
+    </plurals>
+    <string name="feature_tasks_required_error">Required files didn\'t load.</string>
+    <string name="feature_tasks_required_needed">Needed to finish this task</string>
+    <string name="feature_tasks_required_form">Form · fill it in on the web</string>
+    <string name="feature_tasks_required_removal">Removal requested · still needed until it\'s approved</string>
+    <string name="feature_tasks_upload">Upload</string>
+    <string name="feature_tasks_upload_for">Upload %1$s</string>
+    <string name="feature_tasks_add_file">Add a file</string>
+    <string name="feature_tasks_upload_title_for">Upload “%1$s”</string>
+    <string name="feature_tasks_upload_limits">JPG, PNG, GIF or PDF, up to 10 MB each, 10 at a time.</string>
+    <string name="feature_tasks_upload_limits_one">One JPG, PNG, GIF or PDF, up to 10 MB.</string>
+    <string name="feature_tasks_upload_category">File it under</string>
+    <string name="feature_tasks_upload_categories_loading">Loading file categories…</string>
+    <string name="feature_tasks_upload_categories_error">File categories didn\'t load.</string>
+    <string name="feature_tasks_upload_camera">Take a photo</string>
+    <string name="feature_tasks_upload_camera_detail">Saved as a JPG</string>
+    <string name="feature_tasks_upload_photos">Choose photos</string>
+    <string name="feature_tasks_upload_photo">Choose a photo</string>
+    <string name="feature_tasks_upload_photos_detail">From your gallery</string>
+    <string name="feature_tasks_upload_files">Choose a file</string>
+    <string name="feature_tasks_upload_files_detail">PDFs and images from Files, Drive and more</string>
+    <string name="feature_tasks_upload_waiting">Waiting to upload</string>
+    <string name="feature_tasks_upload_starting">Uploading…</string>
+    <string name="feature_tasks_upload_progress">Uploading… %1$d%% of %2$s</string>
+    <string name="feature_tasks_upload_done">Uploaded</string>
+    <string name="feature_tasks_upload_failed">Couldn\'t upload · %1$s</string>
+    <string name="feature_tasks_upload_retry">Try again</string>
+    <string name="feature_tasks_upload_remove">Remove</string>
+    <string name="feature_tasks_upload_dismiss">Dismiss %1$s</string>
+    <string name="feature_tasks_upload_problem_empty">the file is empty</string>
+    <string name="feature_tasks_upload_problem_too_large">it\'s over 10 MB</string>
+    <string name="feature_tasks_upload_problem_type">use a PDF, PNG, JPG or GIF</string>
+    <string name="feature_tasks_upload_problem_pdf_locked">the PDF is locked; print it to PDF and try again</string>
+    <string name="feature_tasks_upload_problem_pdf_unreadable">the PDF can\'t be opened</string>
+    <string name="feature_tasks_upload_problem_already">this file is already on the task</string>
+    <string name="feature_tasks_upload_problem_locked">the task isn\'t taking files right now</string>
+    <string name="feature_tasks_upload_problem_access">you can\'t add files to this task</string>
+    <string name="feature_tasks_upload_problem_unreadable">the file couldn\'t be read</string>
+    <string name="feature_tasks_upload_problem_failed">something went wrong</string>
+    <string name="feature_tasks_log_file">File</string>
+    <string name="feature_tasks_log_file_on_log">Uploads when you log it</string>
+    <string name="feature_tasks_log_file_checking">Checking the file…</string>
+    <string name="feature_tasks_log_file_required">Add the file this activity needs.</string>
+    <string name="feature_tasks_log_file_problem">Can\'t use this file · %1$s</string>
+    <string name="feature_tasks_log_file_remove">Remove %1$s</string>
+    <string name="feature_tasks_log_type_needs_file">Needs a file</string>
+    <string name="feature_tasks_log_uploading">Uploading the file…</string>
+    <string name="feature_tasks_log_upload_failed">Couldn\'t upload the file · %1$s</string>
+    <string name="feature_tasks_logged_saved_as">Activity logged. File saved as %1$s.</string>
+</resources>

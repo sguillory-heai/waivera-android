@@ -40,6 +40,8 @@ dependencies {
     api(projects.core.realtime)
 
     implementation(libs.androidx.datastore)
+    // Reads photo orientation on Android 8.x, where the platform ExifInterface has known bugs.
+    implementation(libs.androidx.exifinterface)
     implementation(libs.androidx.datastore.preferences)
     implementation(libs.androidx.lifecycle.process)
     implementation(libs.androidx.room.ktx)

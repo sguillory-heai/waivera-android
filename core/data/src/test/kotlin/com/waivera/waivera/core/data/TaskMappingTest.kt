@@ -114,7 +114,7 @@ class TaskMappingTest {
     }
 
     @Test
-    fun only_loggable_types_without_files_are_offered() {
+    fun only_loggable_types_are_offered_and_file_types_say_so() {
         val types = TaskMapping.activityTypes(
             listOf(
                 ActionSubTypeResponse(id = 1, actionSubTypeName = "PHONE CALL", isUserLoggable = true),
@@ -122,7 +122,8 @@ class TaskMappingTest {
                 ActionSubTypeResponse(id = 3, actionSubTypeName = "System", isUserLoggable = false),
             ),
         )
-        assertEquals(listOf("Phone call"), types.map { it.name })
+        assertEquals(listOf("Phone call", "Upload"), types.map { it.name })
+        assertEquals(listOf(false, true), types.map { it.needsFile })
     }
 
     @Test
