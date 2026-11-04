@@ -21,6 +21,8 @@ import androidx.compose.ui.semantics.semantics
 import com.waivera.waivera.core.data.model.EmployeeFile
 import com.waivera.waivera.core.data.model.TimeOffRequest
 import com.waivera.waivera.core.data.model.TimeOffSummary
+import com.waivera.waivera.core.designsystem.component.WaiveraButton
+import com.waivera.waivera.core.designsystem.component.WaiveraButtonVariant
 import com.waivera.waivera.core.designsystem.component.WaiveraIconTile
 import com.waivera.waivera.core.designsystem.component.WaiveraListRow
 import com.waivera.waivera.core.designsystem.component.WaiveraStatusBadge
@@ -33,7 +35,7 @@ import java.text.NumberFormat
 import java.time.ZoneId
 
 @Composable
-internal fun TimeOffSection(section: Section<TimeOffSummary>, onRetry: () -> Unit) {
+internal fun TimeOffSection(section: Section<TimeOffSummary>, onRetry: () -> Unit, onRequest: (() -> Unit)? = null) {
     val title = stringResource(R.string.feature_profile_time_off_title)
     when (section) {
         Section.Loading -> {
@@ -41,11 +43,30 @@ internal fun TimeOffSection(section: Section<TimeOffSummary>, onRetry: () -> Uni
                 ProfileCard(title = title) { SectionSkeleton(rows = 3) }
             }
         }
-        is Section.Failed -> ProfileCard(title = title) { SectionError(section.error, onRetry) }
-        is Section.Ready -> if (TimeOffMath.hasContent(section.value)) {
-            ProfileCard(title = title) { TimeOffBody(section.value) }
+        is Section.Failed -> ProfileCard(title = title) {
+            SectionError(section.error, onRetry)
+            onRequest?.let { RequestTimeOffButton(it) }
+        }
+        // With nothing to list, the card still holds the button for people who may ask.
+        is Section.Ready -> if (TimeOffMath.hasContent(section.value) || onRequest != null) {
+            ProfileCard(title = title) {
+                TimeOffBody(section.value)
+                onRequest?.let { RequestTimeOffButton(it) }
+            }
         }
     }
+}
+
+@Composable
+private fun RequestTimeOffButton(onClick: () -> Unit) {
+    WaiveraButton(
+        text = stringResource(R.string.feature_profile_time_off_request),
+        onClick = onClick,
+        leadingIcon = WaiveraIcons.Add,
+        variant = WaiveraButtonVariant.Secondary,
+        fullWidth = true,
+        modifier = Modifier.padding(horizontal = WaiveraSpacing.Medium, vertical = WaiveraSpacing.ExtraSmall),
+    )
 }
 
 @OptIn(ExperimentalLayoutApi::class)

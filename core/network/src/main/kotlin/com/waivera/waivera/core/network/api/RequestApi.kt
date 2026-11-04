@@ -5,7 +5,10 @@ import com.waivera.waivera.core.network.dto.ApiResponse
 import com.waivera.waivera.core.network.dto.ComplianceEligibilityResponse
 import com.waivera.waivera.core.network.dto.ComplianceReasonResponse
 import com.waivera.waivera.core.network.dto.LeaveBalancesResponse
+import com.waivera.waivera.core.network.dto.LeavePreviewBody
+import com.waivera.waivera.core.network.dto.LeavePreviewResponse
 import com.waivera.waivera.core.network.dto.LeaveSettingsResponse
+import com.waivera.waivera.core.network.dto.LeaveTypeResponse
 import com.waivera.waivera.core.network.dto.PagedResults
 import com.waivera.waivera.core.network.dto.RequestActionBody
 import com.waivera.waivera.core.network.dto.TaskAttachmentResponse
@@ -14,6 +17,7 @@ import com.waivera.waivera.core.network.dto.TaskDelayRequest
 import com.waivera.waivera.core.network.dto.TaskDelayResult
 import com.waivera.waivera.core.network.dto.TaskExtensionRequest
 import com.waivera.waivera.core.network.dto.TaskExtensionResult
+import com.waivera.waivera.core.network.dto.TimeOffBody
 import com.waivera.waivera.core.network.dto.TrainingCreditResponse
 import com.waivera.waivera.core.network.dto.TrainingDecisionBody
 import com.waivera.waivera.core.network.dto.TransactionReasonResponse
@@ -67,6 +71,16 @@ interface RequestApi {
 
     @GET("api/leave-management/employees/{employeeId}/balances")
     suspend fun leaveBalances(@Path("employeeId") employeeId: String): Response<ApiResponse<LeaveBalancesResponse>>
+
+    /** The agency's active leave types, as a bare list. */
+    @GET("api/TimeOff/all")
+    suspend fun leaveTypes(): Response<List<LeaveTypeResponse>>
+
+    @POST("api/leave-management/requests/preview")
+    suspend fun previewLeave(@Body body: LeavePreviewBody): Response<ApiResponse<LeavePreviewResponse>>
+
+    @POST("api/TimeOff/add-update-timeOff")
+    suspend fun requestTimeOff(@Body body: TimeOffBody): Response<JsonElement>
 
     @GET("api/leave-management/settings")
     suspend fun leaveSettings(): Response<ApiResponse<LeaveSettingsResponse>>

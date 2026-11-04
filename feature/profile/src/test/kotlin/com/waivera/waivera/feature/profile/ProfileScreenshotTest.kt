@@ -129,6 +129,20 @@ class ProfileScreenshotTest {
         Profile(ready(details = Section.Ready(long)).copy(timeOff = Section.Ready(many)))
     }
 
+    // Tall window: the time-off card sits below the first screen.
+    @Test
+    fun profileRequestTimeOff() = capture("profile_request_time_off", heightDp = ScreenshotHeights.TALL_DP) {
+        ProfileContent(
+            state = ready().copy(canRequestTimeOff = true),
+            onBack = {},
+            onRefresh = {},
+            onRetryConnection = {},
+            onOpenPerson = {},
+            onOpenSettings = {},
+            onRequestTimeOff = {},
+        )
+    }
+
     @Test
     fun profileUnavailable() = capture("profile_unavailable") { Profile(ProfileUiState.Unavailable) }
 

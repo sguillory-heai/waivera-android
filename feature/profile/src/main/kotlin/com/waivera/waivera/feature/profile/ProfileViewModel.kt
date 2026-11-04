@@ -7,11 +7,13 @@ import com.waivera.waivera.core.data.model.CurrentUser
 import com.waivera.waivera.core.data.model.EmployeeFile
 import com.waivera.waivera.core.data.model.EmployeeProfile
 import com.waivera.waivera.core.data.model.Synced
+import com.waivera.waivera.core.data.model.TimeOffRequest
 import com.waivera.waivera.core.data.model.TimeOffSummary
 import com.waivera.waivera.core.data.model.currentUser
 import com.waivera.waivera.core.data.repository.CalendarRepository
 import com.waivera.waivera.core.data.repository.ProfileRepository
 import com.waivera.waivera.core.data.repository.RealtimeStatusRepository
+import com.waivera.waivera.core.data.repository.RequestRepository
 import com.waivera.waivera.core.data.repository.SessionRepository
 import com.waivera.waivera.core.designsystem.component.ConnectionBannerState
 import com.waivera.waivera.core.network.error.WaiveraError
@@ -62,6 +64,8 @@ internal sealed interface ProfileUiState {
         val celebration: Celebration?,
         val isRefreshing: Boolean,
         val connection: ConnectionBannerState,
+        /** sprout_web's `admin_request:create:time_off` rule for the Request time off button. */
+        val canRequestTimeOff: Boolean = false,
     ) : ProfileUiState {
         /** The employee's saved zone: the profile's when set, else the session's (never the device's). */
         val zone: ZoneId
@@ -82,6 +86,7 @@ internal class ProfileViewModel @Inject constructor(
     private val calendar: CalendarRepository,
     private val realtime: RealtimeStatusRepository,
     private val clock: Clock,
+    private val requests: RequestRepository,
 ) : ViewModel() {
     private val timeOff = MutableStateFlow<Section<TimeOffSummary>>(Section.Loading)
     private val files = MutableStateFlow<Section<List<EmployeeFile>>>(Section.Loading)
@@ -104,9 +109,9 @@ internal class ProfileViewModel @Inject constructor(
         },
         sections,
         celebration,
-        refreshing,
+        combine(refreshing, requests.access) { busy, access -> busy to access.canRequestTimeOff },
         realtime.status,
-    ) { inputs, (t, f, o), party, busy, status ->
+    ) { inputs, (t, f, o), party, (busy, canRequestTimeOff), status ->
         val me = inputs.user ?: return@combine ProfileUiState.Unavailable
         val failure = inputs.error ?: inputs.details.error
         ProfileUiState.Ready(
@@ -119,11 +124,14 @@ internal class ProfileViewModel @Inject constructor(
             celebration = party,
             isRefreshing = busy,
             connection = status.toBannerState(),
+            canRequestTimeOff = canRequestTimeOff,
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS), initialState())
 
     init {
         refresh()
+        // Access normally loads at sign-in; the button waits for it rather than guessing.
+        viewModelScope.launch { requests.ensureAccess() }
         viewModelScope.launch { realtime.status.reconnections().collect { refresh() } }
         // Celebrations need milestones; Today and Schedule usually loaded them already.
         viewModelScope.launch {
@@ -146,6 +154,16 @@ internal class ProfileViewModel @Inject constructor(
     } ?: ProfileUiState.Unavailable
 
     fun retryConnection() = realtime.retryNow()
+
+    /** Shows the new request as pending at once, then reloads the list for the real one. */
+    fun timeOffSent(request: TimeOffRequest) {
+        timeOff.update { section ->
+            val summary = (section as? Section.Ready)?.value ?: TimeOffSummary()
+            Section.Ready(summary.copy(requests = listOf(request) + summary.requests))
+        }
+        val me = session.state.value.currentUser ?: return
+        viewModelScope.launch { timeOff.value = profiles.timeOff(me.userId).toSection(timeOff.value) }
+    }
 
     /** Re-issues all four requests; ignored while a refresh is already running. */
     fun refresh() {

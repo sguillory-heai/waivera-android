@@ -5,6 +5,9 @@ import com.waivera.waivera.core.data.model.ChangeReason
 import com.waivera.waivera.core.data.model.ChangeRequest
 import com.waivera.waivera.core.data.model.DelayPeriod
 import com.waivera.waivera.core.data.model.LeaveBalance
+import com.waivera.waivera.core.data.model.LeaveDraft
+import com.waivera.waivera.core.data.model.LeavePreview
+import com.waivera.waivera.core.data.model.LeaveType
 import com.waivera.waivera.core.data.model.RequestAccess
 import com.waivera.waivera.core.data.model.RequestKind
 import com.waivera.waivera.core.data.model.RequestOutcome
@@ -84,6 +87,13 @@ internal class FakeRequests(
     override suspend fun leaveBalance(employeeId: String, leaveTypeId: Int): Result<LeaveBalance?> = balance
 
     override suspend fun leaveZone(): ZoneId? = leaveZone
+
+    override suspend fun leaveTypes(): Result<List<LeaveType>> = Result.success(emptyList())
+
+    override suspend fun previewLeave(draft: LeaveDraft): Result<LeavePreview> =
+        Result.failure(IllegalStateException("not used by tasks"))
+
+    override suspend fun requestTimeOff(draft: LeaveDraft): Result<Unit> = Result.success(Unit)
 
     override suspend fun trainingCredit(requestId: Int): Result<TrainingCredit> = training
 

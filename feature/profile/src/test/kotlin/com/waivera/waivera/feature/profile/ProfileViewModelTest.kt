@@ -3,6 +3,7 @@ package com.waivera.waivera.feature.profile
 import com.waivera.waivera.core.data.model.TimeOffSummary
 import com.waivera.waivera.core.demo.DemoData
 import com.waivera.waivera.core.demo.DemoGraph
+import com.waivera.waivera.core.demo.DemoRequestRepository
 import com.waivera.waivera.core.designsystem.component.ConnectionBannerState
 import com.waivera.waivera.core.network.error.WaiveraError
 import com.waivera.waivera.core.realtime.ConnectionState
@@ -36,6 +37,7 @@ class ProfileViewModelTest {
             calendar = graph.calendar,
             realtime = realtime,
             clock = TestClock,
+            requests = DemoRequestRepository(graph.backend),
         )
         backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { vm.uiState.collect {} }
         return vm
@@ -99,7 +101,15 @@ class ProfileViewModelTest {
     fun profileErrorShowsOneErrorAndRetryReissuesAllFour() = runTest {
         val cold = FakeProfileRepository(profile = null).apply { refreshError = WaiveraError.Server(500) }
         val graph = DemoGraph(backgroundScope)
-        val vm = ProfileViewModel(graph.session, cold, organizations, graph.calendar, realtime, TestClock)
+        val vm = ProfileViewModel(
+            graph.session,
+            cold,
+            organizations,
+            graph.calendar,
+            realtime,
+            TestClock,
+            DemoRequestRepository(graph.backend),
+        )
         backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { vm.uiState.collect {} }
 
         assertIs<Section.Failed>(vm.ready().details)

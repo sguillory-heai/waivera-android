@@ -5,6 +5,10 @@ import com.waivera.waivera.core.data.model.ChangeReason
 import com.waivera.waivera.core.data.model.ChangeRequest
 import com.waivera.waivera.core.data.model.DelayPeriod
 import com.waivera.waivera.core.data.model.LeaveBalance
+import com.waivera.waivera.core.data.model.LeaveDraft
+import com.waivera.waivera.core.data.model.LeavePreview
+import com.waivera.waivera.core.data.model.LeaveSendException
+import com.waivera.waivera.core.data.model.LeaveType
 import com.waivera.waivera.core.data.model.RequestAccess
 import com.waivera.waivera.core.data.model.RequestKind
 import com.waivera.waivera.core.data.model.RequestOutcome
@@ -20,10 +24,12 @@ import com.waivera.waivera.core.network.api.AuthenticationApi
 import com.waivera.waivera.core.network.api.RequestApi
 import com.waivera.waivera.core.network.di.ApplicationScope
 import com.waivera.waivera.core.network.dto.ApiResponse
+import com.waivera.waivera.core.network.dto.LeavePreviewBody
 import com.waivera.waivera.core.network.dto.RequestActionBody
 import com.waivera.waivera.core.network.dto.TaskClosureRequest
 import com.waivera.waivera.core.network.dto.TaskDelayRequest
 import com.waivera.waivera.core.network.dto.TaskExtensionRequest
+import com.waivera.waivera.core.network.dto.TimeOffBody
 import com.waivera.waivera.core.network.dto.TrainingDecisionBody
 import com.waivera.waivera.core.network.error.WaiveraError
 import com.waivera.waivera.core.network.error.apiCall
@@ -36,6 +42,8 @@ import java.time.ZoneOffset
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -187,6 +195,51 @@ class LiveRequestRepository @Inject constructor(
         WaiveraTime.zoneOrNull(apiCall { api.leaveSettings() }.requireData().timeZone)
     }.getOrNull()
 
+    override suspend fun leaveTypes(): Result<List<LeaveType>> = catchingWaivera {
+        val me = session.state.value.currentUserId ?: throw WaiveraError.NotSignedIn()
+        coroutineScope {
+            val types = async { apiCall { api.leaveTypes() } }
+            // A person may always read their own balances; without them the types still list.
+            val balances =
+                async { catchingWaivera { apiCall { api.leaveBalances(me) }.requireData().balances }.getOrNull() }
+            LeaveMapping.leaveTypes(types.await(), balances.await())
+        }
+    }
+
+    override suspend fun previewLeave(draft: LeaveDraft): Result<LeavePreview> = catchingWaivera {
+        val me = session.state.value.currentUserId ?: throw WaiveraError.NotSignedIn()
+        val body = LeavePreviewBody(
+            employeeId = me,
+            leaveTypeId = draft.leaveTypeId,
+            startTime = draft.start.toString(),
+            endTime = draft.end.toString(),
+            requestType = draft.requestType(),
+        )
+        LeaveMapping.preview(apiCall { api.previewLeave(body) }.requireData())
+    }
+
+    override suspend fun requestTimeOff(draft: LeaveDraft): Result<Unit> = catchingWaivera {
+        val me = session.state.value.currentUserId ?: throw WaiveraError.NotSignedIn()
+        val body = TimeOffBody(
+            userId = me,
+            typeOfLeave = draft.leaveTypeId,
+            comment = draft.note?.trim()?.takeIf(String::isNotEmpty),
+            timeOffStartTime = draft.start.toString(),
+            timeOffEndTime = draft.end.toString(),
+            requestType = draft.requestType(),
+        )
+        if (!succeeded(apiCall { api.requestTimeOff(body) })) throw WaiveraError.Unexpected()
+    }.fold(
+        onSuccess = { Result.success(Unit) },
+        // Refusals the person can fix get the app's own words; everything else stays a WaiveraError.
+        onFailure = { error ->
+            val waivera = WaiveraError.from(error)
+            Result.failure(LeaveMapping.sendProblem(waivera)?.let(::LeaveSendException) ?: waivera)
+        },
+    )
+
+    private fun LeaveDraft.requestType() = if (partialDay) PARTIAL_DAY else FULL_DAY
+
     override suspend fun trainingCredit(requestId: Int): Result<TrainingCredit> = catchingWaivera {
         ApprovalMapping.training(requestId, apiCall { api.trainingCredit(requestId) })
     }
@@ -283,6 +336,11 @@ class LiveRequestRepository @Inject constructor(
         if (status.equals("Approved", ignoreCase = true)) RequestOutcome.Approved else RequestOutcome.Pending
 
     /** The envelope can say no inside a 200; its own message is never shown. */
+    private companion object {
+        const val FULL_DAY = "FULL_DAY"
+        const val PARTIAL_DAY = "PARTIAL_DAY"
+    }
+
     private fun succeeded(body: JsonElement): Boolean {
         if (body !is JsonObject || !body.containsKey("success")) return true
         return runCatching { json.decodeFromJsonElement(ApiResponse.serializer(JsonElement.serializer()), body) }

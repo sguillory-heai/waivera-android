@@ -63,7 +63,7 @@ object ApprovalMapping {
         review.warnings.map { it.code.orEmpty() }.filter(::isVisible).sorted(),
     )
 
-    private fun impact(review: LeaveIntelligenceResponse) = LeaveImpact(
+    internal fun impact(review: LeaveIntelligenceResponse) = LeaveImpact(
         dueBefore = review.overdueCount,
         dueDuring = review.dueDuringLeaveCount,
         shortNotice = review.warnings.any { it.code == SHORT_NOTICE_VACATION },

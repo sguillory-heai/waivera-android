@@ -19,9 +19,16 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
@@ -50,6 +57,7 @@ import com.waivera.waivera.core.designsystem.component.WaiveraListRow
 import com.waivera.waivera.core.designsystem.component.WaiveraLoadSwap
 import com.waivera.waivera.core.designsystem.component.WaiveraNameText
 import com.waivera.waivera.core.designsystem.component.WaiveraPullToRefreshBox
+import com.waivera.waivera.core.designsystem.component.WaiveraSnackbarHost
 import com.waivera.waivera.core.designsystem.component.WaiveraTileTone
 import com.waivera.waivera.core.designsystem.component.WaiveraTopBar
 import com.waivera.waivera.core.designsystem.component.rememberLatestNonNull
@@ -62,6 +70,8 @@ import com.waivera.waivera.core.designsystem.theme.WaiveraTextStyles
 import com.waivera.waivera.core.designsystem.theme.WaiveraTheme
 import com.waivera.waivera.core.designsystem.theme.isLargeFontScale
 import com.waivera.waivera.core.network.error.WaiveraError
+import com.waivera.waivera.feature.profile.timeoff.TimeOffFormSheet
+import kotlinx.coroutines.launch
 
 /**
  * Entry point for the profile screen. Owned by `:feature:profile`; routed by `:app`.
@@ -77,15 +87,43 @@ fun ProfileScreen(
 ) {
     val viewModel: ProfileViewModel = hiltViewModel()
     val state by viewModel.uiState.collectAsStateWithLifecycle()
-    ProfileContent(
-        state = state,
-        onBack = onBack,
-        onRefresh = viewModel::refresh,
-        onRetryConnection = viewModel::retryConnection,
-        onOpenPerson = onOpenPerson,
-        onOpenSettings = onOpenSettings,
-        modifier = modifier,
-    )
+    val snackbar = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
+    val sentMessage = stringResource(R.string.feature_profile_time_off_sent)
+    // Counts openings, so each one gets a fresh form.
+    var timeOffForm by rememberSaveable { mutableIntStateOf(0) }
+    var showTimeOffForm by rememberSaveable { mutableStateOf(false) }
+    Box(modifier = modifier) {
+        ProfileContent(
+            state = state,
+            onBack = onBack,
+            onRefresh = viewModel::refresh,
+            onRetryConnection = viewModel::retryConnection,
+            onOpenPerson = onOpenPerson,
+            onOpenSettings = onOpenSettings,
+            onRequestTimeOff = {
+                timeOffForm++
+                showTimeOffForm = true
+            },
+        )
+        WaiveraSnackbarHost(
+            hostState = snackbar,
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .padding(bottom = WaiveraSpacing.Small),
+        )
+    }
+    if (showTimeOffForm) {
+        TimeOffFormSheet(
+            key = "time-off-form-$timeOffForm",
+            onDismiss = { showTimeOffForm = false },
+            onSent = { request ->
+                showTimeOffForm = false
+                viewModel.timeOffSent(request)
+                scope.launch { snackbar.showSnackbar(sentMessage) }
+            },
+        )
+    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -98,6 +136,7 @@ internal fun ProfileContent(
     onOpenPerson: (String) -> Unit,
     onOpenSettings: (() -> Unit)?,
     modifier: Modifier = Modifier,
+    onRequestTimeOff: () -> Unit = {},
 ) {
     val colors = WaiveraTheme.colors
     val ready = state as? ProfileUiState.Ready
@@ -145,6 +184,7 @@ internal fun ProfileContent(
                     onRetryConnection = onRetryConnection,
                     onOpenPerson = onOpenPerson,
                     onOpenSettings = onOpenSettings,
+                    onRequestTimeOff = onRequestTimeOff,
                 )
             }
         }
@@ -159,6 +199,7 @@ private fun ProfileBody(
     onRetryConnection: () -> Unit,
     onOpenPerson: (String) -> Unit,
     onOpenSettings: (() -> Unit)?,
+    onRequestTimeOff: () -> Unit,
 ) {
     val profile = (state.details as? Section.Ready)?.value
     val refreshLabel = stringResource(R.string.feature_profile_refresh)
@@ -189,7 +230,11 @@ private fun ProfileBody(
             )
         }
         DetailsSections(profile = profile, state = state, onOpenPerson = onOpenPerson)
-        TimeOffSection(section = state.timeOff, onRetry = onRefresh)
+        TimeOffSection(
+            section = state.timeOff,
+            onRetry = onRefresh,
+            onRequest = onRequestTimeOff.takeIf { state.canRequestTimeOff },
+        )
         FilesSection(section = state.files, zone = state.zone, onRetry = onRefresh)
         OrganizationSection(section = state.organization, onRetry = onRefresh)
         if (onOpenSettings != null) {

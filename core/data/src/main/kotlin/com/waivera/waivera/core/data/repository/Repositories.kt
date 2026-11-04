@@ -17,6 +17,9 @@ import com.waivera.waivera.core.data.model.EmployeeFilePage
 import com.waivera.waivera.core.data.model.EmployeeProfile
 import com.waivera.waivera.core.data.model.EventDraft
 import com.waivera.waivera.core.data.model.LeaveBalance
+import com.waivera.waivera.core.data.model.LeaveDraft
+import com.waivera.waivera.core.data.model.LeavePreview
+import com.waivera.waivera.core.data.model.LeaveType
 import com.waivera.waivera.core.data.model.LinkedFaq
 import com.waivera.waivera.core.data.model.LinkedResource
 import com.waivera.waivera.core.data.model.Message
@@ -363,6 +366,15 @@ interface RequestRepository {
 
     /** The agency's leave zone, which partial days are told in; null when it can't be read. */
     suspend fun leaveZone(): ZoneId?
+
+    /** The agency's active leave types with the signed-in person's balance for each. */
+    suspend fun leaveTypes(): Result<List<LeaveType>>
+
+    /** The hours [draft] asks for, the balance after it, and anything that blocks it. */
+    suspend fun previewLeave(draft: LeaveDraft): Result<LeavePreview>
+
+    /** Sends [draft] for approval; a refusal fails with [LeaveSendException] when the app can word it. */
+    suspend fun requestTimeOff(draft: LeaveDraft): Result<Unit>
 
     suspend fun trainingCredit(requestId: Int): Result<TrainingCredit>
 

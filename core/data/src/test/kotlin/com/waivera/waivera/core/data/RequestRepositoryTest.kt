@@ -5,6 +5,12 @@ import com.waivera.waivera.core.data.live.LiveRequestRepository
 import com.waivera.waivera.core.data.live.RequestMapping
 import com.waivera.waivera.core.data.model.ChangeRequest
 import com.waivera.waivera.core.data.model.LeaveBalance
+import com.waivera.waivera.core.data.model.LeaveBlock
+import com.waivera.waivera.core.data.model.LeaveDraft
+import com.waivera.waivera.core.data.model.LeavePreview
+import com.waivera.waivera.core.data.model.LeaveSendException
+import com.waivera.waivera.core.data.model.LeaveSendProblem
+import com.waivera.waivera.core.data.model.LeaveType
 import com.waivera.waivera.core.data.model.ProfileField
 import com.waivera.waivera.core.data.model.RequestKind
 import com.waivera.waivera.core.data.model.RequestStatus
@@ -28,10 +34,13 @@ import kotlin.test.AfterTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
+import kotlin.test.assertIs
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.runTest
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
 
 /** Every request kind is decided through the route sprout_web uses for it, and read the way it reads it. */
 class RequestRepositoryTest {
@@ -278,4 +287,90 @@ class RequestRepositoryTest {
         assertTrue(standalone.reviewOnWeb)
         assertFalse(standalone.decidable)
     }
+
+    @Test
+    fun leave_types_carry_the_persons_own_balance() = runTest {
+        server.json(
+            "GET /api/TimeOff/all",
+            """[{"id":7,"requestType":"Vacation"},{"id":8,"requestType":"Jury duty"},{"id":9,"requestType":" "}]""",
+        )
+        server.json(
+            "GET /api/leave-management/employees/usr_alex_rivera/balances",
+            """{"success":true,"data":{"balances":[{"id":7,"tracksBalance":true,"availableMinutes":2400},
+               {"id":8,"tracksBalance":false,"availableMinutes":0}]}}""",
+        )
+        val types = repository().leaveTypes().getOrThrow()
+        assertEquals(
+            listOf(
+                LeaveType(7, "Vacation", tracksBalance = true, availableMinutes = 2400),
+                LeaveType(8, "Jury duty", tracksBalance = false, availableMinutes = null),
+            ),
+            types,
+        )
+    }
+
+    @Test
+    fun leave_types_still_list_when_balances_fail() = runTest {
+        server.json("GET /api/TimeOff/all", """[{"id":7,"requestType":"Vacation"}]""")
+        server.status("GET /api/leave-management/employees/usr_alex_rivera/balances", 500)
+        val types = repository().leaveTypes().getOrThrow()
+        assertEquals(listOf(LeaveType(7, "Vacation", tracksBalance = false, availableMinutes = null)), types)
+    }
+
+    @Test
+    fun a_full_day_preview_sends_the_webs_utc_day_bounds() = runTest {
+        server.json(
+            "POST /api/leave-management/requests/preview",
+            """{"success":true,"data":{"id":7,"tracksBalance":true,"requestedMinutes":1440,
+               "beforeMinutes":2400,"afterMinutes":960,"isRequestable":true}}""",
+        )
+        val preview = repository().previewLeave(fullDays).getOrThrow()
+        assertEquals(LeavePreview(1440, true, 2400, 960, block = null, impact = null), preview)
+        val sent = WaiveraJson.parseToJsonElement(body("/api/leave-management/requests/preview")).jsonObject
+        assertEquals("usr_alex_rivera", sent["employeeId"]?.jsonPrimitive?.content)
+        assertEquals("2026-11-24T00:00:00Z", sent["startTime"]?.jsonPrimitive?.content)
+        assertEquals("2026-11-26T23:59:59.999Z", sent["endTime"]?.jsonPrimitive?.content)
+        assertEquals("FULL_DAY", sent["requestType"]?.jsonPrimitive?.content)
+    }
+
+    @Test
+    fun a_blocked_preview_names_why_without_the_servers_words() = runTest {
+        server.json(
+            "POST /api/leave-management/requests/preview",
+            """{"success":true,"data":{"id":7,"requestedMinutes":0,"isRequestable":false,
+               "blockingCode":"LEAVE_ON_HOLIDAY","blockingReason":"Thanksgiving"}}""",
+        )
+        assertEquals(LeaveBlock.Holiday, repository().previewLeave(fullDays).getOrThrow().block)
+    }
+
+    @Test
+    fun sending_time_off_posts_a_new_request_for_the_signed_in_person() = runTest {
+        server.json("POST /api/TimeOff/add-update-timeOff", """{"statusCode":200,"data":{"id":55}}""")
+        repository().requestTimeOff(fullDays.copy(note = "  Family trip  ")).getOrThrow()
+        val sent = WaiveraJson.parseToJsonElement(body("/api/TimeOff/add-update-timeOff")).jsonObject
+        assertEquals("0", sent["id"]?.jsonPrimitive?.content)
+        assertEquals("usr_alex_rivera", sent["userId"]?.jsonPrimitive?.content)
+        assertEquals("7", sent["typeOfLeave"]?.jsonPrimitive?.content)
+        assertEquals("Family trip", sent["comment"]?.jsonPrimitive?.content)
+    }
+
+    @Test
+    fun a_refused_send_is_worded_by_the_app() = runTest {
+        server.json(
+            "POST /api/TimeOff/add-update-timeOff",
+            """{"statusCode":400,"message":"Insufficient Vacation balance.",""" +
+                """"errorCode":"INSUFFICIENT_LEAVE_BALANCE"}""",
+            code = 400,
+        )
+        val error = repository().requestTimeOff(fullDays).exceptionOrNull()
+        assertEquals(LeaveSendProblem.NotEnoughBalance, assertIs<LeaveSendException>(error).problem)
+    }
+
+    private val fullDays = LeaveDraft(
+        leaveTypeId = 7,
+        partialDay = false,
+        start = Instant.parse("2026-11-24T00:00:00Z"),
+        end = Instant.parse("2026-11-26T23:59:59.999Z"),
+        note = null,
+    )
 }

@@ -7,7 +7,11 @@ import com.waivera.waivera.core.data.model.ChangeReason
 import com.waivera.waivera.core.data.model.ChangeRequest
 import com.waivera.waivera.core.data.model.DelayPeriod
 import com.waivera.waivera.core.data.model.LeaveBalance
+import com.waivera.waivera.core.data.model.LeaveBlock
+import com.waivera.waivera.core.data.model.LeaveDraft
 import com.waivera.waivera.core.data.model.LeaveImpact
+import com.waivera.waivera.core.data.model.LeavePreview
+import com.waivera.waivera.core.data.model.LeaveType
 import com.waivera.waivera.core.data.model.ProfileField
 import com.waivera.waivera.core.data.model.RequestAccess
 import com.waivera.waivera.core.data.model.RequestKind
@@ -18,9 +22,11 @@ import com.waivera.waivera.core.data.model.TimeOffReview
 import com.waivera.waivera.core.data.model.TrainingCredit
 import com.waivera.waivera.core.data.model.TrainingDecision
 import com.waivera.waivera.core.data.repository.RequestRepository
+import java.time.DayOfWeek
 import java.time.Duration
 import java.time.LocalDate
 import java.time.ZoneId
+import java.time.ZoneOffset
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -35,7 +41,13 @@ class DemoRequestRepository @Inject constructor(private val backend: DemoBackend
     private val today: LocalDate get() = backend.now().atZone(DemoData.ZONE).toLocalDate()
 
     private val _access = MutableStateFlow(
-        RequestAccess(canAskMoreTime = true, canAskClosure = true, showsRequests = true, loaded = true),
+        RequestAccess(
+            canAskMoreTime = true,
+            canAskClosure = true,
+            showsRequests = true,
+            canRequestTimeOff = true,
+            loaded = true,
+        ),
     )
     override val access: StateFlow<RequestAccess> = _access.asStateFlow()
 
@@ -68,6 +80,42 @@ class DemoRequestRepository @Inject constructor(private val backend: DemoBackend
         Result.success(LeaveBalance(leaveTypeId, tracksBalance = true, availableMinutes = 16 * 60))
 
     override suspend fun leaveZone(): ZoneId = DemoData.ZONE
+
+    override suspend fun leaveTypes(): Result<List<LeaveType>> = Result.success(
+        listOf(
+            LeaveType(1, "Vacation", tracksBalance = true, availableMinutes = 40 * MINUTES_PER_HOUR),
+            LeaveType(2, "Sick leave", tracksBalance = true, availableMinutes = 16 * MINUTES_PER_HOUR),
+            LeaveType(3, "Personal day", tracksBalance = true, availableMinutes = 0),
+            LeaveType(4, "Bereavement", tracksBalance = false, availableMinutes = null),
+            LeaveType(5, "Jury duty", tracksBalance = false, availableMinutes = null),
+        ),
+    )
+
+    /** Weekdays at eight hours each, like an agency with the default workday and no holidays. */
+    override suspend fun previewLeave(draft: LeaveDraft): Result<LeavePreview> {
+        val type = leaveTypes().getOrThrow().firstOrNull { it.id == draft.leaveTypeId }
+        val minutes = if (draft.partialDay) {
+            Duration.between(draft.start, draft.end).toMinutes().toInt()
+        } else {
+            val first = draft.start.atZone(ZoneOffset.UTC).toLocalDate()
+            val last = draft.end.atZone(ZoneOffset.UTC).toLocalDate()
+            generateSequence(first) { it.plusDays(1) }.takeWhile { !it.isAfter(last) }
+                .count { it.dayOfWeek != DayOfWeek.SATURDAY && it.dayOfWeek != DayOfWeek.SUNDAY } * WORKDAY_MINUTES
+        }
+        val before = type?.availableMinutes
+        return Result.success(
+            LeavePreview(
+                requestedMinutes = minutes,
+                tracksBalance = type?.tracksBalance == true,
+                beforeMinutes = before,
+                afterMinutes = before?.minus(minutes),
+                block = if (minutes == 0) LeaveBlock.Weekend else null,
+                impact = LeaveImpact(dueBefore = 0, dueDuring = 1, shortNotice = false),
+            ),
+        )
+    }
+
+    override suspend fun requestTimeOff(draft: LeaveDraft): Result<Unit> = Result.success(Unit)
 
     override suspend fun trainingCredit(requestId: Int): Result<TrainingCredit> = Result.success(
         TrainingCredit(
@@ -239,6 +287,8 @@ class DemoRequestRepository @Inject constructor(private val backend: DemoBackend
     }
 
     private companion object {
+        const val MINUTES_PER_HOUR = 60
+        const val WORKDAY_MINUTES = 480
         val ClosureReasons = listOf(
             ChangeReason(31, "Participant moved out of the area", null, false),
             ChangeReason(32, "Duplicate task", null, false),

@@ -241,3 +241,48 @@ data class TaskAttachmentFileResponse(
     val createDate: String? = null,
     val author: TaskUserResponse? = null,
 )
+
+/** `LeaveRequestTypeDto` from `GET api/TimeOff/all` (a bare list, active types only). */
+@Serializable
+data class LeaveTypeResponse(
+    val id: Int = 0,
+    val requestType: String? = null,
+    val isActive: Boolean = true,
+    val isDeleted: Boolean = false,
+)
+
+/** `LeaveRequestBalancePreviewDto`; times are ISO instants, as the web sends them. */
+@Serializable
+data class LeavePreviewBody(
+    val timeOffId: Int = 0,
+    val employeeId: String,
+    val leaveTypeId: Int,
+    val startTime: String,
+    val endTime: String,
+    val requestType: String,
+)
+
+/** `LeaveManagementService.PreviewRequestAsync`, including its blocked shape. */
+@Serializable
+data class LeavePreviewResponse(
+    val id: Int = 0,
+    val tracksBalance: Boolean = false,
+    val requestedMinutes: Int = 0,
+    val beforeMinutes: Int? = null,
+    val afterMinutes: Int? = null,
+    val isRequestable: Boolean = true,
+    val blockingCode: String? = null,
+    val intelligence: LeaveIntelligenceResponse? = null,
+)
+
+/** `EmployeeTimeOffDto`; id 0 creates a request. */
+@Serializable
+data class TimeOffBody(
+    val id: Int = 0,
+    val userId: String,
+    val typeOfLeave: Int,
+    val comment: String?,
+    val timeOffStartTime: String,
+    val timeOffEndTime: String,
+    val requestType: String,
+)
