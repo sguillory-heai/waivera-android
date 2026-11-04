@@ -115,5 +115,11 @@ data class RequestAccess(
     val showsRequests: Boolean = false,
     /** Whether casework includes tasks waiting for approval, as the web's task list does. */
     val includePendingApprovals: Boolean = false,
+    /** The web's Download permission for case files (participant tasks), `case_file:download`. */
+    val canDownloadCaseFiles: Boolean = false,
+    /** The same for employee files, `employee_file:download`. */
+    val canDownloadEmployeeFiles: Boolean = false,
+    /** Asking for time off, `admin_request:create:time_off`. */
+    val canRequestTimeOff: Boolean = false,
     val loaded: Boolean = false,
 )

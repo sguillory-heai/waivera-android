@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.remember
 import com.waivera.waivera.core.data.model.DelayFilter
+import com.waivera.waivera.core.data.model.FileKind
 import com.waivera.waivera.core.data.model.RequestKind
 import com.waivera.waivera.core.data.model.TaskState
 import com.waivera.waivera.core.designsystem.component.WaiveraCardGroup
@@ -16,6 +17,9 @@ import com.waivera.waivera.core.designsystem.theme.WaiveraSpacing
 import com.waivera.waivera.core.designsystem.theme.WaiveraTheme
 import com.waivera.waivera.core.screenshottesting.ScreenshotSdk
 import com.waivera.waivera.core.screenshottesting.captureScreenshots
+import com.waivera.waivera.feature.tasks.files.FileSheet
+import com.waivera.waivera.feature.tasks.files.FileSheetActions
+import com.waivera.waivera.feature.tasks.files.FileSheetContent
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
@@ -127,6 +131,22 @@ class TasksScreenshotTest {
     fun requestReview() = captureScreenshots("tasks_request_review", heightDp = 1000) {
         WaiveraSheetFrame(title = "More time") {
             ReviewFields(item = TaskPreviewData.waitingRequest(), onApprove = {}, onReject = {}, onOpenTask = {})
+        }
+    }
+
+    @Test
+    fun fileActions() = captureScreenshots("task_file_actions") {
+        WaiveraSheetFrame(title = null) {
+            FileSheetContent(
+                sheet = FileSheet(
+                    attachmentId = 1,
+                    name = "Signed service plan for Jordan Ellis, annual review 2026.pdf",
+                    kind = FileKind.Pdf,
+                    sizeBytes = 284_000,
+                    viewable = true,
+                ),
+                actions = FileSheetActions({}, {}, {}, {}),
+            )
         }
     }
 

@@ -159,6 +159,8 @@ class TaskFileViewModelTest {
             return result
         }
 
+        override suspend fun export(taskId: Int, file: TaskAttachment): Result<File> = result
+
         override fun close(file: File) {
             closed += file
         }

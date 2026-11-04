@@ -24,6 +24,9 @@ import com.waivera.waivera.core.network.time.WaiveraTime
 object RequestMapping {
     const val CREATE_EXTENSION = "admin_request:create:task_extension"
     const val CREATE_DELETION = "admin_request:create:task_deletion"
+    const val CREATE_TIME_OFF = "admin_request:create:time_off"
+    const val CASE_FILE_DOWNLOAD = "case_file:download"
+    const val EMPLOYEE_FILE_DOWNLOAD = "employee_file:download"
     private const val EXTERNAL_TRAINING_VIEW = "admin_request:view:external_training"
     private const val EXTERNAL_TRAINING_APPROVE = "admin_request:approve:external_training"
     private const val OFFICE_MANAGER = "Office Manager"
@@ -124,6 +127,9 @@ object RequestMapping {
             canAskClosure = hasPolicy(dto, CREATE_DELETION),
             showsRequests = isOwnerOrAdmin || !officeManager || externalTraining,
             includePendingApprovals = "SC" !in employeeRoles && highest != null && highest != "PROGRAM MANAGER",
+            canDownloadCaseFiles = hasPolicy(dto, CASE_FILE_DOWNLOAD),
+            canDownloadEmployeeFiles = hasPolicy(dto, EMPLOYEE_FILE_DOWNLOAD),
+            canRequestTimeOff = hasPolicy(dto, CREATE_TIME_OFF),
             loaded = true,
         )
     }

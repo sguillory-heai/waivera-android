@@ -36,6 +36,9 @@ object WaiveraIcons {
 
     @DrawableRes val Cake: Int = R.drawable.core_designsystem_ic_cake
 
+    /** A camera: take a photo to upload. */
+    @DrawableRes val Camera: Int = R.drawable.core_designsystem_ic_camera
+
     @DrawableRes val Calendar: Int = R.drawable.core_designsystem_ic_calendar
 
     /** More than one milestone on the same day. */
@@ -122,4 +125,20 @@ object WaiveraIcons {
      * Everywhere the brand shows, use `WaiveraLogo`, which keeps the gradient.
      */
     @DrawableRes val WaiveraMark: Int = R.drawable.core_designsystem_logo_mark_mono
+
+    /** Save a copy to the phone. */
+    @DrawableRes val Download: Int = R.drawable.core_designsystem_ic_download
+
+    /** Send a file from the phone: upload. */
+    @DrawableRes val Upload: Int = R.drawable.core_designsystem_ic_upload
+
+    /** Hand a file to another app. */
+    @DrawableRes val Share: Int = R.drawable.core_designsystem_ic_share
+    @DrawableRes val View: Int = R.drawable.core_designsystem_ic_view
+
+    /** Photos from the gallery. */
+    @DrawableRes val Photo: Int = R.drawable.core_designsystem_ic_image
+
+    /** Files from the phone or a cloud drive. */
+    @DrawableRes val Folder: Int = R.drawable.core_designsystem_ic_folder
 }

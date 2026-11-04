@@ -316,5 +316,13 @@
     <string name="feature_tasks_file_failed">Couldn\'t open this file. Check your connection and try again.</string>
     <string name="feature_tasks_file_loading">Opening the file</string>
     <string name="feature_tasks_file_text_cut">This file is long, so only the start is shown. Open the task on the web to see all of it.</string>
+    <string name="feature_tasks_file_save">Save to phone</string>
+    <string name="feature_tasks_file_share">Share</string>
+    <string name="feature_tasks_file_preparing">Getting the file ready</string>
+    <string name="feature_tasks_file_saved">Saved</string>
+    <string name="feature_tasks_file_save_failed">Couldn\'t save the file. Try again.</string>
+    <string name="feature_tasks_file_share_failed">Couldn\'t share the file. Try again.</string>
+    <string name="feature_tasks_file_download_failed">Couldn\'t get the file. Check your connection and try again.</string>
+    <string name="feature_tasks_file_share_title">Share %1$s</string>
     <string name="feature_tasks_file_page">Page %1$d of %2$d</string>
 </resources>

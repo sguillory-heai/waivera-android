@@ -314,6 +314,12 @@ interface LinkLookupRepository {
 interface TaskFileRepository {
     suspend fun open(taskId: Int, file: TaskAttachment): Result<java.io.File>
 
+    /**
+     * The whole file, of any type, for saving to the phone or sharing; up to
+     * [TaskAttachment.MAX_EXPORT_BYTES]. Closed with [close] like a viewed one.
+     */
+    suspend fun export(taskId: Int, file: TaskAttachment): Result<java.io.File>
+
     fun close(file: java.io.File)
 }
 

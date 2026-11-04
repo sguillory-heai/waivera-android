@@ -158,7 +158,7 @@ private fun FileRowItem(row: FileRow, onOpen: () -> Unit) {
  * also spelled out in the line under the name, which does scale.
  */
 @Composable
-private fun KindTile(kind: FileKind, modifier: Modifier = Modifier) {
+internal fun KindTile(kind: FileKind, modifier: Modifier = Modifier) {
     val tint = kind.tone().tint(WaiveraTheme.colors)
     val size = with(LocalDensity.current) { TileWordSize.toSp() }
     Box(

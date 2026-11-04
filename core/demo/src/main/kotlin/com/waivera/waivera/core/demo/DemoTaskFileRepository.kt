@@ -31,6 +31,8 @@ class DemoTaskFileRepository @Inject constructor(@TaskFileCacheDirectory private
         target
     }
 
+    override suspend fun export(taskId: Int, file: TaskAttachment): Result<File> = open(taskId, file)
+
     override fun close(file: File) {
         if (file.parentFile == directory) file.delete()
     }

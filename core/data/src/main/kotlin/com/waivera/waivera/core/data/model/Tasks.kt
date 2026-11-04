@@ -173,7 +173,7 @@ enum class FileKind {
     }
 }
 
-/** A file on a task. Opening it reads it on the phone, never saving or sharing it. */
+/** A file on a task. Opening reads it on the phone; saving or sharing needs the web's download permission. */
 data class TaskAttachment(
     val attachmentId: Int,
     val fileId: String,
@@ -191,5 +191,8 @@ data class TaskAttachment(
     companion object {
         /** The web previews Word files up to 20 MB; the phone uses the same limit for every type. */
         const val MAX_VIEW_BYTES = 20L * 1024 * 1024
+
+        /** Saving or sharing stops past this size, so a broken download can't fill the phone. */
+        const val MAX_EXPORT_BYTES = 200L * 1024 * 1024
     }
 }

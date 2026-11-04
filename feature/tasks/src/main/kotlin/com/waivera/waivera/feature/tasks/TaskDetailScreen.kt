@@ -69,6 +69,7 @@ import com.waivera.waivera.core.designsystem.theme.WaiveraSpacing
 import com.waivera.waivera.core.designsystem.theme.WaiveraTextStyles
 import com.waivera.waivera.core.designsystem.theme.WaiveraTheme
 import com.waivera.waivera.core.designsystem.theme.isLargeFontScale
+import com.waivera.waivera.feature.tasks.files.rememberTaskFileActions
 import kotlinx.coroutines.launch
 
 /** One task: its details, recent activity and Log activity. Owned by `:feature:tasks`; routed by `:app`. */
@@ -102,6 +103,7 @@ fun TaskDetailScreen(
             }
         }
     }
+    val fileActions = rememberTaskFileActions(taskId, snackbar, onOpen = viewModel::openFile)
     TaskDetailContent(
         state = state,
         snackbar = snackbar,
@@ -109,7 +111,7 @@ fun TaskDetailScreen(
             onBack = onBack,
             onRetry = viewModel::load,
             onRetryActivity = viewModel::loadActivity,
-            onOpenFile = viewModel::openFile,
+            onOpenFile = fileActions::choose,
             onRetryFiles = viewModel::loadFiles,
             onLog = viewModel::startLog,
             onOpenWeb = viewModel::openOnWeb,
