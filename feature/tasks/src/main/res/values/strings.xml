@@ -15,6 +15,11 @@
         <item quantity="one">%d overdue</item>
         <item quantity="other">%d overdue</item>
     </plurals>
+    <plurals name="feature_tasks_meta_delayed">
+        <item quantity="one">%d delayed</item>
+        <item quantity="other">%d delayed</item>
+    </plurals>
+    <string name="feature_tasks_meta_delays_hidden">delays hidden</string>
     <string name="feature_tasks_meta_separator">%1$s · %2$s</string>
     <plurals name="feature_tasks_meta_matches">
         <item quantity="one">%d match</item>
@@ -110,6 +115,7 @@
     <string name="feature_tasks_search_casework">Search casework</string>
     <string name="feature_tasks_search_mine">Search your tasks</string>
     <string name="feature_tasks_group_overdue">Overdue</string>
+    <string name="feature_tasks_group_delayed">Delayed</string>
     <string name="feature_tasks_group_this_week">This week</string>
     <string name="feature_tasks_group_next_week">Next week</string>
     <string name="feature_tasks_group_later">Later</string>
@@ -125,6 +131,23 @@
     <string name="feature_tasks_assigned_to">Assigned to %1$s</string>
     <string name="feature_tasks_flag_closure">Closure requested</string>
     <string name="feature_tasks_flag_delayed">Delayed</string>
+    <string name="feature_tasks_delayed_through">Delayed through %1$s</string>
+    <string name="feature_tasks_delay_note">Not counted as overdue while the delay lasts. The due date stays the same.</string>
+    <string name="feature_tasks_delay_note_with_reason">%1$s\nNot counted as overdue while the delay lasts. The due date stays the same.</string>
+    <!-- The Delays chip on casework; its label names the current choice. -->
+    <string name="feature_tasks_delays_show">Delays</string>
+    <string name="feature_tasks_delays_hide">No delays</string>
+    <string name="feature_tasks_delays_only">Delayed only</string>
+    <string name="feature_tasks_delays_description">Delayed tasks: %1$s</string>
+    <string name="feature_tasks_delays_sheet_title">Delayed tasks</string>
+    <string name="feature_tasks_delays_show_title">Show in their own group</string>
+    <string name="feature_tasks_delays_show_note">A delay keeps a task out of Overdue while it lasts.</string>
+    <string name="feature_tasks_delays_hide_title">Hide delayed tasks</string>
+    <string name="feature_tasks_delays_hide_note">List only work without a delay.</string>
+    <string name="feature_tasks_delays_only_title">Only delayed tasks</string>
+    <string name="feature_tasks_delays_only_note">See just the tasks under a delay right now.</string>
+    <string name="feature_tasks_empty_delayed_title">No delayed tasks</string>
+    <string name="feature_tasks_empty_delayed_message">Nothing here is under a delay right now.</string>
     <string name="feature_tasks_empty_casework_message">Tasks for the people you support show up here.</string>
     <string name="feature_tasks_empty_mine_message">Your own tasks, like trainings and paperwork, show up here.</string>
     <string name="feature_tasks_empty_assigned_message">No open casework is assigned to you right now.</string>

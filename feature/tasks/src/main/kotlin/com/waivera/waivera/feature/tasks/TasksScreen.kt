@@ -54,6 +54,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.waivera.waivera.core.data.model.DelayFilter
 import com.waivera.waivera.core.data.model.TaskCounts
 import com.waivera.waivera.core.data.model.TaskState
 import com.waivera.waivera.core.data.model.TaskWindow
@@ -105,6 +106,7 @@ fun TasksScreen(onAccountClick: () -> Unit, onOpenTask: (Int) -> Unit, modifier:
             onSegment = viewModel::setSegment,
             onWindow = viewModel::setWindow,
             onAssignedToMe = viewModel::setAssignedToMe,
+            onDelays = viewModel::setDelays,
             onQueryChange = viewModel::onQueryChange,
             onRefresh = viewModel::refresh,
             onLoadMore = viewModel::loadMore,
@@ -121,6 +123,7 @@ class TasksActions(
     val onSegment: (TasksSegment) -> Unit = {},
     val onWindow: (TaskWindow) -> Unit = {},
     val onAssignedToMe: (Boolean) -> Unit = {},
+    val onDelays: (DelayFilter) -> Unit = {},
     val onQueryChange: (String) -> Unit = {},
     val onRefresh: () -> Unit = {},
     val onLoadMore: () -> Unit = {},
@@ -240,7 +243,7 @@ private fun TaskListPane(state: TasksUiState, actions: TasksActions) {
     }
 }
 
-/** The due windows, then (casework only) Assigned to me. One row that scrolls at large font. */
+/** The due windows, then (casework only) Assigned to me and Delays. One row that scrolls at large font. */
 @Composable
 private fun FilterChips(state: TasksUiState, actions: TasksActions) {
     Row(
@@ -271,6 +274,7 @@ private fun FilterChips(state: TasksUiState, actions: TasksActions) {
                 leadingIcon = WaiveraIcons.Person,
             )
         }
+        if (state.showsDelays) DelaysChip(selected = state.delays, onSelect = actions.onDelays)
     }
 }
 
@@ -344,20 +348,10 @@ private fun TasksEmpty(state: TasksUiState, actions: TasksActions) {
                     modifier = Modifier.padding(top = WaiveraSpacing.Large),
                 )
             } else {
-                val (title, message) = when (state.window) {
-                    TaskWindow.DueSoon ->
-                        R.string.feature_tasks_empty_due_soon_title to
-                            R.string.feature_tasks_empty_due_soon_message
-                    TaskWindow.Overdue ->
-                        R.string.feature_tasks_empty_overdue_title to
-                            R.string.feature_tasks_empty_overdue_message
-                    TaskWindow.AllOpen ->
-                        R.string.feature_tasks_empty_all_title to
-                            when {
-                                state.segment == TasksSegment.MyWork -> R.string.feature_tasks_empty_mine_message
-                                state.assignedToMe -> R.string.feature_tasks_empty_assigned_message
-                                else -> R.string.feature_tasks_empty_casework_message
-                            }
+                val (title, message) = if (state.showsDelays && state.delays == DelayFilter.Only) {
+                    R.string.feature_tasks_empty_delayed_title to R.string.feature_tasks_empty_delayed_message
+                } else {
+                    emptyCopy(state)
                 }
                 WaiveraEmptyState(
                     title = stringResource(title),
@@ -368,6 +362,20 @@ private fun TasksEmpty(state: TasksUiState, actions: TasksActions) {
             }
         }
     }
+}
+
+private fun emptyCopy(state: TasksUiState): Pair<Int, Int> = when (state.window) {
+    TaskWindow.DueSoon ->
+        R.string.feature_tasks_empty_due_soon_title to R.string.feature_tasks_empty_due_soon_message
+    TaskWindow.Overdue ->
+        R.string.feature_tasks_empty_overdue_title to R.string.feature_tasks_empty_overdue_message
+    TaskWindow.AllOpen ->
+        R.string.feature_tasks_empty_all_title to
+            when {
+                state.segment == TasksSegment.MyWork -> R.string.feature_tasks_empty_mine_message
+                state.assignedToMe -> R.string.feature_tasks_empty_assigned_message
+                else -> R.string.feature_tasks_empty_casework_message
+            }
 }
 
 @Composable
@@ -432,7 +440,7 @@ private fun TasksMeta(state: TasksUiState) {
     val text = if (state.query.isNotBlank()) {
         pluralStringResource(R.plurals.feature_tasks_meta_matches, state.totalCount, state.totalCount)
     } else {
-        state.counts?.let { metaText(it) }
+        state.counts?.let { metaText(it, delaysHidden = state.showsDelays && state.delays == DelayFilter.Hide) }
     } ?: return
     Text(
         text = text,
@@ -443,11 +451,24 @@ private fun TasksMeta(state: TasksUiState) {
 }
 
 @Composable
-private fun metaText(counts: TaskCounts): String {
-    val open = pluralStringResource(R.plurals.feature_tasks_meta_open, counts.open, counts.open)
-    if (counts.overdue == 0) return open
-    val overdue = pluralStringResource(R.plurals.feature_tasks_meta_overdue, counts.overdue, counts.overdue)
-    return stringResource(R.string.feature_tasks_meta_separator, open, overdue)
+private fun metaText(counts: TaskCounts, delaysHidden: Boolean): String {
+    // With delays hidden, "open" counts only what the list can show.
+    val openCount = if (delaysHidden) (counts.open - counts.delayed).coerceAtLeast(0) else counts.open
+    val open = pluralStringResource(R.plurals.feature_tasks_meta_open, openCount, openCount)
+    val overdue = counts.overdue.takeIf { it > 0 }
+        ?.let { pluralStringResource(R.plurals.feature_tasks_meta_overdue, it, it) }
+    // With delays hidden, the line says so instead of counting what the list leaves out.
+    val delayed = when {
+        delaysHidden -> stringResource(R.string.feature_tasks_meta_delays_hidden)
+        counts.delayed > 0 -> pluralStringResource(R.plurals.feature_tasks_meta_delayed, counts.delayed, counts.delayed)
+        else -> null
+    }
+    var text = open
+    // Each later part joins with the same separator: "14 open · 1 overdue · 2 delayed".
+    listOfNotNull(overdue, delayed).forEach { part ->
+        text = stringResource(R.string.feature_tasks_meta_separator, text, part)
+    }
+    return text
 }
 
 @Composable
@@ -457,6 +478,7 @@ private fun GroupHeader(section: TaskSection, modifier: Modifier = Modifier) {
         title = stringResource(
             when (section.group) {
                 DueGroup.Overdue -> R.string.feature_tasks_group_overdue
+                DueGroup.Delayed -> R.string.feature_tasks_group_delayed
                 DueGroup.ThisWeek -> R.string.feature_tasks_group_this_week
                 DueGroup.NextWeek -> R.string.feature_tasks_group_next_week
                 DueGroup.Later -> R.string.feature_tasks_group_later
@@ -528,7 +550,7 @@ internal fun TaskCard(row: TaskRow, onClick: () -> Unit, modifier: Modifier = Mo
                     WaiveraStatusBadge(
                         text = flag.label(),
                         tone = when (flag) {
-                            RowFlag.ClosureRequested, RowFlag.Delayed, RowFlag.InReview -> BadgeTone.Warning
+                            RowFlag.ClosureRequested, RowFlag.InReview -> BadgeTone.Warning
                             RowFlag.InProgress -> BadgeTone.Accent
                         },
                         modifier = Modifier.padding(top = WaiveraSpacing.XxSmall),
@@ -545,11 +567,14 @@ internal fun TaskCard(row: TaskRow, onClick: () -> Unit, modifier: Modifier = Mo
     }
 }
 
-/** The due date as a tile; overdue turns it red. TalkBack reads the full due text instead. */
+/**
+ * The due date as a tile; really overdue turns it red, while a delay keeps it brand violet (the
+ * web's purple "Delayed" ink). TalkBack reads the full due text instead.
+ */
 @Composable
 private fun DateTile(row: TaskRow) {
     val colors = WaiveraTheme.colors
-    val tint = if (row.due.overdue) colors.tiles.danger else colors.tiles.brand
+    val tint = if (row.due.overdue && !row.delayed) colors.tiles.danger else colors.tiles.brand
     val dueText = row.due.text()
     Column(
         modifier = Modifier
@@ -590,16 +615,30 @@ private fun DateTile(row: TaskRow) {
     }
 }
 
-/** Lateness (attention colour), the key, then another owner on its own line. At 200% each fact stacks. */
+/**
+ * Lateness (attention colour) or the delay (accent colour), the key, then another owner on its own
+ * line. At 200% each fact stacks.
+ */
 @Composable
 private fun metaLine(row: TaskRow, large: Boolean): AnnotatedString {
     val danger = WaiveraTheme.colors.dangerText
+    // The link ink is the accent tuned to read as text in both themes.
+    val accent = WaiveraTheme.colors.link
     val late = row.daysLate?.let { pluralStringResource(R.plurals.feature_tasks_days_late, it, it) }
+    val delay = when {
+        !row.delayed -> null
+        row.delayedThrough != null -> stringResource(R.string.feature_tasks_delayed_through, row.delayedThrough.nbsp())
+        else -> stringResource(R.string.feature_tasks_flag_delayed)
+    }
     val owner = row.assignee?.let { stringResource(R.string.feature_tasks_assigned_to, it.replace(' ', NBSP)) }
     val separator = if (large) "\n" else META_SEPARATOR
     return buildAnnotatedString {
         if (late != null) {
             withStyle(SpanStyle(color = danger)) { append(late) }
+            append(separator)
+        }
+        if (delay != null) {
+            withStyle(SpanStyle(color = accent)) { append(delay) }
             append(separator)
         }
         append(row.key)
@@ -613,7 +652,6 @@ private fun metaLine(row: TaskRow, large: Boolean): AnnotatedString {
 @Composable
 private fun RowFlag.label(): String = when (this) {
     RowFlag.ClosureRequested -> stringResource(R.string.feature_tasks_flag_closure)
-    RowFlag.Delayed -> stringResource(R.string.feature_tasks_flag_delayed)
     RowFlag.InProgress -> stringResource(R.string.feature_tasks_state_in_progress)
     RowFlag.InReview -> stringResource(R.string.feature_tasks_state_in_review)
 }
@@ -658,6 +696,9 @@ private const val LARGE_TITLE_LINES = 4
 private const val META_SEPARATOR = "\u00A0· "
 private const val NBSP = '\u00A0'
 
+/** Keeps "Nov 20" on one line. */
+private fun String.nbsp(): String = replace(' ', NBSP)
+
 private const val SKELETON_CARDS = 4
 private const val KEY_LINE = 0.25f
 private const val TITLE_LINE = 0.75f
@@ -667,7 +708,11 @@ internal object TasksPreviewStates {
     val rows = listOf(
         TaskRow(
             991, "HEA-991", "Quarterly monitoring visit", "Jordan Ellis", DueText.WasOn("Oct 30"), TaskState.InProgress,
-            tileMonth = "Oct", tileDay = "30", daysLate = 5, flag = RowFlag.Delayed, group = DueGroup.Overdue,
+            tileMonth = "Oct", tileDay = "30", delayed = true, delayedThrough = "Nov 20", group = DueGroup.Delayed,
+        ),
+        TaskRow(
+            1078, "HEA-1078", "Annual plan signatures", "Sam Lee", DueText.WasOn("Oct 31"), TaskState.NotStarted,
+            tileMonth = "Oct", tileDay = "31", daysLate = 4, assignee = "Luis Ortega", group = DueGroup.Overdue,
         ),
         TaskRow(
             1042, "HEA-1042", "Annual plan review", "Maya Thompson", DueText.On("Fri, Nov 6"), TaskState.NotStarted,
@@ -689,9 +734,9 @@ internal object TasksPreviewStates {
     )
 
     fun populated(showsRequests: Boolean = true) = TasksUiState(
-        sections = rows.groupBy { it.group }.map { (group, items) -> TaskSection(group, items) },
+        sections = rows.groupBy { it.group }.toSortedMap().map { (group, items) -> TaskSection(group, items) },
         totalCount = rows.size,
-        counts = TaskCounts(open = 14, overdue = 1),
+        counts = TaskCounts(open = 14, overdue = 1, delayed = 1),
         phase = TasksPhase.Content,
         showsRequests = showsRequests,
         waitingCount = if (showsRequests) 2 else 0,

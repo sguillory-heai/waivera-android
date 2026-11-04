@@ -8,6 +8,7 @@ import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import com.waivera.waivera.core.data.model.AppSettings
+import com.waivera.waivera.core.data.model.DelayFilter
 import com.waivera.waivera.core.data.model.NotificationPreferences
 import com.waivera.waivera.core.data.model.ThemePreference
 import com.waivera.waivera.core.network.WaiveraJson
@@ -36,6 +37,10 @@ class DataStoreSettingsStore @Inject constructor(@ApplicationContext private val
         context.settingsDataStore.edit { it[REDUCE_MOTION] = enabled }
     }
 
+    override suspend fun setTaskDelays(filter: DelayFilter) {
+        context.settingsDataStore.edit { it[TASK_DELAYS] = filter.name }
+    }
+
     override suspend fun updateNotifications(transform: (NotificationPreferences) -> NotificationPreferences) {
         context.settingsDataStore.edit { prefs ->
             val next = transform(read(prefs).notifications)
@@ -56,6 +61,8 @@ class DataStoreSettingsStore @Inject constructor(@ApplicationContext private val
         notifications = prefs[NOTIFICATIONS]?.let {
             runCatching { WaiveraJson.decodeFromString(NotificationPreferences.serializer(), it) }.getOrNull()
         } ?: NotificationPreferences(),
+        taskDelays = prefs[TASK_DELAYS]?.let { raw -> DelayFilter.entries.firstOrNull { it.name == raw } }
+            ?: DelayFilter.Show,
     )
 
     private companion object {
@@ -63,5 +70,6 @@ class DataStoreSettingsStore @Inject constructor(@ApplicationContext private val
         val HAPTICS = booleanPreferencesKey("haptics")
         val REDUCE_MOTION = booleanPreferencesKey("reduce_motion")
         val NOTIFICATIONS = stringPreferencesKey("notifications")
+        val TASK_DELAYS = stringPreferencesKey("task_delays")
     }
 }

@@ -1,6 +1,7 @@
 package com.waivera.waivera.core.data.live
 
 import com.waivera.waivera.core.data.model.AppSettings
+import com.waivera.waivera.core.data.model.DelayFilter
 import com.waivera.waivera.core.data.model.NotificationCategory
 import com.waivera.waivera.core.data.model.ThemePreference
 import com.waivera.waivera.core.data.repository.SettingsRepository
@@ -19,6 +20,8 @@ class LiveSettingsRepository @Inject constructor(private val store: SettingsStor
     override suspend fun setHapticsEnabled(enabled: Boolean) = store.setHapticsEnabled(enabled)
 
     override suspend fun setReduceMotion(enabled: Boolean) = store.setReduceMotion(enabled)
+
+    override suspend fun setTaskDelays(filter: DelayFilter) = store.setTaskDelays(filter)
 
     override suspend fun setNotificationsEnabled(enabled: Boolean) = store.updateNotifications {
         it.copy(enabled = enabled)

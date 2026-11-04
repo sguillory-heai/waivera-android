@@ -4,6 +4,7 @@ import com.waivera.waivera.core.data.auth.AuthGateway
 import com.waivera.waivera.core.data.auth.AuthUser
 import com.waivera.waivera.core.data.model.AppSettings
 import com.waivera.waivera.core.data.model.CurrentUser
+import com.waivera.waivera.core.data.model.DelayFilter
 import com.waivera.waivera.core.data.model.HandledObservation
 import com.waivera.waivera.core.data.model.HandledTally
 import com.waivera.waivera.core.data.model.HandledToday
@@ -63,6 +64,8 @@ class InMemorySettingsStore(initial: AppSettings = AppSettings()) : SettingsStor
     override suspend fun setHapticsEnabled(enabled: Boolean) = state.update { it.copy(hapticsEnabled = enabled) }
 
     override suspend fun setReduceMotion(enabled: Boolean) = state.update { it.copy(reduceMotion = enabled) }
+
+    override suspend fun setTaskDelays(filter: DelayFilter) = state.update { it.copy(taskDelays = filter) }
 
     override suspend fun updateNotifications(transform: (NotificationPreferences) -> NotificationPreferences) =
         state.update { it.copy(notifications = transform(it.notifications)) }

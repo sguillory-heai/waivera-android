@@ -11,6 +11,7 @@ import com.waivera.waivera.core.data.model.ChangeReason
 import com.waivera.waivera.core.data.model.ChangeRequest
 import com.waivera.waivera.core.data.model.Conversation
 import com.waivera.waivera.core.data.model.DateRange
+import com.waivera.waivera.core.data.model.DelayFilter
 import com.waivera.waivera.core.data.model.DelayPeriod
 import com.waivera.waivera.core.data.model.EmployeeFilePage
 import com.waivera.waivera.core.data.model.EmployeeProfile
@@ -429,6 +430,8 @@ interface SettingsRepository {
     suspend fun setHapticsEnabled(enabled: Boolean)
 
     suspend fun setReduceMotion(enabled: Boolean)
+
+    suspend fun setTaskDelays(filter: DelayFilter)
 
     suspend fun setNotificationsEnabled(enabled: Boolean)
 

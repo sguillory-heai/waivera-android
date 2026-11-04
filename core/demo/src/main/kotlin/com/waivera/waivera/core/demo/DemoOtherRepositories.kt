@@ -7,6 +7,7 @@ import com.waivera.waivera.core.data.model.AppSettings
 import com.waivera.waivera.core.data.model.Attendee
 import com.waivera.waivera.core.data.model.AttendeeOption
 import com.waivera.waivera.core.data.model.DateRange
+import com.waivera.waivera.core.data.model.DelayFilter
 import com.waivera.waivera.core.data.model.EmployeeFilePage
 import com.waivera.waivera.core.data.model.EmployeeProfile
 import com.waivera.waivera.core.data.model.EventDraft
@@ -303,6 +304,8 @@ class DemoSettingsRepository @Inject constructor(private val backend: DemoBacken
     }
 
     override suspend fun setReduceMotion(enabled: Boolean) = backend.settings.update { it.copy(reduceMotion = enabled) }
+
+    override suspend fun setTaskDelays(filter: DelayFilter) = backend.settings.update { it.copy(taskDelays = filter) }
 
     override suspend fun setNotificationsEnabled(enabled: Boolean) = notifications { it.copy(enabled = enabled) }
 

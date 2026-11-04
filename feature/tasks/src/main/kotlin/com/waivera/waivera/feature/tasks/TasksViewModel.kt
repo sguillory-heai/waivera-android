@@ -4,6 +4,7 @@ import androidx.annotation.StringRes
 import androidx.compose.runtime.Immutable
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.waivera.waivera.core.data.model.DelayFilter
 import com.waivera.waivera.core.data.model.TaskCounts
 import com.waivera.waivera.core.data.model.TaskQuery
 import com.waivera.waivera.core.data.model.TaskScope
@@ -14,6 +15,7 @@ import com.waivera.waivera.core.data.model.currentUserId
 import com.waivera.waivera.core.data.repository.CalendarRepository
 import com.waivera.waivera.core.data.repository.RequestRepository
 import com.waivera.waivera.core.data.repository.SessionRepository
+import com.waivera.waivera.core.data.repository.SettingsRepository
 import com.waivera.waivera.core.data.repository.TaskRepository
 import com.waivera.waivera.core.network.error.waiveraErrorOrNull
 import com.waivera.waivera.core.network.time.WaiveraTime
@@ -30,10 +32,12 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.drop
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
@@ -44,11 +48,14 @@ enum class TasksPhase { Loading, Error, Empty, Content }
 /** The Tasks tab's segments. Requests shows only to people the web shows Admin Requests to. */
 enum class TasksSegment { Casework, MyWork, Requests }
 
-/** How the list groups cards by due date, in display order. */
-enum class DueGroup { Overdue, ThisWeek, NextWeek, Later, NoDue }
+/**
+ * How the list groups cards, in display order. A task under an approved delay sits in [Delayed]
+ * whatever its due date, so [Overdue] only holds work that is really late (the web's rule).
+ */
+enum class DueGroup { Overdue, Delayed, ThisWeek, NextWeek, Later, NoDue }
 
-/** At most one badge per card: a request or delay first, then the work state. */
-enum class RowFlag { ClosureRequested, Delayed, InProgress, InReview }
+/** At most one badge per card: a closure request first, then the work state. A delay has its own line. */
+enum class RowFlag { ClosureRequested, InProgress, InReview }
 
 /** One task card, already worded for the person's day. */
 @Immutable
@@ -62,8 +69,12 @@ data class TaskRow(
     /** The date tile: month and day of the due date, or null without one. */
     val tileMonth: String? = null,
     val tileDay: String? = null,
-    /** Whole days past due; null when not overdue. */
+    /** Whole days past due; null when not overdue or when a delay covers it. */
     val daysLate: Int? = null,
+    /** An approved delay covers today: the card reads "Delayed through …" instead of late. */
+    val delayed: Boolean = false,
+    /** The delay's last day as the card prints it ("Nov 20"); null when the server sent none. */
+    val delayedThrough: String? = null,
     /** Someone else owns it; null when it is the person's own. */
     val assignee: String? = null,
     val flag: RowFlag? = null,
@@ -78,6 +89,7 @@ data class TasksUiState(
     val segment: TasksSegment = TasksSegment.Casework,
     val window: TaskWindow = TaskWindow.DueSoon,
     val assignedToMe: Boolean = false,
+    val delays: DelayFilter = DelayFilter.Show,
     val query: String = "",
     val sections: List<TaskSection> = emptyList(),
     /** Matches on the server for this list and search, including pages not loaded yet. */
@@ -101,6 +113,9 @@ data class TasksUiState(
 
     val segments: List<TasksSegment>
         get() = if (showsRequests) TasksSegment.entries else listOf(TasksSegment.Casework, TasksSegment.MyWork)
+
+    /** Delays are a client-task rule on the server and the web, so the chip is casework only. */
+    val showsDelays: Boolean get() = segment == TasksSegment.Casework
 }
 
 /**
@@ -116,6 +131,7 @@ class TasksViewModel @Inject constructor(
     private val requests: RequestRepository,
     private val session: SessionRepository,
     calendar: CalendarRepository,
+    private val settings: SettingsRepository,
     private val clock: Clock,
 ) : ViewModel() {
     private val local = MutableStateFlow(Local())
@@ -143,6 +159,7 @@ class TasksViewModel @Inject constructor(
             segment = segment,
             window = l.window,
             assignedToMe = l.assignedToMe,
+            delays = l.delays,
             query = l.query,
             sections = rows.groupBy { it.group }.toSortedMap().map { (group, items) -> TaskSection(group, items) },
             totalCount = l.totalCount,
@@ -159,7 +176,15 @@ class TasksViewModel @Inject constructor(
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS), TasksUiState())
 
     init {
-        reload(showSkeleton = true)
+        // The first page waits for the saved Delays choice, so a hidden-delays list never flashes them.
+        viewModelScope.launch {
+            val saved = settings.settings.map { it.taskDelays }.catch { emit(DelayFilter.Show) }.first()
+            // A pick made before the saved one arrived wins; it already loaded its own list.
+            if (!local.value.delaysPicked) {
+                local.update { it.copy(delays = saved) }
+                reload(showSkeleton = true)
+            }
+        }
         viewModelScope.launch {
             local.map { it.query }.distinctUntilChanged().drop(1).debounce(SEARCH_DEBOUNCE_MILLIS).collect {
                 reload(showSkeleton = true)
@@ -189,6 +214,13 @@ class TasksViewModel @Inject constructor(
         if (on == local.value.assignedToMe) return
         local.update { it.copy(assignedToMe = on) }
         reload(showSkeleton = true)
+    }
+
+    fun setDelays(filter: DelayFilter) {
+        if (filter == local.value.delays) return
+        local.update { it.copy(delays = filter, delaysPicked = true) }
+        reload(showSkeleton = true)
+        viewModelScope.launch { runCatching { settings.setTaskDelays(filter) } }
     }
 
     fun onQueryChange(query: String) = local.update { it.copy(query = query) }
@@ -279,7 +311,9 @@ class TasksViewModel @Inject constructor(
 
     private fun row(task: TaskSummary, today: LocalDate, me: String?): TaskRow {
         val due = task.due
-        val late = due?.takeIf { it.isBefore(today) }?.let { ChronoUnit.DAYS.between(it, today).toInt() }
+        val late = due?.takeIf {
+            !task.delayed && it.isBefore(today)
+        }?.let { ChronoUnit.DAYS.between(it, today).toInt() }
         return TaskRow(
             id = task.id,
             key = task.key,
@@ -290,15 +324,16 @@ class TasksViewModel @Inject constructor(
             tileMonth = due?.let(TaskFormat::tileMonth),
             tileDay = due?.dayOfMonth?.toString(),
             daysLate = late,
+            delayed = task.delayed,
+            delayedThrough = task.delayedThrough?.let { TaskFormat.shortDate(it, today) },
             assignee = task.assigneeName?.takeIf { task.assigneeId == null || task.assigneeId != me },
             flag = when {
                 task.pendingClosure -> RowFlag.ClosureRequested
-                task.delayed -> RowFlag.Delayed
                 task.state == TaskState.InProgress -> RowFlag.InProgress
                 task.state == TaskState.InReview -> RowFlag.InReview
                 else -> null
             },
-            group = group(due, today),
+            group = if (task.delayed) DueGroup.Delayed else group(due, today),
         )
     }
 
@@ -306,6 +341,8 @@ class TasksViewModel @Inject constructor(
         val segment: TasksSegment = TasksSegment.Casework,
         val window: TaskWindow = TaskWindow.DueSoon,
         val assignedToMe: Boolean = false,
+        val delays: DelayFilter = DelayFilter.Show,
+        val delaysPicked: Boolean = false,
         val query: String = "",
         val items: List<TaskSummary> = emptyList(),
         val totalCount: Int = 0,
@@ -334,6 +371,7 @@ class TasksViewModel @Inject constructor(
                 window = window,
                 search = query.trim(),
                 assignedToMe = assignedToMe && scope == TaskScope.Casework,
+                delays = if (scope == TaskScope.Casework) delays else DelayFilter.Show,
             )
 
         val canLoadMore: Boolean

@@ -34,6 +34,7 @@ interface TaskApi {
         @Query("includePendingApprovals") includePendingApprovals: Boolean? = null,
         @Query("searchTerm") searchTerm: String = "",
         @Query("date") date: List<String>? = null,
+        @Query("taskDelayFilter") taskDelayFilter: String? = null,
         @Query("excludeStatus") excludeStatus: List<String>? = listOf(CLOSED),
         @Query("sort") sort: List<String>? = listOf(SORT_DUE),
         @Query("page") page: Int = 1,

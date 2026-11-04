@@ -1,6 +1,7 @@
 package com.waivera.waivera.core.data.store
 
 import com.waivera.waivera.core.data.model.AppSettings
+import com.waivera.waivera.core.data.model.DelayFilter
 import com.waivera.waivera.core.data.model.NotificationPreferences
 import com.waivera.waivera.core.data.model.ThemePreference
 import kotlinx.coroutines.flow.Flow
@@ -38,6 +39,8 @@ interface SettingsStore {
     suspend fun setHapticsEnabled(enabled: Boolean)
 
     suspend fun setReduceMotion(enabled: Boolean)
+
+    suspend fun setTaskDelays(filter: DelayFilter)
 
     suspend fun updateNotifications(transform: (NotificationPreferences) -> NotificationPreferences)
 

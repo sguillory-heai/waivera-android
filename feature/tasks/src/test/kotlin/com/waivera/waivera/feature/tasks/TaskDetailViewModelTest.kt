@@ -7,6 +7,7 @@ import com.waivera.waivera.core.data.model.RequestAccess
 import com.waivera.waivera.core.data.model.RequestKind
 import com.waivera.waivera.core.data.model.RequestOutcome
 import com.waivera.waivera.core.data.model.TaskActivity
+import com.waivera.waivera.core.data.model.TaskDelay
 import com.waivera.waivera.core.data.model.TaskFile
 import com.waivera.waivera.core.data.model.TaskState
 import com.waivera.waivera.core.demo.DemoGraph
@@ -70,6 +71,32 @@ class TaskDetailViewModelTest {
         val rows = assertIs<Loadable.Ready<List<ActivityRow>>>(state.activity).value
         assertEquals(listOf(true, false), rows.map { it.byMe })
         assertTrue(state.canLog)
+    }
+
+    @Test
+    fun a_delay_keeps_a_past_due_task_from_reading_late() = runTest {
+        // Nov 1 2026 is the US fall-back day; the dates are literal and do not shift.
+        val clock = TestClock(Instant.parse("2026-11-01T15:00:00Z"))
+        val pastDue = FakeTasks.task(due = LocalDate.of(2026, 10, 25))
+        val tasks = FakeTasks().apply {
+            detail = Result.success(
+                pastDue.copy(
+                    delay = TaskDelay("Hospitalized", null, LocalDate.of(2026, 10, 20), LocalDate.of(2026, 11, 1)),
+                ),
+            )
+        }
+        val vm = viewModel(tasks, clock)
+        runCurrent()
+        val state = vm.uiState.value
+        assertTrue(state.due.overdue)
+        assertFalse(state.late)
+        assertEquals(DelayNote("Nov 1", "Hospitalized", null), state.delay)
+
+        tasks.detail = Result.success(pastDue)
+        vm.load()
+        runCurrent()
+        assertTrue(vm.uiState.value.late)
+        assertNull(vm.uiState.value.delay)
     }
 
     @Test

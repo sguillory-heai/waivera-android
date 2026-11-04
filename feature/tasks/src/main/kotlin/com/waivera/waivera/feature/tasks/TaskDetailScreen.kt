@@ -265,21 +265,22 @@ private fun DetailBody(state: TaskDetailUiState, task: TaskDetail, onRetryActivi
             val shown = rememberLatestNonNull(state.pending)
             shown?.let { PendingRequestBanner(it) }
         }
+        state.delay?.let { DelayBanner(it) }
         WaiveraSectionHeader(
             text = stringResource(R.string.feature_tasks_detail_section),
-            first = state.pending == null,
+            first = state.pending == null && state.delay == null,
         )
         WaiveraCardGroup {
             Column(Modifier.fillMaxWidth().padding(vertical = WaiveraSpacing.MediumSmall)) {
                 InfoRow(stringResource(R.string.feature_tasks_field_status), R.drawable.feature_tasks_ic_task) {
-                    WaiveraStatusBadge(text = task.state.label(), tone = TaskFormat.tone(task.state, state.due.overdue))
+                    WaiveraStatusBadge(text = task.state.label(), tone = TaskFormat.tone(task.state, state.late))
                 }
                 InfoDivider()
                 InfoRow(stringResource(R.string.feature_tasks_field_due), WaiveraIcons.Calendar) {
                     Text(
                         text = state.dueDate ?: stringResource(R.string.feature_tasks_no_due),
                         style = WaiveraTextStyles.FieldValue,
-                        color = if (state.due.overdue) WaiveraTheme.colors.dangerText else WaiveraTheme.colors.text,
+                        color = if (state.late) WaiveraTheme.colors.dangerText else WaiveraTheme.colors.text,
                     )
                 }
                 task.about?.let {
@@ -435,6 +436,28 @@ private fun PendingRequestBanner(pending: PendingBanner) {
         message = message,
         tone = BannerTone.Warning,
         icon = pending.kind.icon(),
+        modifier = Modifier.padding(top = WaiveraSpacing.Small, bottom = WaiveraSpacing.ExtraSmall),
+    )
+}
+
+/**
+ * An approved delay covers today. Like the web's delay note it says the due date stays put, and
+ * the task is left out of Overdue until the delay ends.
+ */
+@Composable
+private fun DelayBanner(delay: DelayNote) {
+    val title = delay.through?.let { stringResource(R.string.feature_tasks_delayed_through, it) }
+        ?: stringResource(R.string.feature_tasks_flag_delayed)
+    val why = listOfNotNull(delay.reason, delay.explanation).joinToString("\n")
+    WaiveraBanner(
+        title = title,
+        message = if (why.isEmpty()) {
+            stringResource(R.string.feature_tasks_delay_note)
+        } else {
+            stringResource(R.string.feature_tasks_delay_note_with_reason, why)
+        },
+        tone = BannerTone.Info,
+        icon = WaiveraIcons.Schedule,
         modifier = Modifier.padding(top = WaiveraSpacing.Small, bottom = WaiveraSpacing.ExtraSmall),
     )
 }

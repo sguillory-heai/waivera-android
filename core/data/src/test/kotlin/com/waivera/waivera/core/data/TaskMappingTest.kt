@@ -1,15 +1,20 @@
 package com.waivera.waivera.core.data
 
 import com.waivera.waivera.core.data.live.TaskMapping
+import com.waivera.waivera.core.data.model.TaskDelay
 import com.waivera.waivera.core.data.model.TaskState
 import com.waivera.waivera.core.network.WaiveraJson
 import com.waivera.waivera.core.network.dto.ActionSubTypeResponse
 import com.waivera.waivera.core.network.dto.TaskActionResponse
 import com.waivera.waivera.core.network.dto.TaskListResponse
+import com.waivera.waivera.core.network.dto.TaskResponse
 import java.time.Instant
 import java.time.LocalDate
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
+import kotlin.test.assertNull
+import kotlin.test.assertTrue
 
 class TaskMappingTest {
     @Test
@@ -29,6 +34,42 @@ class TaskMappingTest {
         assertEquals(LocalDate.of(2026, 11, 8), task.due)
         assertEquals(TaskState.InProgress, task.state)
         assertEquals("Jordan Lee", task.about)
+    }
+
+    @Test
+    fun an_approved_delay_marks_the_row_and_the_task_without_moving_the_due_date() {
+        // The delay runs through Sunday Nov 1 2026, the US fall-back day: still a literal date.
+        val row = WaiveraJson.decodeFromString<TaskListResponse>(
+            """
+            {"id":1,"endDate":"2026-10-25T00:00:00",
+             "currentTaskDelay":{"id":9,"reasonName":"Hospitalized","explanation":"Back next week",
+              "delayStartDate":"2026-10-20T00:00:00","delayEndDate":"2026-11-01T00:00:00"}}
+            """.trimIndent(),
+        )
+        val summary = TaskMapping.summary(row)
+        assertEquals(LocalDate.of(2026, 10, 25), summary.due)
+        assertTrue(summary.delayed)
+        assertEquals(LocalDate.of(2026, 11, 1), summary.delayedThrough)
+
+        val detail = TaskMapping.detail(
+            WaiveraJson.decodeFromString<TaskResponse>(
+                """{"id":1,"endDate":"2026-10-25T00:00:00","currentTaskDelay":{"reasonName":" Hospitalized ",
+                "explanation":"","delayStartDate":"2026-10-20T00:00:00","delayEndDate":"2026-11-01T00:00:00"}}""",
+            ),
+        )
+        assertEquals(
+            TaskDelay("Hospitalized", null, LocalDate.of(2026, 10, 20), LocalDate.of(2026, 11, 1)),
+            detail.delay,
+        )
+        assertEquals(LocalDate.of(2026, 10, 25), detail.due)
+    }
+
+    @Test
+    fun a_task_without_a_delay_has_none() {
+        val summary = TaskMapping.summary(WaiveraJson.decodeFromString<TaskListResponse>("""{"id":1}"""))
+        assertFalse(summary.delayed)
+        assertNull(summary.delayedThrough)
+        assertNull(TaskMapping.detail(WaiveraJson.decodeFromString<TaskResponse>("""{"id":1}""")).delay)
     }
 
     @Test

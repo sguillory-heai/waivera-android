@@ -82,10 +82,19 @@ data class TaskDetailUiState(
     val ask: AskForm? = null,
     /** Today in the saved zone. */
     val today: LocalDate = LocalDate.MIN,
+    /** The approved delay covering today: the task is not really overdue while it lasts. */
+    val delay: DelayNote? = null,
 ) {
+    /** Past due with no delay covering it; the due date and status turn red only then. */
+    val late: Boolean get() = due.overdue && delay == null
+
     val canLog: Boolean get() = task != null && !task.isFinished
     val canAsk: Boolean get() = task != null && !task.isFinished && pending == null && askChoices.isNotEmpty()
 }
+
+/** The active delay, already worded: [through] is "Nov 20", null when the server sent no end. */
+@Immutable
+data class DelayNote(val through: String?, val reason: String?, val explanation: String?)
 
 /** The banner for a pending request, already worded for the person's day. */
 @Immutable
@@ -182,6 +191,9 @@ class TaskDetailViewModel @AssistedInject constructor(
             },
             errorMessage = l.errorMessage,
             pending = pendingBanner(l, today),
+            delay = l.task?.delay?.let {
+                DelayNote(it.through?.let { end -> TaskFormat.shortDate(end, today) }, it.reason, it.explanation)
+            },
             askChoices = choices(l, access),
             ask = l.ask,
             today = today,

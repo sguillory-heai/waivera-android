@@ -3,12 +3,14 @@ package com.waivera.waivera.core.data.live
 import com.waivera.waivera.core.data.model.ActivityType
 import com.waivera.waivera.core.data.model.RequestStatus
 import com.waivera.waivera.core.data.model.TaskActivity
+import com.waivera.waivera.core.data.model.TaskDelay
 import com.waivera.waivera.core.data.model.TaskDetail
 import com.waivera.waivera.core.data.model.TaskState
 import com.waivera.waivera.core.data.model.TaskSummary
 import com.waivera.waivera.core.network.dto.ActionSubTypeResponse
 import com.waivera.waivera.core.network.dto.OrganizationResponse
 import com.waivera.waivera.core.network.dto.TaskActionResponse
+import com.waivera.waivera.core.network.dto.TaskDelaySummaryResponse
 import com.waivera.waivera.core.network.dto.TaskListResponse
 import com.waivera.waivera.core.network.dto.TaskParticipantResponse
 import com.waivera.waivera.core.network.dto.TaskResponse
@@ -34,6 +36,7 @@ object TaskMapping {
         assigneeName = name(dto.assignee),
         pendingClosure = dto.hasPendingDeletion,
         delayed = dto.currentTaskDelay != null,
+        delayedThrough = WaiveraTime.parseLocalDate(dto.currentTaskDelay?.delayEndDate),
     )
 
     fun detail(dto: TaskResponse): TaskDetail {
@@ -56,8 +59,16 @@ object TaskMapping {
                 .map(RequestMapping::request)
                 .filter { it.status == RequestStatus.Pending }
                 .maxByOrNull { it.requestedAt ?: java.time.Instant.MIN },
+            delay = dto.currentTaskDelay?.let(::delay),
         )
     }
+
+    fun delay(dto: TaskDelaySummaryResponse): TaskDelay = TaskDelay(
+        reason = dto.reasonName?.trim()?.takeIf(String::isNotEmpty),
+        explanation = dto.explanation?.trim()?.takeIf(String::isNotEmpty),
+        start = WaiveraTime.parseLocalDate(dto.delayStartDate),
+        through = WaiveraTime.parseLocalDate(dto.delayEndDate),
+    )
 
     /** Replies in an activity's thread and removed activity are not shown. */
     fun activity(items: List<TaskActionResponse>): List<TaskActivity> = items

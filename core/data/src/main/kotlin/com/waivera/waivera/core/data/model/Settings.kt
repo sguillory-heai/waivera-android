@@ -35,6 +35,8 @@ data class AppSettings(
     /** Waivera's own "Reduce motion": on, the app uses calm motion even when the phone does not. */
     val reduceMotion: Boolean = false,
     val notifications: NotificationPreferences = NotificationPreferences(),
+    /** The Tasks tab's Delays chip on casework, kept between visits. */
+    val taskDelays: DelayFilter = DelayFilter.Show,
 )
 
 /** Hub connection as shown in the UI. */

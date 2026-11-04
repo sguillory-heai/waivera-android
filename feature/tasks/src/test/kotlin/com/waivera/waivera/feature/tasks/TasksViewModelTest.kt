@@ -1,5 +1,6 @@
 package com.waivera.waivera.feature.tasks
 
+import com.waivera.waivera.core.data.model.DelayFilter
 import com.waivera.waivera.core.data.model.RequestAccess
 import com.waivera.waivera.core.data.model.RequestKind
 import com.waivera.waivera.core.data.model.TaskScope
@@ -18,6 +19,7 @@ import kotlin.test.assertFalse
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
@@ -34,8 +36,9 @@ class TasksViewModelTest {
         tasks: FakeTasks,
         clock: TestClock = TestClock(),
         requests: FakeRequests = FakeRequests(),
+        graph: DemoGraph = DemoGraph(backgroundScope),
     ): TasksViewModel {
-        val vm = TasksViewModel(tasks, requests, TestSessionRepository(), DemoGraph(backgroundScope).calendar, clock)
+        val vm = TasksViewModel(tasks, requests, TestSessionRepository(), graph.calendar, graph.settings, clock)
         backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { vm.uiState.collect {} }
         return vm
     }
@@ -250,7 +253,7 @@ class TasksViewModelTest {
         val tasks = FakeTasks().apply {
             pageSize = 10
             all = listOf(
-                FakeTasks.summary(1, "Late", due = LocalDate.of(2026, 10, 30)).copy(delayed = true),
+                FakeTasks.summary(1, "Late", due = LocalDate.of(2026, 10, 30)),
                 FakeTasks.summary(2, "Friday", due = LocalDate.of(2026, 11, 6))
                     .copy(assigneeId = "usr_priya", assigneeName = "Priya Raman"),
                 FakeTasks.summary(3, "Next week", due = LocalDate.of(2026, 11, 10)).copy(pendingClosure = true),
@@ -266,10 +269,87 @@ class TasksViewModelTest {
         )
         val late = sections.first().rows.single()
         assertEquals(5, late.daysLate)
-        assertEquals(RowFlag.Delayed, late.flag)
+        assertFalse(late.delayed)
+        assertNull(late.flag)
         assertEquals("Priya Raman", sections[1].rows.single().assignee)
         assertEquals(RowFlag.ClosureRequested, sections[2].rows.single().flag)
         assertNull(sections[3].rows.single().tileDay)
+    }
+
+    @Test
+    fun a_delayed_task_is_not_overdue_and_sits_in_its_own_group() = runTest {
+        // Sunday Nov 1 2026 is the US fall-back day; the delay's last day is a literal date.
+        val clock = TestClock(Instant.parse("2026-11-01T15:00:00Z"))
+        val tasks = FakeTasks().apply {
+            pageSize = 10
+            all = listOf(
+                FakeTasks.summary(1, "Really late", due = LocalDate.of(2026, 10, 28)),
+                FakeTasks.summary(2, "Delayed and past due", due = LocalDate.of(2026, 10, 25))
+                    .copy(delayed = true, delayedThrough = LocalDate.of(2026, 11, 1)),
+                FakeTasks.summary(3, "Delayed, due later", due = LocalDate.of(2026, 11, 20))
+                    .copy(delayed = true),
+                FakeTasks.summary(4, "This week", due = LocalDate.of(2026, 11, 4)),
+            )
+        }
+        val vm = viewModel(tasks, clock)
+        runCurrent()
+        val sections = vm.uiState.value.sections
+        assertEquals(listOf(DueGroup.Overdue, DueGroup.Delayed, DueGroup.ThisWeek), sections.map { it.group })
+        assertEquals(listOf(1), sections[0].rows.map { it.id })
+        val delayed = sections[1].rows
+        assertEquals(listOf(2, 3), delayed.map { it.id })
+        assertNull(delayed[0].daysLate)
+        assertTrue(delayed[0].delayed)
+        assertEquals("Nov 1", delayed[0].delayedThrough)
+        assertNull(delayed[1].delayedThrough)
+    }
+
+    @Test
+    fun the_delays_choice_goes_to_the_server_for_casework_and_is_saved() = runTest {
+        val graph = DemoGraph(backgroundScope)
+        val tasks = FakeTasks().apply { all = listOf(FakeTasks.summary(1, "Plan review")) }
+        val vm = viewModel(tasks, graph = graph)
+        runCurrent()
+        assertEquals(DelayFilter.Show, tasks.queries.last().delays)
+
+        vm.setDelays(DelayFilter.Hide)
+        runCurrent()
+        assertEquals(DelayFilter.Hide, vm.uiState.value.delays)
+        assertEquals(DelayFilter.Hide, tasks.queries.last().delays)
+        assertEquals(DelayFilter.Hide, graph.settings.settings.first().taskDelays)
+
+        // My work is employee tasks, which have no delays: the choice is kept but not sent.
+        vm.setSegment(TasksSegment.MyWork)
+        runCurrent()
+        assertEquals(TaskScope.Mine, tasks.queries.last().scope)
+        assertEquals(DelayFilter.Show, tasks.queries.last().delays)
+        assertFalse(vm.uiState.value.showsDelays)
+    }
+
+    @Test
+    fun a_pick_made_before_the_saved_choice_arrives_wins() = runTest {
+        val graph = DemoGraph(backgroundScope)
+        graph.settings.setTaskDelays(DelayFilter.Only)
+        val tasks = FakeTasks().apply { all = listOf(FakeTasks.summary(1, "Plan review")) }
+        val vm =
+            TasksViewModel(tasks, FakeRequests(), TestSessionRepository(), graph.calendar, graph.settings, TestClock())
+        vm.setDelays(DelayFilter.Hide)
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { vm.uiState.collect {} }
+        runCurrent()
+        assertEquals(DelayFilter.Hide, vm.uiState.value.delays)
+        assertEquals(DelayFilter.Hide, tasks.queries.last().delays)
+        assertEquals(DelayFilter.Hide, graph.settings.settings.first().taskDelays)
+    }
+
+    @Test
+    fun the_first_page_waits_for_the_saved_delays_choice() = runTest {
+        val graph = DemoGraph(backgroundScope)
+        graph.settings.setTaskDelays(DelayFilter.Only)
+        val tasks = FakeTasks().apply { all = listOf(FakeTasks.summary(1, "Plan review")) }
+        val vm = viewModel(tasks, graph = graph)
+        runCurrent()
+        assertEquals(listOf(DelayFilter.Only), tasks.queries.map { it.delays })
+        assertEquals(DelayFilter.Only, vm.uiState.value.delays)
     }
 
     @Test
@@ -280,7 +360,8 @@ class TasksViewModelTest {
                 FakeTasks.summary(1, "Mine").copy(assigneeId = "usr_alex_rivera", assigneeName = "Alex Rivera"),
             )
         }
-        val vm = TasksViewModel(tasks, FakeRequests(), session, DemoGraph(backgroundScope).calendar, TestClock())
+        val graph = DemoGraph(backgroundScope)
+        val vm = TasksViewModel(tasks, FakeRequests(), session, graph.calendar, graph.settings, TestClock())
         backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { vm.uiState.collect {} }
         runCurrent()
         assertNull(vm.uiState.value.rows().single().assignee)

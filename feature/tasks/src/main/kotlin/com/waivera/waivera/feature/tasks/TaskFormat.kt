@@ -66,6 +66,10 @@ object TaskFormat {
         else -> DueText.On(date(due, today))
     }
 
+    /** A short date for a line of facts: "Nov 20", with the year when it is not this one. */
+    fun shortDate(date: LocalDate, today: LocalDate): String =
+        if (date.year == today.year) date.format(PastSameYear) else date.format(OtherYear)
+
     /** The date tile's month, "Nov". */
     fun tileMonth(date: LocalDate): String = date.format(Month)
 

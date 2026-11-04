@@ -34,9 +34,18 @@ data class TaskListResponse(
     val currentTaskDelay: TaskDelaySummaryResponse? = null,
 )
 
-/** `TaskDelayListResponse`: the active reported delay on a list row. */
+/**
+ * `TaskDelayListResponse`: the approved delay whose period covers the caller's today (the server
+ * judges it in their saved zone). Its dates are literal calendar dates.
+ */
 @Serializable
-data class TaskDelaySummaryResponse(val id: Long = 0, val delayEndDate: String? = null)
+data class TaskDelaySummaryResponse(
+    val id: Long = 0,
+    val reasonName: String? = null,
+    val explanation: String? = null,
+    val delayStartDate: String? = null,
+    val delayEndDate: String? = null,
+)
 
 /** `dto/Response/TaskResponse.cs`, the fields the task screen shows. */
 @Serializable
@@ -59,6 +68,7 @@ data class TaskResponse(
     val taskContext: String? = null,
     /** Change requests on the task; a pending one shows on the task page. */
     val administrativeTransactionRequests: List<AdminRequestResponse>? = null,
+    val currentTaskDelay: TaskDelaySummaryResponse? = null,
 )
 
 @Serializable

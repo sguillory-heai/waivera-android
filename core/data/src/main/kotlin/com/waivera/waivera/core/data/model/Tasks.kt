@@ -16,12 +16,21 @@ enum class TaskWindow { DueSoon, Overdue, AllOpen }
  */
 enum class TaskScope { Casework, Mine }
 
+/**
+ * How casework treats tasks under an approved delay, as the web's Task Delay filter: [Show] lists
+ * them (in their own group), [Hide] leaves them out, [Only] lists nothing else. A delay never moves
+ * the due date; it only means the task is not really overdue while it lasts.
+ */
+enum class DelayFilter { Show, Hide, Only }
+
 /** One list request. [assignedToMe] narrows casework to the person's own tasks. */
 data class TaskQuery(
     val scope: TaskScope,
     val window: TaskWindow,
     val search: String = "",
     val assignedToMe: Boolean = false,
+    /** Casework only: the server applies delay filters to client tasks alone. */
+    val delays: DelayFilter = DelayFilter.Show,
 )
 
 /** A task's workflow state, by its server name. Unknown names keep their text in [TaskState.Other]. */
@@ -66,13 +75,19 @@ data class TaskSummary(
     val assigneeName: String? = null,
     /** A closure request waits on review. */
     val pendingClosure: Boolean = false,
-    /** A reported delay is active. */
+    /** An approved delay covers today, judged in the employee's zone: the task is not really overdue. */
     val delayed: Boolean = false,
+    /** That delay's last day, when the server sends one. */
+    val delayedThrough: LocalDate? = null,
 )
 
 data class TaskPage(val items: List<TaskSummary>, val totalCount: Int)
 
-data class TaskCounts(val open: Int, val overdue: Int)
+/** [overdue] leaves out delayed tasks, as the web's to-dos do; [delayed] counts those under a delay today. */
+data class TaskCounts(val open: Int, val overdue: Int, val delayed: Int = 0)
+
+/** The approved delay covering today. The due date stays as it was. */
+data class TaskDelay(val reason: String?, val explanation: String?, val start: LocalDate?, val through: LocalDate?)
 
 data class TaskDetail(
     val id: Int,
@@ -92,6 +107,8 @@ data class TaskDetail(
     val isClientTask: Boolean = true,
     /** A change request waiting on review, if any. */
     val pendingRequest: ChangeRequest? = null,
+    /** The approved delay covering today, if any. */
+    val delay: TaskDelay? = null,
 ) {
     /** Completed or closed: the server refuses new activity. */
     val isFinished: Boolean get() = state == TaskState.Completed || state == TaskState.Closed

@@ -1,6 +1,7 @@
 package com.waivera.waivera.core.data.live
 
 import com.waivera.waivera.core.data.model.ActivityType
+import com.waivera.waivera.core.data.model.DelayFilter
 import com.waivera.waivera.core.data.model.NewActivity
 import com.waivera.waivera.core.data.model.TaskActivity
 import com.waivera.waivera.core.data.model.TaskCounts
@@ -39,19 +40,38 @@ class LiveTaskRepository @Inject constructor(
     override suspend fun tasks(query: TaskQuery, page: Int): Result<TaskPage> = catchingWaivera {
         val me = me()
         if (query.scope == TaskScope.Casework) requests.ensureAccess()
-        val response = list(me, query.scope, query.assignedToMe, query.search.trim(), query.window.dateFilter, page)
+        val delays = query.delays.serverValue.takeIf { query.scope == TaskScope.Casework }
+        val response = list(
+            me,
+            query.scope,
+            query.assignedToMe,
+            query.search.trim(),
+            query.window.dateFilter,
+            page,
+            delays = delays,
+        )
         TaskPage(items = response.tasks.map(TaskMapping::summary), totalCount = response.totalCount)
     }
 
     override suspend fun counts(scope: TaskScope, assignedToMe: Boolean): Result<TaskCounts> = catchingWaivera {
         val me = me()
         if (scope == TaskScope.Casework) requests.ensureAccess()
+        val casework = scope == TaskScope.Casework
         coroutineScope {
             val open = async { list(me, scope, assignedToMe, "", null, 1, pageSize = 1).totalCount }
+            // A delayed task is not really overdue, so overdue leaves delays out as the web's to-dos do.
             val overdue = async {
-                list(me, scope, assignedToMe, "", TaskWindow.Overdue.dateFilter, 1, pageSize = 1).totalCount
+                val delays = DelayFilter.Hide.serverValue.takeIf { casework }
+                list(me, scope, assignedToMe, "", TaskWindow.Overdue.dateFilter, 1, pageSize = 1, delays).totalCount
             }
-            TaskCounts(open = open.await(), overdue = overdue.await())
+            val delayed = if (casework) {
+                async {
+                    list(me, scope, assignedToMe, "", null, 1, pageSize = 1, DelayFilter.Only.serverValue).totalCount
+                }
+            } else {
+                null
+            }
+            TaskCounts(open = open.await(), overdue = overdue.await(), delayed = delayed?.await() ?: 0)
         }
     }
 
@@ -68,6 +88,7 @@ class LiveTaskRepository @Inject constructor(
         date: List<String>?,
         page: Int,
         pageSize: Int = TaskApi.PAGE_SIZE,
+        delays: String? = null,
     ) = apiCall {
         val casework = scope == TaskScope.Casework
         api.getMyTasks(
@@ -77,6 +98,7 @@ class LiveTaskRepository @Inject constructor(
             includePendingApprovals = if (casework) requests.access.value.includePendingApprovals else null,
             searchTerm = search,
             date = date,
+            taskDelayFilter = delays,
             page = page,
             pageSize = pageSize,
         )
@@ -130,4 +152,12 @@ internal val TaskWindow.dateFilter: List<String>?
         TaskWindow.DueSoon -> listOf("month")
         TaskWindow.Overdue -> listOf("overdue")
         TaskWindow.AllOpen -> null
+    }
+
+/** The server's `taskDelayFilter`; [DelayFilter.Show] sends none. */
+internal val DelayFilter.serverValue: String?
+    get() = when (this) {
+        DelayFilter.Show -> null
+        DelayFilter.Hide -> "without-delays"
+        DelayFilter.Only -> "delayed"
     }

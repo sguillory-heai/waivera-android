@@ -3,10 +3,12 @@
 package com.waivera.waivera.core.demo
 
 import com.waivera.waivera.core.data.model.ActivityType
+import com.waivera.waivera.core.data.model.DelayFilter
 import com.waivera.waivera.core.data.model.NewActivity
 import com.waivera.waivera.core.data.model.RequestKind
 import com.waivera.waivera.core.data.model.TaskActivity
 import com.waivera.waivera.core.data.model.TaskCounts
+import com.waivera.waivera.core.data.model.TaskDelay
 import com.waivera.waivera.core.data.model.TaskDetail
 import com.waivera.waivera.core.data.model.TaskPage
 import com.waivera.waivera.core.data.model.TaskQuery
@@ -36,6 +38,7 @@ class DemoTaskRepository @Inject constructor(private val backend: DemoBackend) :
         val search = query.search.trim().lowercase()
         val items = (if (query.scope == TaskScope.Casework) DemoTasks.casework(today) else DemoTasks.employee(today))
             .filter { !query.assignedToMe || it.assigneeName == null }
+            .filter { matchesDelays(it, query) }
             .filter { task ->
                 val due = task.due ?: return@filter window == TaskWindow.AllOpen
                 when (window) {
@@ -54,6 +57,14 @@ class DemoTaskRepository @Inject constructor(private val backend: DemoBackend) :
         return Result.success(TaskPage(if (page == 1) items else emptyList(), items.size))
     }
 
+    /** The server applies the delay filter to client tasks only. */
+    private fun matchesDelays(task: TaskDetail, query: TaskQuery): Boolean = when {
+        query.scope != TaskScope.Casework -> true
+        query.delays == DelayFilter.Hide -> task.delay == null
+        query.delays == DelayFilter.Only -> task.delay != null
+        else -> true
+    }
+
     override suspend fun counts(scope: TaskScope, assignedToMe: Boolean): Result<TaskCounts> {
         backend.failRefreshes?.let { return Result.failure(it) }
         val all = when {
@@ -61,7 +72,9 @@ class DemoTaskRepository @Inject constructor(private val backend: DemoBackend) :
             assignedToMe -> DemoTasks.casework(today).filter { it.assigneeName == null }
             else -> DemoTasks.casework(today)
         }
-        return Result.success(TaskCounts(all.size, all.count { it.due?.isBefore(today) == true }))
+        val delayed = if (scope == TaskScope.Casework) all.count { it.delay != null } else 0
+        val overdue = all.count { it.due?.isBefore(today) == true && it.delay == null }
+        return Result.success(TaskCounts(all.size, overdue, delayed))
     }
 
     override suspend fun task(id: Int): Result<TaskDetail> {
@@ -115,7 +128,15 @@ class DemoTaskRepository @Inject constructor(private val backend: DemoBackend) :
 /** The demo person's open tasks, due relative to the demo day so the windows always have rows. */
 object DemoTasks {
     fun all(today: LocalDate): List<TaskDetail> = listOf(
-        task(991, "HEA-991", "Quarterly monitoring visit", today.minusDays(2), TaskState.InProgress, "Jordan Ellis"),
+        task(991, "HEA-991", "Quarterly monitoring visit", today.minusDays(2), TaskState.InProgress, "Jordan Ellis")
+            .copy(
+                delay = TaskDelay(
+                    reason = "Participant hospitalized",
+                    explanation = "Jordan is in the hospital until next week; the visit moves to after discharge.",
+                    start = today.minusDays(3),
+                    through = today.plusDays(5),
+                ),
+            ),
         task(1042, "HEA-1042", "Annual plan review", today.plusDays(5), TaskState.NotStarted, "Maya Thompson"),
         task(1017, "HEA-1017", "Update emergency contacts", today.plusDays(8), TaskState.InProgress, "Jordan Ellis"),
         task(987, "HEA-987", "Service authorization follow-up", today.plusDays(11), TaskState.InReview, "Luis Ortega"),
@@ -156,6 +177,8 @@ object DemoTasks {
         about = task.about,
         assigneeName = task.assigneeName,
         pendingClosure = task.pendingRequest?.kind == RequestKind.Closure,
+        delayed = task.delay != null,
+        delayedThrough = task.delay?.through,
     )
 
     @Suppress("LongParameterList")
