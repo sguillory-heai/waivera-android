@@ -8,21 +8,21 @@ hilt = "2.60.1"
 
 androidxActivityCompose = "1.13.0"
 # Custom Tabs for web links (call lobby, ticket and message links) so people stay in the app.
-androidxBrowser = "1.8.0"
+androidxBrowser = "1.10.0"
 # Hilt ViewModels for Navigation 3 entries (hiltViewModel()).
-androidxHiltNavigationCompose = "1.2.0"
+androidxHiltNavigationCompose = "1.4.0"
 # Navigation 3: type-safe back stack owned by the app, predictive back built in.
 androidxNavigation3 = "1.0.0"
 # The shell reads predictive back progress from the NavigationEventState it hands to NavDisplay.
 # Navigation 3 already brings it in; this makes the direct use explicit.
-androidxNavigationEvent = "1.0.0"
+androidxNavigationEvent = "1.2.0"
 androidxComposeBom = "2026.09.00"
-androidxCoreKtx = "1.19.0"
+androidxCoreKtx = "1.19.1"
 androidxExifinterface = "1.4.2"
 androidxLifecycle = "2.11.0"
-androidxDataStore = "1.1.7"
-androidxRoom = "2.7.2"
-androidxWork = "2.10.2"
+androidxDataStore = "1.3.0"
+androidxRoom = "2.8.5"
+androidxWork = "2.12.0"
 coil = "3.6.0"
 coroutines = "1.11.0"
 desugarJdkLibs = "2.1.5"
