@@ -63,6 +63,7 @@ object TaskMapping {
 
     fun detail(dto: TaskResponse): TaskDetail {
         val key = key(dto.organization, dto.friendlyId)
+        val assignee = name(assignee(dto.assignee, dto.assignees))
         return TaskDetail(
             id = dto.id,
             key = key,
@@ -75,7 +76,7 @@ object TaskMapping {
             assignedBy = name(dto.reporter),
             about = about(dto.participant, dto.subjectEmployee),
             webPath = "/task/$key",
-            assigneeName = name(assignee(dto.assignee, dto.assignees)),
+            assigneeName = assignee,
             isClientTask = !dto.taskContext.equals(EMPLOYEE_CONTEXT, ignoreCase = true),
             pendingRequest = dto.administrativeTransactionRequests.orEmpty()
                 .map(RequestMapping::request)
@@ -83,7 +84,7 @@ object TaskMapping {
                 .maxByOrNull { it.requestedAt ?: Instant.MIN },
             delay = dto.currentTaskDelay?.let(::delay),
             review = ReviewMapping.access(dto.capabilities, dto.isTaskReady),
-            steps = ReviewMapping.steps(dto.workflowBlueprint),
+            steps = ReviewMapping.steps(dto.workflowBlueprint, assignee),
             planDates = ReviewMapping.planDates(dto.participant),
             // Only when About names the participant; a nameless one falls back to the employee's name.
             participantId = dto.participant?.takeIf { it.id > 0 && participantName(it) != null }?.id,

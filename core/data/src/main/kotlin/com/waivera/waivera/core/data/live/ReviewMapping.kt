@@ -30,12 +30,14 @@ import com.waivera.waivera.core.network.dto.EmployeeClosureOptionsResponse
 import com.waivera.waivera.core.network.dto.LateContextResponse
 import com.waivera.waivera.core.network.dto.RejectOptionResponse
 import com.waivera.waivera.core.network.dto.RequirementAnswerBody
+import com.waivera.waivera.core.network.dto.StepTargetResponse
 import com.waivera.waivera.core.network.dto.TaskCapabilitiesResponse
 import com.waivera.waivera.core.network.dto.TaskFormDraftResponse
 import com.waivera.waivera.core.network.dto.TaskParticipantResponse
 import com.waivera.waivera.core.network.dto.WorkflowRequirementResponse
 import com.waivera.waivera.core.network.dto.WorkflowStepResponse
 import com.waivera.waivera.core.network.time.WaiveraTime
+import java.util.Locale
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonObject
 
@@ -62,21 +64,44 @@ object ReviewMapping {
         )
     } ?: TaskReviewAccess.None
 
-    fun steps(items: List<WorkflowStepResponse>?): List<WorkflowStep> = items.orEmpty()
+    /**
+     * [assignee] is the task's main assignee: a stage with no role goes to them (sprout_api
+     * `TaskService` waterfall), so the note can name them even before the server assigns it.
+     */
+    fun steps(items: List<WorkflowStepResponse>?, assignee: String? = null): List<WorkflowStep> = items.orEmpty()
         .sortedBy { it.stepOrder }
         .map {
+            val role = it.stepRole?.trim()?.takeIf(String::isNotEmpty)
+            val status = when (it.status?.uppercase()) {
+                "COMPLETED" -> StepStatus.Completed
+                "ACTIVE" -> StepStatus.Active
+                "FUTURE" -> StepStatus.Future
+                else -> StepStatus.Unknown
+            }
             WorkflowStep(
                 order = it.stepOrder,
-                role = it.stepRole?.trim()?.takeIf(String::isNotEmpty),
-                status = when (it.status?.uppercase()) {
-                    "COMPLETED" -> StepStatus.Completed
-                    "ACTIVE" -> StepStatus.Active
-                    "FUTURE" -> StepStatus.Future
-                    else -> StepStatus.Unknown
-                },
+                role = humanRole(role),
+                status = status,
                 approverName = TaskMapping.name(it.actualApprover),
+                waitingOn = if (status == StepStatus.Completed) {
+                    null
+                } else {
+                    // A pool's person is only the server's first pick among many, so the role reads truer.
+                    val projected = it.projectedApprover?.takeUnless(StepTargetResponse::isPool)?.exactUser
+                    TaskMapping.name(projected) ?: assignee.takeIf { role == CASE_WORKER_ROLE }
+                },
             )
         }
+
+    /** `[CASE_WORKER]` reads "Case worker"; agency role names ("Supervisor") stay as they are. */
+    fun humanRole(role: String?): String? {
+        if (role == null || !role.startsWith("[") || !role.endsWith("]")) return role
+        val words = role.substring(1, role.length - 1).replace('_', ' ').lowercase(Locale.ROOT)
+        return words.replaceFirstChar { it.titlecase(Locale.ROOT) }.takeIf(String::isNotBlank)
+    }
+
+    /** The server's role for a stage with no role on a client task: the task's own case worker. */
+    private const val CASE_WORKER_ROLE = "[CASE_WORKER]"
 
     fun planDates(participant: TaskParticipantResponse?): PlanDates? = participant?.let {
         PlanDates(WaiveraTime.parseLocalDate(it.cpocDate), WaiveraTime.parseLocalDate(it.cpocEndDate))
@@ -163,7 +188,7 @@ object ReviewMapping {
         SendBackOption(
             approvalId = it.taskApprovalId,
             name = it.displayName?.trim()?.takeIf(String::isNotEmpty).orEmpty(),
-            role = it.roleName?.trim()?.takeIf(String::isNotEmpty),
+            role = humanRole(it.roleName?.trim()?.takeIf(String::isNotEmpty)),
         )
     }
 
@@ -209,7 +234,7 @@ object ReviewMapping {
         reviews = dto.reviews.map {
             LateReview(
                 name = it.reviewerName?.trim()?.takeIf(String::isNotEmpty),
-                role = it.reviewerRole?.trim()?.takeIf(String::isNotEmpty),
+                role = humanRole(it.reviewerRole?.trim()?.takeIf(String::isNotEmpty)),
                 agreed = it.decision.equals(AGREE, ignoreCase = true),
                 note = it.note?.trim()?.takeIf(String::isNotEmpty),
             )

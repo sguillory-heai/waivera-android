@@ -24,8 +24,18 @@ data class TaskReviewAccess(
 
 enum class StepStatus { Completed, Active, Future, Unknown }
 
-/** One approval stage, in order. [approverName] is who approved a completed stage. */
-data class WorkflowStep(val order: Int, val role: String?, val status: StepStatus, val approverName: String?)
+/**
+ * One approval stage, in order. [approverName] is who approved a completed stage; [waitingOn] is
+ * the person a stage still to come goes to, when the server knows them. [role] is already worded
+ * for people ("Case worker", never `[CASE_WORKER]`).
+ */
+data class WorkflowStep(
+    val order: Int,
+    val role: String?,
+    val status: StepStatus,
+    val approverName: String?,
+    val waitingOn: String? = null,
+)
 
 /** The participant's plan (CPOC) dates, which a stage that updates them checks new dates against. */
 data class PlanDates(val start: LocalDate?, val end: LocalDate?)

@@ -127,14 +127,21 @@ private const val DELETED = "Deleted"
 
 /** "Step 2 of 4 · Supervisor", and who approved the stage before it. */
 @Immutable
-data class StepNote(val order: Int, val total: Int, val role: String?, val sentBy: String?) {
+data class StepNote(
+    val order: Int,
+    val total: Int,
+    val role: String?,
+    val sentBy: String?,
+    /** The person the stage waits on; the role shows only when the server names nobody. */
+    val waitingOn: String? = null,
+) {
     companion object {
         fun of(steps: List<WorkflowStep>): StepNote? {
             val active = steps.indexOfFirst { it.status == StepStatus.Active }
             if (active < 0) return null
             val step = steps[active]
             val before = steps.take(active).lastOrNull { it.status == StepStatus.Completed }
-            return StepNote(active + 1, steps.size, step.role, before?.approverName)
+            return StepNote(active + 1, steps.size, step.role, before?.approverName, step.waitingOn)
         }
     }
 }

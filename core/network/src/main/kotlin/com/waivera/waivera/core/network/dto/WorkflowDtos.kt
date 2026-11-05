@@ -27,6 +27,19 @@ data class WorkflowStepResponse(
     val stepRole: String? = null,
     val status: String? = null,
     val actualApprover: TaskUserResponse? = null,
+    val projectedApprover: StepTargetResponse? = null,
+)
+
+/**
+ * `StepTargetDto`: who a stage that is not done yet goes to. [exactUser] is the person the server
+ * assigned or predicts; [routingRule] is how it got there ("Pending Discovery: Supervisor" when it
+ * found nobody); [isPool] means others with the role could take it too.
+ */
+@Serializable
+data class StepTargetResponse(
+    val exactUser: TaskUserResponse? = null,
+    val routingRule: String? = null,
+    val isPool: Boolean = false,
 )
 
 /** `WorkflowApprovalRequirementsResponse` from `GET api/workflow/task/{id}/approval-requirements`. */

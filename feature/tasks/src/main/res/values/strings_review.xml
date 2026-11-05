@@ -22,6 +22,7 @@
     <string name="feature_tasks_review_cant_all">The remaining stages can\'t all be approved now. The task was refreshed.</string>
     <string name="feature_tasks_field_step">Step %1$d of %2$d · %3$s</string>
     <string name="feature_tasks_field_step_plain">Step %1$d of %2$d</string>
+    <string name="feature_tasks_field_step_waiting">Step %1$d of %2$d · Waiting on %3$s</string>
     <string name="feature_tasks_field_sent_by">Sent by</string>
     <string name="feature_tasks_review_go_back">Go back</string>
     <string name="feature_tasks_review_close">Close</string>

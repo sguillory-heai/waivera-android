@@ -245,6 +245,7 @@ object DemoTasks {
                     else -> StepStatus.Future
                 },
                 approverName = if (order < active) "Priya Raman" else null,
+                waitingOn = if (order == active) "Jordan Ellis" else null,
             )
         }
 

@@ -119,6 +119,43 @@ class ReviewMappingTest {
     }
 
     @Test
+    fun steps_name_the_person_and_word_the_role_for_people() {
+        val steps = ReviewMapping.steps(
+            WaiveraJson.decodeFromString<List<WorkflowStepResponse>>(
+                """[{"stepOrder":1,"stepRole":"[CASE_WORKER]","status":"COMPLETED",
+                     "actualApprover":{"displayName":"Priya Raman"},"projectedApprover":{"routingRule":"Completed"}},
+                    {"stepOrder":2,"stepRole":"Supervisor","status":"ACTIVE",
+                     "projectedApprover":{"exactUser":{"displayName":"Jordan Ellis"}}},
+                    {"stepOrder":3,"stepRole":"Director","status":"FUTURE",
+                     "projectedApprover":{"routingRule":"Pending Discovery: Director"}}]""",
+            ),
+            assignee = "Sam Lee",
+        )
+        assertEquals("Case worker", steps[0].role)
+        assertNull(steps[0].waitingOn)
+        assertEquals("Jordan Ellis", steps[1].waitingOn)
+        // Nobody found for the role: the note falls back to the role.
+        assertNull(steps[2].waitingOn)
+        assertEquals("Director", steps[2].role)
+    }
+
+    @Test
+    fun a_case_worker_stage_with_nobody_assigned_waits_on_the_tasks_assignee() {
+        val items = WaiveraJson.decodeFromString<List<WorkflowStepResponse>>(
+            """[{"stepOrder":1,"stepRole":"[CASE_WORKER]","status":"ACTIVE","projectedApprover":{}}]""",
+        )
+        assertEquals("Sam Lee", ReviewMapping.steps(items, assignee = "Sam Lee").single().waitingOn)
+        assertNull(ReviewMapping.steps(items).single().waitingOn)
+        assertEquals("Site lead", ReviewMapping.humanRole("[SITE_LEAD]"))
+        // A pool's first pick is not who it waits on.
+        val pool = WaiveraJson.decodeFromString<List<WorkflowStepResponse>>(
+            """[{"stepOrder":1,"stepRole":"Supervisor","status":"ACTIVE",
+                 "projectedApprover":{"exactUser":{"displayName":"Ana Ruiz"},"isPool":true}}]""",
+        )
+        assertNull(ReviewMapping.steps(pool).single().waitingOn)
+    }
+
+    @Test
     fun late_reasons_follow_the_web_filter() {
         val reasons = ReviewMapping.lateReasons(
             WaiveraJson.decodeFromString<List<ComplianceReasonResponse>>(

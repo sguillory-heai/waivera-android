@@ -271,8 +271,11 @@ private fun TaskReviewEffect.message(): Int? = when (this) {
 }
 
 @Composable
-private fun StepNote.text(): String = role?.let { stringResource(R.string.feature_tasks_field_step, order, total, it) }
-    ?: stringResource(R.string.feature_tasks_field_step_plain, order, total)
+private fun StepNote.text(): String = when {
+    waitingOn != null -> stringResource(R.string.feature_tasks_field_step_waiting, order, total, waitingOn)
+    role != null -> stringResource(R.string.feature_tasks_field_step, order, total, role)
+    else -> stringResource(R.string.feature_tasks_field_step_plain, order, total)
+}
 
 private fun TaskDetailEffect.Asked.message(): Int = when {
     inEffect && kind == AskKind.MoreTime -> R.string.feature_tasks_asked_in_effect_more_time
