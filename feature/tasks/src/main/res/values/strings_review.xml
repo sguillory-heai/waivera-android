@@ -39,6 +39,10 @@
     </plurals>
     <string name="feature_tasks_review_all_message">You\'re recorded as the approver for each one, and the task is completed. Anything a stage needs is still asked for.</string>
     <string name="feature_tasks_review_all_confirm">Approve all &amp; complete</string>
+    <string name="feature_tasks_review_scope_title">What do you want to approve?</string>
+    <string name="feature_tasks_review_scope_submit_title">What do you want to submit?</string>
+    <string name="feature_tasks_review_scope_this">Approve this step</string>
+    <string name="feature_tasks_review_scope_all_note">Approving all records you as the approver for every remaining stage and completes the task. Anything a stage needs is still asked for.</string>
 
     <!-- Unfinished forms -->
     <plurals name="feature_tasks_review_drafts_title">

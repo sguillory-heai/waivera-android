@@ -162,6 +162,7 @@ fun TaskDetailScreen(
         reviewActions = ReviewBarActions(
             onAction = { action -> state.task?.let { reviewViewModel.start(action, it) } },
             onReject = reviewViewModel::startReject,
+            onAskScope = { action -> state.task?.let { reviewViewModel.askScope(action, it) } },
         ),
         uploads = uploads,
         uploadActions = UploadActions(

@@ -4,6 +4,7 @@ package com.waivera.waivera.feature.tasks.review
 internal fun reviewSheetActions(viewModel: TaskReviewViewModel, onOpenWeb: () -> Unit) = ReviewSheetActions(
     onDismiss = viewModel::dismiss,
     onConfirmAll = viewModel::confirmAll,
+    onChooseScope = viewModel::chooseScope,
     onDiscardDrafts = viewModel::discardDrafts,
     onChooseDrive = viewModel::chooseDrive,
     onConfirmDrive = viewModel::confirmDrive,

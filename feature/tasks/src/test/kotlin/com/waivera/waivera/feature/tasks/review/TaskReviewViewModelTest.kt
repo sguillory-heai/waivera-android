@@ -95,6 +95,43 @@ class TaskReviewViewModelTest {
     }
 
     @Test
+    fun approve_asks_this_step_or_all_and_this_step_sends_one_stage() = runTest {
+        val review = FakeTaskReview()
+        val h = harness(review)
+        h.vm.askScope(ReviewAction.Approve, task())
+        runCurrent()
+        assertEquals(ReviewStep.ChooseScope(stages = 3, submit = false), h.vm.uiState.value.step)
+        assertTrue(review.sent.isEmpty())
+        h.vm.chooseScope(all = false)
+        runCurrent()
+        assertEquals(ApprovalMode.CurrentStage, review.sent.single().plan.mode)
+    }
+
+    @Test
+    fun choosing_all_counts_as_the_confirmation() = runTest {
+        val review = FakeTaskReview()
+        val h = harness(review)
+        h.vm.askScope(ReviewAction.Approve, task())
+        runCurrent()
+        h.vm.chooseScope(all = true)
+        runCurrent()
+        assertTrue(h.vm.uiState.value.step !is ReviewStep.ConfirmAll, "no second 'are you sure'")
+        assertEquals(ApprovalMode.AllRemaining, review.sent.single().plan.mode)
+    }
+
+    @Test
+    fun submit_all_comes_from_the_submit_choice() = runTest {
+        val review = FakeTaskReview()
+        val h = harness(review)
+        h.vm.askScope(ReviewAction.Submit, task())
+        runCurrent()
+        assertEquals(ReviewStep.ChooseScope(stages = 3, submit = true), h.vm.uiState.value.step)
+        h.vm.chooseScope(all = true)
+        runCurrent()
+        assertEquals(ApprovalMode.AllRemaining, review.sent.single().plan.mode)
+    }
+
+    @Test
     fun closing_any_sheet_stops_the_chain_without_sending() = runTest {
         val review = FakeTaskReview()
         val h = harness(review)

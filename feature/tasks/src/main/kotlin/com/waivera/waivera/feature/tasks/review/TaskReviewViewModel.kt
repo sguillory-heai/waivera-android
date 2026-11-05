@@ -114,6 +114,29 @@ class TaskReviewViewModel @AssistedInject constructor(
         advance()
     }
 
+    /**
+     * Approve or Submit for someone who may also approve every remaining stage: the bar keeps one
+     * button and this sheet asks how far to go. Picking "all" counts as its confirmation.
+     */
+    fun askScope(action: ReviewAction, task: TaskDetail) {
+        if (state.value.running != null || state.value.rejecting) return
+        chain = Chain(action, task)
+        state.update {
+            it.copy(
+                running = action,
+                step = ReviewStep.ChooseScope(task.review.remainingStages, submit = action == ReviewAction.Submit),
+            )
+        }
+    }
+
+    fun chooseScope(all: Boolean) {
+        val current = chain ?: return
+        val action = if (all) current.action.all else current.action
+        chain = current.copy(action = action, confirmedAll = all)
+        state.update { it.copy(running = action, step = null) }
+        advance()
+    }
+
     /** Closing any sheet stops the chain where it is; nothing was sent yet unless it says so. */
     fun dismiss() {
         val current = state.value

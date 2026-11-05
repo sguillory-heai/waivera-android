@@ -55,6 +55,7 @@ import java.time.LocalDate
 internal data class ReviewSheetActions(
     val onDismiss: () -> Unit = {},
     val onConfirmAll: () -> Unit = {},
+    val onChooseScope: (all: Boolean) -> Unit = {},
     val onDiscardDrafts: () -> Unit = {},
     val onChooseDrive: (Boolean) -> Unit = {},
     val onConfirmDrive: () -> Unit = {},
@@ -78,6 +79,16 @@ internal fun TaskReviewSheets(state: ReviewUiState, today: LocalDate, actions: R
         is ReviewStep.Drafts -> WaiveraBottomSheet(onDismissRequest = actions.onDismiss) {
             DraftsContent(step, actions)
         }
+        is ReviewStep.ChooseScope -> WaiveraBottomSheet(
+            onDismissRequest = actions.onDismiss,
+            title = stringResource(
+                if (step.submit) {
+                    R.string.feature_tasks_review_scope_submit_title
+                } else {
+                    R.string.feature_tasks_review_scope_title
+                },
+            ),
+        ) { ChooseScopeContent(step, actions.onChooseScope) }
         is ReviewStep.DriveSection -> WaiveraBottomSheet(
             onDismissRequest = actions.onDismiss,
             title = stringResource(R.string.feature_tasks_review_drive_title),

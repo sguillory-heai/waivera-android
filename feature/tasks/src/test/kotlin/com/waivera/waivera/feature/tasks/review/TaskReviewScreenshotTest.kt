@@ -80,6 +80,16 @@ class TaskReviewScreenshotTest {
     }
 
     @Test
+    fun chooseScope() = sheet("task_review_choose_scope", "What do you want to approve?", heightDp = 520) {
+        ChooseScopeContent(ReviewStep.ChooseScope(stages = 2, submit = false)) {}
+    }
+
+    @Test
+    fun chooseScopeSubmit() = sheet("task_review_choose_scope_submit", "What do you want to submit?", heightDp = 520) {
+        ChooseScopeContent(ReviewStep.ChooseScope(stages = 3, submit = true)) {}
+    }
+
+    @Test
     fun drafts() = sheet("task_review_drafts", "Unfinished forms") {
         DraftsContent(ReviewStep.Drafts(listOf("Home visit note", "Risk screen")), ReviewSheetActions())
     }

@@ -8,7 +8,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import com.waivera.waivera.core.data.model.TaskReviewAccess
 import com.waivera.waivera.core.designsystem.component.WaiveraButton
@@ -20,13 +19,18 @@ import com.waivera.waivera.core.designsystem.theme.WaiveraTheme
 import com.waivera.waivera.core.designsystem.theme.isLargeFontScale
 import com.waivera.waivera.feature.tasks.R
 
-internal data class ReviewBarActions(val onAction: (ReviewAction) -> Unit = {}, val onReject: () -> Unit = {})
+internal data class ReviewBarActions(
+    val onAction: (ReviewAction) -> Unit = {},
+    val onReject: () -> Unit = {},
+    /** Approve or Submit for someone who may also approve every remaining stage. */
+    val onAskScope: (ReviewAction) -> Unit = {},
+)
 
 /**
  * The task's review buttons, from the server's capabilities only (web TaskPage): the assignee's
- * Submit (and "Submit all & complete"), or a reviewer's Approve and Reject (and "Approve all
- * remaining & complete"). Submit and Approve wait for every required form, file and signature;
- * Reject never does.
+ * Submit, or a reviewer's Approve and Reject. "All remaining & complete" is asked in a sheet after
+ * Approve or Submit, for those allowed it, so the bar stays two buttons. Submit and Approve wait
+ * for every required form, file and signature; Reject never does.
  */
 @Composable
 internal fun ReviewButtons(access: TaskReviewAccess, state: ReviewUiState, actions: ReviewBarActions) {
@@ -37,44 +41,26 @@ internal fun ReviewButtons(access: TaskReviewAccess, state: ReviewUiState, actio
         state.stepSaving -> stringResource(R.string.feature_tasks_review_sending)
         else -> null
     }
-    fun loading(action: ReviewAction) = progress?.takeIf { state.running == action }
+
+    // "All" runs under the button that asked for it.
+    fun loading(action: ReviewAction) = progress?.takeIf { state.running == action || state.running == action.all }
+
+    val start = { action: ReviewAction ->
+        if (access.canApproveAll) actions.onAskScope(action) else actions.onAction(action)
+    }
     Column(verticalArrangement = Arrangement.spacedBy(WaiveraSpacing.Small)) {
         if (access.canSubmit) {
             WaiveraButton(
                 text = stringResource(R.string.feature_tasks_review_submit),
-                onClick = { actions.onAction(ReviewAction.Submit) },
+                onClick = { start(ReviewAction.Submit) },
                 leadingIcon = WaiveraIcons.Check,
                 fullWidth = true,
                 size = WaiveraButtonSize.Large,
                 enabled = access.ready && !busy,
                 loadingText = loading(ReviewAction.Submit),
             )
-            if (access.canApproveAll && access.ready) {
-                WaiveraButton(
-                    text = stringResource(R.string.feature_tasks_review_submit_all),
-                    onClick = { actions.onAction(ReviewAction.SubmitAll) },
-                    variant = WaiveraButtonVariant.Text,
-                    fullWidth = true,
-                    enabled = !busy,
-                    loadingText = loading(ReviewAction.SubmitAll),
-                )
-            }
         } else {
-            ApproveRejectRow(access, busy, state, actions, ::loading)
-            if (access.canApprove && access.canApproveAll && access.ready) {
-                WaiveraButton(
-                    text = pluralStringResource(
-                        R.plurals.feature_tasks_review_approve_all,
-                        access.remainingStages,
-                        access.remainingStages,
-                    ),
-                    onClick = { actions.onAction(ReviewAction.ApproveAll) },
-                    variant = WaiveraButtonVariant.Text,
-                    fullWidth = true,
-                    enabled = !busy,
-                    loadingText = loading(ReviewAction.ApproveAll),
-                )
-            }
+            ApproveRejectRow(access, busy, state, actions.onReject, { start(ReviewAction.Approve) }, ::loading)
         }
         if (!access.ready && (access.canSubmit || access.canApprove)) {
             Text(
@@ -91,13 +77,14 @@ private fun ApproveRejectRow(
     access: TaskReviewAccess,
     busy: Boolean,
     state: ReviewUiState,
-    actions: ReviewBarActions,
+    onReject: () -> Unit,
+    onApprove: () -> Unit,
     loading: (ReviewAction) -> String?,
 ) {
     val reject = @Composable { modifier: Modifier ->
         WaiveraButton(
             text = stringResource(R.string.feature_tasks_review_reject),
-            onClick = actions.onReject,
+            onClick = onReject,
             variant = WaiveraButtonVariant.DestructiveOutline,
             size = WaiveraButtonSize.Large,
             fullWidth = !access.canApprove,
@@ -112,7 +99,7 @@ private fun ApproveRejectRow(
     val approve = @Composable { modifier: Modifier ->
         WaiveraButton(
             text = stringResource(R.string.feature_tasks_review_approve),
-            onClick = { actions.onAction(ReviewAction.Approve) },
+            onClick = onApprove,
             leadingIcon = WaiveraIcons.Check,
             size = WaiveraButtonSize.Large,
             fullWidth = !access.canReject,

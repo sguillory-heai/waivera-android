@@ -16,6 +16,13 @@ import java.time.LocalDate
 /** Which button started the chain; it names the progress and the result. */
 enum class ReviewAction { Submit, SubmitAll, Approve, ApproveAll }
 
+/** The "all remaining & complete" form of Submit or Approve. */
+internal val ReviewAction.all: ReviewAction
+    get() = when (this) {
+        ReviewAction.Submit, ReviewAction.SubmitAll -> ReviewAction.SubmitAll
+        ReviewAction.Approve, ReviewAction.ApproveAll -> ReviewAction.ApproveAll
+    }
+
 internal val ReviewAction.mode: ApprovalMode
     get() = if (this == ReviewAction.SubmitAll || this == ReviewAction.ApproveAll) {
         ApprovalMode.AllRemaining
@@ -166,6 +173,9 @@ sealed interface ReviewStep {
     data class LateReview(val check: LateCheck) : ReviewStep
 
     data class ConfirmAll(val stages: Int, val submit: Boolean) : ReviewStep
+
+    /** Approve (or Submit) tapped by someone who may also approve every remaining stage. */
+    data class ChooseScope(val stages: Int, val submit: Boolean) : ReviewStep
 
     data class Drafts(val names: List<String>) : ReviewStep
 
