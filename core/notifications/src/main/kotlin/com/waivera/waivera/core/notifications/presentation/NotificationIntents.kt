@@ -68,7 +68,8 @@ internal class NotificationIntents(private val context: Context) {
         )
             .setSemanticAction(NotificationCompat.Action.SEMANTIC_ACTION_MARK_AS_READ)
             .setShowsUserInterface(false)
-            .setAuthenticationRequired(true)
+            // No unlock needed: the system closes the whole shade after an action that requires one,
+            // even on an unlocked phone, and marking read shows and sends nothing.
             .build()
     }
 

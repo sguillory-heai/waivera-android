@@ -76,11 +76,13 @@ class AndroidNotifierTest {
     }
 
     @Test
-    fun `reply and mark read need an unlocked device`() {
+    fun `reply needs an unlocked device and mark read keeps the shade open`() {
         notifier.show(chat(9312, "can you cover Friday?"), WaiveraChannel.Messages, conversation = null)
         val actions = postedChat(7).actions.orEmpty()
         assertEquals(2, actions.size)
-        assertTrue(actions.all { it.isAuthenticationRequired }, "no replying as the employee from a locked phone")
+        val (reply, markRead) = actions
+        assertTrue(reply.isAuthenticationRequired, "no replying as the employee from a locked phone")
+        assertFalse(markRead.isAuthenticationRequired, "an action that needs an unlock closes the shade")
     }
 
     @Test
