@@ -90,7 +90,14 @@ sealed class WaiveraError(
     class WeakPassword : WaiveraError(R.string.core_network_error_weak_password)
 
     /** Firebase needs the current password again before a sensitive change. */
-    class RecentLoginRequired : WaiveraError(R.string.core_network_error_recent_login_required)
+    class RecentLoginRequired(cause: Throwable? = null) :
+        WaiveraError(R.string.core_network_error_recent_login_required, cause = cause)
+
+    /**
+     * The new password is saved, but signing back in with it failed, so the session was ended.
+     * Shown on the sign-in screen, which is where the person goes next.
+     */
+    class PasswordChangedSignInAgain : WaiveraError(R.string.core_network_error_password_changed_sign_in_again)
 
     /** Anything else, including undecodable payloads. Never carries server text. */
     class Unexpected(httpStatus: Int? = null, cause: Throwable? = null) :

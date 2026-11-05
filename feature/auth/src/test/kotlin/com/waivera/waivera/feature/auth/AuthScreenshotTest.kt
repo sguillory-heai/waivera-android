@@ -131,9 +131,15 @@ class AuthScreenshotTest {
             current = "old",
             new = "short",
             confirm = "shorter",
-            newError = R.string.feature_auth_error_new_password_short,
+            newError = R.string.feature_auth_error_new_password_rules,
             confirmError = R.string.feature_auth_error_confirm_mismatch,
         ),
+    )
+
+    @Test
+    fun passwordChangeRulesTyping() = passwordChange(
+        "rules_typing",
+        PasswordChangeUiState(current = "old password", new = "Morning_walk"),
     )
 
     @Test

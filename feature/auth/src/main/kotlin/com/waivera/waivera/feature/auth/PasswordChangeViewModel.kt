@@ -44,9 +44,9 @@ data class PasswordChangeUiState(
 }
 
 /**
- * Changes the password: Firebase re-authenticates with the current password and sets the new
- * one, then the backend's `confirm-password-change` clears the gate and the session refreshes
- * (all inside [SessionRepository.changePassword]). Used for the required gate and for the
+ * Changes the password: Firebase checks the current password, sprout_api's `change-password`
+ * sets the new one and clears the gate, and the session signs back in and refreshes (all inside
+ * [SessionRepository.changePassword]). Used for the required gate and for the
  * voluntary change from Settings; the screen decides what happens after [PasswordChangeEffect.Changed].
  */
 @HiltViewModel
@@ -98,11 +98,19 @@ class PasswordChangeViewModel @Inject constructor(private val session: SessionRe
         _state.update {
             when (error) {
                 // Wrong current password: point at that field and let them retype it.
-                is WaiveraError.InvalidCredentials, is WaiveraError.RecentLoginRequired -> it.copy(
+                is WaiveraError.InvalidCredentials -> it.copy(
                     phase = PasswordChangePhase.Editing,
                     current = "",
                     currentError = R.string.feature_auth_error_current_password_wrong,
                 )
+                // The check of the current password went stale before the server used it.
+                is WaiveraError.RecentLoginRequired -> it.copy(
+                    phase = PasswordChangePhase.Editing,
+                    current = "",
+                    errorMessage = error.messageRes,
+                )
+                // Saved, but the session ended; sign-in says so. Nothing typed here is kept.
+                is WaiveraError.PasswordChangedSignInAgain -> PasswordChangeUiState()
                 is WaiveraError.WeakPassword -> it.copy(
                     phase = PasswordChangePhase.Editing,
                     newError = error.messageRes,

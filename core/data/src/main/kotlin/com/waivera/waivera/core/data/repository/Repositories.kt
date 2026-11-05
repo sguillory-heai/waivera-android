@@ -121,7 +121,10 @@ interface SessionRepository {
     /** Re-runs the backend bootstrap (after [SessionState.BootstrapFailed] or a profile edit). */
     suspend fun refresh(): Result<Unit>
 
-    /** Calls `confirm-password-change` after the user set a new password in Firebase. */
+    /**
+     * Checks [currentPassword] with Firebase, then lets sprout_api's `change-password` set the new
+     * one and stamp the change, and signs back in with it (the server's change ends every session).
+     */
     suspend fun changePassword(currentPassword: String, newPassword: String): Result<Unit>
 }
 

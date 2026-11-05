@@ -3,6 +3,7 @@ package com.waivera.waivera.core.network.api
 import com.waivera.waivera.core.network.dto.ApiResponse
 import com.waivera.waivera.core.network.dto.AuthBootstrapRequest
 import com.waivera.waivera.core.network.dto.AuthBootstrapResponse
+import com.waivera.waivera.core.network.dto.ChangePasswordRequest
 import com.waivera.waivera.core.network.dto.GetUserNameResponseDBVM
 import com.waivera.waivera.core.network.dto.OrganizationDto
 import com.waivera.waivera.core.network.dto.OrganizationResponse
@@ -59,12 +60,13 @@ interface AuthenticationApi {
         @Body request: UpdateContactAndTimezoneRequest,
     ): Response<ApiResponse<String>>
 
+    /**
+     * Changes the password server-side (Firebase and `LastChangedPassword` together). 400 is the
+     * password policy, 401 a sign-in that is not recent enough. Firebase then ends every
+     * existing session, so the caller signs in again with the new password.
+     */
     @POST("api/Authentication/change-password")
-    suspend fun changePassword(@Body request: JsonObject): Response<JsonElement>
-
-    /** Documents 204 on success; the request DTO is not defined in the contract (rest.md §1). */
-    @POST("api/Authentication/confirm-password-change")
-    suspend fun confirmPasswordChange(): Response<Unit>
+    suspend fun changePassword(@Body request: ChangePasswordRequest): Response<Unit>
 
     /** 404 when the list is empty. */
     @GET("api/Authentication/OrganizationDetails")

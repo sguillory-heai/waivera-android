@@ -26,7 +26,11 @@ interface AuthGateway {
 
     suspend fun sendPasswordReset(email: String)
 
-    suspend fun reauthenticateAndUpdatePassword(currentPassword: String, newPassword: String)
+    /**
+     * Proves [password] for the signed-in user and returns a force-refreshed ID token whose
+     * `auth_time` is now: sprout_api's `change-password` only accepts a recent sign-in.
+     */
+    suspend fun reauthenticateForIdToken(password: String): String
 
     /**
      * Blocking; called from OkHttp and SignalR threads. Null when signed out; throws

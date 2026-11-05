@@ -93,13 +93,11 @@ class FirebaseAuthGateway @Inject constructor(@ApplicationContext private val co
         mapped { requireAuth().sendPasswordResetEmail(email.trim()).await() }
     }
 
-    override suspend fun reauthenticateAndUpdatePassword(currentPassword: String, newPassword: String) {
-        mapped {
-            val user = requireAuth().currentUser ?: throw WaiveraError.NotSignedIn()
-            val email = user.email ?: throw WaiveraError.NotSignedIn()
-            user.reauthenticate(EmailAuthProvider.getCredential(email, currentPassword)).await()
-            user.updatePassword(newPassword).await()
-        }
+    override suspend fun reauthenticateForIdToken(password: String): String = mapped {
+        val user = requireAuth().currentUser ?: throw WaiveraError.NotSignedIn()
+        val email = user.email ?: throw WaiveraError.NotSignedIn()
+        user.reauthenticate(EmailAuthProvider.getCredential(email, password)).await()
+        user.getIdToken(true).await().token ?: throw WaiveraError.NotSignedIn()
     }
 
     override fun idTokenBlocking(forceRefresh: Boolean): String? {

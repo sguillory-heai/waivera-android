@@ -20,6 +20,16 @@ data class UserLoginResponseDto(
     @Serializable(with = LenientBooleanSerializer::class) val requiresOnboarding: Boolean = false,
 )
 
+/**
+ * `dto/Request/ChangePasswordRequest.cs`. [idToken] must come from a sign-in made moments ago:
+ * the server checks its `auth_time`, then changes the password in Firebase and stamps
+ * `LastChangedPassword` itself.
+ */
+@Serializable
+data class ChangePasswordRequest(val idToken: String, val newPassword: String) {
+    override fun toString(): String = "ChangePasswordRequest(redacted)"
+}
+
 /** Region entry on [UserWithRoleDto]. */
 @Serializable
 data class UserRegionDto(val id: Int = 0, val regionName: String? = null)

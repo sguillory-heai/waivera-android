@@ -25,20 +25,37 @@ class AuthValidationTest {
     }
 
     @Test
-    fun `new password rules`() {
-        val ok = AuthValidation.passwordChangeErrors("old one", "a longer one", "a longer one")
+    fun `new password rules mirror the server's PasswordPolicy`() {
+        val ok = AuthValidation.passwordChangeErrors("old one", "Morning_walk42", "Morning_walk42")
         assertTrue(ok.isValid)
-        val min = "x".repeat(AuthValidation.MIN_NEW_PASSWORD_LENGTH)
-        assertTrue(AuthValidation.passwordChangeErrors("old", min, min).isValid, "exactly the minimum is allowed")
-        val short = "x".repeat(AuthValidation.MIN_NEW_PASSWORD_LENGTH - 1)
+        assertEquals(12, AuthValidation.MIN_NEW_PASSWORD_LENGTH, "PasswordPolicy.MinimumLength")
+        assertTrue(AuthValidation.unmetPasswordRules("Abcdefghi1!x").isEmpty(), "exactly the minimum is allowed")
+        assertEquals(setOf(PasswordRule.Length), AuthValidation.unmetPasswordRules("Abcdefgh1!x"))
+        assertEquals(setOf(PasswordRule.Uppercase), AuthValidation.unmetPasswordRules("abcdefghi1!x"))
+        assertEquals(setOf(PasswordRule.Lowercase), AuthValidation.unmetPasswordRules("ABCDEFGHI1!X"))
+        assertEquals(setOf(PasswordRule.Number), AuthValidation.unmetPasswordRules("Abcdefghij!x"))
+        assertEquals(setOf(PasswordRule.Symbol), AuthValidation.unmetPasswordRules("Abcdefghij1x"))
+        assertEquals(PasswordRule.entries.toSet(), AuthValidation.unmetPasswordRules(""))
         assertEquals(
-            R.string.feature_auth_error_new_password_short,
-            AuthValidation.passwordChangeErrors("old", short, short).new,
+            R.string.feature_auth_error_new_password_rules,
+            AuthValidation.passwordChangeErrors("old", "short", "short").new,
         )
         assertEquals(
             R.string.feature_auth_error_current_password_required,
-            AuthValidation.passwordChangeErrors("", "a longer one", "a longer one").current,
+            AuthValidation.passwordChangeErrors("", "Morning_walk42", "Morning_walk42").current,
         )
+    }
+
+    @Test
+    fun `only the server's symbols and ASCII letters and digits count`() {
+        "^$*.[]{}()?\"!@#%&/\\,><':;|_~".forEach { symbol ->
+            assertTrue(PasswordRule.Symbol !in AuthValidation.unmetPasswordRules("Abcdefghij1$symbol"), "$symbol")
+        }
+        listOf('-', '+', '=', ' ', '`', '€').forEach { other ->
+            assertTrue(PasswordRule.Symbol in AuthValidation.unmetPasswordRules("Abcdefghij1$other"), "$other")
+        }
+        assertTrue(PasswordRule.Uppercase in AuthValidation.unmetPasswordRules("Ébcdefghij1!"), "accented capitals")
+        assertTrue(PasswordRule.Number in AuthValidation.unmetPasswordRules("Abcdefghij٣!"), "non-ASCII digits")
     }
 
     @Test

@@ -258,7 +258,6 @@ private fun PasswordChangeFields(state: PasswordChangeUiState, actions: Password
     val focusManager = LocalFocusManager.current
     val keyboard = LocalSoftwareKeyboardController.current
     val moveNext = { focusManager.moveFocus(FocusDirection.Next) }
-    val minLength = AuthValidation.MIN_NEW_PASSWORD_LENGTH
     PasswordField(
         value = state.current,
         onValueChange = actions.onCurrentChange,
@@ -277,16 +276,10 @@ private fun PasswordChangeFields(state: PasswordChangeUiState, actions: Password
         contentType = ContentType.NewPassword,
         imeAction = ImeAction.Next,
         onImeAction = { moveNext() },
-        errorText = state.newError?.let { stringResource(it, minLength) },
+        errorText = state.newError?.let { stringResource(it) },
         enabled = state.fieldsEnabled,
     )
-    if (state.newError == null) {
-        Text(
-            text = stringResource(R.string.feature_auth_new_password_hint, minLength),
-            style = MaterialTheme.typography.bodySmall,
-            color = WaiveraTheme.colors.textSecondary,
-        )
-    }
+    PasswordRulesChecklist(password = state.new, showUnmet = state.newError != null)
     PasswordField(
         value = state.confirm,
         onValueChange = actions.onConfirmChange,
@@ -320,7 +313,7 @@ private fun PasswordChangeValidationPreview() {
                 current = "old-password",
                 new = "short",
                 confirm = "shorter",
-                newError = R.string.feature_auth_error_new_password_short,
+                newError = R.string.feature_auth_error_new_password_rules,
                 confirmError = R.string.feature_auth_error_confirm_mismatch,
             ),
             required = true,

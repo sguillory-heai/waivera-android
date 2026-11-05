@@ -121,10 +121,14 @@ class FakeAuthGateway(override val missingKeys: List<String> = emptyList(), init
 
     override suspend fun sendPasswordReset(email: String) = Unit
 
-    override suspend fun reauthenticateAndUpdatePassword(currentPassword: String, newPassword: String) {
+    /** Each password checked by [reauthenticateForIdToken], in order. Tests only. */
+    val reauthentications = mutableListOf<String>()
+
+    override suspend fun reauthenticateForIdToken(password: String): String {
         val email = _user.value?.email ?: throw WaiveraError.NotSignedIn()
-        if (accounts[email] != currentPassword) throw WaiveraError.InvalidCredentials()
-        accounts[email] = newPassword
+        reauthentications += password
+        if (accounts[email] != password) throw WaiveraError.InvalidCredentials()
+        return "reauthenticated-token-${reauthentications.size}"
     }
 
     override fun idTokenBlocking(forceRefresh: Boolean): String? {

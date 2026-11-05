@@ -15,12 +15,10 @@ import com.waivera.waivera.core.network.dto.UserLoginResponseDto
 import com.waivera.waivera.core.network.dto.UserWithRoleDto
 import com.waivera.waivera.core.network.error.WaiveraError
 import com.waivera.waivera.core.network.error.apiCall
-import com.waivera.waivera.core.network.error.apiCallUnit
 import com.waivera.waivera.core.network.error.catchingWaivera
 import com.waivera.waivera.core.network.error.requireData
 import com.waivera.waivera.core.network.log.WaiveraLog
 import com.waivera.waivera.core.realtime.RealtimeClient
-import java.security.MessageDigest
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.CoroutineScope
@@ -66,8 +64,14 @@ class LiveSessionRepository @Inject constructor(
 
     private val endLock = Mutex()
 
+    private val passwordChange = ServerPasswordChange(gateway, authApi)
+
+    /**
+     * True while a password change runs. The server's change ends every Firebase session until we
+     * sign back in, so a background 401 meanwhile must not end this one.
+     */
     @Volatile
-    private var pendingConfirm: PendingConfirm? = null
+    private var changingPassword = false
 
     init {
         val missing = gateway.missingKeys + networkConfig.missingKeys
@@ -76,7 +80,7 @@ class LiveSessionRepository @Inject constructor(
         } else {
             scope.launch {
                 gateway.user.map { it?.uid }.distinctUntilChanged().collectLatest { uid ->
-                    if (pendingConfirm?.uid != uid) pendingConfirm = null
+                    passwordChange.forgetUnless(uid)
                     if (uid == null) {
                         endSession(reason = null)
                     } else {
@@ -100,7 +104,7 @@ class LiveSessionRepository @Inject constructor(
      * rejection ends the session. Anything else (offline, 5xx, one endpoint's 401) leaves it.
      */
     private suspend fun recheckAfterRejection() {
-        if (_state.value !is SessionState.SignedIn) return
+        if (_state.value !is SessionState.SignedIn || changingPassword) return
         val error = catchingWaivera { fetchUser() }.exceptionOrNull()?.let(WaiveraError::from) ?: return
         if (error.isAuthRejection() && _state.value is SessionState.SignedIn) {
             WaiveraLog.w(TAG, "Session rejected (${error.httpStatus}); signing out")
@@ -234,30 +238,43 @@ class LiveSessionRepository @Inject constructor(
     }
 
     /**
-     * Firebase first, then `confirm-password-change`. If Firebase took the new password but the
-     * confirm call failed (offline), a retry with the same new password skips Firebase, which
-     * would now reject the old one as the current password, and only confirms. The session is
-     * reloaded without [SessionState.Initializing], so the screen stays up while it runs.
+     * The web's server-owned flow ([ServerPasswordChange]), then a sign-in with the new password
+     * because the server's change ended every session. The session is reloaded without
+     * [SessionState.Initializing], so the screen stays up.
      */
     override suspend fun changePassword(currentPassword: String, newPassword: String): Result<Unit> = catchingWaivera {
-        val uid = gateway.user.value?.uid ?: throw WaiveraError.NotSignedIn()
-        val digest = digest(newPassword)
-        val pending = pendingConfirm
-        if (pending == null || pending.uid != uid || !MessageDigest.isEqual(pending.digest, digest)) {
-            gateway.reauthenticateAndUpdatePassword(currentPassword, newPassword)
-            pendingConfirm = PendingConfirm(uid, digest)
+        val signedIn = gateway.user.value ?: throw WaiveraError.NotSignedIn()
+        val email = signedIn.email ?: throw WaiveraError.NotSignedIn()
+        changingPassword = true
+        try {
+            passwordChange.change(signedIn.uid, currentPassword, newPassword)
+            signBackIn(email, newPassword)
+        } catch (expired: WaiveraError.SessionExpired) {
+            // A 401 that survived the token refresh: the sign-in is not recent enough.
+            throw WaiveraError.RecentLoginRequired(cause = expired)
+        } finally {
+            changingPassword = false
         }
-        apiCallUnit { authApi.confirmPasswordChange() }
-        pendingConfirm = null
-        bootstrap(uid, announce = false)
+        passwordChange.forget()
+        bootstrap(signedIn.uid, announce = false)
         (state.value as? SessionState.BootstrapFailed)?.let { throw it.error }
     }
 
-    private fun digest(password: String): ByteArray =
-        MessageDigest.getInstance("SHA-256").digest(password.toByteArray(Charsets.UTF_8))
-
-    /** A Firebase password change still waiting for the backend confirm; memory only, never the password. */
-    private class PendingConfirm(val uid: String, val digest: ByteArray)
+    /**
+     * The new password is saved whatever happens here. If Firebase will not take it right now
+     * (offline), the old session is already dead server-side, so end it and say why on sign-in.
+     */
+    private suspend fun signBackIn(email: String, newPassword: String) {
+        try {
+            gateway.signIn(email, newPassword)
+        } catch (failed: WaiveraError) {
+            WaiveraLog.w(TAG, "Sign-in after a password change failed (${failed::class.simpleName}); signing out")
+            passwordChange.forget()
+            endSession(reason = WaiveraError.PasswordChangedSignInAgain(), force = true)
+            gateway.signOut()
+            throw WaiveraError.PasswordChangedSignInAgain()
+        }
+    }
 
     private fun WaiveraError.isAuthRejection(): Boolean = this is WaiveraError.AccountNotProvisioned ||
         this is WaiveraError.SessionExpired ||

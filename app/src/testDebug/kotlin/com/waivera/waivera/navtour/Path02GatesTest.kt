@@ -33,8 +33,8 @@ class Path02GatesTest : NavTourHarness() {
         shot("path_02_password_02_validation")
 
         typeInto("Current password", "demo")
-        typeInto("New password", "a-new-password-26")
-        typeInto("Confirm new password", "a-new-password-26")
+        typeInto("New password", "A_new_password26")
+        typeInto("Confirm new password", "A_new_password26")
         click("Update password")
 
         expectGate(AppGate.Main)

@@ -22,7 +22,7 @@ class PasswordChangeViewModelTest {
 
     private fun PasswordChangeViewModel.fill(
         current: String = "old password",
-        new: String = "a much longer phrase",
+        new: String = "Morning_walk42",
         confirm: String = new,
     ) {
         onCurrentChange(current)
@@ -42,7 +42,7 @@ class PasswordChangeViewModelTest {
     }
 
     @Test
-    fun `validation blocks short, unchanged and mismatched passwords`() = runTest {
+    fun `validation blocks weak, unchanged and mismatched passwords`() = runTest {
         val vm = PasswordChangeViewModel(session)
         vm.effects.test {
             vm.fill(current = "same-password", new = "short", confirm = "other")
@@ -50,9 +50,9 @@ class PasswordChangeViewModelTest {
             // Haptics policy: a validation error shows on its field and never vibrates.
             expectNoEvents()
         }
-        assertEquals(R.string.feature_auth_error_new_password_short, vm.state.value.newError)
+        assertEquals(R.string.feature_auth_error_new_password_rules, vm.state.value.newError)
         assertEquals(R.string.feature_auth_error_confirm_mismatch, vm.state.value.confirmError)
-        vm.fill(current = "same-password", new = "same-password")
+        vm.fill(current = "Same_password1", new = "Same_password1")
         vm.submit()
         assertEquals(R.string.feature_auth_error_new_password_same, vm.state.value.newError)
         assertTrue(session.passwordChanges.isEmpty())
@@ -81,7 +81,7 @@ class PasswordChangeViewModelTest {
             vm.submit()
             assertEquals(PasswordChangeEffect.Changed, awaitItem())
         }
-        assertEquals(listOf("old password" to "a much longer phrase"), session.passwordChanges)
+        assertEquals(listOf("old password" to "Morning_walk42"), session.passwordChanges)
         val state = vm.state.value
         assertEquals("", state.current)
         assertEquals("", state.new)
@@ -97,13 +97,35 @@ class PasswordChangeViewModelTest {
         val state = vm.state.value
         assertEquals(R.string.feature_auth_error_current_password_wrong, state.currentError)
         assertEquals("", state.current)
-        assertEquals("a much longer phrase", state.new)
+        assertEquals("Morning_walk42", state.new)
         assertNull(state.errorMessage)
         assertEquals(PasswordChangePhase.Editing, state.phase)
     }
 
     @Test
-    fun `weak password from Firebase shows under the new password`() {
+    fun `a stale sign-in asks for the current password again in a banner`() {
+        session.nextChange = Result.failure(WaiveraError.RecentLoginRequired())
+        val vm = PasswordChangeViewModel(session)
+        vm.fill()
+        vm.submit()
+        val state = vm.state.value
+        assertEquals(NetworkR.string.core_network_error_recent_login_required, state.errorMessage)
+        assertNull(state.currentError)
+        assertEquals("", state.current)
+        assertEquals(PasswordChangePhase.Editing, state.phase)
+    }
+
+    @Test
+    fun `saved but signed out leaves nothing typed behind`() {
+        session.nextChange = Result.failure(WaiveraError.PasswordChangedSignInAgain())
+        val vm = PasswordChangeViewModel(session)
+        vm.fill()
+        vm.submit()
+        assertEquals(PasswordChangeUiState(), vm.state.value)
+    }
+
+    @Test
+    fun `weak password from the server shows under the new password`() {
         session.nextChange = Result.failure(WaiveraError.WeakPassword())
         val vm = PasswordChangeViewModel(session)
         vm.fill()

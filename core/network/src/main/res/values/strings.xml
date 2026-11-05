@@ -23,6 +23,7 @@
     <string name="core_network_error_account_disabled">This account has been disabled. Contact your administrator.</string>
     <string name="core_network_error_too_many_attempts">Too many attempts. Wait a few minutes and try again.</string>
     <string name="core_network_error_weak_password">Choose a stronger password.</string>
+    <string name="core_network_error_password_changed_sign_in_again">Your password was changed. Sign in with your new password.</string>
     <string name="core_network_error_recent_login_required">Enter your current password again to continue.</string>
     <string name="core_network_error_unexpected">Something went wrong. Try again.</string>
 </resources>

@@ -42,7 +42,7 @@
     <string name="feature_auth_error_current_password_required">Enter your current password.</string>
     <string name="feature_auth_error_current_password_wrong">That’s not your current password. Try again.</string>
     <!-- The minimum length is a fixed constant above one, so the plural form never varies. -->
-    <string name="feature_auth_error_new_password_short" tools:ignore="PluralsCandidate">Use at least %1$d characters.</string>
+    <string name="feature_auth_error_new_password_rules">Your new password needs everything in the list below.</string>
     <string name="feature_auth_error_new_password_same">Pick a password that’s different from your current one.</string>
     <string name="feature_auth_error_confirm_mismatch">These don’t match yet. Type your new password again.</string>
 
@@ -53,7 +53,14 @@
     <string name="feature_auth_password_change_voluntary_message">Enter your current password, then pick a new one. You’ll stay signed in here.</string>
     <string name="feature_auth_current_password_label">Current password</string>
     <string name="feature_auth_new_password_label">New password</string>
-    <string name="feature_auth_new_password_hint" tools:ignore="PluralsCandidate">At least %1$d characters. A short phrase is easy to remember.</string>
+    <string name="feature_auth_password_rules_title">Your new password needs</string>
+    <string name="feature_auth_password_rule_length" tools:ignore="PluralsCandidate">At least %1$d characters</string>
+    <string name="feature_auth_password_rule_uppercase">An uppercase letter</string>
+    <string name="feature_auth_password_rule_lowercase">A lowercase letter</string>
+    <string name="feature_auth_password_rule_number">A number</string>
+    <string name="feature_auth_password_rule_symbol">A symbol, such as ! ? @ # or _</string>
+    <string name="feature_auth_password_rule_met">%1$s: done</string>
+    <string name="feature_auth_password_rule_unmet">%1$s: not yet</string>
     <string name="feature_auth_confirm_password_label">Confirm new password</string>
     <string name="feature_auth_password_change_save">Update password</string>
     <string name="feature_auth_password_change_saving">Saving your new password…</string>
@@ -106,6 +113,6 @@
     <!-- Placeholders -->
     <string name="feature_auth_password_placeholder">Your password</string>
     <string name="feature_auth_current_password_placeholder">Your current password</string>
-    <string name="feature_auth_new_password_placeholder">Try a short phrase</string>
+    <string name="feature_auth_new_password_placeholder">Your new password</string>
     <string name="feature_auth_confirm_password_placeholder">Type it once more</string>
 </resources>

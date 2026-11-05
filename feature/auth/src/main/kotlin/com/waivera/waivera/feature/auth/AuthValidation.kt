@@ -2,16 +2,35 @@ package com.waivera.waivera.feature.auth
 
 import androidx.annotation.StringRes
 
+/** One rule of sprout_api's `PasswordPolicy`, with the checklist line that names it. */
+internal enum class PasswordRule(@StringRes val label: Int) {
+    Length(R.string.feature_auth_password_rule_length),
+    Uppercase(R.string.feature_auth_password_rule_uppercase),
+    Lowercase(R.string.feature_auth_password_rule_lowercase),
+    Number(R.string.feature_auth_password_rule_number),
+    Symbol(R.string.feature_auth_password_rule_symbol),
+}
+
 /**
- * Client-side checks that run before anything is sent. They only catch obvious mistakes; Firebase
- * and the server stay the authority (a weak password is still rejected by Firebase's policy).
+ * Client-side checks that run before anything is sent. The new-password rules mirror
+ * sprout_api's `Utilities/PasswordPolicy.cs` (and the web's `passwordPolicy.ts`) exactly, so a
+ * password the form accepts is never refused by `change-password`; the server stays the authority.
  */
 internal object AuthValidation {
-    /**
-     * New passwords need at least this many characters. Firebase's own floor is 6; 8 matches
-     * common organisation policy and is checked again by Firebase's password policy.
-     */
-    const val MIN_NEW_PASSWORD_LENGTH = 8
+    /** `PasswordPolicy.MinimumLength`. */
+    const val MIN_NEW_PASSWORD_LENGTH = 12
+
+    /** `PasswordPolicy.SpecialCharacters`; nothing else counts as a symbol (not `-`, `+` or a space). */
+    const val PASSWORD_SYMBOLS = "^$*.[]{}()?\"!@#%&/\\,><':;|_~"
+
+    /** The rules [password] does not meet yet. Letters and digits are ASCII only, like the server's. */
+    fun unmetPasswordRules(password: String): Set<PasswordRule> = buildSet {
+        if (password.length < MIN_NEW_PASSWORD_LENGTH) add(PasswordRule.Length)
+        if (password.none { it in 'A'..'Z' }) add(PasswordRule.Uppercase)
+        if (password.none { it in 'a'..'z' }) add(PasswordRule.Lowercase)
+        if (password.none { it in '0'..'9' }) add(PasswordRule.Number)
+        if (password.none { it in PASSWORD_SYMBOLS }) add(PasswordRule.Symbol)
+    }
 
     // One @, something on both sides, and a dot in the domain. Deliberately loose: the server
     // decides what a real address is, this only catches typos such as a missing @.
@@ -47,7 +66,7 @@ internal object AuthValidation {
         PasswordChangeErrors(
             current = if (current.isEmpty()) R.string.feature_auth_error_current_password_required else null,
             new = when {
-                new.length < MIN_NEW_PASSWORD_LENGTH -> R.string.feature_auth_error_new_password_short
+                unmetPasswordRules(new).isNotEmpty() -> R.string.feature_auth_error_new_password_rules
                 current.isNotEmpty() && new == current -> R.string.feature_auth_error_new_password_same
                 else -> null
             },

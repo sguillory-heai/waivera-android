@@ -11,10 +11,12 @@ import com.waivera.waivera.core.data.repository.PushRegistrationRepository
 import com.waivera.waivera.core.data.store.SecureStore
 import com.waivera.waivera.core.network.NetworkConfig
 import com.waivera.waivera.core.network.SessionRejections
+import com.waivera.waivera.core.network.WaiveraJson
 import com.waivera.waivera.core.network.api.AuthenticationApi
 import com.waivera.waivera.core.network.error.TokenUnavailableException
 import com.waivera.waivera.core.network.error.WaiveraError
 import com.waivera.waivera.core.testing.FakeAuthGateway
+import com.waivera.waivera.core.testing.FixtureServer
 import com.waivera.waivera.core.testing.Fixtures
 import com.waivera.waivera.core.testing.eventually
 import kotlin.test.AfterTest
@@ -31,6 +33,8 @@ import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
 
 class SessionRepositoryTest {
     private val testScope = TestScope()
@@ -275,44 +279,156 @@ class SessionRepositoryTest {
         assertNull(graph.secureStore.values[SecureStore.CACHED_SESSION])
     }
 
+    /** sprout_api's `change-password`: answers [code] and, on 200, takes the new password like Firebase would. */
+    private fun serveChangePassword(gateway: FakeAuthGateway, code: Int = 200) {
+        graph.server.route("POST /api/Authentication/change-password") { request ->
+            if (code == 200) {
+                val body = WaiveraJson.parseToJsonElement(request.body?.utf8().orEmpty()).jsonObject
+                gateway.accounts["alex.rivera@example.com"] = body.getValue("newPassword").jsonPrimitive.content
+            }
+            FixtureServer.json(if (code == 200) """{"data":null,"statusCode":200}""" else "", code)
+        }
+    }
+
     @Test
     fun voluntaryPasswordChangeStaysSignedInWithoutALoadingState() = testScope.runTest {
         serveLogin()
-        graph.server.status("POST /api/Authentication/confirm-password-change", 204)
         val gateway = FakeAuthGateway()
+        serveChangePassword(gateway)
         val repo = repository(gateway)
         repo.signIn("alex.rivera@example.com", "correct-horse").getOrThrow()
         val states = mutableListOf<SessionState>()
         backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { repo.state.toList(states) }
 
-        repo.changePassword("correct-horse", "battery-staple").getOrThrow()
-        assertEquals("battery-staple", gateway.accounts["alex.rivera@example.com"])
+        repo.changePassword("correct-horse", "Battery_staple9!").getOrThrow()
+        assertEquals("Battery_staple9!", gateway.accounts["alex.rivera@example.com"])
         assertTrue(states.all { it is SessionState.SignedIn }, "no Initializing flash: $states")
         assertEquals(2, graph.server.requestsTo("/api/Authentication/login").size, "re-bootstrapped quietly")
     }
 
     @Test
-    fun passwordChangeResumesAtTheBackendConfirmAfterAFailure() = testScope.runTest {
+    fun passwordChangeSendsAFreshTokenAndTheNewPasswordToTheServer() = testScope.runTest {
+        serveLogin("rest-auth-login-requires-password-change.json")
+        val gateway = FakeAuthGateway()
+        serveChangePassword(gateway)
+        val repo = repository(gateway)
+        repo.signIn("alex.rivera@example.com", "correct-horse").getOrThrow()
+        serveLogin()
+
+        repo.changePassword("correct-horse", "Battery_staple9!").getOrThrow()
+
+        val sent = graph.server.requestsTo("/api/Authentication/change-password").single()
+        val body = WaiveraJson.parseToJsonElement(sent.body?.utf8().orEmpty()).jsonObject
+        assertEquals("reauthenticated-token-1", body.getValue("idToken").jsonPrimitive.content)
+        assertEquals("Battery_staple9!", body.getValue("newPassword").jsonPrimitive.content)
+        assertEquals(listOf("correct-horse"), gateway.reauthentications, "the current password is checked first")
+        assertTrue(graph.server.requestsTo("/api/Authentication/confirm-password-change").isEmpty())
+        assertIs<SessionState.SignedIn>(repo.state.value, "the gate lifts once the server stamped the change")
+    }
+
+    @Test
+    fun aWrongCurrentPasswordNeverReachesTheServer() = testScope.runTest {
+        serveLogin("rest-auth-login-requires-password-change.json")
+        val gateway = FakeAuthGateway()
+        serveChangePassword(gateway)
+        val repo = repository(gateway)
+        repo.signIn("alex.rivera@example.com", "correct-horse").getOrThrow()
+
+        assertIs<WaiveraError.InvalidCredentials>(repo.changePassword("wrong", "Battery_staple9!").exceptionOrNull())
+        assertTrue(graph.server.requestsTo("/api/Authentication/change-password").isEmpty())
+        assertIs<SessionState.PasswordChangeRequired>(repo.state.value)
+    }
+
+    @Test
+    fun aRefusedRequestAndAStaleSignInGetTheirOwnErrors() = testScope.runTest {
         serveLogin("rest-auth-login-requires-password-change.json")
         val gateway = FakeAuthGateway()
         val repo = repository(gateway)
         repo.signIn("alex.rivera@example.com", "correct-horse").getOrThrow()
-        graph.server.status("POST /api/Authentication/confirm-password-change", 503)
-        assertTrue(repo.changePassword("correct-horse", "battery-staple").isFailure)
-        assertEquals("battery-staple", gateway.accounts["alex.rivera@example.com"], "Firebase already changed")
 
-        // Retrying with the same new password skips Firebase; the old password would now be rejected there.
-        serveLogin()
-        graph.server.status("POST /api/Authentication/confirm-password-change", 204)
-        repo.changePassword("correct-horse", "battery-staple").getOrThrow()
-        assertIs<SessionState.SignedIn>(repo.state.value)
-        assertEquals(2, graph.server.requestsTo("/api/Authentication/confirm-password-change").size)
-
-        // A different new password is a new change and goes through Firebase again.
-        graph.server.status("POST /api/Authentication/confirm-password-change", 503)
-        assertIs<WaiveraError.InvalidCredentials>(
-            repo.changePassword("correct-horse", "another-one").exceptionOrNull(),
+        serveChangePassword(gateway, code = 400)
+        assertIs<WaiveraError.Validation>(repo.changePassword("correct-horse", "Battery_staple9!").exceptionOrNull())
+        serveChangePassword(gateway, code = 401)
+        assertIs<WaiveraError.RecentLoginRequired>(
+            repo.changePassword("correct-horse", "Battery_staple9!").exceptionOrNull(),
         )
+        assertEquals("correct-horse", gateway.accounts["alex.rivera@example.com"])
+        assertIs<SessionState.PasswordChangeRequired>(repo.state.value, "a 401 here is not a revoked session")
+    }
+
+    @Test
+    fun aServerErrorAfterFirebaseTookThePasswordIsFinishedInTheSameTap() = testScope.runTest {
+        serveLogin()
+        val gateway = FakeAuthGateway()
+        val repo = repository(gateway)
+        repo.signIn("alex.rivera@example.com", "correct-horse").getOrThrow()
+        // The server set the Firebase password, then failed before stamping the date.
+        val codes = ArrayDeque(listOf(500, 200))
+        graph.server.route("POST /api/Authentication/change-password") {
+            gateway.accounts["alex.rivera@example.com"] = "Battery_staple9!"
+            FixtureServer.json("", codes.removeFirst())
+        }
+
+        repo.changePassword("correct-horse", "Battery_staple9!").getOrThrow()
+        assertEquals(2, graph.server.requestsTo("/api/Authentication/change-password").size, "sent again to stamp it")
+        assertEquals(listOf("correct-horse", "Battery_staple9!"), gateway.reauthentications)
+        assertIs<SessionState.SignedIn>(repo.state.value)
+    }
+
+    @Test
+    fun aRetryAfterALostAnswerFinishesWithTheNewPassword() = testScope.runTest {
+        serveLogin("rest-auth-login-requires-password-change.json")
+        val gateway = FakeAuthGateway()
+        val repo = repository(gateway)
+        repo.signIn("alex.rivera@example.com", "correct-horse").getOrThrow()
+        // The server changed the password, but neither answer arrived.
+        val codes = ArrayDeque(listOf(503, 503, 200))
+        graph.server.route("POST /api/Authentication/change-password") {
+            gateway.accounts["alex.rivera@example.com"] = "Battery_staple9!"
+            FixtureServer.json("", codes.removeFirst())
+        }
+        assertIs<WaiveraError.Server>(repo.changePassword("correct-horse", "Battery_staple9!").exceptionOrNull())
+
+        // The old password is refused now; the same new password proves the change and sends it again.
+        serveLogin()
+        repo.changePassword("correct-horse", "Battery_staple9!").getOrThrow()
+        assertIs<SessionState.SignedIn>(repo.state.value)
+        assertEquals(3, graph.server.requestsTo("/api/Authentication/change-password").size)
+
+        // A different new password is a new change, and the wrong current password says so.
+        assertIs<WaiveraError.InvalidCredentials>(
+            repo.changePassword("correct-horse", "Another_one99!").exceptionOrNull(),
+        )
+    }
+
+    @Test
+    fun aRefusedCurrentPasswordNeverTriesAnUnrelatedNewOne() = testScope.runTest {
+        serveLogin()
+        val gateway = FakeAuthGateway()
+        serveChangePassword(gateway, code = 400)
+        val repo = repository(gateway)
+        repo.signIn("alex.rivera@example.com", "correct-horse").getOrThrow()
+        assertTrue(repo.changePassword("correct-horse", "Battery_staple9!").isFailure, "a refusal forgets the try")
+
+        assertIs<WaiveraError.InvalidCredentials>(repo.changePassword("wrong", "Battery_staple9!").exceptionOrNull())
+        assertEquals(listOf("correct-horse", "wrong"), gateway.reauthentications)
+    }
+
+    @Test
+    fun signingBackInFailingEndsTheSessionWithAReason() = testScope.runTest {
+        serveLogin()
+        val gateway = FakeAuthGateway()
+        serveChangePassword(gateway)
+        val repo = repository(gateway)
+        repo.signIn("alex.rivera@example.com", "correct-horse").getOrThrow()
+        gateway.signInError = WaiveraError.Network()
+
+        assertIs<WaiveraError.PasswordChangedSignInAgain>(
+            repo.changePassword("correct-horse", "Battery_staple9!").exceptionOrNull(),
+        )
+        assertEquals("Battery_staple9!", gateway.accounts["alex.rivera@example.com"])
+        assertIs<WaiveraError.PasswordChangedSignInAgain>(assertIs<SessionState.SignedOut>(repo.state.value).reason)
+        assertEquals(1, gateway.signOuts)
     }
 
     @Test
