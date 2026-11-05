@@ -43,6 +43,7 @@ import com.waivera.waivera.core.data.repository.HandledTodayRepository
 import com.waivera.waivera.core.data.repository.LinkLookupRepository
 import com.waivera.waivera.core.data.repository.MessageRepository
 import com.waivera.waivera.core.data.repository.NoticeRepository
+import com.waivera.waivera.core.data.repository.ParticipantRepository
 import com.waivera.waivera.core.data.repository.PeopleRepository
 import com.waivera.waivera.core.data.repository.ProfileRepository
 import com.waivera.waivera.core.data.repository.PushRegistrationRepository
@@ -67,6 +68,7 @@ import com.waivera.waivera.core.demo.DemoConversationRepository
 import com.waivera.waivera.core.demo.DemoLinkLookupRepository
 import com.waivera.waivera.core.demo.DemoMessageRepository
 import com.waivera.waivera.core.demo.DemoNoticeRepository
+import com.waivera.waivera.core.demo.DemoParticipantRepository
 import com.waivera.waivera.core.demo.DemoPeopleRepository
 import com.waivera.waivera.core.demo.DemoProfileRepository
 import com.waivera.waivera.core.demo.DemoPushRegistrationRepository
@@ -157,6 +159,9 @@ abstract class TourRepositoriesModule {
 
     @Binds
     abstract fun taskReview(impl: DemoTaskReviewRepository): TaskReviewRepository
+
+    @Binds
+    abstract fun participants(impl: DemoParticipantRepository): ParticipantRepository
 
     @Binds
     abstract fun links(impl: DemoLinkLookupRepository): LinkLookupRepository

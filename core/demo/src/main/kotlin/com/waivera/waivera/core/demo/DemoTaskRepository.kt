@@ -262,5 +262,6 @@ object DemoTasks {
             assignedBy = "Priya Raman",
             about = about,
             webPath = "/task/$key",
+            participantId = about?.let(DemoParticipants::idOf),
         )
 }

@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="feature_tasks_participant_title">Participant</string>
+    <string name="feature_tasks_participant_open_web">Open on the web</string>
+    <string name="feature_tasks_participant_open">Open %1$s\'s profile</string>
+    <string name="feature_tasks_participant_deactivated">Deactivated</string>
+    <string name="feature_tasks_participant_change_pending">Change pending</string>
+    <string name="feature_tasks_participant_contact">Contact</string>
+    <string name="feature_tasks_participant_mobile">Mobile</string>
+    <string name="feature_tasks_participant_email">Email</string>
+    <string name="feature_tasks_participant_call">Call %1$s</string>
+    <string name="feature_tasks_participant_write">Email %1$s</string>
+    <string name="feature_tasks_participant_plan_section">Plan dates</string>
+    <string name="feature_tasks_participant_plan">Plan of care (CPOC)</string>
+    <string name="feature_tasks_participant_plan_range">%1$s – %2$s</string>
+    <plurals name="feature_tasks_participant_plan_ends_in">
+        <item quantity="one">Ends in %1$d day</item>
+        <item quantity="other">Ends in %1$d days</item>
+    </plurals>
+    <string name="feature_tasks_participant_plan_ends_today">Ends today</string>
+    <string name="feature_tasks_participant_plan_ends_tomorrow">Ends tomorrow</string>
+    <string name="feature_tasks_participant_plan_ended_yesterday">Ended yesterday</string>
+    <plurals name="feature_tasks_participant_plan_ended">
+        <item quantity="one">Ended %1$d day ago</item>
+        <item quantity="other">Ended %1$d days ago</item>
+    </plurals>
+    <string name="feature_tasks_participant_certification">Certification</string>
+    <string name="feature_tasks_participant_linkage">Linkage</string>
+    <string name="feature_tasks_participant_details">Details</string>
+    <string name="feature_tasks_participant_birth">Date of birth</string>
+    <string name="feature_tasks_participant_waiver">Waiver</string>
+    <string name="feature_tasks_participant_region">Region</string>
+    <string name="feature_tasks_participant_intake">Intake</string>
+    <string name="feature_tasks_participant_compliance">Compliance</string>
+    <string name="feature_tasks_participant_compliant">Up to date</string>
+    <string name="feature_tasks_participant_not_compliant">Needs attention</string>
+    <string name="feature_tasks_participant_not_compliant_note">Missing plan dates or a task is overdue.</string>
+    <string name="feature_tasks_participant_not_set">Not set</string>
+    <string name="feature_tasks_participant_tasks">Open tasks</string>
+    <plurals name="feature_tasks_participant_tasks_count">
+        <item quantity="one">%1$d open task</item>
+        <item quantity="other">%1$d open tasks</item>
+    </plurals>
+    <string name="feature_tasks_participant_no_tasks_title">No open tasks</string>
+    <string name="feature_tasks_participant_no_tasks">Nothing is waiting on this participant.</string>
+    <string name="feature_tasks_participant_tasks_error">Open tasks didn\'t load.</string>
+    <string name="feature_tasks_participant_error_title">Profile didn\'t load</string>
+    <string name="feature_tasks_participant_error">Check your connection and try again.</string>
+    <string name="feature_tasks_participant_forbidden_title">You can\'t see this participant</string>
+    <string name="feature_tasks_participant_forbidden">Your role doesn\'t include this participant. Ask your supervisor if you need access.</string>
+    <string name="feature_tasks_participant_web_unavailable">The web app isn\'t set up for this build.</string>
+    <string name="feature_tasks_participant_web_failed">Couldn\'t open the browser.</string>
+    <string name="feature_tasks_participant_contact_failed">No app here can do that.</string>
+</resources>

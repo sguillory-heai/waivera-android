@@ -85,6 +85,8 @@ object TaskMapping {
             review = ReviewMapping.access(dto.capabilities, dto.isTaskReady),
             steps = ReviewMapping.steps(dto.workflowBlueprint),
             planDates = ReviewMapping.planDates(dto.participant),
+            // Only when About names the participant; a nameless one falls back to the employee's name.
+            participantId = dto.participant?.takeIf { it.id > 0 && participantName(it) != null }?.id,
         )
     }
 
@@ -180,12 +182,14 @@ object TaskMapping {
             .ifEmpty { null }
     }
 
-    private fun about(participant: TaskParticipantResponse?, employee: TaskUserResponse?): String? {
-        val participantName = participant?.let {
-            listOfNotNull(it.firstName?.trim(), it.lastName?.trim()).filter(String::isNotEmpty).joinToString(" ")
-        }?.ifEmpty { null }
-        return participantName ?: name(employee)
-    }
+    private fun about(participant: TaskParticipantResponse?, employee: TaskUserResponse?): String? =
+        participant?.let(::participantName) ?: name(employee)
+
+    private fun participantName(participant: TaskParticipantResponse): String? =
+        listOfNotNull(participant.firstName?.trim(), participant.lastName?.trim())
+            .filter(String::isNotEmpty)
+            .joinToString(" ")
+            .ifEmpty { null }
 
     /** Some system types are stored in capitals (`PHONE CALL`); people read them in sentence case. */
     private fun readable(name: String): String {

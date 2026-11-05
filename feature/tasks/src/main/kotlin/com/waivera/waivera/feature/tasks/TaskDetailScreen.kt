@@ -58,6 +58,7 @@ import com.waivera.waivera.core.designsystem.component.WaiveraSectionAction
 import com.waivera.waivera.core.designsystem.component.WaiveraSectionHeader
 import com.waivera.waivera.core.designsystem.component.WaiveraSnackbarHost
 import com.waivera.waivera.core.designsystem.component.WaiveraStatusBadge
+import com.waivera.waivera.core.designsystem.component.WaiveraTileTone
 import com.waivera.waivera.core.designsystem.component.WaiveraTopBar
 import com.waivera.waivera.core.designsystem.component.rememberLatestNonNull
 import com.waivera.waivera.core.designsystem.component.rememberSkeletonPulse
@@ -96,6 +97,7 @@ fun TaskDetailScreen(
     onOpenFile: (taskId: Int, attachmentId: Int) -> Unit,
     modifier: Modifier = Modifier,
     onOpenTask: (taskId: Int) -> Unit = {},
+    onOpenParticipant: (participantId: Int) -> Unit = {},
 ) {
     val viewModel = hiltViewModel<TaskDetailViewModel, TaskDetailViewModel.Factory>(
         key = "task-$taskId",
@@ -181,6 +183,7 @@ fun TaskDetailScreen(
             onLog = viewModel::startLog,
             onOpenWeb = viewModel::openOnWeb,
             onAsk = viewModel::startAsk,
+            onOpenParticipant = onOpenParticipant,
         ),
         modifier = modifier,
     )
@@ -246,6 +249,7 @@ internal data class TaskDetailActions(
     val onAsk: () -> Unit = {},
     val onOpenFile: (Int) -> Unit = {},
     val onRetryFiles: () -> Unit = {},
+    val onOpenParticipant: (Int) -> Unit = {},
 ) {
     companion object {
         val None = TaskDetailActions({}, {}, {}, {}, {})
@@ -456,9 +460,18 @@ private fun DetailBody(
                         color = if (state.late) WaiveraTheme.colors.dangerText else WaiveraTheme.colors.text,
                     )
                 }
-                task.about?.let {
+                task.about?.let { name ->
                     InfoDivider()
-                    InfoRow(stringResource(R.string.feature_tasks_field_about), WaiveraIcons.Person) { InfoValue(it) }
+                    val participant = task.participantId
+                    InfoRow(
+                        label = stringResource(R.string.feature_tasks_field_about),
+                        icon = WaiveraIcons.Person,
+                        tone = if (participant != null) WaiveraTileTone.Teal else WaiveraTileTone.Brand,
+                        onClick = participant?.let { id -> { actions.onOpenParticipant(id) } },
+                        onClickLabel = participant?.let {
+                            stringResource(R.string.feature_tasks_participant_open, name)
+                        },
+                    ) { InfoValue(name) }
                 }
                 task.type?.let {
                     InfoDivider()
@@ -591,7 +604,7 @@ private fun ActivitySection(activity: Loadable<List<ActivityRow>>, onRetry: () -
 }
 
 @Composable
-private fun DetailSkeleton() {
+internal fun DetailSkeleton() {
     val pulse = rememberSkeletonPulse()
     val loading = stringResource(R.string.feature_tasks_loading)
     Column(

@@ -15,6 +15,7 @@ import com.waivera.waivera.core.network.api.FileApi
 import com.waivera.waivera.core.network.api.LinkApi
 import com.waivera.waivera.core.network.api.MobilePushApi
 import com.waivera.waivera.core.network.api.NotificationApi
+import com.waivera.waivera.core.network.api.ParticipantApi
 import com.waivera.waivera.core.network.api.RequestApi
 import com.waivera.waivera.core.network.api.TaskApi
 import com.waivera.waivera.core.network.api.TimeOffApi
@@ -104,6 +105,10 @@ object NetworkModule {
     @Provides
     @Singleton
     fun workflowApi(retrofit: Retrofit): WorkflowApi = retrofit.create(WorkflowApi::class.java)
+
+    @Provides
+    @Singleton
+    fun participantApi(retrofit: Retrofit): ParticipantApi = retrofit.create(ParticipantApi::class.java)
 
     @Provides
     @Singleton

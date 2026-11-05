@@ -43,6 +43,10 @@ data class TaskRoute(val taskId: Int) : AppRoute
 @Serializable
 data class TaskFileRoute(val taskId: Int, val attachmentId: Int) : AppRoute
 
+/** A participant's read-only profile; [participantId] is the server's participant id. */
+@Serializable
+data class ParticipantRoute(val participantId: Int) : AppRoute
+
 /** [messageId] scrolls to and highlights one message (push, search, bookmark). */
 @Serializable
 data class ConversationRoute(val conversationId: Long, val messageId: Long? = null) : AppRoute
@@ -123,5 +127,6 @@ val AppRoute.contentKey: String
         is CalendarEventRoute -> "event:$eventId"
         is PersonRoute -> "person:$userId"
         is TaskRoute -> "task:$taskId"
+        is ParticipantRoute -> "participant:$participantId"
         else -> toString()
     }

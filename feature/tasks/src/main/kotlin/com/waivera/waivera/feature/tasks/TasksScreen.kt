@@ -657,7 +657,7 @@ private fun RowFlag.label(): String = when (this) {
 }
 
 @Composable
-private fun TasksSkeleton() {
+internal fun TasksSkeleton(cards: Int = SKELETON_CARDS) {
     val pulse = rememberSkeletonPulse()
     val loading = stringResource(R.string.feature_tasks_loading)
     Column(
@@ -667,7 +667,7 @@ private fun TasksSkeleton() {
             .semantics { contentDescription = loading },
         verticalArrangement = Arrangement.spacedBy(WaiveraSpacing.Small),
     ) {
-        repeat(SKELETON_CARDS) {
+        repeat(cards) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()

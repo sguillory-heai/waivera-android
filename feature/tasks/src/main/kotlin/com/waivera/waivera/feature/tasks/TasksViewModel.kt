@@ -149,7 +149,7 @@ class TasksViewModel @Inject constructor(
         ->
         val today = clock.instant().atZone(zone).toLocalDate()
         val me = session.state.value.currentUserId
-        val rows = l.items.map { row(it, today, me) }
+        val rows = l.items.map { taskRow(it, today, me) }
         val segment = if (l.segment == TasksSegment.Requests && access.loaded && !access.showsRequests) {
             TasksSegment.Casework
         } else {
@@ -309,34 +309,6 @@ class TasksViewModel @Inject constructor(
         }
     }
 
-    private fun row(task: TaskSummary, today: LocalDate, me: String?): TaskRow {
-        val due = task.due
-        val late = due?.takeIf {
-            !task.delayed && it.isBefore(today)
-        }?.let { ChronoUnit.DAYS.between(it, today).toInt() }
-        return TaskRow(
-            id = task.id,
-            key = task.key,
-            title = task.title,
-            about = task.about,
-            due = TaskFormat.due(due, today),
-            state = task.state,
-            tileMonth = due?.let(TaskFormat::tileMonth),
-            tileDay = due?.dayOfMonth?.toString(),
-            daysLate = late,
-            delayed = task.delayed,
-            delayedThrough = task.delayedThrough?.let { TaskFormat.shortDate(it, today) },
-            assignee = task.assigneeName?.takeIf { task.assigneeId == null || task.assigneeId != me },
-            flag = when {
-                task.pendingClosure -> RowFlag.ClosureRequested
-                task.state == TaskState.InProgress -> RowFlag.InProgress
-                task.state == TaskState.InReview -> RowFlag.InReview
-                else -> null
-            },
-            group = if (task.delayed) DueGroup.Delayed else group(due, today),
-        )
-    }
-
     private data class Local(
         val segment: TasksSegment = TasksSegment.Casework,
         val window: TaskWindow = TaskWindow.DueSoon,
@@ -396,4 +368,33 @@ class TasksViewModel @Inject constructor(
             }
         }
     }
+}
+
+/** A task as its card shows it; [me] leaves the owner off the person's own tasks. */
+internal fun taskRow(task: TaskSummary, today: LocalDate, me: String?): TaskRow {
+    val due = task.due
+    val late = due?.takeIf {
+        !task.delayed && it.isBefore(today)
+    }?.let { ChronoUnit.DAYS.between(it, today).toInt() }
+    return TaskRow(
+        id = task.id,
+        key = task.key,
+        title = task.title,
+        about = task.about,
+        due = TaskFormat.due(due, today),
+        state = task.state,
+        tileMonth = due?.let(TaskFormat::tileMonth),
+        tileDay = due?.dayOfMonth?.toString(),
+        daysLate = late,
+        delayed = task.delayed,
+        delayedThrough = task.delayedThrough?.let { TaskFormat.shortDate(it, today) },
+        assignee = task.assigneeName?.takeIf { task.assigneeId == null || task.assigneeId != me },
+        flag = when {
+            task.pendingClosure -> RowFlag.ClosureRequested
+            task.state == TaskState.InProgress -> RowFlag.InProgress
+            task.state == TaskState.InReview -> RowFlag.InReview
+            else -> null
+        },
+        group = if (task.delayed) DueGroup.Delayed else TasksViewModel.group(due, today),
+    )
 }

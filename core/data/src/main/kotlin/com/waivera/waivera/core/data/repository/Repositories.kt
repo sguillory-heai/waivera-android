@@ -42,6 +42,7 @@ import com.waivera.waivera.core.data.model.NoticeFeed
 import com.waivera.waivera.core.data.model.NotificationCategory
 import com.waivera.waivera.core.data.model.NotificationPreferences
 import com.waivera.waivera.core.data.model.Organization
+import com.waivera.waivera.core.data.model.ParticipantProfile
 import com.waivera.waivera.core.data.model.Person
 import com.waivera.waivera.core.data.model.PersonDetails
 import com.waivera.waivera.core.data.model.PreparedFile
@@ -62,6 +63,7 @@ import com.waivera.waivera.core.data.model.TaskFile
 import com.waivera.waivera.core.data.model.TaskPage
 import com.waivera.waivera.core.data.model.TaskQuery
 import com.waivera.waivera.core.data.model.TaskScope
+import com.waivera.waivera.core.data.model.TaskSummary
 import com.waivera.waivera.core.data.model.TaskUpload
 import com.waivera.waivera.core.data.model.ThemePreference
 import com.waivera.waivera.core.data.model.TimeOffSummary
@@ -288,6 +290,15 @@ interface NoticeRepository {
      * reads as read here. Nothing is sent; the server already has it.
      */
     suspend fun onReadElsewhere(notificationId: String?) = Unit
+}
+
+/** The read-only participant profile and the participant's open tasks. */
+interface ParticipantRepository {
+    /** Fails with `Forbidden` when the viewer may not see this participant. */
+    suspend fun profile(id: Int): Result<ParticipantProfile>
+
+    /** Open tasks about the participant that the viewer can see, earliest due first (undated last). */
+    suspend fun openTasks(id: Int): Result<List<TaskSummary>>
 }
 
 /**

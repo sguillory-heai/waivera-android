@@ -114,6 +114,8 @@ data class TaskDetail(
     /** The approval stages in order; empty when the task has no workflow. */
     val steps: List<WorkflowStep> = emptyList(),
     val planDates: PlanDates? = null,
+    /** The participant the task is about, whose profile opens from "About". */
+    val participantId: Int? = null,
 ) {
     /** Completed or closed: the server refuses new activity. */
     val isFinished: Boolean get() = state == TaskState.Completed || state == TaskState.Closed

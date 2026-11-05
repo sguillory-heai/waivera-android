@@ -9,6 +9,7 @@ import com.waivera.waivera.core.data.live.LiveConversationRepository
 import com.waivera.waivera.core.data.live.LiveLinkLookupRepository
 import com.waivera.waivera.core.data.live.LiveMessageRepository
 import com.waivera.waivera.core.data.live.LiveNoticeRepository
+import com.waivera.waivera.core.data.live.LiveParticipantRepository
 import com.waivera.waivera.core.data.live.LivePeopleRepository
 import com.waivera.waivera.core.data.live.LiveProfileRepository
 import com.waivera.waivera.core.data.live.LivePushRegistrationRepository
@@ -30,6 +31,7 @@ import com.waivera.waivera.core.data.repository.DurableMessageSender
 import com.waivera.waivera.core.data.repository.LinkLookupRepository
 import com.waivera.waivera.core.data.repository.MessageRepository
 import com.waivera.waivera.core.data.repository.NoticeRepository
+import com.waivera.waivera.core.data.repository.ParticipantRepository
 import com.waivera.waivera.core.data.repository.PeopleRepository
 import com.waivera.waivera.core.data.repository.ProfileRepository
 import com.waivera.waivera.core.data.repository.PushRegistrationRepository
@@ -55,6 +57,7 @@ import com.waivera.waivera.core.demo.DemoLinkLookupRepository
 import com.waivera.waivera.core.demo.DemoMessageRepository
 import com.waivera.waivera.core.demo.DemoMode
 import com.waivera.waivera.core.demo.DemoNoticeRepository
+import com.waivera.waivera.core.demo.DemoParticipantRepository
 import com.waivera.waivera.core.demo.DemoPeopleRepository
 import com.waivera.waivera.core.demo.DemoProfileRepository
 import com.waivera.waivera.core.demo.DemoPushRegistrationRepository
@@ -175,6 +178,13 @@ object DemoSwitchModule {
         live: Provider<LiveTaskReviewRepository>,
         demo: Provider<DemoTaskReviewRepository>,
     ): TaskReviewRepository = pick(mode, live, demo)
+
+    @Provides
+    fun participants(
+        mode: DemoMode,
+        live: Provider<LiveParticipantRepository>,
+        demo: Provider<DemoParticipantRepository>,
+    ): ParticipantRepository = pick(mode, live, demo)
 
     @Provides
     fun taskUploads(

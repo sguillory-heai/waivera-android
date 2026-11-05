@@ -24,6 +24,7 @@ import com.waivera.waivera.feature.tasks.RequestsPage
 import com.waivera.waivera.feature.tasks.TaskDetailScreen
 import com.waivera.waivera.feature.tasks.TasksScreen
 import com.waivera.waivera.feature.tasks.files.TaskFileScreen
+import com.waivera.waivera.feature.tasks.participant.ParticipantScreen
 import com.waivera.waivera.feature.today.TodayScreen
 import com.waivera.waivera.feature.today.notices.NoticesScreen
 import com.waivera.waivera.navigation.AppRoute
@@ -36,6 +37,7 @@ import com.waivera.waivera.navigation.ConversationRoute
 import com.waivera.waivera.navigation.GroupMembersRoute
 import com.waivera.waivera.navigation.NoticesRoute
 import com.waivera.waivera.navigation.NotificationSettingsRoute
+import com.waivera.waivera.navigation.ParticipantRoute
 import com.waivera.waivera.navigation.PeopleRoute
 import com.waivera.waivera.navigation.PersonRoute
 import com.waivera.waivera.navigation.ProfileRoute
@@ -132,6 +134,12 @@ fun RouteContent(route: AppRoute, actions: RouteActions) {
             taskId = route.taskId,
             onBack = actions.back,
             onOpenFile = { task, attachment -> actions.push(TaskFileRoute(task, attachment)) },
+            onOpenTask = { id -> actions.push(TaskRoute(id)) },
+            onOpenParticipant = { id -> actions.push(ParticipantRoute(id)) },
+        )
+        is ParticipantRoute -> ParticipantScreen(
+            participantId = route.participantId,
+            onBack = actions.back,
             onOpenTask = { id -> actions.push(TaskRoute(id)) },
         )
         is TaskFileRoute -> TaskFileScreen(
