@@ -20,6 +20,7 @@ import com.waivera.waivera.feature.profile.ProfileScreen
 import com.waivera.waivera.feature.settings.AppearanceScreen
 import com.waivera.waivera.feature.settings.NotificationSettingsScreen
 import com.waivera.waivera.feature.settings.SettingsScreen
+import com.waivera.waivera.feature.tasks.MyRequestsPage
 import com.waivera.waivera.feature.tasks.RequestsPage
 import com.waivera.waivera.feature.tasks.TaskDetailScreen
 import com.waivera.waivera.feature.tasks.TasksScreen
@@ -35,6 +36,7 @@ import com.waivera.waivera.navigation.ChangePasswordRoute
 import com.waivera.waivera.navigation.ChatListRoute
 import com.waivera.waivera.navigation.ConversationRoute
 import com.waivera.waivera.navigation.GroupMembersRoute
+import com.waivera.waivera.navigation.MyRequestsRoute
 import com.waivera.waivera.navigation.NoticesRoute
 import com.waivera.waivera.navigation.NotificationSettingsRoute
 import com.waivera.waivera.navigation.ParticipantRoute
@@ -129,6 +131,7 @@ fun RouteContent(route: AppRoute, actions: RouteActions) {
         TasksRoute -> TasksScreen(
             onAccountClick = actions.openAccountMenu,
             onOpenTask = { id -> actions.push(TaskRoute(id)) },
+            onOpenMyRequests = { actions.push(MyRequestsRoute) },
         )
         is TaskRoute -> TaskDetailScreen(
             taskId = route.taskId,
@@ -147,7 +150,12 @@ fun RouteContent(route: AppRoute, actions: RouteActions) {
             attachmentId = route.attachmentId,
             onBack = actions.back,
         )
-        RequestsRoute -> RequestsPage(onBack = actions.back, onOpenTask = { id -> actions.push(TaskRoute(id)) })
+        RequestsRoute -> RequestsPage(
+            onBack = actions.back,
+            onOpenTask = { id -> actions.push(TaskRoute(id)) },
+            onOpenMine = { actions.push(MyRequestsRoute) },
+        )
+        MyRequestsRoute -> MyRequestsPage(onBack = actions.back, onOpenTask = { id -> actions.push(TaskRoute(id)) })
         is ConversationRoute -> ConversationScreen(
             conversationId = route.conversationId,
             highlightMessageId = route.messageId,

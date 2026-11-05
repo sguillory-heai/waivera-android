@@ -128,6 +128,25 @@ class TasksScreenshotTest {
     }
 
     @Test
+    fun requestsCaughtUp() = captureScreenshots("tasks_requests_caught_up") {
+        RequestsContent(
+            state = TaskPreviewData.requestsState().copy(waiting = Loadable.Ready(emptyList())),
+            snackbar = remember { SnackbarHostState() },
+            actions = remember { RequestsActions() },
+        )
+    }
+
+    @Test
+    fun myRequests() = captureScreenshots("tasks_my_requests", heightDp = 1100) {
+        RequestsContent(
+            state = TaskPreviewData.requestsState(),
+            snackbar = remember { SnackbarHostState() },
+            actions = remember { RequestsActions() },
+            mode = RequestsMode.Mine,
+        )
+    }
+
+    @Test
     fun requestReview() = captureScreenshots("tasks_request_review", heightDp = 1000) {
         WaiveraSheetFrame(title = "More time") {
             ReviewFields(item = TaskPreviewData.waitingRequest(), onApprove = {}, onReject = {}, onOpenTask = {})

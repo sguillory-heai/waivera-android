@@ -96,7 +96,12 @@ import kotlinx.coroutines.flow.filter
 
 /** The Tasks tab root. Owned by `:feature:tasks`; routed by `:app`. */
 @Composable
-fun TasksScreen(onAccountClick: () -> Unit, onOpenTask: (Int) -> Unit, modifier: Modifier = Modifier) {
+fun TasksScreen(
+    onAccountClick: () -> Unit,
+    onOpenTask: (Int) -> Unit,
+    onOpenMyRequests: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
     val viewModel: TasksViewModel = hiltViewModel()
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     TasksContent(
@@ -112,7 +117,7 @@ fun TasksScreen(onAccountClick: () -> Unit, onOpenTask: (Int) -> Unit, modifier:
             onLoadMore = viewModel::loadMore,
             onOpenTask = onOpenTask,
         ),
-        requests = { RequestsScreen(onOpenTask = onOpenTask) },
+        requests = { RequestsScreen(onOpenTask = onOpenTask, onOpenMine = onOpenMyRequests) },
         modifier = modifier,
     )
 }

@@ -161,8 +161,25 @@
     <string name="feature_tasks_empty_assigned_message">No open casework is assigned to you right now.</string>
     <string name="feature_tasks_requests_waiting">Waiting on you</string>
     <string name="feature_tasks_requests_mine">Your requests</string>
-    <string name="feature_tasks_requests_none_waiting">Nothing is waiting on you.</string>
-    <string name="feature_tasks_requests_none_mine">You haven\'t asked for any changes yet.</string>
+    <string name="feature_tasks_requests_caught_up_title">You’re all caught up</string>
+    <string name="feature_tasks_requests_caught_up_message">Requests that need your decision show up here.</string>
+    <string name="feature_tasks_requests_view_mine">View your requests</string>
+    <string name="feature_tasks_requests_mine_none">None yet</string>
+    <!-- "1 pending · 3 in all" -->
+    <string name="feature_tasks_requests_mine_summary">%1$s · %2$s</string>
+    <plurals name="feature_tasks_requests_mine_pending">
+        <item quantity="one">%d pending</item>
+        <item quantity="other">%d pending</item>
+    </plurals>
+    <plurals name="feature_tasks_requests_mine_total">
+        <item quantity="one">%d in all</item>
+        <item quantity="other">%d in all</item>
+    </plurals>
+    <string name="feature_tasks_requests_pending">Pending</string>
+    <string name="feature_tasks_requests_decided">Decided</string>
+    <string name="feature_tasks_requests_mine_empty_title">No requests yet</string>
+    <string name="feature_tasks_requests_mine_empty_message">When you ask for more time, a delay, a closure or time off, you can follow it here.</string>
+    <string name="feature_tasks_requests_mine_note">Ask for a change from the task itself, or for time off from your profile.</string>
     <string name="feature_tasks_requests_waiting_error">Couldn\'t load requests waiting on you.</string>
     <string name="feature_tasks_requests_mine_error">Couldn\'t load your requests.</string>
     <string name="feature_tasks_requests_web_note">Time off, profile changes and other requests open on the web.</string>

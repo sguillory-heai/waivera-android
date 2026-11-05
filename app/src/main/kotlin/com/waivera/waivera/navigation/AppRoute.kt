@@ -35,6 +35,10 @@ data object TasksRoute : AppRoute
 @Serializable
 data object RequestsRoute : AppRoute
 
+/** The person's own requests and where each stands, opened from the Requests tab. */
+@Serializable
+data object MyRequestsRoute : AppRoute
+
 /** [taskId] is the server's numeric task id, not the "ORG-123" key. */
 @Serializable
 data class TaskRoute(val taskId: Int) : AppRoute

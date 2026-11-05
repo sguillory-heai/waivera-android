@@ -3,6 +3,7 @@ package com.waivera.waivera.feature.tasks
 import android.content.ActivityNotFoundException
 import android.content.Intent
 import androidx.annotation.DrawableRes
+import androidx.annotation.StringRes
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -53,10 +54,14 @@ import com.waivera.waivera.core.designsystem.component.SkeletonText
 import com.waivera.waivera.core.designsystem.component.WaiveraAvatar
 import com.waivera.waivera.core.designsystem.component.WaiveraBottomSheet
 import com.waivera.waivera.core.designsystem.component.WaiveraButton
+import com.waivera.waivera.core.designsystem.component.WaiveraButtonSize
 import com.waivera.waivera.core.designsystem.component.WaiveraButtonVariant
 import com.waivera.waivera.core.designsystem.component.WaiveraConfirmationSheet
+import com.waivera.waivera.core.designsystem.component.WaiveraCountTone
+import com.waivera.waivera.core.designsystem.component.WaiveraEmptyState
 import com.waivera.waivera.core.designsystem.component.WaiveraErrorState
 import com.waivera.waivera.core.designsystem.component.WaiveraIconTile
+import com.waivera.waivera.core.designsystem.component.WaiveraIllustration
 import com.waivera.waivera.core.designsystem.component.WaiveraLoadSwap
 import com.waivera.waivera.core.designsystem.component.WaiveraPressable
 import com.waivera.waivera.core.designsystem.component.WaiveraPullToRefreshBox
@@ -79,7 +84,12 @@ import com.waivera.waivera.core.designsystem.theme.isLargeFontScale
 
 /** The Requests segment of the Tasks tab. */
 @Composable
-fun RequestsScreen(onOpenTask: (Int) -> Unit, modifier: Modifier = Modifier) {
+fun RequestsScreen(
+    onOpenTask: (Int) -> Unit,
+    modifier: Modifier = Modifier,
+    onOpenMine: () -> Unit = {},
+    mode: RequestsMode = RequestsMode.Waiting,
+) {
     val viewModel: RequestsViewModel = hiltViewModel()
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbar = remember { SnackbarHostState() }
@@ -140,8 +150,10 @@ fun RequestsScreen(onOpenTask: (Int) -> Unit, modifier: Modifier = Modifier) {
             onReview = viewModel::review,
             onOpenTask = onOpenTask,
             onOpenWeb = viewModel::openWeb,
+            onOpenMine = onOpenMine,
         ),
         modifier = modifier,
+        mode = mode,
     )
     val certificateName = stringResource(R.string.feature_tasks_review_certificate_file)
     state.reviewing?.let { item ->
@@ -202,10 +214,24 @@ fun RequestsScreen(onOpenTask: (Int) -> Unit, modifier: Modifier = Modifier) {
 
 /** Requests on a page of its own, opened from a notification or from Today's Needs you. */
 @Composable
-fun RequestsPage(onBack: () -> Unit, onOpenTask: (Int) -> Unit, modifier: Modifier = Modifier) {
+fun RequestsPage(
+    onBack: () -> Unit,
+    onOpenTask: (Int) -> Unit,
+    onOpenMine: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
     Column(modifier.fillMaxSize().background(WaiveraTheme.colors.background)) {
         WaiveraTopBar(title = stringResource(R.string.feature_tasks_segment_requests), onBack = onBack)
-        RequestsScreen(onOpenTask = onOpenTask, modifier = Modifier.weight(1f))
+        RequestsScreen(onOpenTask = onOpenTask, onOpenMine = onOpenMine, modifier = Modifier.weight(1f))
+    }
+}
+
+/** The person's own requests and where each stands, opened from the Requests tab. */
+@Composable
+fun MyRequestsPage(onBack: () -> Unit, onOpenTask: (Int) -> Unit, modifier: Modifier = Modifier) {
+    Column(modifier.fillMaxSize().background(WaiveraTheme.colors.background)) {
+        WaiveraTopBar(title = stringResource(R.string.feature_tasks_requests_mine), onBack = onBack)
+        RequestsScreen(onOpenTask = onOpenTask, mode = RequestsMode.Mine, modifier = Modifier.weight(1f))
     }
 }
 
@@ -216,7 +242,11 @@ internal data class RequestsActions(
     val onReview: (RequestItem) -> Unit = {},
     val onOpenTask: (Int) -> Unit = {},
     val onOpenWeb: () -> Unit = {},
+    val onOpenMine: () -> Unit = {},
 )
+
+/** Which list the screen shows: requests waiting on the person (the tab), or their own (a page). */
+enum class RequestsMode { Waiting, Mine }
 
 @Composable
 internal fun RequestsContent(
@@ -224,9 +254,10 @@ internal fun RequestsContent(
     snackbar: SnackbarHostState,
     actions: RequestsActions,
     modifier: Modifier = Modifier,
+    mode: RequestsMode = RequestsMode.Waiting,
 ) {
     val refreshLabel = stringResource(R.string.feature_tasks_requests_refresh)
-    val loading = state.waiting is Loadable.Loading && state.mine is Loadable.Loading
+    val shown = if (mode == RequestsMode.Waiting) state.waiting else state.mine
     Box(modifier.fillMaxSize()) {
         WaiveraPullToRefreshBox(
             isRefreshing = state.isRefreshing,
@@ -242,7 +273,7 @@ internal fun RequestsContent(
                     )
                 },
         ) {
-            WaiveraLoadSwap(loading = loading, modifier = Modifier.fillMaxSize()) { isLoading ->
+            WaiveraLoadSwap(loading = shown is Loadable.Loading, modifier = Modifier.fillMaxSize()) { isLoading ->
                 if (isLoading) {
                     if (rememberSkeletonVisible(loading = true)) RequestsSkeleton()
                 } else {
@@ -256,43 +287,7 @@ internal fun RequestsContent(
                         ),
                         verticalArrangement = Arrangement.spacedBy(WaiveraSpacing.Small),
                     ) {
-                        requestSection(
-                            key = "waiting",
-                            title = R.string.feature_tasks_requests_waiting,
-                            items = state.waiting,
-                            empty = R.string.feature_tasks_requests_none_waiting,
-                            error = R.string.feature_tasks_requests_waiting_error,
-                            onRetry = actions.onRetryWaiting,
-                        ) { item -> RequestCard(item, waiting = true, onClick = { actions.onReview(item) }) }
-                        requestSection(
-                            key = "mine",
-                            title = R.string.feature_tasks_requests_mine,
-                            items = state.mine,
-                            empty = R.string.feature_tasks_requests_none_mine,
-                            error = R.string.feature_tasks_requests_mine_error,
-                            onRetry = actions.onRetryMine,
-                        ) { item ->
-                            RequestCard(
-                                item = item,
-                                waiting = false,
-                                onClick = item.request.taskId?.let { id -> { actions.onOpenTask(id) } }
-                                    ?: actions.onOpenWeb,
-                            )
-                        }
-                        item(key = "web") {
-                            WaiveraButton(
-                                text = stringResource(R.string.feature_tasks_requests_open_web),
-                                onClick = actions.onOpenWeb,
-                                variant = WaiveraButtonVariant.Text,
-                                leadingIcon = WaiveraIcons.OpenExternal,
-                                fullWidth = true,
-                                modifier = Modifier.padding(top = WaiveraSpacing.Small),
-                            )
-                            InfoNote(
-                                text = stringResource(R.string.feature_tasks_requests_web_note),
-                                modifier = Modifier.padding(horizontal = WaiveraSpacing.ExtraSmall),
-                            )
-                        }
+                        if (mode == RequestsMode.Waiting) waitingItems(state, actions) else mineItems(state, actions)
                     }
                 }
             }
@@ -306,44 +301,206 @@ internal fun RequestsContent(
     }
 }
 
-@Suppress("LongParameterList")
-private fun LazyListScope.requestSection(
-    key: String,
-    title: Int,
-    items: Loadable<List<RequestItem>>,
-    empty: Int,
-    error: Int,
-    onRetry: () -> Unit,
-    card: @Composable (RequestItem) -> Unit,
-) {
-    item(key = "$key-title") {
-        val count = (items as? Loadable.Ready)?.value?.size?.takeIf { key == "waiting" && it > 0 }
-        WaiveraSectionHeader(
-            title = stringResource(title),
-            count = count,
-            modifier = Modifier.padding(top = WaiveraSpacing.Small).animateItem(),
-        )
-    }
-    when (items) {
-        Loadable.Loading -> item(key = "$key-loading") { RequestCardSkeleton() }
-        Loadable.Failed -> item(key = "$key-error") {
-            WaiveraErrorState(message = stringResource(error), onRetry = onRetry, dense = true)
+/**
+ * Only what needs the person's decision. Their own requests are one quiet row after the last
+ * card, or a small button when nothing is waiting, so they never read as more work to review.
+ */
+private fun LazyListScope.waitingItems(state: RequestsUiState, actions: RequestsActions) {
+    when (val waiting = state.waiting) {
+        Loadable.Loading -> Unit
+        Loadable.Failed -> item(key = "waiting-error") {
+            WaiveraErrorState(
+                message = stringResource(R.string.feature_tasks_requests_waiting_error),
+                onRetry = actions.onRetryWaiting,
+                dense = true,
+            )
         }
-        is Loadable.Ready -> if (items.value.isEmpty()) {
-            item(key = "$key-empty") {
-                Text(
-                    text = stringResource(empty),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = WaiveraTheme.colors.textSecondary,
-                    modifier = Modifier.padding(horizontal = WaiveraSpacing.ExtraSmall).animateItem(),
+        is Loadable.Ready -> {
+            if (waiting.value.isEmpty()) {
+                item(key = "caught-up") {
+                    CaughtUp(onOpenMine = actions.onOpenMine, modifier = Modifier.animateItem())
+                }
+                return
+            }
+            item(key = "waiting-title") {
+                WaiveraSectionHeader(
+                    title = stringResource(R.string.feature_tasks_requests_waiting),
+                    count = waiting.value.size,
+                    modifier = Modifier.padding(top = WaiveraSpacing.Small).animateItem(),
+                )
+            }
+            // Approving or rejecting removes the card at once; animateItem closes the gap it leaves.
+            items(waiting.value, key = { "waiting-${it.id}" }) { item ->
+                Box(Modifier.animateItem()) {
+                    RequestCard(item, waiting = true, onClick = { actions.onReview(item) })
+                }
+            }
+        }
+    }
+    item(key = "mine-row") {
+        MineRow(mine = state.mine, onClick = actions.onOpenMine, modifier = Modifier.animateItem())
+    }
+    webFooter(actions.onOpenWeb)
+}
+
+/** The person's own requests: still waiting first, then decided. */
+private fun LazyListScope.mineItems(state: RequestsUiState, actions: RequestsActions) {
+    when (val mine = state.mine) {
+        Loadable.Loading -> Unit
+        Loadable.Failed -> item(key = "mine-error") {
+            WaiveraErrorState(
+                message = stringResource(R.string.feature_tasks_requests_mine_error),
+                onRetry = actions.onRetryMine,
+                dense = true,
+            )
+        }
+        is Loadable.Ready -> if (mine.value.isEmpty()) {
+            item(key = "mine-empty") {
+                WaiveraEmptyState(
+                    title = stringResource(R.string.feature_tasks_requests_mine_empty_title),
+                    message = stringResource(R.string.feature_tasks_requests_mine_empty_message),
+                    illustration = WaiveraIllustration.Search,
+                    modifier = Modifier.padding(top = WaiveraSpacing.Large),
                 )
             }
         } else {
-            // Approving or rejecting removes the card at once; animateItem closes the gap it leaves.
-            items(items.value, key = { "$key-${it.id}" }) { item ->
-                Box(Modifier.animateItem()) { card(item) }
+            val (pending, decided) = mine.value.partition { it.request.status == RequestStatus.Pending }
+            mineGroup(MineGroup.Pending, pending, actions, first = true)
+            mineGroup(MineGroup.Decided, decided, actions, first = pending.isEmpty())
+            item(key = "mine-note") {
+                InfoNote(
+                    text = stringResource(R.string.feature_tasks_requests_mine_note),
+                    modifier = Modifier.padding(top = WaiveraSpacing.Small, start = WaiveraSpacing.ExtraSmall),
+                )
             }
         }
+    }
+}
+
+private enum class MineGroup(val key: String, @StringRes val title: Int) {
+    Pending("pending", R.string.feature_tasks_requests_pending),
+    Decided("decided", R.string.feature_tasks_requests_decided),
+}
+
+private fun LazyListScope.mineGroup(
+    group: MineGroup,
+    rows: List<RequestItem>,
+    actions: RequestsActions,
+    first: Boolean,
+) {
+    if (rows.isEmpty()) return
+    item(key = "${group.key}-title") {
+        WaiveraSectionHeader(
+            title = stringResource(group.title),
+            count = rows.size.takeIf { group == MineGroup.Pending },
+            countTone = WaiveraCountTone.Info,
+            modifier = Modifier
+                .padding(top = if (first) WaiveraSpacing.Small else WaiveraSpacing.Medium)
+                .animateItem(),
+        )
+    }
+    items(rows, key = { "${group.key}-${it.id}" }) { item ->
+        Box(Modifier.animateItem()) {
+            RequestCard(
+                item = item,
+                waiting = false,
+                onClick = item.request.taskId?.let { id -> { actions.onOpenTask(id) } } ?: actions.onOpenWeb,
+            )
+        }
+    }
+}
+
+private fun LazyListScope.webFooter(onOpenWeb: () -> Unit) {
+    item(key = "web") {
+        WaiveraButton(
+            text = stringResource(R.string.feature_tasks_requests_open_web),
+            onClick = onOpenWeb,
+            variant = WaiveraButtonVariant.Text,
+            leadingIcon = WaiveraIcons.OpenExternal,
+            fullWidth = true,
+            modifier = Modifier.padding(top = WaiveraSpacing.Small),
+        )
+        InfoNote(
+            text = stringResource(R.string.feature_tasks_requests_web_note),
+            modifier = Modifier.padding(horizontal = WaiveraSpacing.ExtraSmall),
+        )
+    }
+}
+
+/** Nothing to decide: the same reward art as an empty inbox, and a small way to your own. */
+@Composable
+private fun CaughtUp(onOpenMine: () -> Unit, modifier: Modifier = Modifier) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(WaiveraSpacing.Small),
+        modifier = modifier.fillMaxWidth(),
+    ) {
+        WaiveraEmptyState(
+            title = stringResource(R.string.feature_tasks_requests_caught_up_title),
+            message = stringResource(R.string.feature_tasks_requests_caught_up_message),
+            illustration = WaiveraIllustration.CaughtUp,
+            modifier = Modifier.padding(top = WaiveraSpacing.Large),
+        )
+        WaiveraButton(
+            text = stringResource(R.string.feature_tasks_requests_view_mine),
+            onClick = onOpenMine,
+            variant = WaiveraButtonVariant.Tonal,
+            size = WaiveraButtonSize.Compact,
+        )
+    }
+}
+
+/** One quiet row after the waiting cards: the person's own requests, and how many still wait. */
+@Composable
+private fun MineRow(mine: Loadable<List<RequestItem>>, onClick: () -> Unit, modifier: Modifier = Modifier) {
+    val colors = WaiveraTheme.colors
+    val summary = (mine as? Loadable.Ready)?.value?.let { rows -> mineSummary(rows) }
+    WaiveraPressable(
+        depth = PressDepth.Card,
+        onClick = onClick,
+        shape = WaiveraShapes.SheetCard,
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(top = WaiveraSpacing.Medium)
+            .background(colors.surfaceMuted, WaiveraShapes.SheetCard),
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(WaiveraSpacing.MediumSmall),
+            horizontalArrangement = Arrangement.spacedBy(WaiveraSpacing.MediumSmall),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            WaiveraIconTile(icon = WaiveraIcons.Schedule, tone = WaiveraTileTone.Brand)
+            Column(Modifier.weight(1f)) {
+                Text(
+                    text = stringResource(R.string.feature_tasks_requests_mine),
+                    style = MaterialTheme.typography.titleSmall,
+                    color = colors.text,
+                )
+                summary?.let {
+                    Text(text = it, style = MaterialTheme.typography.bodySmall, color = colors.textSecondary)
+                }
+            }
+            Icon(
+                painter = painterResource(WaiveraIcons.ChevronRight),
+                contentDescription = null,
+                tint = colors.textSecondary,
+            )
+        }
+    }
+}
+
+@Composable
+private fun mineSummary(rows: List<RequestItem>): String {
+    val pending = rows.count { it.request.status == RequestStatus.Pending }
+    val total = pluralStringResource(R.plurals.feature_tasks_requests_mine_total, rows.size, rows.size)
+    return when {
+        rows.isEmpty() -> stringResource(R.string.feature_tasks_requests_mine_none)
+        pending == 0 -> total
+        else -> stringResource(
+            R.string.feature_tasks_requests_mine_summary,
+            pluralStringResource(R.plurals.feature_tasks_requests_mine_pending, pending, pending),
+            total,
+        )
     }
 }
 
