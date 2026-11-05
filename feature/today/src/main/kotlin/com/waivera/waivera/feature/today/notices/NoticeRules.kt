@@ -132,10 +132,14 @@ object NoticeRules {
             .map { (day, items) -> NoticeGroup(day, items.map { row(it, links, now, zone) }) }
     }
 
-    /** Unread notifications that ask the person to act (a task, an approval, a signature, a survey), newest first. */
+    /**
+     * Unread notifications that ask the person to act (a task, an approval, a signature, a survey),
+     * newest first. A request to review is left out: its notification keeps saying "pending" after
+     * another approver decides it, so Needs you lists those from the live pending list instead.
+     */
     fun needsYou(notices: List<Notice>, links: NoticeLinks, now: Instant, zone: ZoneId): List<NeedsYouItem.Notice> =
         notices
-            .filter { !it.read && it.asksForAction }
+            .filter { !it.read && it.asksForAction && !it.opensRequests }
             .sortedWith(compareByDescending<Notice, Instant?>(nullsFirst()) { it.createdAt })
             .map { n ->
                 NeedsYouItem.Notice(

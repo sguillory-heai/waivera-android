@@ -4,11 +4,15 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.ViewModelStore
 import com.waivera.waivera.core.data.model.ActivityFeed
+import com.waivera.waivera.core.data.model.ChangeRequest
 import com.waivera.waivera.core.data.model.CurrentUser
 import com.waivera.waivera.core.data.model.MyInvitation
 import com.waivera.waivera.core.data.model.NoticeFeed
 import com.waivera.waivera.core.data.model.NoticeKind
 import com.waivera.waivera.core.data.model.RealtimeStatus
+import com.waivera.waivera.core.data.model.RequestAccess
+import com.waivera.waivera.core.data.model.RequestKind
+import com.waivera.waivera.core.data.model.RequestStatus
 import com.waivera.waivera.core.data.model.ScheduleFeed
 import com.waivera.waivera.core.data.model.SessionState
 import com.waivera.waivera.core.data.model.SyncStatus
@@ -62,6 +66,7 @@ class TodayViewModelTest {
     private val now = TestNowSource()
     private val handled = InMemoryHandledTodayRepository()
     private val notices = FakeNoticeRepository()
+    private val requests = FakeWaitingRequests()
     private val window = InvitationAnswers.UNDO_WINDOW_MILLIS
 
     // Owning the ViewModel through a store lets a test clear it the way navigation does.
@@ -80,6 +85,7 @@ class TodayViewModelTest {
             backgroundScope,
             notices,
             NoticeOpener(notices, TEST_LINKS),
+            requests,
         )
         val factory = object : ViewModelProvider.Factory {
             @Suppress("UNCHECKED_CAST")
@@ -575,4 +581,64 @@ class TodayViewModelTest {
         assertEquals(before + 1, notices.refreshes)
         assertTrue(effects.none { it is TodayEffect.RefreshFailed })
     }
+
+    @Test
+    fun requests_comeFromThePendingListNotFromTheirNotifications() = runTest(main.testDispatcher) {
+        // Another approver decided "decided": its notification still says pending and unread.
+        notices.state.value = Synced(
+            NoticeFeed(
+                listOf(
+                    notice("old-review", kind = NoticeKind.Approval, taskId = null).copy(opensRequests = true),
+                    notice("task-approval", kind = NoticeKind.Approval),
+                ),
+                unreadCount = 2,
+            ),
+            lastSyncedAt = TEST_NOW,
+        )
+        requests.server = listOf(changeRequest(7, "Time-Off Request", "Michelle Douzat"))
+        val (viewModel, effects) = start()
+        runCurrent()
+        val items = viewModel.ui.needsYou.items
+        assertEquals(listOf("request-7", "notice-task-approval"), items.map { it.key })
+        val request = items.filterIsInstance<NeedsYouItem.Request>().single()
+        assertEquals("Time-Off Request", request.typeName)
+        assertEquals("Michelle Douzat", request.requesterName)
+        assertEquals(2, viewModel.ui.needsYou.kinds.counts[NeedsYouKind.Update])
+
+        // Decided elsewhere: the next refresh drops it, whatever its notification says.
+        requests.server = emptyList()
+        viewModel.onAction(TodayAction.Refresh)
+        runCurrent()
+        assertEquals(listOf("notice-task-approval"), viewModel.ui.needsYou.items.map { it.key })
+
+        viewModel.onAction(TodayAction.OpenRequests)
+        runCurrent()
+        assertEquals(TodayEffect.OpenNotice(NoticeDestination.Requests), effects.last())
+    }
+
+    @Test
+    fun requests_stayOutForSomeoneWhoMayNotReviewThem() = runTest(main.testDispatcher) {
+        requests.accessFlow.value = RequestAccess(showsRequests = false, loaded = true)
+        requests.server = listOf(changeRequest(7, "Time-Off Request", "Michelle Douzat"))
+        val (viewModel, _) = start()
+        runCurrent()
+        assertTrue(viewModel.ui.needsYou.items.none { it is NeedsYouItem.Request })
+        assertEquals(0, requests.refreshes)
+    }
+
+    private fun changeRequest(id: Int, type: String, who: String) = ChangeRequest(
+        id = id,
+        kind = RequestKind.TimeOff,
+        typeName = type,
+        status = RequestStatus.Pending,
+        requesterId = "usr_$id",
+        requesterName = who,
+        approverName = null,
+        requestedAt = TEST_NOW.minusSeconds(3_600),
+        decidedAt = null,
+        taskId = null,
+        taskTitle = null,
+        reason = null,
+        explanation = null,
+    )
 }

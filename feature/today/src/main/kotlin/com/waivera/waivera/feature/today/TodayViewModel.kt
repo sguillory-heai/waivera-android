@@ -17,6 +17,7 @@ import com.waivera.waivera.core.data.repository.ConversationRepository
 import com.waivera.waivera.core.data.repository.HandledTodayRepository
 import com.waivera.waivera.core.data.repository.NoticeRepository
 import com.waivera.waivera.core.data.repository.RealtimeStatusRepository
+import com.waivera.waivera.core.data.repository.RequestRepository
 import com.waivera.waivera.core.data.repository.SessionRepository
 import com.waivera.waivera.core.network.di.ApplicationScope
 import com.waivera.waivera.core.network.error.WaiveraError
@@ -27,6 +28,7 @@ import com.waivera.waivera.feature.today.model.TodayContext
 import com.waivera.waivera.feature.today.model.TodayLocalState
 import com.waivera.waivera.feature.today.model.TodaySources
 import com.waivera.waivera.feature.today.model.TodayUiState
+import com.waivera.waivera.feature.today.notices.NoticeDestination
 import com.waivera.waivera.feature.today.notices.NoticeOpener
 import dagger.hilt.android.lifecycle.HiltViewModel
 import java.time.Duration
@@ -75,7 +77,9 @@ class TodayViewModel @Inject constructor(
     @ApplicationScope appScope: CoroutineScope,
     private val notices: NoticeRepository,
     private val noticeOpener: NoticeOpener,
+    requests: RequestRepository,
 ) : ViewModel() {
+    private val waiting = WaitingRequests(requests)
     private val local = MutableStateFlow(TodayLocalState())
     private val pager = ActivityPager(viewModelScope, activity, local)
     private val effectChannel = Channel<TodayEffect>(Channel.BUFFERED)
@@ -113,7 +117,8 @@ class TodayViewModel @Inject constructor(
                 conversations.observeFailedSends(),
             ) { chats, feed, events, milestones, failed -> TodaySources(chats, feed, events, milestones, failed) },
             notices.observeNotices(),
-        ) { sources, inbox -> sources.copy(notices = inbox) },
+            waiting.items,
+        ) { sources, inbox, waiting -> sources.copy(notices = inbox, requests = waiting) },
         combine(
             combine(session.state, zone, ticks, realtimeStatus.status, local) { s, z, now, realtime, l ->
                 TodayContext(
@@ -135,6 +140,7 @@ class TodayViewModel @Inject constructor(
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS), TodayUiState())
 
     init {
+        viewModelScope.launch { waiting.refresh() }
         refreshStaleSources()
         pager.start()
         recordHandled()
@@ -153,6 +159,9 @@ class TodayViewModel @Inject constructor(
     fun onAction(action: TodayAction) {
         when (action) {
             TodayAction.Refresh -> refreshAll()
+            TodayAction.OpenRequests -> viewModelScope.launch {
+                effectChannel.send(TodayEffect.OpenNotice(NoticeDestination.Requests))
+            }
             TodayAction.RetryConnection -> {
                 realtimeStatus.retryNow()
                 refreshAll()
@@ -229,6 +238,7 @@ class TodayViewModel @Inject constructor(
             val feed = async { activity.refresh() }
             // The inbox has its own screen for a failed load; Today's snackbar stays about Today.
             launch { notices.refresh() }
+            launch { waiting.refresh() }
             val others = listOf(async { calendar.refresh(range) }, async { calendar.refreshMilestones() })
             val results = listOf(chats.await(), feed.await()) + others.awaitAll()
             pager.reset()

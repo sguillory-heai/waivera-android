@@ -14,6 +14,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import com.waivera.waivera.core.data.image.AvatarModel
+import com.waivera.waivera.core.data.model.NoticeKind
 import com.waivera.waivera.core.designsystem.component.WaiveraAvatar
 import com.waivera.waivera.core.designsystem.component.WaiveraButton
 import com.waivera.waivera.core.designsystem.component.WaiveraButtonVariant
@@ -42,6 +43,7 @@ internal class NeedsYouCallbacks(
     val onOpenEvent: (eventId: String) -> Unit,
     val onRespond: (eventId: String, accept: Boolean) -> Unit,
     val onOpenNotice: (noticeId: String) -> Unit = {},
+    val onOpenRequests: () -> Unit = {},
 )
 
 @Composable
@@ -66,6 +68,18 @@ internal fun NeedsYouRow(item: NeedsYouItem, callbacks: NeedsYouCallbacks, modif
             unread = true,
             opensOutside = item.opensOutside,
             onClick = { callbacks.onOpenNotice(item.noticeId) },
+            modifier = modifier,
+        )
+        is NeedsYouItem.Request -> NoticeRow(
+            kind = NoticeKind.Approval,
+            title = item.typeName,
+            message = item.taskTitle?.let {
+                stringResource(R.string.feature_today_request_from_task, item.requesterName, it)
+            } ?: stringResource(R.string.feature_today_request_from, item.requesterName),
+            at = item.at,
+            unread = true,
+            opensOutside = false,
+            onClick = callbacks.onOpenRequests,
             modifier = modifier,
         )
     }

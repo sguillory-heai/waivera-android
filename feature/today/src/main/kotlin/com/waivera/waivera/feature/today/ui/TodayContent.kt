@@ -229,6 +229,7 @@ private fun LazyListScope.needsYouCards(section: NeedsYouSection, callbacks: Tod
         onOpenEvent = callbacks.onOpenEvent,
         onRespond = { id, accept -> callbacks.onAction(TodayAction.RespondToInvitation(id, accept)) },
         onOpenNotice = { id -> callbacks.onAction(TodayAction.OpenNotice(id)) },
+        onOpenRequests = { callbacks.onAction(TodayAction.OpenRequests) },
     )
     items(section.items, key = { it.key }, contentType = { it::class.simpleName }) { item ->
         NeedsYouRow(

@@ -2,6 +2,7 @@ package com.waivera.waivera.feature.today.model
 
 import com.waivera.waivera.core.data.model.ActivityFeed
 import com.waivera.waivera.core.data.model.ActivityItem
+import com.waivera.waivera.core.data.model.ChangeRequest
 import com.waivera.waivera.core.data.model.Conversation
 import com.waivera.waivera.core.data.model.ConversationKind
 import com.waivera.waivera.core.data.model.ConversationTitleText
@@ -50,6 +51,8 @@ data class TodaySources(
     val failedSends: Set<Long> = emptySet(),
     /** The notifications inbox (the web bell); null until it has been observed. */
     val notices: Synced<NoticeFeed>? = null,
+    /** Requests waiting on this person's decision; empty when they may not review requests. */
+    val requests: List<ChangeRequest> = emptyList(),
 )
 
 /** Who, where and when the screen is rendered for. */
@@ -174,7 +177,16 @@ object TodayAssembler {
                 ticketTitle = c.lastMessage?.ticket?.title,
             )
         }
-        return notSentRows(sources, context) + conversationRows + invitations + tickets +
+        val requests = sources.requests.map { request ->
+            NeedsYouItem.Request(
+                requestId = request.id,
+                typeName = request.typeName,
+                requesterName = request.requesterName,
+                taskTitle = request.taskTitle,
+                at = request.requestedAt?.let { TimeLabels.past(it, context.now, context.zone) },
+            )
+        }
+        return notSentRows(sources, context) + conversationRows + invitations + tickets + requests +
             NoticeRules.needsYou(sources.notices?.data?.items.orEmpty(), context.noticeLinks, context.now, context.zone)
     }
 

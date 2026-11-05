@@ -43,4 +43,7 @@
         <item quantity="one">%d update</item>
         <item quantity="other">%d updates</item>
     </plurals>
+    <!-- Needs you: a request waiting on your decision, read live from the server -->
+    <string name="feature_today_request_from">From %1$s</string>
+    <string name="feature_today_request_from_task">From %1$s · %2$s</string>
 </resources>

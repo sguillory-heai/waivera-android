@@ -8,6 +8,9 @@ import com.waivera.waivera.feature.today.notices.NoticeDestination
 sealed interface TodayAction {
     data object Refresh : TodayAction
 
+    /** A request waiting on the person: the Requests page, where it is reviewed. */
+    data object OpenRequests : TodayAction
+
     data object RetryConnection : TodayAction
 
     data class MarkActivityRead(val activityId: Long) : TodayAction

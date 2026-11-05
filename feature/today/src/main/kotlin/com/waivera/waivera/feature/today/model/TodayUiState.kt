@@ -106,7 +106,7 @@ val NeedsYouItem.kind: NeedsYouKind
         is NeedsYouItem.Mention -> NeedsYouKind.Mention
         is NeedsYouItem.Invitation -> NeedsYouKind.Invitation
         is NeedsYouItem.Ticket -> NeedsYouKind.Ticket
-        is NeedsYouItem.Notice -> NeedsYouKind.Update
+        is NeedsYouItem.Notice, is NeedsYouItem.Request -> NeedsYouKind.Update
     }
 
 @Immutable
@@ -178,6 +178,20 @@ sealed interface NeedsYouItem {
         val opensOutside: Boolean,
     ) : NeedsYouItem {
         override val key: String get() = "notice-$noticeId"
+    }
+
+    /**
+     * A request still waiting on this person's decision, read live from the server's pending list
+     * rather than from its notification: another approver deciding it removes it at once.
+     */
+    data class Request(
+        val requestId: Int,
+        val typeName: String,
+        val requesterName: String,
+        val taskTitle: String?,
+        val at: PastLabel?,
+    ) : NeedsYouItem {
+        override val key: String get() = "request-$requestId"
     }
 }
 
