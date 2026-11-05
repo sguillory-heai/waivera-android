@@ -576,16 +576,28 @@ private fun MessageList(
                 .semantics { contentDescription = listLabel },
         ) {
             items(items = newestFirst, key = { it.key }, contentType = { it::class }) { item ->
-                val grow = rememberLandingGrow(grows = item.key in listMotion.landingKeys)
+                val landing = item.key in listMotion.landingKeys
+                val grow = rememberLandingGrow(grows = landing)
                 TimelineItemView(
                     item = item,
                     context = context,
                     callbacks = listMotion.rows,
                     modifier = Modifier
-                        .animateItem(
-                            fadeInSpec = null,
-                            placementSpec = if (listMotion.holdsPlacement) null else motion.layout(),
-                            fadeOutSpec = motion.state(),
+                        // A landing send skips the list's item animation, which draws each row
+                        // into a graphics layer of its own; placement is held while it lands
+                        // anyway. On a phone a landed send sometimes kept its space but drew
+                        // nothing until scrolled away and back, as if that layer went stale; once
+                        // landed the row is drawn into a fresh layer, as a scroll back would do.
+                        .then(
+                            if (landing) {
+                                Modifier
+                            } else {
+                                Modifier.animateItem(
+                                    fadeInSpec = null,
+                                    placementSpec = if (listMotion.holdsPlacement) null else motion.layout(),
+                                    fadeOutSpec = motion.state(),
+                                )
+                            },
                         )
                         .then(if (grow != null) Modifier.landingGrow(grow) else Modifier),
                 )
