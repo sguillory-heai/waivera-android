@@ -38,13 +38,14 @@ class DemoTaskRepository @Inject constructor(private val backend: DemoBackend) :
 
     private val today: LocalDate get() = backend.now().atZone(DemoData.ZONE).toLocalDate()
 
-    override suspend fun tasks(query: TaskQuery, page: Int): Result<TaskPage> {
+    override suspend fun tasks(query: TaskQuery, page: Int, pageSize: Int): Result<TaskPage> {
         backend.failRefreshes?.let { return Result.failure(it) }
         val window = query.window
         val search = query.search.trim().lowercase()
         val items = (if (query.scope == TaskScope.Casework) DemoTasks.casework(today) else DemoTasks.employee(today))
             .filter { !query.assignedToMe || it.assigneeName == null }
             .filter { matchesDelays(it, query) }
+            .filter { matchesSlice(it, query) }
             .filter { task ->
                 val due = task.due ?: return@filter window == TaskWindow.AllOpen
                 when (window) {
@@ -60,7 +61,22 @@ class DemoTaskRepository @Inject constructor(private val backend: DemoBackend) :
                     it.about.orEmpty().lowercase().contains(search)
             }
             .map { DemoTasks.summary(it) }
-        return Result.success(TaskPage(if (page == 1) items else emptyList(), items.size))
+        return Result.success(TaskPage(items.drop((page - 1) * pageSize).take(pageSize), items.size))
+    }
+
+    /** A section as the server cuts it: delayed casework apart, then due dates. */
+    private fun matchesSlice(task: TaskDetail, query: TaskQuery): Boolean {
+        val slice = query.slice ?: return true
+        val delayMatches = query.scope != TaskScope.Casework || slice.delayed == (task.delay != null)
+        val due = task.due
+        // The server never sends an undated task; the demo's few sit with the later ones.
+        val dueMatches = if (due == null) {
+            slice.dueTo == null
+        } else {
+            (slice.dueFrom?.let { !due.isBefore(it) } ?: true) &&
+                (slice.dueTo?.let { !due.isAfter(it) } ?: true)
+        }
+        return delayMatches && dueMatches
     }
 
     /** The server applies the delay filter to client tasks only. */

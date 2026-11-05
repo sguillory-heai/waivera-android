@@ -22,6 +22,7 @@ import com.waivera.waivera.core.network.error.WaiveraError
 import com.waivera.waivera.core.network.error.apiCall
 import com.waivera.waivera.core.network.error.catchingWaivera
 import com.waivera.waivera.core.network.time.WaiveraTime
+import java.time.LocalDate
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.async
@@ -38,10 +39,18 @@ class LiveTaskRepository @Inject constructor(
     private val json: Json,
     private val requests: RequestRepository,
 ) : TaskRepository {
-    override suspend fun tasks(query: TaskQuery, page: Int): Result<TaskPage> = catchingWaivera {
+    override suspend fun tasks(query: TaskQuery, page: Int, pageSize: Int): Result<TaskPage> = catchingWaivera {
         val me = me()
-        if (query.scope == TaskScope.Casework) requests.ensureAccess()
-        val delays = query.delays.serverValue.takeIf { query.scope == TaskScope.Casework }
+        val casework = query.scope == TaskScope.Casework
+        if (casework) requests.ensureAccess()
+        val slice = query.slice
+        val delays = when {
+            !casework -> null
+            slice == null -> query.delays.serverValue
+            slice.delayed -> DelayFilter.Only.serverValue
+            // Delayed casework has its own section, so every other section leaves it out.
+            else -> DelayFilter.Hide.serverValue
+        }
         val response = list(
             me,
             query.scope,
@@ -49,7 +58,10 @@ class LiveTaskRepository @Inject constructor(
             query.search.trim(),
             query.window.dateFilter,
             page,
+            pageSize = pageSize,
             delays = delays,
+            dueFrom = slice?.dueFrom,
+            dueTo = slice?.dueTo,
         )
         TaskPage(items = response.tasks.map(TaskMapping::summary), totalCount = response.totalCount)
     }
@@ -90,6 +102,8 @@ class LiveTaskRepository @Inject constructor(
         page: Int,
         pageSize: Int = TaskApi.PAGE_SIZE,
         delays: String? = null,
+        dueFrom: LocalDate? = null,
+        dueTo: LocalDate? = null,
     ) = apiCall {
         val casework = scope == TaskScope.Casework
         api.getMyTasks(
@@ -100,6 +114,8 @@ class LiveTaskRepository @Inject constructor(
             searchTerm = search,
             date = date,
             taskDelayFilter = delays,
+            dateRangeStart = dueFrom?.toString(),
+            dateRangeEnd = dueTo?.toString(),
             page = page,
             pageSize = pageSize,
         )

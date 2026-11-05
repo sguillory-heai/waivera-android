@@ -16,7 +16,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
@@ -28,10 +27,9 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.snapshotFlow
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
@@ -58,12 +56,15 @@ import com.waivera.waivera.core.data.model.DelayFilter
 import com.waivera.waivera.core.data.model.TaskCounts
 import com.waivera.waivera.core.data.model.TaskState
 import com.waivera.waivera.core.data.model.TaskWindow
+import com.waivera.waivera.core.designsystem.R as DesignR
 import com.waivera.waivera.core.designsystem.component.BadgeTone
 import com.waivera.waivera.core.designsystem.component.BannerTone
 import com.waivera.waivera.core.designsystem.component.SkeletonBlock
 import com.waivera.waivera.core.designsystem.component.SkeletonText
 import com.waivera.waivera.core.designsystem.component.WaiveraBanner
-import com.waivera.waivera.core.designsystem.component.WaiveraBusyIndicator
+import com.waivera.waivera.core.designsystem.component.WaiveraButton
+import com.waivera.waivera.core.designsystem.component.WaiveraButtonSize
+import com.waivera.waivera.core.designsystem.component.WaiveraButtonVariant
 import com.waivera.waivera.core.designsystem.component.WaiveraCountTone
 import com.waivera.waivera.core.designsystem.component.WaiveraEmptyState
 import com.waivera.waivera.core.designsystem.component.WaiveraErrorState
@@ -91,8 +92,7 @@ import com.waivera.waivera.core.designsystem.theme.WaiveraTextStyles
 import com.waivera.waivera.core.designsystem.theme.WaiveraTheme
 import com.waivera.waivera.core.designsystem.theme.isLargeFontScale
 import com.waivera.waivera.core.designsystem.theme.swapTransition
-import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.launch
 
 /** The Tasks tab root. Owned by `:feature:tasks`; routed by `:app`. */
 @Composable
@@ -114,7 +114,8 @@ fun TasksScreen(
             onDelays = viewModel::setDelays,
             onQueryChange = viewModel::onQueryChange,
             onRefresh = viewModel::refresh,
-            onLoadMore = viewModel::loadMore,
+            onShowMore = viewModel::showMore,
+            onShowFewer = viewModel::showFewer,
             onOpenTask = onOpenTask,
         ),
         requests = { RequestsScreen(onOpenTask = onOpenTask, onOpenMine = onOpenMyRequests) },
@@ -131,7 +132,8 @@ class TasksActions(
     val onDelays: (DelayFilter) -> Unit = {},
     val onQueryChange: (String) -> Unit = {},
     val onRefresh: () -> Unit = {},
-    val onLoadMore: () -> Unit = {},
+    val onShowMore: (DueGroup) -> Unit = {},
+    val onShowFewer: (DueGroup) -> Unit = {},
     val onOpenTask: (Int) -> Unit = {},
 )
 
@@ -386,8 +388,14 @@ private fun emptyCopy(state: TasksUiState): Pair<Int, Int> = when (state.window)
 @Composable
 private fun TaskList(state: TasksUiState, actions: TasksActions) {
     val listState = rememberLazyListState()
-    // Keyed on the row count too, so a page that lands with the list still at its end asks again.
-    LoadMoreWhenNearEnd(listState, state.canLoadMore && !state.isLoadingMore, state.rowCount, actions.onLoadMore)
+    val scope = rememberCoroutineScope()
+    // Each header's place in the list (after the meta line), for folding a long section back.
+    val headerIndex = remember(state.sections) {
+        var index = 1
+        state.sections.associate { section ->
+            (section.group to index).also { index += 1 + section.rows.size + if (section.more != null) 1 else 0 }
+        }
+    }
     LazyColumn(
         state = listState,
         modifier = Modifier.fillMaxSize(),
@@ -407,38 +415,89 @@ private fun TaskList(state: TasksUiState, actions: TasksActions) {
             items(section.rows, key = { it.id }) { row ->
                 TaskCard(row = row, onClick = { actions.onOpenTask(row.id) }, modifier = Modifier.animateItem())
             }
-        }
-        if (state.isLoadingMore) {
-            item(key = "more") {
-                val loadingMore = stringResource(R.string.feature_tasks_loading_more)
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(WaiveraSpacing.Medium)
-                        .semantics { contentDescription = loadingMore },
-                    horizontalArrangement = Arrangement.Center,
-                ) {
-                    WaiveraBusyIndicator()
+            section.more?.let { more ->
+                item(key = "more-${section.group}") {
+                    SectionMoreButton(
+                        group = section.group,
+                        more = more,
+                        onShowMore = { actions.onShowMore(section.group) },
+                        onShowFewer = {
+                            actions.onShowFewer(section.group)
+                            // Folding a long section would leave the person far below it; bring its header back.
+                            val header = headerIndex[section.group] ?: return@SectionMoreButton
+                            if (listState.firstVisibleItemIndex > header) {
+                                scope.launch { listState.animateScrollToItem(header) }
+                            }
+                        },
+                        modifier = Modifier.animateItem(),
+                    )
                 }
             }
         }
     }
 }
 
+/**
+ * Under a section that holds more than its first rows: "Show 42 more" opens the next batch in
+ * place, and once it is all open "Show fewer" folds it back. The header keeps the real total.
+ */
 @Composable
-private fun LoadMoreWhenNearEnd(listState: LazyListState, enabled: Boolean, rowCount: Int, onLoadMore: () -> Unit) {
-    LaunchedEffect(listState, enabled, rowCount) {
-        if (!enabled) return@LaunchedEffect
-        snapshotFlow {
-            val info = listState.layoutInfo
-            val last = info.visibleItemsInfo.lastOrNull()?.index ?: 0
-            last >= info.totalItemsCount - LOAD_MORE_AHEAD
+internal fun SectionMoreButton(
+    group: DueGroup,
+    more: SectionMore,
+    onShowMore: () -> Unit,
+    onShowFewer: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val groupName = stringResource(group.titleRes)
+    val (text, description) = when (more) {
+        is SectionMore.ShowMore -> if (more.failed) {
+            stringResource(R.string.feature_tasks_section_more_failed) to
+                stringResource(R.string.feature_tasks_section_more_failed_description, groupName)
+        } else {
+            pluralStringResource(R.plurals.feature_tasks_section_more, more.hidden, more.hidden) to
+                pluralStringResource(
+                    R.plurals.feature_tasks_section_more_description,
+                    more.hidden,
+                    more.hidden,
+                    groupName,
+                )
         }
-            .distinctUntilChanged()
-            .filter { it }
-            .collect { onLoadMore() }
+        SectionMore.ShowFewer -> stringResource(R.string.feature_tasks_section_fewer) to
+            stringResource(R.string.feature_tasks_section_fewer_description, groupName)
     }
+    WaiveraButton(
+        text = text,
+        onClick = if (more is SectionMore.ShowMore) onShowMore else onShowFewer,
+        variant = WaiveraButtonVariant.Tonal,
+        fullWidth = true,
+        leadingIcon = when {
+            more is SectionMore.ShowFewer -> DesignR.drawable.core_designsystem_ic_expand_less
+            more is SectionMore.ShowMore && more.failed -> DesignR.drawable.core_designsystem_ic_refresh
+            else -> DesignR.drawable.core_designsystem_ic_expand_more
+        },
+        loadingText = stringResource(R.string.feature_tasks_loading_more).takeIf {
+            more is SectionMore.ShowMore && more.loading
+        },
+        size = WaiveraButtonSize.Card,
+        // While busy the button reads its loading text, so TalkBack hears that it is working.
+        modifier = if (more is SectionMore.ShowMore && more.loading) {
+            modifier
+        } else {
+            modifier.semantics { contentDescription = description }
+        },
+    )
 }
+
+private val DueGroup.titleRes: Int
+    get() = when (this) {
+        DueGroup.Overdue -> R.string.feature_tasks_group_overdue
+        DueGroup.Delayed -> R.string.feature_tasks_group_delayed
+        DueGroup.ThisWeek -> R.string.feature_tasks_group_this_week
+        DueGroup.NextWeek -> R.string.feature_tasks_group_next_week
+        DueGroup.Later -> R.string.feature_tasks_group_later
+        DueGroup.NoDue -> R.string.feature_tasks_group_no_due
+    }
 
 @Composable
 private fun TasksMeta(state: TasksUiState) {
@@ -478,18 +537,10 @@ private fun metaText(counts: TaskCounts, delaysHidden: Boolean): String {
 
 @Composable
 private fun GroupHeader(section: TaskSection, modifier: Modifier = Modifier) {
-    val count = section.rows.size
+    // The server's total for the group, not the rows shown, so it matches the line above.
+    val count = section.total
     WaiveraSectionHeader(
-        title = stringResource(
-            when (section.group) {
-                DueGroup.Overdue -> R.string.feature_tasks_group_overdue
-                DueGroup.Delayed -> R.string.feature_tasks_group_delayed
-                DueGroup.ThisWeek -> R.string.feature_tasks_group_this_week
-                DueGroup.NextWeek -> R.string.feature_tasks_group_next_week
-                DueGroup.Later -> R.string.feature_tasks_group_later
-                DueGroup.NoDue -> R.string.feature_tasks_group_no_due
-            },
-        ),
+        title = stringResource(section.group.titleRes),
         count = count,
         countDescription = pluralStringResource(R.plurals.feature_tasks_group_count, count, count),
         countTone = if (section.group == DueGroup.Overdue) WaiveraCountTone.Attention else WaiveraCountTone.Info,
@@ -695,7 +746,6 @@ internal fun TasksSkeleton(cards: Int = SKELETON_CARDS) {
     }
 }
 
-private const val LOAD_MORE_AHEAD = 4
 private const val TITLE_LINES = 2
 private const val LARGE_TITLE_LINES = 4
 private const val META_SEPARATOR = "\u00A0· "
@@ -752,4 +802,17 @@ internal object TasksPreviewStates {
 @Composable
 private fun TasksPreview() {
     WaiveraTheme { TasksContent(state = TasksPreviewStates.populated(), actions = remember { TasksActions() }) }
+}
+
+@WaiveraPreviews
+@Composable
+private fun SectionMorePreview() {
+    WaiveraTheme {
+        Column(verticalArrangement = Arrangement.spacedBy(WaiveraSpacing.Small)) {
+            SectionMoreButton(DueGroup.Overdue, SectionMore.ShowMore(hidden = 42), onShowMore = {}, onShowFewer = {})
+            SectionMoreButton(DueGroup.Delayed, SectionMore.ShowMore(hidden = 13, loading = true), {}, {})
+            SectionMoreButton(DueGroup.ThisWeek, SectionMore.ShowMore(hidden = 8, failed = true), {}, {})
+            SectionMoreButton(DueGroup.Later, SectionMore.ShowFewer, onShowMore = {}, onShowFewer = {})
+        }
+    }
 }

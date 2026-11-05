@@ -20,10 +20,16 @@ import kotlinx.coroutines.CompletableDeferred
 /** A scripted task server: results per call, an optional gate to hold loads, and call records. */
 internal class FakeTasks : TaskRepository {
     var all: List<TaskSummary> = emptyList()
-    var pageSize = 2
+
+    /** The server's day in the employee's zone (Chicago on the default test clock). */
+    var today: LocalDate = LocalDate.of(2026, 11, 1)
     var failList: WaiveraError? = null
+
+    /** Fails only the sections it matches, as one slow or broken request among several. */
+    var failWhen: ((TaskQuery) -> Boolean)? = null
     var listGate: CompletableDeferred<Unit>? = null
     val listCalls = mutableListOf<Triple<TaskWindow, String, Int>>()
+    val pageSizes = mutableListOf<Int>()
     val queries = mutableListOf<TaskQuery>()
     val countCalls = mutableListOf<Pair<TaskScope, Boolean>>()
 
@@ -34,14 +40,28 @@ internal class FakeTasks : TaskRepository {
     val logged = mutableListOf<NewActivity>()
     var attachments: Result<List<TaskAttachment>> = Result.success(emptyList())
 
-    override suspend fun tasks(query: TaskQuery, page: Int): Result<TaskPage> {
+    override suspend fun tasks(query: TaskQuery, page: Int, pageSize: Int): Result<TaskPage> {
         val search = query.search
         queries += query
         listCalls += Triple(query.window, search, page)
+        pageSizes += pageSize
         listGate?.await()
-        failList?.let { return Result.failure(it) }
-        val matches = all.filter { search.isBlank() || it.title.contains(search, ignoreCase = true) }
+        val failure = failList ?: WaiveraError.Network().takeIf { failWhen?.invoke(query) == true }
+        if (failure != null) return Result.failure(failure)
+        val matches = all
+            .filter { search.isBlank() || it.title.contains(search, ignoreCase = true) }
+            .filter { inSlice(it, query) }
         return Result.success(TaskPage(matches.drop((page - 1) * pageSize).take(pageSize), matches.size))
+    }
+
+    /** The server's cut for a section; an undated task (never sent by the server) reads as later. */
+    private fun inSlice(task: TaskSummary, query: TaskQuery): Boolean {
+        val slice = query.slice ?: return true
+        if (query.scope == TaskScope.Casework && slice.delayed != task.delayed) return false
+        if (slice.delayed) return true
+        val due = task.due ?: return slice.dueTo == null
+        return (slice.dueFrom?.let { !due.isBefore(it) } ?: true) &&
+            (slice.dueTo?.let { !due.isAfter(it) } ?: true)
     }
 
     override suspend fun counts(scope: TaskScope, assignedToMe: Boolean): Result<TaskCounts> {

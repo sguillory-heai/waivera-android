@@ -31,7 +31,18 @@ data class TaskQuery(
     val assignedToMe: Boolean = false,
     /** Casework only: the server applies delay filters to client tasks alone. */
     val delays: DelayFilter = DelayFilter.Show,
+    /** One section of the list; null asks for the whole list as [delays] says. */
+    val slice: TaskSlice? = null,
 )
+
+/**
+ * One section of a task list, asked of the server on its own so it comes with its own total.
+ * [delayed] is casework under an approved delay (any due date in the window); otherwise casework
+ * leaves delayed tasks out, as they have their own section. [dueFrom] and [dueTo] are inclusive
+ * due dates in the employee's saved zone; overdue is "due through yesterday", cut from the same
+ * day as the week sections so a task can never land in two of them.
+ */
+data class TaskSlice(val delayed: Boolean = false, val dueFrom: LocalDate? = null, val dueTo: LocalDate? = null)
 
 /** A task's workflow state, by its server name. Unknown names keep their text in [TaskState.Other]. */
 sealed interface TaskState {

@@ -71,6 +71,7 @@ import com.waivera.waivera.core.data.model.TrainingCredit
 import com.waivera.waivera.core.data.model.TrainingDecision
 import com.waivera.waivera.core.data.model.UploadTarget
 import com.waivera.waivera.core.data.model.currentUserId
+import com.waivera.waivera.core.network.api.TaskApi
 import java.io.File
 import java.time.LocalDate
 import java.time.YearMonth
@@ -306,7 +307,7 @@ interface ParticipantRepository {
  * on the web, and the server is authoritative. Logging activity is the only write.
  */
 interface TaskRepository {
-    suspend fun tasks(query: TaskQuery, page: Int): Result<TaskPage>
+    suspend fun tasks(query: TaskQuery, page: Int, pageSize: Int = TaskApi.PAGE_SIZE): Result<TaskPage>
 
     /** How many open tasks a list holds, and how many of them are overdue. */
     suspend fun counts(scope: TaskScope, assignedToMe: Boolean = false): Result<TaskCounts>

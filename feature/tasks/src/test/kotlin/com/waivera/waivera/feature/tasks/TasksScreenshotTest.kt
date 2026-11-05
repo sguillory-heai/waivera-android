@@ -1,6 +1,7 @@
 package com.waivera.waivera.feature.tasks
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.SnackbarHostState
@@ -8,7 +9,9 @@ import androidx.compose.runtime.remember
 import com.waivera.waivera.core.data.model.DelayFilter
 import com.waivera.waivera.core.data.model.FileKind
 import com.waivera.waivera.core.data.model.RequestKind
+import com.waivera.waivera.core.data.model.TaskCounts
 import com.waivera.waivera.core.data.model.TaskState
+import com.waivera.waivera.core.data.model.TaskWindow
 import com.waivera.waivera.core.designsystem.component.WaiveraCardGroup
 import com.waivera.waivera.core.designsystem.component.WaiveraInsetDivider
 import com.waivera.waivera.core.designsystem.component.WaiveraSectionHeader
@@ -34,6 +37,51 @@ class TasksScreenshotTest {
     @Test
     fun tasksPopulated() = captureScreenshots("tasks_populated") {
         TasksContent(state = TasksPreviewStates.populated(), actions = remember { TasksActions() })
+    }
+
+    /** Capped sections: the header keeps the server's total, and the button under it opens the rest. */
+    @Test
+    fun tasksCappedSections() = captureScreenshots("tasks_capped_sections", heightDp = 1500) {
+        TasksContent(state = cappedState(), actions = remember { TasksActions() })
+    }
+
+    @Test
+    fun sectionMoreStates() = captureScreenshots("tasks_section_more_states") {
+        Column(verticalArrangement = Arrangement.spacedBy(WaiveraSpacing.Small)) {
+            SectionMoreButton(DueGroup.Overdue, SectionMore.ShowMore(hidden = 42), {}, {})
+            SectionMoreButton(DueGroup.Delayed, SectionMore.ShowMore(hidden = 13, loading = true), {}, {})
+            SectionMoreButton(DueGroup.ThisWeek, SectionMore.ShowMore(hidden = 8, failed = true), {}, {})
+            SectionMoreButton(DueGroup.Later, SectionMore.ShowFewer, {}, {})
+        }
+    }
+
+    private fun cappedState(): TasksUiState {
+        val overdue = (0 until 5).map { i ->
+            TaskRow(
+                1100 + i, "HEA-${1100 + i}", "Monthly face-to-face visit", "Maya Thompson",
+                DueText.WasOn("Oct ${28 - i}"), TaskState.NotStarted, tileMonth = "Oct", tileDay = "${28 - i}",
+                daysLate = 8 + i, group = DueGroup.Overdue,
+            )
+        }
+        val delayed = (0 until 5).map { i ->
+            TaskRow(
+                900 + i, "HEA-${900 + i}", "Quarterly monitoring visit", "Jordan Ellis",
+                DueText.WasOn("Oct ${27 - i}"), TaskState.InProgress, tileMonth = "Oct", tileDay = "${27 - i}",
+                delayed = true, delayedThrough = "Nov ${20 + i}", group = DueGroup.Delayed,
+            )
+        }
+        return TasksUiState(
+            window = TaskWindow.Overdue,
+            sections = listOf(
+                TaskSection(DueGroup.Overdue, overdue, total = 47, more = SectionMore.ShowMore(hidden = 42)),
+                TaskSection(DueGroup.Delayed, delayed, total = 18, more = SectionMore.ShowMore(hidden = 13)),
+            ),
+            totalCount = 65,
+            counts = TaskCounts(open = 86, overdue = 47, delayed = 18),
+            phase = TasksPhase.Content,
+            showsRequests = true,
+            waitingCount = 2,
+        )
     }
 
     @Test

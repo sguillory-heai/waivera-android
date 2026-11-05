@@ -3,7 +3,9 @@ package com.waivera.waivera.feature.tasks
 import com.waivera.waivera.core.data.model.DelayFilter
 import com.waivera.waivera.core.data.model.RequestAccess
 import com.waivera.waivera.core.data.model.RequestKind
+import com.waivera.waivera.core.data.model.TaskQuery
 import com.waivera.waivera.core.data.model.TaskScope
+import com.waivera.waivera.core.data.model.TaskSlice
 import com.waivera.waivera.core.data.model.TaskWindow
 import com.waivera.waivera.core.demo.DemoGraph
 import com.waivera.waivera.core.network.error.WaiveraError
@@ -98,40 +100,188 @@ class TasksViewModelTest {
     }
 
     @Test
-    fun scrolling_to_the_end_loads_the_next_page_once() = runTest {
-        val tasks = FakeTasks().apply { all = (1..5).map { FakeTasks.summary(it, "Task $it") } }
+    fun a_section_counts_the_servers_total_and_shows_its_first_five() = runTest {
+        val tasks = FakeTasks().apply {
+            all =
+                (1..12).map {
+                    FakeTasks.summary(it, "Late $it", due = LocalDate.of(2026, 10, 1).plusDays(it.toLong()))
+                } +
+                (21..23).map {
+                    FakeTasks.summary(it, "Delayed $it", due = LocalDate.of(2026, 10, 1)).copy(delayed = true)
+                }
+        }
         val vm = viewModel(tasks)
         runCurrent()
-        assertTrue(vm.uiState.value.canLoadMore)
-
-        tasks.listGate = CompletableDeferred()
-        vm.loadMore()
-        vm.loadMore()
+        vm.setWindow(TaskWindow.Overdue)
         runCurrent()
-        assertTrue(vm.uiState.value.isLoadingMore)
-        tasks.listGate?.complete(Unit)
-        runCurrent()
-        assertEquals(4, vm.uiState.value.rows().size)
-        assertEquals(listOf(1, 2), tasks.listCalls.map { it.third })
+        val (overdue, delayed) = vm.uiState.value.sections
+        assertEquals(DueGroup.Overdue, overdue.group)
+        assertEquals(12, overdue.total)
+        assertEquals(5, overdue.rows.size)
+        assertEquals(SectionMore.ShowMore(hidden = 7), overdue.more)
+        assertEquals(3, delayed.total)
+        assertNull(delayed.more)
+        assertEquals(15, vm.uiState.value.totalCount)
     }
 
     @Test
-    fun a_failed_next_page_stops_asking_until_a_refresh() = runTest {
-        val tasks = FakeTasks().apply { all = (1..5).map { FakeTasks.summary(it, "Task $it") } }
+    fun show_more_adds_ten_in_one_read_then_folds_back_without_asking_again() = runTest {
+        val tasks = FakeTasks().apply {
+            all =
+                (1..17).map { FakeTasks.summary(it, "Late $it", due = LocalDate.of(2026, 10, 1).plusDays(it.toLong())) }
+        }
         val vm = viewModel(tasks)
         runCurrent()
+        vm.setWindow(TaskWindow.Overdue)
+        runCurrent()
+
+        tasks.listGate = CompletableDeferred()
+        val before = tasks.listCalls.size
+        vm.showMore(DueGroup.Overdue)
+        vm.showMore(DueGroup.Overdue)
+        runCurrent()
+        assertEquals(SectionMore.ShowMore(hidden = 12, loading = true), vm.uiState.value.sections.single().more)
+        tasks.listGate?.complete(Unit)
+        runCurrent()
+        // One read from the top for all fifteen, asked for once.
+        assertEquals(listOf(1), tasks.listCalls.drop(before).map { it.third })
+        assertEquals(listOf(15), tasks.pageSizes.drop(before))
+        var section = vm.uiState.value.sections.single()
+        assertEquals((1..15).toList(), section.rows.map { it.id })
+        assertEquals(17, section.total)
+        assertEquals(SectionMore.ShowMore(hidden = 2), section.more)
+
+        vm.showMore(DueGroup.Overdue)
+        runCurrent()
+        section = vm.uiState.value.sections.single()
+        assertEquals(17, section.rows.size)
+        assertEquals(SectionMore.ShowFewer, section.more)
+
+        val loaded = tasks.listCalls.size
+        vm.showFewer(DueGroup.Overdue)
+        assertEquals(5, vm.uiState.value.sections.single().rows.size)
+        vm.showMore(DueGroup.Overdue)
+        runCurrent()
+        assertEquals(15, vm.uiState.value.sections.single().rows.size)
+        assertEquals(loaded, tasks.listCalls.size)
+    }
+
+    @Test
+    fun a_task_closed_elsewhere_before_show_more_never_strands_a_row() = runTest {
+        val tasks = FakeTasks().apply {
+            all =
+                (1..12).map { FakeTasks.summary(it, "Late $it", due = LocalDate.of(2026, 10, 1).plusDays(it.toLong())) }
+        }
+        val vm = viewModel(tasks)
+        runCurrent()
+        vm.setWindow(TaskWindow.Overdue)
+        runCurrent()
+
+        // Task 2 is closed on the web, so every later row moves up one place on the server.
+        tasks.all = tasks.all.filterNot { it.id == 2 }
+        vm.showMore(DueGroup.Overdue)
+        runCurrent()
+        val section = vm.uiState.value.sections.single()
+        assertEquals((1..12).filterNot { it == 2 }, section.rows.map { it.id })
+        assertEquals(11, section.total)
+        assertEquals(SectionMore.ShowFewer, section.more)
+    }
+
+    @Test
+    fun a_failed_show_more_keeps_the_rows_and_offers_to_try_again() = runTest {
+        val tasks = FakeTasks().apply {
+            all =
+                (1..8).map { FakeTasks.summary(it, "Late $it", due = LocalDate.of(2026, 10, 1).plusDays(it.toLong())) }
+        }
+        val vm = viewModel(tasks)
+        runCurrent()
+        vm.setWindow(TaskWindow.Overdue)
+        runCurrent()
         tasks.failList = WaiveraError.Network()
-        vm.loadMore()
+        vm.showMore(DueGroup.Overdue)
         runCurrent()
-        assertTrue(vm.uiState.value.pageFailed)
-        vm.loadMore()
-        runCurrent()
-        assertEquals(listOf(1, 2), tasks.listCalls.map { it.third })
+        val section = vm.uiState.value.sections.single()
+        assertEquals(5, section.rows.size)
+        assertEquals(SectionMore.ShowMore(hidden = 3, failed = true), section.more)
 
         tasks.failList = null
+        vm.showMore(DueGroup.Overdue)
+        runCurrent()
+        assertEquals(SectionMore.ShowFewer, vm.uiState.value.sections.single().more)
+    }
+
+    @Test
+    fun one_failed_section_keeps_the_others_and_offers_to_try_again() = runTest {
+        val tasks = FakeTasks().apply {
+            all = listOf(
+                FakeTasks.summary(1, "Late", due = LocalDate.of(2026, 10, 20)),
+                FakeTasks.summary(2, "Soon", due = LocalDate.of(2026, 11, 3)),
+            )
+            failWhen = { it.slice?.dueFrom != null && it.slice?.dueTo == null }
+        }
+        val vm = viewModel(tasks)
+        runCurrent()
+        vm.setWindow(TaskWindow.AllOpen)
+        runCurrent()
+        val state = vm.uiState.value
+        assertEquals(TasksPhase.Content, state.phase)
+        assertEquals(listOf(DueGroup.Overdue, DueGroup.ThisWeek), state.sections.map { it.group })
+        assertTrue(state.refreshFailed)
+
+        tasks.failWhen = null
         vm.refresh()
         runCurrent()
-        assertTrue(vm.uiState.value.canLoadMore)
+        assertFalse(vm.uiState.value.refreshFailed)
+    }
+
+    @Test
+    fun a_refresh_while_show_more_waits_never_leaves_it_loading() = runTest {
+        val tasks = FakeTasks().apply {
+            all = (1..9).map { FakeTasks.summary(it, "Late $it", due = LocalDate.of(2026, 10, it)) }
+        }
+        val vm = viewModel(tasks)
+        runCurrent()
+        vm.setWindow(TaskWindow.Overdue)
+        runCurrent()
+        tasks.listGate = CompletableDeferred()
+        vm.showMore(DueGroup.Overdue)
+        runCurrent()
+        tasks.failList = WaiveraError.Network()
+        vm.refresh()
+        tasks.listGate?.complete(Unit)
+        runCurrent()
+        assertEquals(SectionMore.ShowMore(hidden = 4), vm.uiState.value.sections.single().more)
+    }
+
+    @Test
+    fun a_refresh_keeps_an_open_section_open_and_reloads_it_whole() = runTest {
+        val tasks = FakeTasks().apply {
+            all =
+                (1..30).map {
+                    FakeTasks.summary(it, "Late $it", due = LocalDate.of(2026, 10, 1).plusDays(it.toLong() / 2))
+                }
+        }
+        val vm = viewModel(tasks)
+        runCurrent()
+        vm.setWindow(TaskWindow.Overdue)
+        runCurrent()
+        vm.showMore(DueGroup.Overdue)
+        runCurrent()
+
+        tasks.all = tasks.all.drop(1)
+        val before = tasks.listCalls.size
+        vm.refresh()
+        runCurrent()
+        // Overdue comes back as open as it was; the closed Delayed section asks for its first five.
+        assertEquals(listOf(15, 5), tasks.pageSizes.drop(before))
+        val section = vm.uiState.value.sections.single()
+        assertEquals((2..16).toList(), section.rows.map { it.id })
+        assertEquals(SectionMore.ShowMore(hidden = 14), section.more)
+
+        // A new list starts every section closed.
+        vm.setWindow(TaskWindow.AllOpen)
+        runCurrent()
+        assertEquals(5, vm.uiState.value.sections.first().rows.size)
     }
 
     @Test
@@ -147,7 +297,7 @@ class TasksViewModelTest {
         vm.onQueryChange("inta")
         advanceTimeBy(SEARCH_PAUSE)
         runCurrent()
-        assertEquals(listOf("", "inta"), tasks.listCalls.map { it.second })
+        assertEquals(listOf("", "inta"), tasks.listCalls.map { it.second }.distinct())
         assertEquals(listOf("HEA-2"), vm.uiState.value.rows().map { it.key })
     }
 
@@ -251,20 +401,22 @@ class TasksViewModelTest {
     fun cards_group_by_due_week_and_carry_lateness_owner_and_one_flag() = runTest {
         val clock = TestClock(Instant.parse("2026-11-04T15:00:00Z"))
         val tasks = FakeTasks().apply {
-            pageSize = 10
+            today = LocalDate.of(2026, 11, 4)
             all = listOf(
                 FakeTasks.summary(1, "Late", due = LocalDate.of(2026, 10, 30)),
                 FakeTasks.summary(2, "Friday", due = LocalDate.of(2026, 11, 6))
                     .copy(assigneeId = "usr_priya", assigneeName = "Priya Raman"),
                 FakeTasks.summary(3, "Next week", due = LocalDate.of(2026, 11, 10)).copy(pendingClosure = true),
-                FakeTasks.summary(4, "Undated"),
+                FakeTasks.summary(4, "Later", due = LocalDate.of(2026, 11, 30)),
             )
         }
         val vm = viewModel(tasks, clock)
         runCurrent()
+        vm.setWindow(TaskWindow.AllOpen)
+        runCurrent()
         val sections = vm.uiState.value.sections
         assertEquals(
-            listOf(DueGroup.Overdue, DueGroup.ThisWeek, DueGroup.NextWeek, DueGroup.NoDue),
+            listOf(DueGroup.Overdue, DueGroup.ThisWeek, DueGroup.NextWeek, DueGroup.Later),
             sections.map { it.group },
         )
         val late = sections.first().rows.single()
@@ -273,7 +425,7 @@ class TasksViewModelTest {
         assertNull(late.flag)
         assertEquals("Priya Raman", sections[1].rows.single().assignee)
         assertEquals(RowFlag.ClosureRequested, sections[2].rows.single().flag)
-        assertNull(sections[3].rows.single().tileDay)
+        assertEquals(listOf(4), sections[3].rows.map { it.id })
     }
 
     @Test
@@ -281,7 +433,6 @@ class TasksViewModelTest {
         // Sunday Nov 1 2026 is the US fall-back day; the delay's last day is a literal date.
         val clock = TestClock(Instant.parse("2026-11-01T15:00:00Z"))
         val tasks = FakeTasks().apply {
-            pageSize = 10
             all = listOf(
                 FakeTasks.summary(1, "Really late", due = LocalDate.of(2026, 10, 28)),
                 FakeTasks.summary(2, "Delayed and past due", due = LocalDate.of(2026, 10, 25))
@@ -292,6 +443,8 @@ class TasksViewModelTest {
             )
         }
         val vm = viewModel(tasks, clock)
+        runCurrent()
+        vm.setWindow(TaskWindow.AllOpen)
         runCurrent()
         val sections = vm.uiState.value.sections
         assertEquals(listOf(DueGroup.Overdue, DueGroup.Delayed, DueGroup.ThisWeek), sections.map { it.group })
@@ -377,6 +530,51 @@ class TasksViewModelTest {
         // Weeks start on Monday in the UK, so that Sunday still belongs to this week.
         assertEquals(DueGroup.ThisWeek, TasksViewModel.group(LocalDate.of(2026, 11, 8), wednesday, Locale.UK))
         assertEquals(DueGroup.Overdue, TasksViewModel.group(LocalDate.of(2026, 11, 1), wednesday, Locale.US))
+    }
+
+    @Test
+    fun sections_cut_weeks_by_the_locale_across_the_fall_back_change() {
+        // Wednesday Nov 4 2026, the week of the US fall-back day; US weeks start Sunday Nov 1.
+        val wednesday = LocalDate.of(2026, 11, 4)
+        val allOpen = TaskQuery(TaskScope.Casework, TaskWindow.AllOpen)
+        val plan = TasksViewModel.sectionPlan(allOpen, wednesday, Locale.US).toMap()
+        assertEquals(
+            listOf(DueGroup.Overdue, DueGroup.Delayed, DueGroup.ThisWeek, DueGroup.NextWeek, DueGroup.Later),
+            plan.keys.toList(),
+        )
+        // Overdue ends the day before This week starts, so no task can sit in both.
+        assertEquals(TaskSlice(dueTo = LocalDate.of(2026, 11, 3)), plan[DueGroup.Overdue])
+        assertEquals(TaskSlice(dueFrom = wednesday, dueTo = LocalDate.of(2026, 11, 7)), plan[DueGroup.ThisWeek])
+        assertEquals(
+            TaskSlice(dueFrom = LocalDate.of(2026, 11, 8), dueTo = LocalDate.of(2026, 11, 14)),
+            plan[DueGroup.NextWeek],
+        )
+        assertEquals(TaskSlice(dueFrom = LocalDate.of(2026, 11, 15)), plan[DueGroup.Later])
+        // Monday weeks in the UK keep that Sunday in this week.
+        val uk = TasksViewModel.sectionPlan(allOpen, wednesday, Locale.UK).toMap()
+        assertEquals(LocalDate.of(2026, 11, 8), uk[DueGroup.ThisWeek]?.dueTo)
+    }
+
+    @Test
+    fun sections_follow_the_window_and_the_delays_choice() {
+        val day = LocalDate.of(2026, 11, 4)
+        fun groups(query: TaskQuery) = TasksViewModel.sectionPlan(query, day, Locale.US).map { it.first }
+        val casework = TaskQuery(TaskScope.Casework, TaskWindow.DueSoon)
+        assertEquals(
+            listOf(DueGroup.Delayed, DueGroup.ThisWeek, DueGroup.NextWeek, DueGroup.Later),
+            groups(casework),
+        )
+        assertEquals(
+            listOf(DueGroup.Overdue, DueGroup.Delayed),
+            groups(casework.copy(window = TaskWindow.Overdue)),
+        )
+        assertEquals(
+            listOf(DueGroup.Overdue),
+            groups(casework.copy(window = TaskWindow.Overdue, delays = DelayFilter.Hide)),
+        )
+        assertEquals(listOf(DueGroup.Delayed), groups(casework.copy(delays = DelayFilter.Only)))
+        // My work has no delays, so it never asks for a delayed section.
+        assertEquals(listOf(DueGroup.Overdue), groups(TaskQuery(TaskScope.Mine, TaskWindow.Overdue)))
     }
 
     private fun TasksUiState.rows(): List<TaskRow> = sections.flatMap { it.rows }

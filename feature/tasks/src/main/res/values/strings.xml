@@ -26,7 +26,7 @@
         <item quantity="other">%d matches</item>
     </plurals>
     <string name="feature_tasks_refresh">Refresh tasks</string>
-    <string name="feature_tasks_refresh_failed">Couldn\'t refresh your tasks.</string>
+    <string name="feature_tasks_refresh_failed">Couldn\'t load all of your tasks.</string>
     <string name="feature_tasks_try_again">Try again</string>
     <string name="feature_tasks_error_title">Couldn\'t load your tasks</string>
     <string name="feature_tasks_empty_due_soon_title">Nothing due soon</string>
@@ -128,6 +128,18 @@
     <string name="feature_tasks_group_next_week">Next week</string>
     <string name="feature_tasks_group_later">Later</string>
     <string name="feature_tasks_group_no_due">No due date</string>
+    <plurals name="feature_tasks_section_more">
+        <item quantity="one">Show %d more</item>
+        <item quantity="other">Show %d more</item>
+    </plurals>
+    <plurals name="feature_tasks_section_more_description">
+        <item quantity="one">Show %1$d more task in %2$s</item>
+        <item quantity="other">Show %1$d more tasks in %2$s</item>
+    </plurals>
+    <string name="feature_tasks_section_fewer">Show fewer</string>
+    <string name="feature_tasks_section_fewer_description">Show fewer tasks in %1$s</string>
+    <string name="feature_tasks_section_more_failed">Try again</string>
+    <string name="feature_tasks_section_more_failed_description">Couldn\'t load more tasks in %1$s. Try again</string>
     <plurals name="feature_tasks_group_count">
         <item quantity="one">%d task</item>
         <item quantity="other">%d tasks</item>

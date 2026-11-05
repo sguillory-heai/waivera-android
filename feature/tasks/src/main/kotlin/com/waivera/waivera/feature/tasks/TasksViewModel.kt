@@ -6,8 +6,10 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.waivera.waivera.core.data.model.DelayFilter
 import com.waivera.waivera.core.data.model.TaskCounts
+import com.waivera.waivera.core.data.model.TaskPage
 import com.waivera.waivera.core.data.model.TaskQuery
 import com.waivera.waivera.core.data.model.TaskScope
+import com.waivera.waivera.core.data.model.TaskSlice
 import com.waivera.waivera.core.data.model.TaskState
 import com.waivera.waivera.core.data.model.TaskSummary
 import com.waivera.waivera.core.data.model.TaskWindow
@@ -29,6 +31,8 @@ import java.util.Locale
 import javax.inject.Inject
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -81,8 +85,27 @@ data class TaskRow(
     val group: DueGroup = DueGroup.NoDue,
 )
 
+/**
+ * One due group as the list shows it: the first [rows] of the server's [total] for that group.
+ * [more] is the control under it, or null when the whole group fits in the first rows.
+ */
 @Immutable
-data class TaskSection(val group: DueGroup, val rows: List<TaskRow>)
+data class TaskSection(
+    val group: DueGroup,
+    val rows: List<TaskRow>,
+    val total: Int = rows.size,
+    val more: SectionMore? = null,
+)
+
+/** The control under a capped section. */
+@Immutable
+sealed interface SectionMore {
+    /** [hidden] tasks are not shown yet; a tap shows up to [TasksViewModel.SECTION_STEP] more. */
+    data class ShowMore(val hidden: Int, val loading: Boolean = false, val failed: Boolean = false) : SectionMore
+
+    /** Everything is open; a tap folds the section back to its first rows. */
+    data object ShowFewer : SectionMore
+}
 
 @Immutable
 data class TasksUiState(
@@ -92,13 +115,11 @@ data class TasksUiState(
     val delays: DelayFilter = DelayFilter.Show,
     val query: String = "",
     val sections: List<TaskSection> = emptyList(),
-    /** Matches on the server for this list and search, including pages not loaded yet. */
+    /** Matches on the server for this list and search, including rows not shown yet. */
     val totalCount: Int = 0,
     val counts: TaskCounts? = null,
     val phase: TasksPhase = TasksPhase.Loading,
     val isRefreshing: Boolean = false,
-    val isLoadingMore: Boolean = false,
-    val pageFailed: Boolean = false,
     /** A refresh failed while the last good list stays on screen. */
     val refreshFailed: Boolean = false,
     @StringRes val errorMessage: Int? = null,
@@ -107,9 +128,6 @@ data class TasksUiState(
     val waitingCount: Int = 0,
 ) {
     val rowCount: Int get() = sections.sumOf { it.rows.size }
-
-    /** False after a failed next page, until a refresh, so a bad page is not retried in a loop. */
-    val canLoadMore: Boolean get() = phase == TasksPhase.Content && rowCount < totalCount && !pageFailed
 
     val segments: List<TasksSegment>
         get() = if (showsRequests) TasksSegment.entries else listOf(TasksSegment.Casework, TasksSegment.MyWork)
@@ -121,7 +139,9 @@ data class TasksUiState(
 /**
  * The Tasks tab. Casework is the web's client task list, scoped by the server to the person's
  * role (their caseload, or the whole agency for owners); My work is their own employee tasks.
- * Changing the segment, window, chip or search starts over at page one.
+ * Each due group is its own server list, so its count is the real total and opening more of it
+ * never depends on scrolling past the others. Changing the segment, window, chip or search starts
+ * over with the first rows of each group.
  */
 @OptIn(FlowPreview::class)
 @HiltViewModel
@@ -138,7 +158,7 @@ class TasksViewModel @Inject constructor(
     private val zone = calendar.zone.distinctUntilChanged()
         .stateIn(viewModelScope, SharingStarted.Eagerly, WaiveraTime.FallbackZone)
     private var listJob: Job? = null
-    private var pageJob: Job? = null
+    private val moreJobs = mutableMapOf<DueGroup, Job>()
     private var countsJob: Job? = null
 
     val uiState: StateFlow<TasksUiState> = combine(local, zone, requests.access, requests.waiting) {
@@ -149,7 +169,6 @@ class TasksViewModel @Inject constructor(
         ->
         val today = clock.instant().atZone(zone).toLocalDate()
         val me = session.state.value.currentUserId
-        val rows = l.items.map { taskRow(it, today, me) }
         val segment = if (l.segment == TasksSegment.Requests && access.loaded && !access.showsRequests) {
             TasksSegment.Casework
         } else {
@@ -161,13 +180,11 @@ class TasksViewModel @Inject constructor(
             assignedToMe = l.assignedToMe,
             delays = l.delays,
             query = l.query,
-            sections = rows.groupBy { it.group }.toSortedMap().map { (group, items) -> TaskSection(group, items) },
-            totalCount = l.totalCount,
+            sections = distinctRows(l.sections.filter { it.total > 0 }.map { it.section(today, me) }),
+            totalCount = l.sections.sumOf { it.total },
             counts = l.counts,
             phase = l.phase,
             isRefreshing = l.isRefreshing,
-            isLoadingMore = l.isLoadingMore,
-            pageFailed = l.pageFailed,
             refreshFailed = l.refreshFailed,
             errorMessage = l.errorMessage,
             showsRequests = access.showsRequests,
@@ -184,6 +201,10 @@ class TasksViewModel @Inject constructor(
                 local.update { it.copy(delays = saved) }
                 reload(showSkeleton = true)
             }
+        }
+        // Sections are cut by date in the saved zone, so a zone that changes after a load reloads them.
+        viewModelScope.launch {
+            zone.drop(1).collect { if (local.value.loadedScope != null) reload(showSkeleton = false) }
         }
         viewModelScope.launch {
             local.map { it.query }.distinctUntilChanged().drop(1).debounce(SEARCH_DEBOUNCE_MILLIS).collect {
@@ -231,45 +252,62 @@ class TasksViewModel @Inject constructor(
         reload(showSkeleton = false)
     }
 
-    fun loadMore() {
-        val l = local.value
-        if (!l.canLoadMore || pageJob?.isActive == true || listJob?.isActive == true) return
-        local.update { it.copy(isLoadingMore = true) }
-        val request = l.request
-        pageJob = viewModelScope.launch {
-            val next = tasks.tasks(request, l.page + 1)
-            local.update { current ->
-                if (current.request != request) return@update current.copy(isLoadingMore = false)
-                next.fold(
-                    onSuccess = { page ->
-                        val known = current.items.map(TaskSummary::id).toSet()
-                        current.copy(
-                            items = current.items + page.items.filter { it.id !in known },
-                            totalCount = page.totalCount,
-                            page = current.page + 1,
-                            isLoadingMore = false,
-                        )
-                    },
-                    // A failed next page keeps what is shown; the next scroll asks again.
-                    onFailure = { current.copy(isLoadingMore = false, pageFailed = true) },
+    /** Shows up to [SECTION_STEP] more of [group], from rows already loaded or the next pages. */
+    fun showMore(group: DueGroup) {
+        val section = local.value.sections.firstOrNull { it.group == group } ?: return
+        if (moreJobs[group]?.isActive == true || listJob?.isActive == true) return
+        val target = (section.shown + SECTION_STEP).coerceAtMost(section.total)
+        if (target <= section.items.size) {
+            updateSection(group) { it.copy(shown = target, failed = false) }
+            return
+        }
+        updateSection(group) { it.copy(loading = true, failed = false) }
+        val request = local.value.request
+        moreJobs[group] = viewModelScope.launch {
+            // One fresh read from the top, so a task closed on the web since the last page can't
+            // shift the offsets and leave a row that no later page brings back.
+            val size = (target + SECTION_FIRST - 1) / SECTION_FIRST * SECTION_FIRST
+            val page = tasks.tasks(request.copy(slice = section.slice), 1, size)
+            if (local.value.request != request) return@launch
+            updateSection(group) { current ->
+                val result = page.getOrNull() ?: return@updateSection current.copy(loading = false, failed = true)
+                val items = result.items.distinctBy(TaskSummary::id)
+                // A short page means the server has nothing past it, whatever its count says.
+                val total = if (result.items.size < size) items.size else result.totalCount.coerceAtLeast(items.size)
+                current.copy(
+                    items = items,
+                    total = total,
+                    shown = target.coerceAtMost(items.size).coerceAtLeast(SECTION_FIRST),
+                    loading = false,
                 )
             }
         }
     }
 
+    /** Folds [group] back to its first rows; the rows stay loaded for the next Show more. */
+    fun showFewer(group: DueGroup) = updateSection(group) { it.copy(shown = SECTION_FIRST, failed = false) }
+
+    private fun updateSection(group: DueGroup, change: (SectionLoad) -> SectionLoad) = local.update { l ->
+        l.copy(sections = l.sections.map { if (it.group == group) change(it) else it })
+    }
+
     private fun reload(showSkeleton: Boolean) {
         listJob?.cancel()
-        pageJob?.cancel()
+        moreJobs.values.forEach(Job::cancel)
+        moreJobs.clear()
         countsJob?.cancel()
         val request = local.value.request
+        val today = clock.instant().atZone(zone.value).toLocalDate()
+        // A refresh keeps how far each section was open; a new list starts every section closed.
+        val previous = if (showSkeleton) emptyMap() else local.value.sections.associate { it.group to it.shown }
+        val plan = sectionPlan(request, today)
         local.update {
             it.copy(
                 phase = if (showSkeleton || it.phase == TasksPhase.Error) TasksPhase.Loading else it.phase,
-                items = if (showSkeleton) emptyList() else it.items,
+                // Show more jobs are cancelled, so no section may keep waiting on one.
+                sections = if (showSkeleton) emptyList() else it.sections.map { s -> s.copy(loading = false) },
                 counts = if (showSkeleton) null else it.counts,
                 isRefreshing = !showSkeleton,
-                isLoadingMore = false,
-                pageFailed = false,
                 refreshFailed = false,
                 loadedScope = request.scope,
             )
@@ -281,32 +319,60 @@ class TasksViewModel @Inject constructor(
             }
         }
         listJob = viewModelScope.launch {
-            val result = tasks.tasks(request, page = 1)
+            val results = plan.map { (group, slice) ->
+                val shown = previous[group] ?: SECTION_FIRST
+                // Whole pages of SECTION_FIRST, as open as the section was before.
+                val size = (shown + SECTION_FIRST - 1) / SECTION_FIRST * SECTION_FIRST
+                async { Triple(group, slice, tasks.tasks(request.copy(slice = slice), page = 1, pageSize = size)) }
+            }.awaitAll()
             local.update { current ->
-                if (current.request != request) return@update current
-                result.fold(
-                    onSuccess = { page ->
-                        current.copy(
-                            items = page.items,
-                            totalCount = page.totalCount,
-                            page = 1,
-                            phase = if (page.items.isEmpty()) TasksPhase.Empty else TasksPhase.Content,
-                            isRefreshing = false,
-                            errorMessage = null,
-                        )
-                    },
-                    onFailure = {
-                        val keeps = current.items.isNotEmpty()
-                        current.copy(
-                            phase = if (keeps) TasksPhase.Content else TasksPhase.Error,
-                            isRefreshing = false,
-                            refreshFailed = keeps,
-                            errorMessage = result.waiveraErrorOrNull()?.messageRes,
-                        )
-                    },
-                )
+                if (current.request != request) current else current.withResults(results, previous)
             }
         }
+    }
+
+    /** The list after a reload: a section that failed keeps what it showed before; the others update. */
+    private fun Local.withResults(
+        results: List<Triple<DueGroup, TaskSlice, Result<TaskPage>>>,
+        previous: Map<DueGroup, Int>,
+    ): Local {
+        val current = this
+        val failure = results.firstOrNull { it.third.isFailure }?.third
+        // A section that failed keeps what it showed before; the others still update.
+        val sections = results.mapNotNull { (group, slice, result) ->
+            if (result.isSuccess) {
+                loaded(group, slice, result, previous[group])
+            } else {
+                // Today's dates, so a later Show more on the kept rows asks for the right days.
+                current.sections.firstOrNull { it.group == group }?.copy(slice = slice)
+            }
+        }
+        val phase = when {
+            sections.any { it.total > 0 } -> TasksPhase.Content
+            failure != null -> TasksPhase.Error
+            else -> TasksPhase.Empty
+        }
+        return current.copy(
+            sections = sections,
+            phase = phase,
+            isRefreshing = false,
+            refreshFailed = failure != null && phase == TasksPhase.Content,
+            errorMessage = failure?.waiveraErrorOrNull()?.messageRes,
+        )
+    }
+
+    /** A section's first answer; [shown] is how far it was open before a refresh. */
+    private fun loaded(group: DueGroup, slice: TaskSlice, result: Result<TaskPage>, shown: Int?): SectionLoad {
+        val page = result.getOrThrow()
+        val items = page.items.distinctBy(TaskSummary::id)
+        return SectionLoad(
+            group = group,
+            slice = slice,
+            items = items,
+            total = page.totalCount.coerceAtLeast(items.size),
+            // Never below the first rows, so a section that was empty still asks for a page.
+            shown = (shown ?: SECTION_FIRST).coerceAtMost(items.size).coerceAtLeast(SECTION_FIRST),
+        )
     }
 
     private data class Local(
@@ -316,17 +382,13 @@ class TasksViewModel @Inject constructor(
         val delays: DelayFilter = DelayFilter.Show,
         val delaysPicked: Boolean = false,
         val query: String = "",
-        val items: List<TaskSummary> = emptyList(),
-        val totalCount: Int = 0,
-        val page: Int = 1,
+        val sections: List<SectionLoad> = emptyList(),
         val counts: TaskCounts? = null,
         val phase: TasksPhase = TasksPhase.Loading,
         val isRefreshing: Boolean = false,
-        val isLoadingMore: Boolean = false,
-        val pageFailed: Boolean = false,
         val refreshFailed: Boolean = false,
         @StringRes val errorMessage: Int? = null,
-        /** The list scope [items] belong to, so leaving Requests keeps a list that still fits. */
+        /** The list scope [sections] belong to, so leaving Requests keeps a list that still fits. */
         val loadedScope: TaskScope? = null,
     ) {
         /** Requests keeps the last task list's scope underneath it. */
@@ -345,14 +407,72 @@ class TasksViewModel @Inject constructor(
                 assignedToMe = assignedToMe && scope == TaskScope.Casework,
                 delays = if (scope == TaskScope.Casework) delays else DelayFilter.Show,
             )
+    }
 
-        val canLoadMore: Boolean
-            get() = !isLoadingMore && !pageFailed && phase == TasksPhase.Content && items.size < totalCount
+    /** One due group's server list: the rows loaded so far, how many show, and its total. */
+    private data class SectionLoad(
+        val group: DueGroup,
+        val slice: TaskSlice,
+        val items: List<TaskSummary> = emptyList(),
+        val total: Int = 0,
+        val shown: Int = SECTION_FIRST,
+        val loading: Boolean = false,
+        val failed: Boolean = false,
+    ) {
+        fun section(today: LocalDate, me: String?): TaskSection {
+            val visible = items.take(shown)
+            val hidden = total - visible.size
+            return TaskSection(
+                group = group,
+                rows = visible.map { taskRow(it, today, me) },
+                total = total,
+                more = when {
+                    hidden > 0 -> SectionMore.ShowMore(hidden, loading = loading, failed = failed)
+                    total > SECTION_FIRST -> SectionMore.ShowFewer
+                    else -> null
+                },
+            )
+        }
     }
 
     companion object {
         private const val STOP_TIMEOUT_MILLIS = 5_000L
         private const val SEARCH_DEBOUNCE_MILLIS = 300L
+
+        /** Rows each section opens with (Sheldon, 2026-11-05). */
+        const val SECTION_FIRST = 5
+
+        /** Rows each Show more adds. */
+        const val SECTION_STEP = 10
+
+        /**
+         * The sections a list asks the server for, in display order, with the same week edges as
+         * [group]. Delayed casework is one section of its own; every other section leaves it out.
+         */
+        internal fun sectionPlan(
+            query: TaskQuery,
+            today: LocalDate,
+            locale: Locale = Locale.getDefault(),
+        ): List<Pair<DueGroup, TaskSlice>> {
+            val casework = query.scope == TaskScope.Casework
+            val delayed = casework && query.delays != DelayFilter.Hide
+            val others = !(casework && query.delays == DelayFilter.Only)
+            val weekStart = today.with(TemporalAdjusters.previousOrSame(WeekFields.of(locale).firstDayOfWeek))
+            val nextWeek = weekStart.plusWeeks(1)
+            val past = query.window != TaskWindow.DueSoon
+            val ahead = query.window != TaskWindow.Overdue
+            return buildList {
+                if (others && past) add(DueGroup.Overdue to TaskSlice(dueTo = today.minusDays(1)))
+                if (delayed) add(DueGroup.Delayed to TaskSlice(delayed = true))
+                if (others && ahead) {
+                    add(DueGroup.ThisWeek to TaskSlice(dueFrom = today, dueTo = nextWeek.minusDays(1)))
+                    add(DueGroup.NextWeek to TaskSlice(dueFrom = nextWeek, dueTo = nextWeek.plusDays(DAYS_IN_WEEK - 1)))
+                    add(DueGroup.Later to TaskSlice(dueFrom = nextWeek.plusWeeks(1)))
+                }
+            }
+        }
+
+        private const val DAYS_IN_WEEK = 7L
 
         /** Weeks start on the locale's first day, as the phone's own calendar does. */
         internal fun group(due: LocalDate?, today: LocalDate, locale: Locale = Locale.getDefault()): DueGroup {
@@ -368,6 +488,15 @@ class TasksViewModel @Inject constructor(
             }
         }
     }
+}
+
+/**
+ * A task in two sections at once (the server moved it between two section loads) shows only in
+ * the first, as the list keys rows by task id.
+ */
+private fun distinctRows(sections: List<TaskSection>): List<TaskSection> {
+    val seen = mutableSetOf<Int>()
+    return sections.map { section -> section.copy(rows = section.rows.filter { seen.add(it.id) }) }
 }
 
 /** A task as its card shows it; [me] leaves the owner off the person's own tasks. */

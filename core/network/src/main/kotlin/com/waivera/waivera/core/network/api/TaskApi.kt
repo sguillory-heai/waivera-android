@@ -48,6 +48,9 @@ interface TaskApi {
         @Query("searchTerm") searchTerm: String = "",
         @Query("date") date: List<String>? = null,
         @Query("taskDelayFilter") taskDelayFilter: String? = null,
+        /** Inclusive due-date bounds as `yyyy-MM-dd`, ANDed with [date]. */
+        @Query("dateRangeStart") dateRangeStart: String? = null,
+        @Query("dateRangeEnd") dateRangeEnd: String? = null,
         @Query("excludeStatus") excludeStatus: List<String>? = listOf(CLOSED),
         @Query("sort") sort: List<String>? = listOf(SORT_DUE),
         @Query("page") page: Int = 1,

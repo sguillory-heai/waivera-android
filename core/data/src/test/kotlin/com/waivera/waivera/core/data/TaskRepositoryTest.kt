@@ -5,6 +5,7 @@ import com.waivera.waivera.core.data.model.DelayFilter
 import com.waivera.waivera.core.data.model.RequestAccess
 import com.waivera.waivera.core.data.model.TaskQuery
 import com.waivera.waivera.core.data.model.TaskScope
+import com.waivera.waivera.core.data.model.TaskSlice
 import com.waivera.waivera.core.data.model.TaskWindow
 import com.waivera.waivera.core.data.repository.RequestRepository
 import com.waivera.waivera.core.network.WaiveraJson
@@ -12,6 +13,7 @@ import com.waivera.waivera.core.network.api.TaskApi
 import com.waivera.waivera.core.testing.FixtureServer
 import com.waivera.waivera.core.testing.TestSessionRepository
 import java.lang.reflect.Proxy
+import java.time.LocalDate
 import kotlin.test.AfterTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -45,6 +47,36 @@ class TaskRepositoryTest {
         repository.tasks(TaskQuery(TaskScope.Mine, TaskWindow.AllOpen, delays = DelayFilter.Only), 1).getOrThrow()
         val sent = server.requests.map { it.param("taskDelayFilter") }
         assertEquals(listOf("without-delays", "delayed", null, null), sent)
+    }
+
+    @Test
+    fun each_section_asks_for_its_own_slice_and_page_size() = runTest {
+        server.json("GET /api/tasks/user/*", """{"tasks":[],"totalCount":0}""")
+        val dueSoon = TaskQuery(TaskScope.Casework, TaskWindow.DueSoon)
+        // The week of the US fall-back change (Sunday Nov 1 2026): plain dates, no offsets.
+        val week = TaskSlice(dueFrom = LocalDate.of(2026, 11, 1), dueTo = LocalDate.of(2026, 11, 7))
+        repository.tasks(dueSoon.copy(slice = week), page = 2, pageSize = 5).getOrThrow()
+        repository.tasks(dueSoon.copy(slice = TaskSlice(delayed = true)), 1, 5).getOrThrow()
+        val overdueSlice = TaskSlice(dueTo = LocalDate.of(2026, 10, 31))
+        repository.tasks(TaskQuery(TaskScope.Casework, TaskWindow.AllOpen, slice = overdueSlice), 1, 5).getOrThrow()
+        repository.tasks(TaskQuery(TaskScope.Mine, TaskWindow.AllOpen, slice = overdueSlice), 1, 5).getOrThrow()
+        val (thisWeek, delayed, overdue) = server.requests
+        val mine = server.requests[3]
+        assertEquals("2026-11-01", thisWeek.param("dateRangeStart"))
+        assertEquals("2026-11-07", thisWeek.param("dateRangeEnd"))
+        assertEquals("month", thisWeek.param("date"))
+        assertEquals("without-delays", thisWeek.param("taskDelayFilter"))
+        assertEquals("2", thisWeek.param("page"))
+        assertEquals("5", thisWeek.param("pageSize"))
+        assertEquals("delayed", delayed.param("taskDelayFilter"))
+        assertEquals("month", delayed.param("date"))
+        assertNull(delayed.param("dateRangeStart"))
+        // Overdue is cut by date like the week sections, never by the server's own "today".
+        assertNull(overdue.param("date"))
+        assertEquals("2026-10-31", overdue.param("dateRangeEnd"))
+        assertEquals("without-delays", overdue.param("taskDelayFilter"))
+        assertEquals("2026-10-31", mine.param("dateRangeEnd"))
+        assertNull(mine.param("taskDelayFilter"))
     }
 
     @Test
