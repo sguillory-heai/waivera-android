@@ -43,10 +43,10 @@ import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.waivera.waivera.core.data.image.AvatarModel
 import com.waivera.waivera.core.data.model.AttendeeOption
 import com.waivera.waivera.core.designsystem.component.BannerTone
 import com.waivera.waivera.core.designsystem.component.WaiveraAvatar
-import com.waivera.waivera.core.designsystem.component.WaiveraAvatarColors
 import com.waivera.waivera.core.designsystem.component.WaiveraBanner
 import com.waivera.waivera.core.designsystem.component.WaiveraBottomSheet
 import com.waivera.waivera.core.designsystem.component.WaiveraButton
@@ -506,21 +506,14 @@ private fun InviteeRow(person: AttendeeOption, enabled: Boolean, adding: Boolean
         verticalAlignment = Alignment.Top,
         horizontalArrangement = Arrangement.spacedBy(WaiveraSpacing.MediumSmall),
     ) {
+        // The same avatar as everywhere else: a coworker's photo, otherwise their own initials
+        // tile. The groups' headers already tell coworkers and participants apart.
         WaiveraAvatar(
             name = person.name,
+            imageModel = if (person.participant) null else AvatarModel.of(person.id),
             size = WaiveraSizes.AvatarSmall,
             contentDescription = null,
             modifier = Modifier.padding(top = WaiveraSpacing.XxSmall),
-            // The picker colours people by kind (teal participants, violet coworkers), so here
-            // the per-person tile would blur the two groups.
-            colors = if (person.participant) {
-                WaiveraAvatarColors(
-                    teal.container,
-                    teal.content,
-                )
-            } else {
-                WaiveraAvatarColors.default()
-            },
         )
         Column(Modifier.weight(1f)) {
             Text(
