@@ -626,6 +626,27 @@ class TodayViewModelTest {
         assertEquals(0, requests.refreshes)
     }
 
+    @Test
+    fun requests_aNewRequestNotificationReloadsThePendingList() = runTest(main.testDispatcher) {
+        val (viewModel, _) = start()
+        runCurrent()
+        val before = requests.refreshes
+        assertTrue(viewModel.ui.needsYou.items.none { it is NeedsYouItem.Request })
+
+        // A request arrives live: its notification stays out of Needs you, its card comes in.
+        requests.server = listOf(changeRequest(9, "Profile Change", "Jordan Lee"))
+        notices.state.value = Synced(
+            NoticeFeed(
+                listOf(notice("new-review", kind = NoticeKind.Approval, taskId = null).copy(opensRequests = true)),
+                unreadCount = 1,
+            ),
+            lastSyncedAt = TEST_NOW,
+        )
+        runCurrent()
+        assertEquals(before + 1, requests.refreshes)
+        assertEquals(listOf("request-9"), viewModel.ui.needsYou.items.map { it.key })
+    }
+
     private fun changeRequest(id: Int, type: String, who: String) = ChangeRequest(
         id = id,
         kind = RequestKind.TimeOff,

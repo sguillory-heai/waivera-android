@@ -143,6 +143,7 @@ class TodayViewModel @Inject constructor(
 
     init {
         viewModelScope.launch { waiting.refresh() }
+        viewModelScope.launch { waiting.followNotices(notices.observeNotices().map { it.data.items }) }
         refreshStaleSources()
         pager.start()
         recordHandled()

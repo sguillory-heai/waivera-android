@@ -1,10 +1,13 @@
 package com.waivera.waivera.feature.today
 
 import com.waivera.waivera.core.data.model.ChangeRequest
+import com.waivera.waivera.core.data.model.Notice
 import com.waivera.waivera.core.data.repository.RequestRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
 
 /**
  * The requests behind Needs you, read from the server's live pending list rather than their
@@ -26,6 +29,22 @@ internal class WaitingRequests(private val requests: RequestRepository) {
         requests.ensureAccess()
         if (requests.access.value.showsRequests) requests.refreshWaiting()
         attempted.value = true
+    }
+
+    /**
+     * Request notifications no longer show in Needs you, so when a new one arrives (live, or on
+     * the inbox's reconnect refresh) the pending list reloads and the new card appears at once.
+     */
+    suspend fun followNotices(notices: Flow<List<Notice>>) {
+        var seen: Set<String>? = null
+        notices
+            .map { items -> items.filter { it.opensRequests && !it.read }.mapTo(HashSet()) { it.id } }
+            .distinctUntilChanged()
+            .collect { ids ->
+                val before = seen
+                seen = ids
+                if (before != null && !before.containsAll(ids)) refresh()
+            }
     }
 }
 
