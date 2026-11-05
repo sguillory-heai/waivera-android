@@ -117,8 +117,10 @@ class TodayViewModel @Inject constructor(
                 conversations.observeFailedSends(),
             ) { chats, feed, events, milestones, failed -> TodaySources(chats, feed, events, milestones, failed) },
             notices.observeNotices(),
-            waiting.items,
-        ) { sources, inbox, waiting -> sources.copy(notices = inbox, requests = waiting) },
+            waiting.state,
+        ) { sources, inbox, waiting ->
+            sources.copy(notices = inbox, requests = waiting.items, requestsSettled = waiting.settled)
+        },
         combine(
             combine(session.state, zone, ticks, realtimeStatus.status, local) { s, z, now, realtime, l ->
                 TodayContext(

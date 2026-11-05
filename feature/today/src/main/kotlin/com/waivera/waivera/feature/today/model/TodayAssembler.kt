@@ -53,6 +53,8 @@ data class TodaySources(
     val notices: Synced<NoticeFeed>? = null,
     /** Requests waiting on this person's decision; empty when they may not review requests. */
     val requests: List<ChangeRequest> = emptyList(),
+    /** False until the pending list has answered once; Needs you is not "ready" before that. */
+    val requestsSettled: Boolean = true,
 )
 
 /** Who, where and when the screen is rendered for. */
@@ -203,7 +205,7 @@ object TodayAssembler {
             hiddenCount = all.size - visible.size,
             kinds = NeedsYouKinds.of(all),
             isExpanded = context.local.needsYouExpanded && all.size > NeedsYouSection.COLLAPSED_COUNT,
-            isReady = ready,
+            isReady = ready && (sources.requestsSettled || all.isNotEmpty()),
             failed = !ready && sources.conversations.error != null,
         )
     }

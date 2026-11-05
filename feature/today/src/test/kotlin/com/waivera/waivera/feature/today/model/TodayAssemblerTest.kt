@@ -254,6 +254,13 @@ class TodayAssemblerTest {
         assertFalse(assemble(sources(synced = null)).isAllCaughtUp)
     }
 
+    @Test
+    fun `not caught up while the pending requests list has not answered yet`() {
+        val waiting = sources(activity = listOf(activity(1, read = true))).copy(requestsSettled = false)
+        assertFalse(assemble(waiting).isAllCaughtUp, "a cold start never flashes the reward")
+        assertTrue(assemble(waiting.copy(requestsSettled = true)).isAllCaughtUp)
+    }
+
     // Up next
 
     @Test
