@@ -6,6 +6,7 @@ import android.app.NotificationManager
 import android.content.Context
 import android.content.pm.PackageManager
 import android.os.Build
+import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import androidx.core.app.NotificationCompat
@@ -76,6 +77,7 @@ class AndroidNotifier @Inject constructor(
         )
             .conversationShortcut(existing?.shortcutId)
             .setStyle(style)
+            .threadTitle(threadRootMessageId, style)
             .setOnlyAlertOnce(true)
             .addExtras(state.copy(target = target).toBundle())
             .build()
@@ -145,6 +147,11 @@ class AndroidNotifier @Inject constructor(
             } else {
                 messagingStyle(context, conversation)
             }
+        // The shortcut names a group, or a person with their photo, and the style must agree: a
+        // group style shows each sender's photo beside their messages, so a direct chat drawn as
+        // a group showed the same photo twice once expanded (the shortcut's and the sender's).
+        val groupTitle = conversation?.title?.takeIf { conversation.isGroup }
+        style.setGroupConversation(groupTitle != null)
         // In a group the collapsed line is "<sender>: <text>", so a long sender is shortened to
         // leave the text room; the key keeps the full name, which identifies the sender.
         val shownName = if (style.isGroupConversation) SenderName.short(context, senderName) else senderName
@@ -166,7 +173,6 @@ class AndroidNotifier @Inject constructor(
             channel = channel,
         )
         // The shortcut names the conversation, never "Thread in …", so a thread shares its chat's.
-        val groupTitle = conversation?.title?.takeIf { conversation.isGroup }
         val shortcutId = runCatching {
             shortcuts.publish(
                 conversationId = message.conversationId,
@@ -183,6 +189,7 @@ class AndroidNotifier @Inject constructor(
         )
             .conversationShortcut(shortcutId)
             .setStyle(style)
+            .threadTitle(threadRoot, style)
             .addExtras(extras.toBundle())
             .build()
         val tag = chatTag(message.conversationId, threadRoot)
@@ -366,8 +373,8 @@ private fun messagingStyle(
 
 /**
  * A thread's notification is titled after its chat ("Thread in North team", "Thread with Alex
- * Rivera"), so the shade says where the reply is before anyone taps it. Shown as a group so the
- * title is always visible, even for a direct chat.
+ * Rivera"), so the shade says where the reply is before anyone taps it. It is a group only when
+ * the chat is; [threadTitle] keeps the title showing either way.
  */
 private fun threadStyle(
     context: Context,
@@ -383,8 +390,22 @@ private fun threadStyle(
         else -> context.getString(R.string.core_notifications_thread_title_direct, name ?: senderName)
     }
     style.setConversationTitle(title)
-    style.setGroupConversation(true)
+    style.setGroupConversation(conversation?.isGroup == true)
     return style
+}
+
+/**
+ * Android 11+ replaces a conversation notification's title with its shortcut's label, and a
+ * thread shares its chat's shortcut, so "Thread with …" never showed. The big content title
+ * outranks both when the system draws the conversation.
+ */
+private fun NotificationCompat.Builder.threadTitle(
+    threadRootMessageId: Long?,
+    style: NotificationCompat.MessagingStyle,
+): NotificationCompat.Builder {
+    val title = style.conversationTitle
+    if (threadRootMessageId == null || title.isNullOrBlank()) return this
+    return addExtras(Bundle().apply { putCharSequence(NotificationCompat.EXTRA_TITLE_BIG, title) })
 }
 
 private fun NotificationCompat.Builder.conversationShortcut(shortcutId: String?): NotificationCompat.Builder =

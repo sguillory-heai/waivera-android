@@ -274,6 +274,54 @@ class AndroidNotifierTest {
     }
 
     @Test
+    fun `a direct chat's thread is drawn as a one-to-one so its photo shows once`() {
+        notifier.show(
+            threadReply(2, "on it"),
+            WaiveraChannel.Messages,
+            ConversationNotificationInfo("Alex Rivera", false),
+        )
+        val posted = assertNotNull(posted(AndroidNotifier.chatTag(7, 40)))
+        // The system rebuilds the style from the notification it was given, as the shade does.
+        val system = Notification.Builder.recoverBuilder(context, posted).style as Notification.MessagingStyle
+        assertFalse(system.isGroupConversation, "a group style puts the sender's photo beside each message")
+        assertEquals(
+            "Thread with Alex Rivera",
+            posted.extras.getCharSequence(Notification.EXTRA_TITLE_BIG)?.toString(),
+            "the shortcut's label would otherwise replace the thread title",
+        )
+    }
+
+    @Test
+    fun `a thread in a chat not cached yet matches its person shortcut`() {
+        notifier.show(threadReply(2, "on it"), WaiveraChannel.Messages, null)
+        val posted = assertNotNull(posted(AndroidNotifier.chatTag(7, 40)))
+        val system = Notification.Builder.recoverBuilder(context, posted).style as Notification.MessagingStyle
+        assertFalse(system.isGroupConversation)
+        assertEquals("Reply in a thread", posted.extras.getCharSequence(Notification.EXTRA_TITLE_BIG)?.toString())
+    }
+
+    @Test
+    fun `a group chat's thread stays a group and keeps its title after a reply`() {
+        val info = ConversationNotificationInfo("North team", true)
+        notifier.show(threadReply(2, "on it"), WaiveraChannel.GroupActivity, info)
+        notifier.showReplySent(conversationId = 7, threadRootMessageId = 40, text = "Thanks")
+        val posted = assertNotNull(posted(AndroidNotifier.chatTag(7, 40)))
+        val system = Notification.Builder.recoverBuilder(context, posted).style as Notification.MessagingStyle
+        assertTrue(system.isGroupConversation)
+        assertEquals("Thread in North team", posted.extras.getCharSequence(Notification.EXTRA_TITLE_BIG)?.toString())
+    }
+
+    @Test
+    fun `a direct chat stays one-to-one and has no big title`() {
+        val info = ConversationNotificationInfo("Alex Rivera", false)
+        notifier.show(chat(1, "hi"), WaiveraChannel.Messages, info)
+        notifier.show(chat(2, "you there?"), WaiveraChannel.Messages, info)
+        val system = Notification.Builder.recoverBuilder(context, postedChat(7)).style as Notification.MessagingStyle
+        assertFalse(system.isGroupConversation)
+        assertNull(postedChat(7).extras.getCharSequence(Notification.EXTRA_TITLE_BIG))
+    }
+
+    @Test
     fun `reading a thread clears only its notification and reading the chat leaves the thread`() {
         notifier.show(chat(1, "main chat"), WaiveraChannel.Messages, null)
         notifier.show(threadReply(2, "on it"), WaiveraChannel.Messages, null)
